@@ -15,6 +15,8 @@ trajectory generation using the Control Toolbox are provided.
 For optional visualization, a [MeshCat](https://github.com/rdeits/meshcat) ZMQ interface is provided and a [PyBullet](https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.2ye70wns7io3) based
 visualizer.
 
+![](https://github.com/erwincoumans/tiny-differentiable-simulator/blob/master/data/trb_meshcat.jpg)
+
 ## Getting started
 The open-source version builds using CMake and requires a compiler with C++17 support.
 
@@ -27,17 +29,27 @@ make -j
 
 ## Examples
 
-Most examples (see `examples/` folder) use either Ceres or Control Toolbox. To install:
+For visualization, two options are supported:
+
+* MeshCat, a web-based visualizer that uses WebGL
+
+Before running the example, install python, pip and meshcat, run the meshcat-server 
+and open the web browser (Chrome is recommended for a good three.js experience.)
+```
+pip install meshcat
+meshcat-server --open
+This should open Chrome at http://localhost:7000/static/
+Then compile and run tiny_urdf_parser_meshcat_example in optimized/release build.
+```
+
+* PyBullet visualization, a cross-platform solution that visualizes in a native OpenGL window
+
+URDF files can be loaded either throught the PyBullet interface or a provided parser based on TinyXML2. All simulation features are therefore available without requiring PyBullet.
+
+Several examples (see `examples/` folder) use either Ceres or Control Toolbox. To install:
 
 * Ceres Solver (optional) >1.14.0
 * Control Toolbox (optional) >3.0.2
-
-For visualization, two options are supported:
-
-* PyBullet visualization, a cross-platform solution that visualizes in a native OpenGL window
-* MeshCat, a web-based visualizer that uses WebGL
-
-URDF files can be loaded either throught the PyBullet interface or a provided parser based on TinyXML2. All simulation features are therefore available without requiring PyBullet.
 
 ### Ceres Solver
 Check out the [installation](http://ceres-solver.org/installation.html) page from the manual.
