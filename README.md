@@ -15,6 +15,8 @@ trajectory generation using the Control Toolbox are provided.
 For optional visualization, a MeshCat ZMQ interface is provided and a pybullet
 visualizer.
 
+![](https://github.com/erwincoumans/tiny-differentiable-simulator/blob/master/data/trb_meshcat.jpg)
+
 ## Getting started
 The open-source version builds using CMake and requires a compiler with C++17 support.
 
