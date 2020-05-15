@@ -12,7 +12,7 @@ fix-point integer math, that provide cross-platform deterministic computation.
 Examples to exploit the gradients for system identification using Ceres and
 trajectory generation using the Control Toolbox are provided.
 
-For optional visualization, a MeshCat ZMQ interface is provided and a pybullet
+For optional visualization, a [MeshCat](https://github.com/rdeits/meshcat) ZMQ interface is provided and a [PyBullet](https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.2ye70wns7io3) based
 visualizer.
 
 ## Getting started
