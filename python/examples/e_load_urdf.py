@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pydiffphys as dp
+import pytinydiffsim as dp
 urdf_parser = dp.TinyUrdfParser()
-urdf_data = urdf_parser.load_urdf("laikago/laikago_toes_zup.urdf")
+urdf_data = urdf_parser.load_urdf("../../data/laikago/laikago_toes_zup.urdf")
 print("robot_name=",urdf_data.robot_name)
