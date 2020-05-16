@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#Tiny Differentiable Simulator or TDS
+
 cmake_minimum_required(VERSION 2.4.3)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 set (CMAKE_CXX_STANDARD 17)
@@ -28,6 +30,9 @@ cmake_policy(SET CMP0017 NEW)
 SET(MSVC_INCREMENTAL_DEFAULT ON)
 
 PROJECT(DIFF_PHYSICS)
+
+#The core library consists of those headers
+FILE(GLOB TDS_HDRS "*.h" )
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -57,3 +62,8 @@ ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 SUBDIRS(third_party/cpp_base64)
 
 SUBDIRS(examples)
+
+OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" OFF)
+IF(BUILD_PYTHON_PLUGIN)
+  SUBDIRS(python)
+ENDIF()
