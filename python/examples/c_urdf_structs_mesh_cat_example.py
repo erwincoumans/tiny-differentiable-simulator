@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pydiffphys as pd
+import pytinydiffsim as pd
 import time
 import os
 import meshcat

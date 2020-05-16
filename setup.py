@@ -105,7 +105,7 @@ else:
         print("numpy_include_dirs = %s" % d)
     include_dirs += NP_DIRS
 
-sources = ["python/pydiffphys.cc", "third_party/tinyxml2/tinyxml2.cpp"]
+sources = ["python/pytinydiffsim.cc", "third_party/tinyxml2/tinyxml2.cpp"]
 
 if _platform == "linux" or _platform == "linux2":
     print("linux")
@@ -176,17 +176,17 @@ print("-----")
 
 extensions = []
 
-pydiffphys_ext = Extension(
-    "pydiffphys",
+pytinydiffsim_ext = Extension(
+    "pytinydiffsim",
     sources=sources,
     libraries=libraries,
     extra_compile_args=CXX_FLAGS.split(),
     include_dirs=include_dirs + ["."])
 
-extensions.append(pydiffphys_ext)
+extensions.append(pytinydiffsim_ext)
 
 setup(
-    name='pydiffphys',
+    name='pytinydiffsim',
     version='0.0.1',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
@@ -219,4 +219,4 @@ setup(
     ],
     package_dir={'': 'python'},
     packages=[x for x in find_packages('python')],
-    package_data={'pydiffphys_data': need_files})
+    package_data={'pytinydiffsim_data': need_files})

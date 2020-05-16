@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pydiffphys import Motion
+from pytinydiffsim import Motion
 import matplotlib.pyplot as plt
 import numpy as np
 
