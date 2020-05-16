@@ -18,6 +18,7 @@ include_directories(. ..)
 
 set(DL ${CMAKE_DL_LIBS})
 
+
 find_package(ct_core)
 find_package(ct_optcon)
 find_package(Ceres)
@@ -100,24 +101,24 @@ if (Bullet_FOUND)
             OpenGLWindow gwen BussIK Bullet3Common pthread ${DL})
 
     if (Ceres_FOUND)
-        add_executable(billiard_opt_gui billiard_opt_gui.cpp)
+        add_executable(billiard_opt_gui billiard_opt_gui.cpp ${TDS_HDRS})
         target_link_libraries(billiard_opt_gui pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
         target_compile_definitions(billiard_opt_gui PRIVATE STAN_MATH)
 
-        add_executable(cartpole_opt cartpole_opt.cpp)
+        add_executable(cartpole_opt cartpole_opt.cpp ${TDS_HDRS})
         target_link_libraries(cartpole_opt pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
 
-        add_executable(ceres_estimation ceres_estimation.cpp)
+        add_executable(ceres_estimation ceres_estimation.cpp ${TDS_HDRS})
         target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
 
-        add_executable(policy_optimization policy_optimization.cpp)
+        add_executable(policy_optimization policy_optimization.cpp ${TDS_HDRS})
         target_link_libraries(policy_optimization pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
 
-        add_executable(contact_discovery contact_discovery.cpp)
+        add_executable(contact_discovery contact_discovery.cpp ${TDS_HDRS})
         target_link_libraries(contact_discovery pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
     endif (Ceres_FOUND)
@@ -130,41 +131,41 @@ if (Bullet_FOUND)
         include_directories(${ct_optcon_INCLUDE_DIRS})
         include_directories(${EIGEN3_INCLUDE_DIRS})
 
-        add_executable(ct_cartpole ct_cartpole.cpp)
+        add_executable(ct_cartpole ct_cartpole.cpp ${TDS_HDRS})
         target_link_libraries(ct_cartpole pybullet_visualizer_api ${DL}
                 -lpthread hpipm blasfeo)
 
-        add_executable(ct_contact_trajopt ct_contact_trajopt.cpp)
+        add_executable(ct_contact_trajopt ct_contact_trajopt.cpp ${TDS_HDRS})
         target_link_libraries(ct_contact_trajopt pybullet_visualizer_api ${DL}
                 -lpthread hpipm blasfeo)
 
-        add_executable(ct_laikago_tracking ct_laikago_tracking.cpp)
+        add_executable(ct_laikago_tracking ct_laikago_tracking.cpp ${TDS_HDRS})
         target_link_libraries(ct_laikago_tracking pybullet_visualizer_api ${DL}
                 -lpthread hpipm blasfeo)
     endif (ct_core_FOUND AND ct_optcon_FOUND AND Eigen3_FOUND)
 
-    add_executable(laikago_example_gui laikago_example_gui.cpp)
+    add_executable(laikago_example_gui laikago_example_gui.cpp ${TDS_HDRS})
     target_link_libraries(laikago_example_gui pybullet_visualizer_api)
 
     if (Eigen3_FOUND)
-      add_executable(laikago_footstep_ik laikago_footstep_ik.cpp)
+      add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
       target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
 
       add_executable(pendulum_ik_gui pendulum_ik_gui.cpp)
       target_link_libraries(pendulum_ik_gui pybullet_visualizer_api)
     endif()
 
-    add_executable(pendulum_example_gui pendulum_example_gui.cpp)
+    add_executable(pendulum_example_gui pendulum_example_gui.cpp ${TDS_HDRS})
     target_link_libraries(pendulum_example_gui pybullet_visualizer_api)
 
-    add_executable(generic_urdf_collision generic_urdf_collision.cpp)
+    add_executable(generic_urdf_collision generic_urdf_collision.cpp ${TDS_HDRS})
     target_link_libraries(generic_urdf_collision pybullet_visualizer_api)
 
-    add_executable(gravity_compensation gravity_compensation.cpp)
+    add_executable(gravity_compensation gravity_compensation.cpp ${TDS_HDRS})
     target_link_libraries(gravity_compensation pybullet_visualizer_api)
 
 if (HAS_MESHCAT)
-    add_executable(laikago_meshcat_example laikago_meshcat_example.cpp)
+    add_executable(laikago_meshcat_example laikago_meshcat_example.cpp ${TDS_HDRS})
     target_link_libraries(laikago_meshcat_example  pybullet_visualizer_api ${MESHCAT_LIBRARIES})
     
 endif (HAS_MESHCAT)
@@ -173,19 +174,20 @@ endif (Bullet_FOUND)
 
 
 if (HAS_MESHCAT AND tinyxml2_FOUND)
-    add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp) 
+    
+    add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS}) 
     target_link_libraries(tiny_urdf_parser_meshcat_example  tinyxml2 ${MESHCAT_LIBRARIES}) 
 
 
-    add_executable(meshcat_zmq_example meshcat_zmq_example.cpp)
+    add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
     target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
 
 endif (HAS_MESHCAT AND tinyxml2_FOUND)
 
 if (tinyxml2_FOUND)
-    add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp)
+    add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
     target_link_libraries(tiny_urdf_parser_example tinyxml2)
 endif (tinyxml2_FOUND)
 
-add_executable(world_example world_example.cpp)
-add_executable(test_xarm test_xarm.cpp)
+add_executable(world_example world_example.cpp ${TDS_HDRS})
+add_executable(test_xarm test_xarm.cpp ${TDS_HDRS})

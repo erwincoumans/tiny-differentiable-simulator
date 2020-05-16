@@ -48,12 +48,12 @@ struct UrdfToMultiBody2 {
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(pydiffphys, m) {
+PYBIND11_MODULE(pytinydiffsim, m) {
   m.doc() = R"pbdoc(
-        pydiffphysics differentiable physics engine plugin
+        tiny differentiable physics python plugin
         -----------------------
 
-        .. currentmodule:: pydiffphysics
+        .. currentmodule:: pytinydiffsim
 
         .. autosummary::
            :toctree: _generate

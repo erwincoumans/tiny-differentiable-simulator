@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#Tiny Differentiable Simulator or TDS
+
 cmake_minimum_required(VERSION 2.4.3)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 set (CMAKE_CXX_STANDARD 17)
@@ -28,6 +30,9 @@ cmake_policy(SET CMP0017 NEW)
 SET(MSVC_INCREMENTAL_DEFAULT ON)
 
 PROJECT(DIFF_PHYSICS)
+
+#The core library consists of those headers
+FILE(GLOB TDS_HDRS "*.h" )
 
 set(CMAKE_CXX_STANDARD 17)
 

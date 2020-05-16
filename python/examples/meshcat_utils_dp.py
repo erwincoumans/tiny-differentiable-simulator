@@ -18,7 +18,7 @@ import os
 
 import meshcat
 import meshcat.geometry as g
-import pydiffphys as dp
+import pytinydiffsim as dp
 import numpy as np
 
 
