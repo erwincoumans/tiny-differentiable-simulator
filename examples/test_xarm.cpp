@@ -28,7 +28,7 @@
 
 template <typename TinyScalar, typename TinyConstants>
 void xarm6_fk_fd(TinyMultiBody<TinyScalar, TinyConstants>& mb,
-                 std::vector<TinyScalar>& qdd, bool old) {
+                 std::vector<TinyScalar>& qdd) {
   std::vector<TinyScalar> q;
   std::vector<TinyScalar> qd;
   std::vector<TinyScalar> tau;
@@ -49,49 +49,29 @@ void xarm6_fk_fd(TinyMultiBody<TinyScalar, TinyConstants>& mb,
   TinyVector3<TinyScalar, TinyConstants> gravity(
       TinyConstants::zero(), TinyConstants::zero(),
       TinyConstants::fraction(-981,100));
-  if (old) {
-    mb.forwardDynamicsOld(q, qd, tau, gravity, qdd);
-  } else {
-    mb.forward_dynamics(q, qd, tau, gravity, qdd);
-  }
+  mb.forward_dynamics(q, qd, tau, gravity, qdd);
+  
 }
 int main(int argc, char* argv[]) {
   // Set NaN trap
   //feenableexcept(FE_INVALID | FE_OVERFLOW);
 
   std::vector<double> new_qdd;
-  std::vector<double> old_qdd;
+  
   bool isFloating = false;
+  
   {
     TinyMultiBody<double, DoubleUtils> mb(isFloating);
     init_xarm6<double, DoubleUtils>(mb);
-    xarm6_fk_fd<double, DoubleUtils>(mb, old_qdd, true);
-  }
-  {
-    TinyMultiBody<double, DoubleUtils> mb(isFloating);
-    init_xarm6<double, DoubleUtils>(mb);
-    xarm6_fk_fd<double, DoubleUtils>(mb, new_qdd, false);
-  }
-
-  for (std::size_t i = 0; i < new_qdd.size(); ++i) {
-    double new_d = new_qdd[i];
-    double old_d = old_qdd[i];
-    // TinyConstants::FullAssert(abs(old_d - new_d) < 1e-4);
-    if (abs(old_d - new_d) > 1e-4) {
-      printf("ERROR: Discrepancy between old (%.4f) and new (%.4f) qdd.\n",
-             old_d, new_d);
-    } else {
-      printf("OK: qdd matching qdd_old(%.4f)\n", old_d);
-    }
+    xarm6_fk_fd<double, DoubleUtils>(mb, new_qdd);
   }
 
   {
-    bool useOldMethod = false;
     std::vector<Fix64Scalar> new_qdd_fp;
     TinyMultiBody<Fix64Scalar, Fix64Scalar> mb;
     mb.m_isFloating = false;
     init_xarm6<Fix64Scalar, Fix64Scalar>(mb);
-    xarm6_fk_fd<Fix64Scalar, Fix64Scalar>(mb, new_qdd_fp, useOldMethod);
+    xarm6_fk_fd<Fix64Scalar, Fix64Scalar>(mb, new_qdd_fp);
 
 
     for (std::size_t i = 0; i < new_qdd.size(); ++i) {
