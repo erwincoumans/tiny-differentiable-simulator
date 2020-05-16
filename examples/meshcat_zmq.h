@@ -23,13 +23,17 @@ std::string generate_uuid() { return xg::newGuid().str(); }
 #include "zmq.hpp"
 #include "zmq_addon.hpp"
 
-inline nlohmann::json create_delete_cmd() {
-  nlohmann::json delete_cmd = {{"type", "delete"}, {"path", "/meshcat"}};
+inline nlohmann::json create_delete_cmd(const std::string& path= std::string("/meshcat")) {
+  nlohmann::json delete_cmd = {{"type", "delete"}, {"path", path.c_str()}};
   return delete_cmd;
 }
 
+
 inline nlohmann::json create_sphere_cmd(double radius, double world_pos[3],
-                                        int color_rgb, const char *path) {
+                                        int color_rgb, const char *path,
+                                        bool transparent=false,
+                                        double opacity = 1.0
+                                        ) {
   std::string geom_uid = generate_uuid();
   std::string material_uid = generate_uuid();
   std::string object_uid = generate_uuid();
@@ -49,8 +53,8 @@ inline nlohmann::json create_sphere_cmd(double radius, double world_pos[3],
          {{{"color", color_rgb},
            {"reflectivity", 0.5},
            {"side", 2},
-           {"transparent", false},
-           {"opacity", 1.0},
+           {"transparent", transparent},
+           {"opacity", opacity},
            {"type", "MeshPhongMaterial"},
            {"uuid", material_uid}}}},
         {

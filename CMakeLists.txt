@@ -57,3 +57,8 @@ ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 SUBDIRS(third_party/cpp_base64)
 
 SUBDIRS(examples)
+
+OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" OFF)
+IF(BUILD_PYTHON_PLUGIN)
+  SUBDIRS(python)
+ENDIF()

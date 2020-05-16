@@ -15,266 +15,97 @@
 # limitations under the License.
 
 
+
+SET(PYTHON_VERSION_DIFF_PHYSICS "" CACHE STRING "Python version pydiffphys will use.")
+SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.7.12 2.7.10 2.7.3 )
+SET_PROPERTY(CACHE PYTHON_VERSION_DIFF_PHYSICS PROPERTY STRINGS ${Python_ADDITIONAL_VERSIONS})
+SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build3/cmake ${CMAKE_MODULE_PATH})
+OPTION(EXACT_PYTHON_VERSION "Require Python and match PYTHON_VERSION_DIFF_PHYSICS exactly, e.g. 2.7.12" OFF)
+IF(EXACT_PYTHON_VERSION)
+    set(EXACT_PYTHON_VERSION_FLAG EXACT REQUIRED)
+ENDIF(EXACT_PYTHON_VERSION)
+# first find the python interpreter
+FIND_PACKAGE(PythonInterp ${PYTHON_VERSION_DIFF_PHYSICS} ${EXACT_PYTHON_VERSION_FLAG})
+# python library should exactly match that of the interpreter
+# the following can result in fatal error if you don't have the right python configuration
+FIND_PACKAGE(PythonLibs ${PYTHON_VERSION_STRING} EXACT)
+
+
+FIND_PACKAGE(PythonLibs)
+
+
+
+
+
+IF(WIN32)
+	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "Shared Libs" FORCE)
+ELSE(WIN32)
+	SET(BUILD_SHARED_LIBS ON CACHE BOOL "Shared Libs" FORCE)
+ENDIF(WIN32)
+
+IF(APPLE)
+	OPTION(BUILD_DIFF_PHYSICS_MAC_USE_PYTHON_FRAMEWORK "Set when you want to use the Python Framework on Mac" ON)
+	IF(NOT BUILD_DIFF_PHYSICS_MAC_USE_PYTHON_FRAMEWORK)
+		add_definitions(-DB3_NO_PYTHON_FRAMEWORK)
+	ENDIF(NOT BUILD_DIFF_PHYSICS_MAC_USE_PYTHON_FRAMEWORK)
+	OPTION(BUILD_DIFF_PHYSICS_SHOW_PY_VERSION "Set when you want to show the PY_MAJOR_VERSION and PY_MAJOR_VERSION using #pragme message." OFF)
+	IF(BUILD_DIFF_PHYSICS_SHOW_PY_VERSION)
+		add_definitions(-DB3_DUMP_PYTHON_VERSION)
+	ENDIF()
+ENDIF(APPLE)
+
+
 INCLUDE_DIRECTORIES( 
-		${BULLET_PHYSICS_SOURCE_DIR}/src
-		${BULLET_PHYSICS_SOURCE_DIR}/examples
-		${BULLET_PHYSICS_SOURCE_DIR}/examples/ThirdPartyLibs
-		${BULLET_PHYSICS_SOURCE_DIR}/examples/ThirdPartyLibs/enet/include
-                ${BULLET_PHYSICS_SOURCE_DIR}/examples/ThirdPartyLibs/clsocket/src
+    ${DIFF_PHYSICS_SOURCE_DIR}
+		${DIFF_PHYSICS_SOURCE_DIR}/python
+        ${DIFF_PHYSICS_SOURCE_DIR}/third_party/pybind11/include
 		${PYTHON_INCLUDE_DIRS}
-  )
-IF(BUILD_PYBULLET_NUMPY)
-	INCLUDE_DIRECTORIES(
-		${PYTHON_NUMPY_INCLUDE_DIR}
-	)
-ENDIF()
+    ${PYTHON_NUMPY_INCLUDE_DIR}
+)
+
 
 ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 
 
-#ADD_DEFINITIONS(-DUSE_EIGEN)
-#include_directories(../third_party/stan-math/lib/eigen_3.3.3)
-
-SET(pybullet_SRCS
-	
-	../../examples/SharedMemory/plugins/stablePDPlugin/SpAlg.cpp
-        ../../examples/SharedMemory/plugins/stablePDPlugin/SpAlg.h
-        ../../examples/SharedMemory/plugins/stablePDPlugin/Shape.cpp
-        ../../examples/SharedMemory/plugins/stablePDPlugin/Shape.h
-        ../../examples/SharedMemory/plugins/stablePDPlugin/RBDUtil.cpp
-        ../../examples/SharedMemory/plugins/stablePDPlugin/RBDUtil.h
-        ../../examples/SharedMemory/plugins/stablePDPlugin/RBDModel.cpp
-        ../../examples/SharedMemory/plugins/stablePDPlugin/RBDModel.h
-        ../../examples/SharedMemory/plugins/stablePDPlugin/MathUtil.cpp
-        ../../examples/SharedMemory/plugins/stablePDPlugin/MathUtil.h
-        ../../examples/SharedMemory/plugins/stablePDPlugin/KinTree.cpp
-        ../../examples/SharedMemory/plugins/stablePDPlugin/KinTree.h
-        ../../examples/SharedMemory/plugins/stablePDPlugin/BulletConversion.cpp
-        ../../examples/SharedMemory/plugins/stablePDPlugin/BulletConversion.h
-		../../examples/SharedMemory/plugins/collisionFilterPlugin/collisionFilterPlugin.cpp
-		../../examples/SharedMemory/plugins/pdControlPlugin/pdControlPlugin.cpp
-		../../examples/SharedMemory/plugins/pdControlPlugin/pdControlPlugin.h
-		../../examples/SharedMemory/b3RobotSimulatorClientAPI_NoDirect.cpp
-		../../examples/SharedMemory/b3RobotSimulatorClientAPI_NoDirect.h
-		../../examples/SharedMemory/IKTrajectoryHelper.cpp
-		../../examples/SharedMemory/IKTrajectoryHelper.h
-		../../examples/ExampleBrowser/InProcessExampleBrowser.cpp
-		../../examples/SharedMemory/plugins/tinyRendererPlugin/tinyRendererPlugin.cpp
-		../../examples/SharedMemory/plugins/tinyRendererPlugin/tinyRendererPlugin.h
-		../../examples/SharedMemory/plugins/tinyRendererPlugin/TinyRendererVisualShapeConverter.cpp
-		../../examples/SharedMemory/plugins/tinyRendererPlugin/TinyRendererVisualShapeConverter.h
-		../../examples/OpenGLWindow/SimpleCamera.cpp
-		../../examples/OpenGLWindow/SimpleCamera.h
-		../../examples/TinyRenderer/geometry.cpp
-		../../examples/TinyRenderer/model.cpp
-		../../examples/TinyRenderer/tgaimage.cpp
-		../../examples/TinyRenderer/our_gl.cpp
-		../../examples/TinyRenderer/TinyRenderer.cpp
-		../../examples/SharedMemory/InProcessMemory.cpp
-		../../examples/SharedMemory/PhysicsClient.cpp
-		../../examples/SharedMemory/PhysicsClient.h
-		../../examples/SharedMemory/PhysicsServer.cpp
-		../../examples/SharedMemory/PhysicsServer.h
-		../SharedMemory/GraphicsServerExample.cpp
-		../SharedMemory/GraphicsClientExample.cpp
-		../SharedMemory/RemoteGUIHelper.cpp
-		../SharedMemory/GraphicsServerExample.h
-		../SharedMemory/GraphicsClientExample.h
-		../SharedMemory/RemoteGUIHelper.h
-		../SharedMemory/GraphicsSharedMemoryCommands.h
-		../SharedMemory/GraphicsSharedMemoryPublic.h
-		../../examples/SharedMemory/PhysicsServerExample.cpp
-		../../examples/SharedMemory/PhysicsServerExampleBullet2.cpp
-		../../examples/SharedMemory/SharedMemoryInProcessPhysicsC_API.cpp
-		../../examples/SharedMemory/PhysicsServerSharedMemory.cpp
-		../../examples/SharedMemory/PhysicsServerSharedMemory.h
-		../../examples/SharedMemory/PhysicsDirect.cpp
-		../../examples/SharedMemory/PhysicsDirect.h
-		../../examples/SharedMemory/PhysicsDirectC_API.cpp
-		../../examples/SharedMemory/PhysicsDirectC_API.h
-		../../examples/SharedMemory/PhysicsServerCommandProcessor.cpp
-		../../examples/SharedMemory/PhysicsServerCommandProcessor.h
-		../../examples/SharedMemory/b3PluginManager.cpp
-		../../examples/SharedMemory/b3PluginManager.h
-		
-		../../examples/SharedMemory/PhysicsClientSharedMemory.cpp
-		../../examples/SharedMemory/PhysicsClientSharedMemory.h
-		../../examples/SharedMemory/PhysicsClientSharedMemory_C_API.cpp
-		../../examples/SharedMemory/PhysicsClientSharedMemory_C_API.h
-
-		../../examples/SharedMemory/PhysicsClientC_API.cpp
-		../../examples/SharedMemory/PhysicsClientC_API.h
-		../../examples/SharedMemory/Win32SharedMemory.cpp
-		../../examples/SharedMemory/Win32SharedMemory.h
-		../../examples/SharedMemory/PosixSharedMemory.cpp
-		../../examples/SharedMemory/PosixSharedMemory.h
-		../../examples/Utils/b3ResourcePath.cpp
-		../../examples/Utils/b3ResourcePath.h
-		../../examples/Utils/RobotLoggingUtil.cpp
-		../../examples/Utils/RobotLoggingUtil.h
-		
-		../../examples/ThirdPartyLibs/tinyxml2/tinyxml2.cpp
-		../../examples/ThirdPartyLibs/Wavefront/tiny_obj_loader.cpp
-		../../examples/ThirdPartyLibs/Wavefront/tiny_obj_loader.h
-		../../examples/ThirdPartyLibs/stb_image/stb_image.cpp
-		../../examples/ThirdPartyLibs/stb_image/stb_image_write.cpp
-		../../examples/Importers/ImportColladaDemo/LoadMeshFromCollada.cpp
-		../../examples/Importers/ImportObjDemo/LoadMeshFromObj.cpp
-		../../examples/Importers/ImportObjDemo/Wavefront2GLInstanceGraphicsShape.cpp
-		../../examples/Importers/ImportMJCFDemo/BulletMJCFImporter.cpp
-		../../examples/Importers/ImportURDFDemo/BulletUrdfImporter.cpp
-		../../examples/Importers/ImportURDFDemo/MyMultiBodyCreator.cpp
-		../../examples/Importers/ImportURDFDemo/URDF2Bullet.cpp
-		../../examples/Importers/ImportURDFDemo/UrdfParser.cpp
-		../../examples/Importers/ImportURDFDemo/urdfStringSplit.cpp
-		../../examples/Importers/ImportMeshUtility/b3ImportMeshUtility.cpp 
-		../../examples/MultiThreading/b3PosixThreadSupport.cpp
-		../../examples/MultiThreading/b3Win32ThreadSupport.cpp
-		../../examples/MultiThreading/b3ThreadSupportInterface.cpp
-		
+SET(pydiffphys_SRCS
+	pydiffphys.cc 
 )
-IF(BUILD_PYBULLET_CLSOCKET)
- ADD_DEFINITIONS(-DBT_ENABLE_CLSOCKET)
-ENDIF(BUILD_PYBULLET_CLSOCKET)
-
-IF(WIN32)
-	LINK_LIBRARIES(
-		${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY}
-	)
-	IF(BUILD_PYBULLET_ENET)
-		ADD_DEFINITIONS(-DWIN32 -DBT_ENABLE_ENET)
-	ENDIF(BUILD_PYBULLET_ENET)
-	IF(BUILD_PYBULLET_CLSOCKET)
-		ADD_DEFINITIONS(-DWIN32)
-	ENDIF(BUILD_PYBULLET_CLSOCKET)
-
-ELSE(WIN32)
-	IF(BUILD_PYBULLET_ENET)
-		ADD_DEFINITIONS(-DHAS_SOCKLEN_T -DBT_ENABLE_ENET)
-	ENDIF(BUILD_PYBULLET_ENET)
-
-	IF(BUILD_PYBULLET_CLSOCKET)	
-		ADD_DEFINITIONS(${OSDEF})
-	ENDIF(BUILD_PYBULLET_CLSOCKET)
-ENDIF(WIN32)
 
 
-IF(BUILD_PYBULLET_ENET)
-	set(pybullet_SRCS ${pybullet_SRCS} 
-		../../examples/SharedMemory/PhysicsClientUDP.cpp
-		../../examples/SharedMemory/PhysicsClientUDP_C_API.cpp
-		../../examples/SharedMemory/PhysicsClientUDP.h		
-		../../examples/SharedMemory/PhysicsClientUDP_C_API.h
-		../../examples/ThirdPartyLibs/enet/win32.c
-		../../examples/ThirdPartyLibs/enet/unix.c
-		../../examples/ThirdPartyLibs/enet/callbacks.c
-		../../examples/ThirdPartyLibs/enet/compress.c
-		../../examples/ThirdPartyLibs/enet/host.c
-		../../examples/ThirdPartyLibs/enet/list.c
-		../../examples/ThirdPartyLibs/enet/packet.c
-		../../examples/ThirdPartyLibs/enet/peer.c
-		../../examples/ThirdPartyLibs/enet/protocol.c
-	)
-ENDIF(BUILD_PYBULLET_ENET)
-
-IF(BUILD_PYBULLET_CLSOCKET)
-	set(pybullet_SRCS ${pybullet_SRCS}
-		 ../../examples/SharedMemory/PhysicsClientTCP.cpp
-                 ../../examples/SharedMemory/PhysicsClientTCP.h
-                 ../../examples/SharedMemory/PhysicsClientTCP_C_API.cpp
-                 ../../examples/SharedMemory/PhysicsClientTCP_C_API.h
-		 ../../examples/ThirdPartyLibs/clsocket/src/SimpleSocket.cpp
-		 ../../examples/ThirdPartyLibs/clsocket/src/ActiveSocket.cpp
-		 ../../examples/ThirdPartyLibs/clsocket/src/PassiveSocket.cpp
-	)
-ENDIF()
-
-ADD_LIBRARY(pybullet SHARED ${pybullet_SRCS} pybullet.c)
-
-SET_TARGET_PROPERTIES(pybullet PROPERTIES PREFIX "")
-SET_TARGET_PROPERTIES(pybullet PROPERTIES POSTFIX "")
-
-SET_TARGET_PROPERTIES(pybullet PROPERTIES VERSION ${BULLET_VERSION})
-SET_TARGET_PROPERTIES(pybullet PROPERTIES SOVERSION ${BULLET_VERSION})
-SET_TARGET_PROPERTIES(pybullet PROPERTIES DEBUG_POSTFIX "_d")
+ADD_LIBRARY(pydiffphys SHARED ${pydiffphys_SRCS})
 
 
-IF(WIN32)
-	IF(BUILD_PYBULLET_ENET OR BUILD_PYBULLET_CLSOCKET)
-		TARGET_LINK_LIBRARIES(pybullet ws2_32 )
-	ENDIF(BUILD_PYBULLET_ENET OR BUILD_PYBULLET_CLSOCKET)
+#SET_TARGET_PROPERTIES(pydiffphys PROPERTIES PREFIX "")
+#SET_TARGET_PROPERTIES(pydiffphys PROPERTIES POSTFIX "")
 
-	SET_TARGET_PROPERTIES(pybullet PROPERTIES SUFFIX ".pyd" )
-ENDIF(WIN32)
-
-IF (APPLE)
-  SET_TARGET_PROPERTIES(pybullet PROPERTIES SUFFIX ".so" )
-ENDIF()
+#SET_TARGET_PROPERTIES(pydiffphys PROPERTIES VERSION ${DIFFPHYS_VERSION})
+#SET_TARGET_PROPERTIES(pydiffphys PROPERTIES SOVERSION ${DIFFPHYS_VERSION})
+#SET_TARGET_PROPERTIES(pydiffphys PROPERTIES DEBUG_POSTFIX "_d")
 
 
+TARGET_LINK_LIBRARIES(pydiffphys tinyxml2)
 
-TARGET_LINK_LIBRARIES(pybullet BulletExampleBrowserLib BulletFileLoader BulletWorldImporter BulletSoftBody BulletDynamics BulletCollision BulletInverseDynamicsUtils BulletInverseDynamics LinearMath OpenGLWindow gwen BussIK Bullet3Common)
 
 IF (WIN32)
-  TARGET_LINK_LIBRARIES(pybullet ${PYTHON_LIBRARIES})
+  TARGET_COMPILE_OPTIONS(pydiffphys PUBLIC -bigobj)
+  MESSAGE("PYTHON_LIBRARIES")
+  MESSAGE(${PYTHON_LIBRARIES})
+  GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
+  MESSAGE("PYTHON_LIBRARY_DIR ")
+  MESSAGE(${PYTHON_LIBRARY_DIR})
+  target_link_directories (pydiffphys PUBLIC "${PYTHON_LIBRARY_DIR}")
+  TARGET_LINK_LIBRARIES(pydiffphys ${PYTHON_LIBRARIES})
 ELSEIF (APPLE)
-  SET_TARGET_PROPERTIES(pybullet PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  SET_TARGET_PROPERTIES(pydiffphys PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 ENDIF ()
-# else Linux: dont link
-
-IF(WIN32)
-  SET(PYTHON_SITE_PACKAGES Lib/site-packages CACHE PATH "Python install path")
-ELSE()
-  SET(PYTHON_SITE_PACKAGES lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages CACHE PATH "Python install path")
-ENDIF()
-
-INSTALL(TARGETS pybullet DESTINATION ${PYTHON_SITE_PACKAGES})
 
 
-
-
-
-
-
-SET(DIFF_PHYSICS_SOURCE_DIR "d:/dev/tinyrigidbody")
 INCLUDE_DIRECTORIES( 
     ${DIFF_PHYSICS_SOURCE_DIR}
 		${DIFF_PHYSICS_SOURCE_DIR}/python
 		${PYTHON_INCLUDE_DIRS}
     ${PYTHON_NUMPY_INCLUDE_DIR}
 )
-
-
-
-SET(pybulletviz_SRCS
-	pybulletviz.cc ${pybullet_SRCS}
-)
-
-ADD_LIBRARY(pybulletviz SHARED ${pybulletviz_SRCS})
-
-SET_TARGET_PROPERTIES(pybulletviz PROPERTIES PREFIX "")
-SET_TARGET_PROPERTIES(pybulletviz PROPERTIES POSTFIX "")
-
-SET_TARGET_PROPERTIES(pybulletviz PROPERTIES VERSION ${BULLET_VERSION})
-SET_TARGET_PROPERTIES(pybulletviz PROPERTIES SOVERSION ${BULLET_VERSION})
-SET_TARGET_PROPERTIES(pybulletviz PROPERTIES DEBUG_POSTFIX "_d")
-
-IF(WIN32)
-	IF(BUILD_PYBULLET_ENET OR BUILD_PYBULLET_CLSOCKET)
-		TARGET_LINK_LIBRARIES(pybulletviz ws2_32 )
-	ENDIF(BUILD_PYBULLET_ENET OR BUILD_PYBULLET_CLSOCKET)
-
-	SET_TARGET_PROPERTIES(pybulletviz PROPERTIES SUFFIX ".pyd" )
-ENDIF(WIN32)
-
-
-TARGET_LINK_LIBRARIES(pybulletviz BulletExampleBrowserLib BulletFileLoader BulletWorldImporter BulletSoftBody BulletDynamics BulletCollision BulletInverseDynamicsUtils BulletInverseDynamics LinearMath OpenGLWindow gwen BussIK Bullet3Common)
-
-IF (WIN32)
-  TARGET_LINK_LIBRARIES(pybulletviz ${PYTHON_LIBRARIES})
-ELSEIF (APPLE)
-  SET_TARGET_PROPERTIES(pybulletviz PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-ENDIF ()
 
 
 
