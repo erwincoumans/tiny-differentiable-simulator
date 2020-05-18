@@ -111,7 +111,7 @@ class PendulumEstimator
   PendulumEstimator(double initial_link_length = 0.5) {
     for (int i = 0; i < kParameterDim; ++i) {
       parameters[i] = {"link_length_" + std::to_string(i + 1),
-                       initial_link_length, 0.1, 10.};
+                       initial_link_length, 0.05, 1.};
     }
   }
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
   const int samples_every_n_frames = 2;
   const int time_steps = 495;
   const int param_dim = 2;
-  double init_params = 0.5;
+  double init_params = 0.2;
   PendulumEstimator<time_steps, param_dim, RES_MODE_TIME> estimator(
       init_params);
   // collect training data from the "real" system
@@ -152,12 +152,14 @@ int main(int argc, char *argv[]) {
   TinyFileUtils::find_file("schmidt-lipson-exp-data/real_double_linear_h_1.txt",
                            exp_filename);
   std::vector<double> times;
-  assert(load_schmidt_lipson(exp_filename, times, estimator.target_states));
+  bool success = load_schmidt_lipson(exp_filename, times, estimator.target_states);
+  assert(success);
+  printf("Success? %i\n", success);
   // recording rate is 30 Hz, simulation rate is 60 Hz
   estimator.samples_every_n_frames = samples_every_n_frames;
   // divide each cost term by integer time step ^ 2 to reduce gradient explosion
-  // estimator.divide_cost_by_time_step_factor = 0.;
-  // estimator.divide_cost_by_time_step_exponent = 1.5;
+  estimator.divide_cost_by_time_step_factor = 60.;
+  estimator.divide_cost_by_time_step_exponent = 1.;
   //  printf("Target states: ");
   //  print_states(estimator.target_states);
   estimator.setup(new ceres::HuberLoss(1.));
