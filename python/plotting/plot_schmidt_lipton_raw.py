@@ -31,16 +31,16 @@ with open(path, "r") as f:
 print("Loaded %i entries." % data.shape[0])
 times = data[:, 1]
 
-# for i, h in enumerate(header):
-#     plt.plot(times, data[:, 2 + i], label=h)
-# plt.legend()
-# plt.grid()
-# plt.title(file)
+for i, h in enumerate(header):
+    plt.plot(times, data[:, 2 + i], label=h)
+plt.legend()
+plt.grid()
+plt.title(file)
 
 deltas = []
 for t1, t2 in zip(times[:-1], times[1:]):
     deltas.append(t2-t1)
 
-plt.plot(deltas)
+# plt.plot(deltas)
 print("avg delta t: ", np.mean(deltas))
 plt.show()
