@@ -18,20 +18,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-folder = "../../"
-file = "estimation_gradient.csv"
+folder = "../../data/schmidt-lipson-exp-data/"
+file = "real_double_linear_h_1.txt"
 path = os.path.join(folder, file)
 
-data = np.loadtxt(path)
-modified = data
-# for i in range(data.shape[0]):
-#     modified[i, :] /= i*i
-    # modified[i, :] /= pow(1.01, i)
-    # modified[i, :] = np.log(modified[i, :])
-plt.plot(modified)
+with open(path, "r") as f:
+    header = f.readline().strip().split()[1:]
+    print("header:", header)
+    lines = f.readlines()
+    data = np.array([np.fromstring(line, sep=" ") for line in lines])
 
+print("Loaded %i entries." % data.shape[0])
+times = data[:, 1]
+
+# for i, h in enumerate(header):
+#     plt.plot(times, data[:, 2 + i], label=h)
 # plt.legend()
-plt.grid()
-plt.title(file)
+# plt.grid()
+# plt.title(file)
 
+deltas = []
+for t1, t2 in zip(times[:-1], times[1:]):
+    deltas.append(t2-t1)
+
+plt.plot(deltas)
+print("avg delta t: ", np.mean(deltas))
 plt.show()

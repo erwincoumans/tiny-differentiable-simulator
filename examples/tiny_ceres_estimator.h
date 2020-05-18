@@ -33,7 +33,7 @@ struct EstimationParameter {
   double minimum{-std::numeric_limits<double>::infinity()};
   double maximum{std::numeric_limits<double>::infinity()};
 
-  EstimationParameter& operator=(double rhs) {
+  EstimationParameter &operator=(double rhs) {
     value = rhs;
     return *this;
   }
@@ -63,14 +63,14 @@ class TinyCeresEstimator : ceres::IterationCallback {
   static_assert(kStateDim >= 1);
   static_assert(kTimeDim >= 1);
 
-  typedef ceres::Jet<double, ParameterDim> ADScalar;
+  typedef ceres::Jet<double, kParameterDim> ADScalar;
 
   typedef TinyCeresEstimator<kParameterDim, kStateDim, kTimeDim, kResidualMode>
       CeresEstimator;
 
   std::array<EstimationParameter, kParameterDim> parameters;
 
-  void set_params(const std::array<double, kParameterDim>& params) {
+  void set_params(const std::array<double, kParameterDim> &params) {
     for (int i = 0; i < kParameterDim; ++i) {
       parameters[i].value = params[i];
     }
@@ -78,6 +78,28 @@ class TinyCeresEstimator : ceres::IterationCallback {
 
   // Samples from ground-truth system dynamics, i.e. a list of states.
   std::vector<std::vector<double>> target_states;
+  /**
+   * Every n simulation frames have target state samples.
+   */
+  int samples_every_n_frames{1};
+
+  /**
+   * The following 2 terms are for optional time normalization to mitigate
+   * gradient explosion over long roll-outs: c_t' = c_t / (a * t)^b For cost
+   * term `c_t` at time step t. If a is zero, no normalization is performed.
+   */
+
+  /**
+   * Factor `a` to use to divide each cost term by the particular time step t to
+   * mitigate gradient explosion over long roll-outs. If it is zero, no time
+   * normalization is performed.
+   */
+  double divide_cost_by_time_step_factor{0};
+  /**
+   * Exponent `b` to use to divide each cost term by the particular time step t
+   * to mitigate gradient explosion over long roll-outs.
+   */
+  double divide_cost_by_time_step_exponent{1};
 
   ceres::Solver::Options options;
 
@@ -86,22 +108,32 @@ class TinyCeresEstimator : ceres::IterationCallback {
     options.callbacks.push_back(this);
   }
 
-  virtual void rollout(
-      const std::vector<ADScalar>& params,
-      std::vector<std::vector<ADScalar>>& output_states) const = 0;
-  virtual void rollout(
-      const std::vector<double>& params,
-      std::vector<std::vector<double>>& output_states) const = 0;
+ private:
+  ceres::CostFunction *cost_function_{nullptr};
 
-  ceres::Problem& setup(ceres::LossFunction* loss_function = nullptr) {
+ public:
+  virtual void rollout(
+      const std::vector<ADScalar> &params,
+      std::vector<std::vector<ADScalar>> &output_states) const = 0;
+  virtual void rollout(
+      const std::vector<double> &params,
+      std::vector<std::vector<double>> &output_states) const = 0;
+
+  ceres::Problem &setup(ceres::LossFunction *loss_function = nullptr) {
     assert(static_cast<int>(target_states.size()) == kTimeDim);
     assert(static_cast<int>(target_states[0].size()) == kStateDim);
 
-    ceres::CostFunction* cost_function =
+    if (cost_function_) {
+      delete cost_function_;
+    }
+    cost_function_ =
         new ceres::AutoDiffCostFunction<CostFunctor, kResidualDim,
                                         kParameterDim>(new CostFunctor(this));
+    if (vars_) {
+      delete[] vars_;
+    }
     vars_ = new double[kParameterDim];
-    problem_.AddResidualBlock(cost_function, loss_function, vars_);
+    problem_.AddResidualBlock(cost_function_, loss_function, vars_);
 
     for (int i = 0; i < kParameterDim; ++i) {
       problem_.SetParameterLowerBound(vars_, i, parameters[i].minimum);
@@ -109,6 +141,12 @@ class TinyCeresEstimator : ceres::IterationCallback {
     }
 
     return problem_;
+  }
+
+  void compute_gradient(const double *parameters, double *cost,
+                        double *gradient) const {
+    double const *const *params = &parameters;
+    cost_function_->Evaluate(params, cost, &gradient);
   }
 
   ceres::Solver::Summary solve() {
@@ -124,6 +162,8 @@ class TinyCeresEstimator : ceres::IterationCallback {
     return summary;
   }
 
+  const double *vars() const { return vars_; }
+
   virtual ~TinyCeresEstimator() {
     if (vars_) {
       delete[] vars_;
@@ -131,27 +171,27 @@ class TinyCeresEstimator : ceres::IterationCallback {
     }
   }
 
-  const std::vector<std::array<double, kParameterDim>>& parameter_evolution()
+  const std::vector<std::array<double, kParameterDim>> &parameter_evolution()
       const {
     return param_evolution_;
   }
 
  private:
   ceres::Problem problem_;
-  double* vars_{nullptr};
+  double *vars_{nullptr};
 
   mutable std::vector<std::array<double, kParameterDim>> param_evolution_;
   mutable std::array<double, kParameterDim> current_param_;
 
   struct CostFunctor {
-    CeresEstimator* parent{nullptr};
+    CeresEstimator *parent{nullptr};
 
-    CostFunctor(CeresEstimator* parent) : parent(parent) {}
+    CostFunctor(CeresEstimator *parent) : parent(parent) {}
 
     // Computes the cost (residual) for input parameters x.
     // TODO use stan::math reverse-mode AD
     template <typename T>
-    bool operator()(const T* const x, T* residual) const {
+    bool operator()(const T *const x, T *residual) const {
       const std::vector<T> params(x, x + kParameterDim);
       std::vector<std::vector<T>> output_states;
       parent->rollout(params, output_states);
@@ -167,14 +207,25 @@ class TinyCeresEstimator : ceres::IterationCallback {
 
       T difference;
       for (int t = 0; t < kTimeDim; ++t) {
+        // skip time steps for which no target state samples exist
+        int sim_t = t * parent->samples_every_n_frames;
         for (int i = 0; i < kStateDim; ++i) {
-          difference = parent->target_states[t][i] - output_states[t][i];
+          difference = parent->target_states[t][i] - output_states[sim_t][i];
+          difference *= difference;
+
+          // discount contribution of errors at later time steps to mitigate
+          // gradient explosion on long roll-outs
+          if (parent->divide_cost_by_time_step_factor != 0. && t > 0) {
+            difference /= std::pow(parent->divide_cost_by_time_step_factor * t,
+                                   parent->divide_cost_by_time_step_exponent);
+          }
+
           if constexpr (kResidualMode == RES_MODE_1D) {
-            *residual += difference * difference;
+            *residual += difference;
           } else if constexpr (kResidualMode == RES_MODE_TIME) {
-            residual[t] += difference * difference;
+            residual[t] += difference;
           } else if constexpr (kResidualMode == RES_MODE_STATE) {
-            residual[i] += difference * difference;
+            residual[i] += difference;
           }
         }
       }
@@ -183,12 +234,19 @@ class TinyCeresEstimator : ceres::IterationCallback {
   };
 
   ceres::CallbackReturnType operator()(
-      const ceres::IterationSummary& summary) override {
+      const ceres::IterationSummary &summary) override {
     param_evolution_.push_back(current_param_);
     return ceres::SOLVER_CONTINUE;
   }
 };
 
+/**
+ * Implements Parallel Basin Hopping that combines local gradient-based
+ * optimization using Ceres with random guessing to overcome poor local optima.
+ *
+ * McCarty & McGuire "Parallel Monotonic Basin Hopping for Low Thrust Trajectory
+ * Optimization"
+ */
 template <int ParameterDim, typename Estimator>
 class BasinHoppingEstimator {
   static const int kParameterDim = ParameterDim;
@@ -204,6 +262,9 @@ class BasinHoppingEstimator {
    */
   double time_limit{1.0};
 
+  /**
+   * Terminate if estimation cost drops below this value.
+   */
   double cost_limit{1e-20};
 
   /**
@@ -213,8 +274,8 @@ class BasinHoppingEstimator {
   double initial_std{1.};
 
   BasinHoppingEstimator(
-      const EstimatorConstructor& estimator_constructor,
-      const std::array<double, kParameterDim>& initial_guess,
+      const EstimatorConstructor &estimator_constructor,
+      const std::array<double, kParameterDim> &initial_guess,
       std::size_t num_workers = std::thread::hardware_concurrency())
       : estimator_constructor(estimator_constructor),
         params(initial_guess),
@@ -236,7 +297,7 @@ class BasinHoppingEstimator {
           // set initial guess
           estimator->set_params(this->params);
         } else {
-          for (auto& p : estimator->parameters) {
+          for (auto &p : estimator->parameters) {
             p = p.random_value();
           }
         }
@@ -248,15 +309,17 @@ class BasinHoppingEstimator {
             auto duration = duration_cast<milliseconds>(stop_time - start_time);
             bool time_up = static_cast<long>(duration.count()) >=
                            static_cast<long>(time_limit * 1e3);
-//            if (time_up) {
-//              std::cout << "time up\n";
-//            }
-//            if (this->best_cost_ < this->cost_limit) {
-//              std::cout << "this->best_cost_ < this->cost_limit\n";
-//            }
-//            if (this->stop_) {
-//              std::cout << "this->stop_\n";
-//            }
+#ifdef DEBUG
+            if (time_up) {
+              std::cout << "time up\n";
+            }
+            if (this->best_cost_ < this->cost_limit) {
+              std::cout << "this->best_cost_ < this->cost_limit\n";
+            }
+            if (this->stop_) {
+              std::cout << "this->stop_\n";
+            }
+#endif
             if (time_up || this->stop_ || this->best_cost_ < this->cost_limit) {
               std::cout << "Thread " << k << " has terminated after " << iter
                         << " iterations.\n";
@@ -272,26 +335,21 @@ class BasinHoppingEstimator {
                 this->params[i] = estimator->parameters[i].value;
               }
             }
-            // apply random step to the parameters
-//            std::cout << "Thread " << k << " uses parameters [  ";
+            // apply random change to the parameters
             for (int i = 0; i < kParameterDim; ++i) {
-              auto& param = estimator->parameters[i];
+              auto &param = estimator->parameters[i];
               std::normal_distribution<double> d{
                   this->params[i],
                   initial_std / (iter + 1.) * (param.maximum - param.minimum)};
-//              printf("{%.3f}  ", param.value);
               param.value = d(this->gen_);
-//              printf("(%.3f)  ", param.value);
               param.value = std::max(param.minimum, param.value);
               param.value = std::min(param.maximum, param.value);
-//              printf("%.3f  ;;", param.value);
             }
-//            printf("]\n");
           }
         }
       });
     }
-    for (auto& worker : workers_) {
+    for (auto &worker : workers_) {
       worker.join();
     }
     workers_.clear();
@@ -304,14 +362,12 @@ class BasinHoppingEstimator {
 
   virtual ~BasinHoppingEstimator() {
     stop();
-    for (auto& worker : workers_) {
+    for (auto &worker : workers_) {
       worker.join();
     }
   }
 
-  double best_cost() const {
-    return best_cost_;
-  }
+  double best_cost() const { return best_cost_; }
 
  private:
   std::vector<std::thread> workers_;
