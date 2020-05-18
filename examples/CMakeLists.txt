@@ -114,6 +114,10 @@ if (Bullet_FOUND)
         target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
 
+        add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
+        target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${DL}
+                ${CERES_LIBRARIES})
+
         add_executable(policy_optimization policy_optimization.cpp ${TDS_HDRS})
         target_link_libraries(policy_optimization pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
