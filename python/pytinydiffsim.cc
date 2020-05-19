@@ -219,6 +219,19 @@ PYBIND11_MODULE(pytinydiffsim, m) {
           &TinySymmetricSpatialDyad<double, DoubleUtils>::m_center_of_mass)
       .def(py::self -= py::self);
 
+  py::enum_< TinyJointType>(m, "TinyJointType")
+      .value("JOINT_FIXED", JOINT_FIXED, "JOINT_FIXED")
+      .value("JOINT_PRISMATIC_X", JOINT_PRISMATIC_X, "JOINT_PRISMATIC_X")
+      .value("JOINT_PRISMATIC_Y", JOINT_PRISMATIC_Y, "JOINT_PRISMATIC_Y")
+      .value("JOINT_PRISMATIC_Z", JOINT_PRISMATIC_Z, "JOINT_PRISMATIC_Z")
+      .value("JOINT_PRISMATIC_AXIS", JOINT_PRISMATIC_AXIS, "JOINT_PRISMATIC_AXIS")
+      .value("JOINT_REVOLUTE_X", JOINT_REVOLUTE_X, "JOINT_REVOLUTE_X")
+      .value("JOINT_REVOLUTE_Y", JOINT_REVOLUTE_Y, "JOINT_REVOLUTE_Y")
+      .value("JOINT_REVOLUTE_Z", JOINT_REVOLUTE_Z, "JOINT_REVOLUTE_Z")
+      .value("JOINT_REVOLUTE_AXIS", JOINT_REVOLUTE_AXIS, "JOINT_REVOLUTE_AXIS")
+      .value("JOINT_INVALID", JOINT_INVALID, "JOINT_INVALID")
+      .export_values();
+
   py::class_<TinyLink<double, DoubleUtils>,
              std::unique_ptr<TinyLink<double, DoubleUtils>>>(m, "TinyLink")
       .def(py::init<TinyJointType, TinySpatialTransform<double, DoubleUtils> &,
@@ -226,6 +239,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def("jcalc", &TinyLink<double, DoubleUtils>::jcalc1)
       .def("set_joint_type", &TinyLink<double, DoubleUtils>::set_joint_type)
       .def_readwrite("stiffness", &TinyLink<double, DoubleUtils>::m_stiffness)
+      .def_readwrite("joint_type", &TinyLink<double, DoubleUtils>::m_joint_type)
       .def_readwrite("damping", &TinyLink<double, DoubleUtils>::m_damping);
 
   py::class_<TinyMultiBody<double, DoubleUtils>,
@@ -253,6 +267,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
            &TinyMultiBody<double, DoubleUtils>::point_jacobian1)
       .def("bias_forces", &TinyMultiBody<double, DoubleUtils>::bias_forces)
       .def_readwrite("q", &TinyMultiBody<double, DoubleUtils>::m_q)
+      .def_readwrite("links", &TinyMultiBody<double, DoubleUtils>::m_links)
       .def_readwrite("qd", &TinyMultiBody<double, DoubleUtils>::m_qd)
       .def_readwrite("qdd", &TinyMultiBody<double, DoubleUtils>::m_qdd)
       .def_readwrite("tau", &TinyMultiBody<double, DoubleUtils>::m_tau);
