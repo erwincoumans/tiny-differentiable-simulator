@@ -31,7 +31,7 @@ class VisualLinkInfo(object):
     self.origin_xyz = [4, 5, 6]
 
 
-def convert_link_visuals(link, link_index, material, vis, uid, b2vis):
+def convert_link_visuals(link, link_index, material, vis, uid, b2vis, path_prefix):
   print("convert_link_visuals:: num_visuals=", len(link.urdf_visual_shapes))
   print("link.urdf_visual_shapes=", link.urdf_visual_shapes)
   for v in link.urdf_visual_shapes:
@@ -55,18 +55,18 @@ def convert_link_visuals(link, link_index, material, vis, uid, b2vis):
         uid += 1
 
     if v.geometry.geom_type == dp.MESH_TYPE:
-      print("mesh filename=", v.geometry.mesh.file_name)
+      print("mesh filename=", path_prefix+v.geometry.mesh.file_name)
       print("geom_meshscale=", v.geometry.mesh.scale)
       vis_name = link.link_name + str(uid)
       vis[vis_name].set_object(
-          g.ObjMeshGeometry.from_file(v.geometry.mesh.file_name), material)
+          g.ObjMeshGeometry.from_file(path_prefix+v.geometry.mesh.file_name), material)
     b2v.uid = uid
     b2vis[uid] = b2v
     uid += 1
   return b2vis, uid
 
 
-def convert_visuals(urdf, texture_path, vis):
+def convert_visuals(urdf, texture_path, vis, path_prefix=""):
   link_name_to_index = {}
   link_name_to_index[urdf.base_links[0].link_name] = -1
   for link_index in range(len(urdf.links)):
@@ -87,13 +87,13 @@ def convert_visuals(urdf, texture_path, vis):
   link_index = -1
 
   b2v, uid = convert_link_visuals(urdf.base_links[0], link_index, material, vis,
-                                  uid, b2vis)
+                                  uid, b2vis, path_prefix)
 
   #then convert each child link
   for joint in urdf.joints:
     link_index = link_name_to_index[joint.child_name]
     link = urdf.links[link_index]
-    b2v, uid = convert_link_visuals(link, link_index, material, vis, uid, b2vis)
+    b2v, uid = convert_link_visuals(link, link_index, material, vis, uid, b2vis, path_prefix)
 
   return b2vis
 
@@ -103,7 +103,7 @@ def sync_visual_transforms(mb, b2vis, vis):
   for key in b2vis:
     
     v = b2vis[key]
-    print("v.link_index=",v.link_index)
+    #print("v.link_index=",v.link_index)
     link_world_trans = mb.get_world_transform(v.link_index)
 
     vpos = v.origin_xyz
@@ -112,13 +112,13 @@ def sync_visual_transforms(mb, b2vis, vis):
     trv = dp.TinySpatialTransform()
     trv.translation = vpos
     trv.rotation = dp.TinyMatrix3x3(vorn)
-    print("link_world_trans.x=",link_world_trans.translation.x)
-    print("link_world_trans.y=",link_world_trans.translation.y)
-    print("link_world_trans.z=",link_world_trans.translation.z)
+    #print("link_world_trans.x=",link_world_trans.translation.x)
+    #print("link_world_trans.y=",link_world_trans.translation.y)
+    #print("link_world_trans.z=",link_world_trans.translation.z)
     gfx_world_trans = link_world_trans * trv  #trvi
 
     rot = gfx_world_trans.rotation
-    print("gfx_world_trans.translation=",gfx_world_trans.translation.z)
+    #print("gfx_world_trans.translation=",gfx_world_trans.translation.z)
     mat = [[
         rot.get_row(0).x,
         rot.get_row(0).y,
