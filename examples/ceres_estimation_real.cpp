@@ -15,19 +15,25 @@
 #include <fstream>
 
 #include "pendulum.h"
+#include "pybullet_visualizer_api.h"
 #include "tiny_ceres_estimator.h"
 #include "tiny_file_utils.h"
 #include "tiny_multi_body.h"
 #include "tiny_world.h"
 
-double dt;
+#define JUST_VISUALIZE true
+#define USE_PBH true
+// whether the state consists of [q qd] or just q
+#define STATE_INCLUDES_QD false
+std::vector<double> start_state;
 
 /**
  * Load data from txt files provided by Schmidt & Lipson.
  */
 bool load_schmidt_lipson(const std::string &filename,
                          std::vector<double> &times,
-                         std::vector<std::vector<double>> &states) {
+                         std::vector<std::vector<double>> &states,
+                         double clip_after_t = 0.) {
   std::ifstream input(filename);
   if (!input) {
     std::cerr << "Could not open file \"" << filename << "\".\n";
@@ -59,11 +65,15 @@ bool load_schmidt_lipson(const std::string &filename,
       time_delta_avg += val - last_time;
     }
     last_time = val;
+    if (clip_after_t > 0. && last_time > clip_after_t) {
+      break;
+    }
     std::vector<double> state(num_columns);
     for (int i = 0; i < num_columns; ++i) {
       ss >> val;
-      state[i] = val * M_PI / 180.;
+      state[i] = val;
     }
+    state[0] -= M_PI_2;
     states.push_back(state);
   }
   time_delta_avg /= num_lines;
@@ -78,7 +88,7 @@ bool load_schmidt_lipson(const std::string &filename,
 template <typename Scalar = double, typename Utils = DoubleUtils>
 void rollout_pendulum(const std::vector<Scalar> &params,
                       std::vector<std::vector<Scalar>> &output_states,
-                      int time_steps) {
+                      int time_steps, double dt) {
   TinyVector3<Scalar, Utils> gravity(Utils::zero(), Utils::zero(),
                                      Utils::fraction(-981, 100));
   output_states.resize(time_steps);
@@ -86,44 +96,66 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   TinyMultiBody<Scalar, Utils> *mb = world.create_multi_body();
   init_compound_pendulum<Scalar, Utils>(
       *mb, world, static_cast<int>(params.size()), params);
+  if (static_cast<int>(start_state.size()) >= mb->dof()) {
+    for (int i = 0; i < mb->dof(); ++i) {
+      mb->m_q[i] = Scalar(start_state[i]);
+    }
+    if (static_cast<int>(start_state.size()) >= 2 * mb->dof()) {
+      for (int i = 0; i < mb->dof(); ++i) {
+        mb->m_qd[i] = Scalar(start_state[i + mb->dof()]);
+      }
+    }
+  }
   for (int t = 0; t < time_steps; ++t) {
+#if STATE_INCLUDES_QD
     output_states[t].resize(2 * mb->dof());
+#else
+    output_states[t].resize(mb->dof());
+#endif
     for (int i = 0; i < mb->dof(); ++i) {
       output_states[t][i] = mb->m_q[i];
+#if STATE_INCLUDES_QD
       output_states[t][i + mb->dof()] = mb->m_qd[i];
+#endif
     }
     mb->forward_dynamics(gravity);
     mb->integrate(Scalar(dt));
   }
 }
 
-template <int TimeSteps, int NumLinks, ResidualMode ResMode>
+template <int NumLinks, ResidualMode ResMode>
 class PendulumEstimator
-    : public TinyCeresEstimator<NumLinks, 2 * NumLinks, TimeSteps, ResMode> {
+    : public TinyCeresEstimator<NumLinks, (1 + STATE_INCLUDES_QD) * NumLinks,
+                                ResMode> {
  public:
-  typedef TinyCeresEstimator<NumLinks, 2 * NumLinks, TimeSteps, ResMode>
+  typedef TinyCeresEstimator<NumLinks, (1 + STATE_INCLUDES_QD) * NumLinks,
+                             ResMode>
       CeresEstimator;
   using CeresEstimator::kStateDim, CeresEstimator::kParameterDim;
-  using CeresEstimator::parameters, CeresEstimator::samples_every_n_frames;
+  using CeresEstimator::parameters;
   using typename CeresEstimator::ADScalar;
 
+  int time_steps;
+
   // sane parameter initialization (link lengths)
-  PendulumEstimator(double initial_link_length = 0.5) {
+  PendulumEstimator(int time_steps, double dt, double initial_link_length = 0.5)
+      : CeresEstimator(dt), time_steps(time_steps) {
     for (int i = 0; i < kParameterDim; ++i) {
       parameters[i] = {"link_length_" + std::to_string(i + 1),
-                       initial_link_length, 0.05, 1.};
+                       initial_link_length, 0.15, 2.};
     }
   }
 
-  void rollout(
-      const std::vector<ADScalar> &params,
-      std::vector<std::vector<ADScalar>> &output_states) const override {
+  void rollout(const std::vector<ADScalar> &params,
+               std::vector<std::vector<ADScalar>> &output_states,
+               double dt) const override {
     rollout_pendulum<ADScalar, CeresUtils<kParameterDim>>(params, output_states,
-                                                          TimeSteps * samples_every_n_frames);
+                                                          time_steps, dt);
   }
   void rollout(const std::vector<double> &params,
-               std::vector<std::vector<double>> &output_states) const override {
-    rollout_pendulum(params, output_states, TimeSteps * samples_every_n_frames);
+               std::vector<std::vector<double>> &output_states,
+               double dt) const override {
+    rollout_pendulum(params, output_states, time_steps, dt);
   }
 };
 
@@ -137,56 +169,178 @@ void print_states(const std::vector<std::vector<double>> &states) {
 }
 
 int main(int argc, char *argv[]) {
-  dt = 1. / 60;
-  const int samples_every_n_frames = 2;
-  const int time_steps = 495;
+  const double dt = 1. / 100;
+  const int time_steps = 500;
   const int param_dim = 2;
-  double init_params = 0.2;
-  PendulumEstimator<time_steps, param_dim, RES_MODE_TIME> estimator(
-      init_params);
-  // collect training data from the "real" system
-  // rollout_pendulum(std::vector<double>{3., 4.}, estimator.target_states,
-  //                  time_steps);
+  const double init_params = 0.2;
+  const double time_limit = 5;
 
   std::string exp_filename;
-  TinyFileUtils::find_file("schmidt-lipson-exp-data/real_double_linear_h_1.txt",
+  TinyFileUtils::find_file("schmidt-lipson-exp-data/real_double_pend_h_1.txt",
                            exp_filename);
-  std::vector<double> times;
-  bool success = load_schmidt_lipson(exp_filename, times, estimator.target_states);
+  std::vector<double> target_times;
+  std::vector<std::vector<double>> target_states;
+  // clip earlier
+  bool success = load_schmidt_lipson(exp_filename, target_times, target_states,
+                                     time_limit);
   assert(success);
-  printf("Success? %i\n", success);
-  // recording rate is 30 Hz, simulation rate is 60 Hz
-  estimator.samples_every_n_frames = samples_every_n_frames;
-  // divide each cost term by integer time step ^ 2 to reduce gradient explosion
-  estimator.divide_cost_by_time_step_factor = 60.;
-  estimator.divide_cost_by_time_step_exponent = 1.;
-  //  printf("Target states: ");
-  //  print_states(estimator.target_states);
-  estimator.setup(new ceres::HuberLoss(1.));
-  // double cost;
-  // double gradient[param_dim * time_steps];
-  // estimator.compute_gradient(estimator.vars(), &cost, gradient);
-  // std::ofstream gradient_file("estimation_gradient.csv");
-  // for (int t = 0; t < time_steps; ++t) {
-  //   for (int i = 0; i < param_dim; ++i) {
-  //     gradient_file << gradient[t * param_dim + i];
-  //     if (i < param_dim - 1)
-  //       gradient_file << "\t";
-  //   }
-  //   gradient_file << "\n";
-  // }
-  // gradient_file.close();
-  // return 0;
+  printf("load_schmidt_lipson - success? %i\n", success);
+  start_state = target_states[0];
 
-  auto summary = estimator.solve();
+#if JUST_VISUALIZE
+  std::string connection_mode = "gui";
+  typedef PyBulletVisualizerAPI VisualizerAPI;
+  VisualizerAPI *visualizer = new VisualizerAPI();
+  printf("mode=%s\n", (char *)connection_mode.c_str());
+  int mode = eCONNECT_GUI;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
+
+  visualizer->connect(mode);
+  std::string plane_filename;
+  TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
+
+  char path[TINY_MAX_EXE_PATH_LEN];
+  TinyFileUtils::extract_path(plane_filename.c_str(), path,
+                              TINY_MAX_EXE_PATH_LEN);
+  std::string search_path = path;
+  visualizer->setAdditionalSearchPath(search_path);
+  std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+
+  if (visualizer->canSubmitCommand()) {
+    visualizer->resetSimulation();
+  }
+  std::vector<TinyRigidBody<double, DoubleUtils> *> bodies;
+  std::vector<int> visuals;
+
+  std::vector<TinyMultiBody<double, DoubleUtils> *> mbbodies;
+  std::vector<int> mbvisuals;
+
+  TinyWorld<double, DoubleUtils> world;
+  TinyMultiBody<double, DoubleUtils> *mb = world.create_multi_body();
+  init_compound_pendulum<double, DoubleUtils>(*mb, world, 2);
+  mbbodies.push_back(mb);
+
+  if (visualizer->canSubmitCommand()) {
+    for (int i = 0; i < mb->m_links.size(); i++) {
+      int sphereId = visualizer->loadURDF("sphere_small.urdf");
+      mbvisuals.push_back(sphereId);
+      // apply some linear joint damping
+      mb->m_links[i].m_damping = 5.;
+    }
+  }
+  while (true) {
+    for (const auto &state : target_states) {
+      mb->m_q[0] = state[0];
+      mb->m_q[1] = state[1];
+      mb->forward_kinematics();
+      if (visualizer->canSubmitCommand()) {
+        std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+        // sync transforms
+        int visual_index = 0;
+        if (!mbvisuals.empty()) {
+          for (int b = 0; b < mbbodies.size(); b++) {
+            for (int l = 0; l < mbbodies[b]->m_links.size(); l++) {
+              const TinyMultiBody<double, DoubleUtils> *body = mbbodies[b];
+              if (body->m_links[l].m_X_visuals.empty()) continue;
+
+              int sphereId = mbvisuals[visual_index++];
+
+              TinyQuaternion<double, DoubleUtils> rot;
+              const TinySpatialTransform<double, DoubleUtils> &geom_X_world =
+                  body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[0];
+              btVector3 base_pos(geom_X_world.m_translation.getX(),
+                                 geom_X_world.m_translation.getY(),
+                                 geom_X_world.m_translation.getZ());
+              geom_X_world.m_rotation.getRotation(rot);
+              btQuaternion base_orn(rot.getX(), rot.getY(), rot.getZ(),
+                                    rot.getW());
+              visualizer->resetBasePositionAndOrientation(sphereId, base_pos,
+                                                          base_orn);
+            }
+          }
+        }
+      }
+    }
+  }
+#endif
+
+  typedef PendulumEstimator<param_dim, RES_MODE_1D> Estimator;
+
+  std::function<std::unique_ptr<Estimator>()> construct_estimator =
+      [&target_times, &target_states, &time_steps, &dt, &init_params]() {
+        auto estimator =
+            std::make_unique<Estimator>(time_steps, dt, init_params);
+        estimator->target_times = target_times;
+        estimator->target_states = target_states;
+        estimator->options.minimizer_progress_to_stdout = false;
+        // divide each cost term by integer time step ^ 2 to reduce gradient
+        // explosion
+        estimator->divide_cost_by_time_factor = 10.;
+        estimator->divide_cost_by_time_exponent = 1.2;
+        return estimator;
+      };
+
+#if USE_PBH
+  std::array<double, param_dim> initial_guess;
+  for (int i = 0; i < param_dim; ++i) {
+    initial_guess[i] = init_params;
+  }
+  BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
+                                                  initial_guess);
+  bhe.time_limit = 20;
+  bhe.run();
+
+  printf("Optimized parameters:");
+  for (int i = 0; i < param_dim; ++i) {
+    printf(" %.8f", bhe.params[i]);
+  }
+  printf("\n");
+
+  printf("Best cost: %f\n", bhe.best_cost());
+
+  std::vector<double> best_params;
+  for (const auto &p : bhe.params) {
+    best_params.push_back(p);
+  }
+  target_states.clear();
+  rollout_pendulum<double, DoubleUtils>(best_params, target_states, time_steps,
+                                        dt);
+  std::ofstream file("estimated_trajectory.csv");
+  for (int t = 0; t < time_steps; ++t) {
+    file << (t * dt);
+    for (double v : target_states[t]) {
+      file << "\t" << v;
+    }
+    file << "\n";
+  }
+  file.close();
+#else
+  std::unique_ptr<Estimator> estimator = construct_estimator();
+  estimator->setup(new ceres::HuberLoss(1.));
+
+#ifdef JUST_SAVE_GRADIENT
+  double cost;
+  int gradient_dim = estimator->kResidualDim * param_dim;
+  double gradient[gradient_dim];
+  estimator->compute_gradient(estimator->vars(), &cost, gradient);
+  std::ofstream gradient_file("estimation_gradient.csv");
+  for (int i = 0; i < gradient_dim; ++i) {
+    gradient_file << gradient[i] << '\n';
+  }
+  gradient_file.close();
+  return 0;
+#endif
+
+  auto summary = estimator->solve();
   std::cout << summary.FullReport() << std::endl;
 
-  for (const auto &p : estimator.parameters) {
+  for (const auto &p : estimator->parameters) {
     printf("%s: %.3f\n", p.name.c_str(), p.value);
   }
 
   std::ofstream file("param_evolution.txt");
-  for (const auto &params : estimator.parameter_evolution()) {
+  for (const auto &params : estimator->parameter_evolution()) {
     for (int i = 0; i < static_cast<int>(params.size()); ++i) {
       file << params[i];
       if (i < static_cast<int>(params.size()) - 1) file << "\t";
@@ -194,119 +348,7 @@ int main(int argc, char *argv[]) {
     file << "\n";
   }
   file.close();
-
-  fflush(stdout);
+#endif
 
   return EXIT_SUCCESS;
 }
-
-// int main(int argc, char* argv[]) {
-//  const int time_steps = 50;
-//  PendulumEstimator<time_steps, 2, RES_MODE_TIME> estimator;
-//  // collect training data from the "real" system
-//  rollout_pendulum(std::vector<double>{3., 4.}, estimator.target_states,
-//                   time_steps);
-//  //  printf("Target states: ");
-//  //  print_states(estimator.target_states);
-//
-//  estimator.setup(new ceres::HuberLoss(1.));
-//  estimator.options.minimizer_progress_to_stdout = false;
-//
-//  std::ofstream file("/home/eric/tinyrigidbody/grid_search.txt");
-//
-//  double delta = 0.1;
-//  for (double link1 = 0.1; link1 <= 10.; link1 += delta) {
-//    for (double link2 = 0.1; link2 <= 10.; link2 += delta) {
-//      printf("Optimizing with theta = [%.3f, %.3f]\n", link1, link2);
-//      estimator.parameters[0] = link1;
-//      estimator.parameters[1] = link2;
-//      auto summary = estimator.solve();
-//      file << link1 << '\t' << link2 << '\t' << summary.final_cost << '\t'
-//           << static_cast<double>(estimator.parameters[0]) << '\t'
-//           << static_cast<double>(estimator.parameters[1]) << '\n';
-//    }
-//  }
-//  file.close();
-//
-//  fflush(stdout);
-//
-//  return EXIT_SUCCESS;
-//}
-
-// int main(int argc, char *argv[])
-// {
-
-// // return 0;
-
-//   const int time_steps = 500;
-//   const int param_dim = 2;
-//   typedef PendulumEstimator<time_steps, param_dim, RES_MODE_TIME> Estimator;
-//   // collect training data from the "real" system
-//   std::vector<std::vector<double>> target_states;
-//   rollout_pendulum(std::vector<double>{3., 4.}, target_states, time_steps);
-
-//   std::function<std::unique_ptr<Estimator>()> construct_estimator =
-//       [&target_states]() {
-//         auto estimator = std::make_unique<Estimator>();
-//         estimator->target_states = target_states;
-//         estimator->options.minimizer_progress_to_stdout = false;
-//         return estimator;
-//       };
-
-//   std::array<double, param_dim> initial_guess{8, 4};
-//   BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
-//                                                   initial_guess);
-//   bhe.time_limit = 0.2;
-//   bhe.run();
-
-//   printf("Optimized parameters:");
-//   for (int i = 0; i < param_dim; ++i)
-//   {
-//     printf(" %.8f", bhe.params[i]);
-//   }
-//   printf("\n");
-
-//   fflush(stdout);
-
-//   return EXIT_SUCCESS;
-// }
-
-// int main(int argc, char* argv[]) {
-//  const int time_steps = 50;
-//  const int param_dim = 2;
-//  typedef PendulumEstimator<time_steps, param_dim, RES_MODE_TIME> Estimator;
-//  // collect training data from the "real" system
-//  std::vector<std::vector<double>> target_states;
-//  rollout_pendulum(std::vector<double>{3., 4.}, target_states, time_steps);
-//
-//  std::function<std::unique_ptr<Estimator>()> construct_estimator =
-//      [&target_states]() {
-//        auto estimator = std::make_unique<Estimator>();
-//        estimator->target_states = target_states;
-//        estimator->options.minimizer_progress_to_stdout = false;
-//        return estimator;
-//      };
-//
-//  std::ofstream file("/home/eric/tinyrigidbody/grid_search_bhe.txt");
-//
-//  double delta = 0.1;
-//  for (double link1 = 0.1; link1 <= 10.; link1 += delta) {
-//    for (double link2 = 0.1; link2 <= 10.; link2 += delta) {
-//      printf("Optimizing with theta = [%.3f, %.3f]\n", link1, link2);
-//
-//      std::array<double, param_dim> initial_guess{link1, link2};
-//      BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
-//                                                      initial_guess);
-//      bhe.time_limit = 0.2;
-//      bhe.run();
-//      file << link1 << '\t' << link2 << '\t' << bhe.best_cost() << '\t'
-//           << static_cast<double>(bhe.params[0]) << '\t'
-//           << static_cast<double>(bhe.params[1]) << '\n';
-//    }
-//  }
-//  file.close();
-//
-//  fflush(stdout);
-//
-//  return EXIT_SUCCESS;
-//}
