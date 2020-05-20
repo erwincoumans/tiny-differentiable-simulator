@@ -44,28 +44,22 @@ struct EstimationParameter {
   };
 };
 
-enum ResidualMode { RES_MODE_1D, RES_MODE_STATE, RES_MODE_TIME };
+enum ResidualMode { RES_MODE_1D, RES_MODE_STATE };
 
-template <int ParameterDim, int StateDim, int TimeDim,
-          ResidualMode ResMode = RES_MODE_1D>
+template <int ParameterDim, int StateDim, ResidualMode ResMode = RES_MODE_1D>
 class TinyCeresEstimator : ceres::IterationCallback {
  public:
   static const int kParameterDim = ParameterDim;
   static const int kStateDim = StateDim;
-  static const int kTimeDim = TimeDim;
   static const ResidualMode kResidualMode = ResMode;
-  static const int kResidualDim =
-      kResidualMode == RES_MODE_1D
-          ? 1
-          : (kResidualMode == RES_MODE_STATE ? kStateDim : kTimeDim);
+  static const int kResidualDim = kResidualMode == RES_MODE_1D ? 1 : kStateDim;
 
   static_assert(kParameterDim >= 1);
   static_assert(kStateDim >= 1);
-  static_assert(kTimeDim >= 1);
 
   typedef ceres::Jet<double, kParameterDim> ADScalar;
 
-  typedef TinyCeresEstimator<kParameterDim, kStateDim, kTimeDim, kResidualMode>
+  typedef TinyCeresEstimator<kParameterDim, kStateDim, kResidualMode>
       CeresEstimator;
 
   std::array<EstimationParameter, kParameterDim> parameters;
@@ -76,12 +70,15 @@ class TinyCeresEstimator : ceres::IterationCallback {
     }
   }
 
-  // Samples from ground-truth system dynamics, i.e. a list of states.
+  // Sample states from ground-truth system dynamics, i.e. a list of states.
   std::vector<std::vector<double>> target_states;
-  /**
-   * Every n simulation frames have target state samples.
-   */
-  int samples_every_n_frames{1};
+
+  // Times from ground-truth trajectory, i.e. when the target_states happend,
+  // may be left empty (then target_states are assumed to overlap with
+  // simulation states).
+  std::vector<double> target_times;
+
+  double dt{1e-2};
 
   /**
    * The following 2 terms are for optional time normalization to mitigate
@@ -94,16 +91,16 @@ class TinyCeresEstimator : ceres::IterationCallback {
    * mitigate gradient explosion over long roll-outs. If it is zero, no time
    * normalization is performed.
    */
-  double divide_cost_by_time_step_factor{0};
+  double divide_cost_by_time_factor{0};
   /**
    * Exponent `b` to use to divide each cost term by the particular time step t
    * to mitigate gradient explosion over long roll-outs.
    */
-  double divide_cost_by_time_step_exponent{1};
+  double divide_cost_by_time_exponent{1};
 
   ceres::Solver::Options options;
 
-  TinyCeresEstimator() {
+  TinyCeresEstimator(double dt) : dt(dt) {
     options.minimizer_progress_to_stdout = true;
     options.callbacks.push_back(this);
   }
@@ -112,16 +109,16 @@ class TinyCeresEstimator : ceres::IterationCallback {
   ceres::CostFunction *cost_function_{nullptr};
 
  public:
-  virtual void rollout(
-      const std::vector<ADScalar> &params,
-      std::vector<std::vector<ADScalar>> &output_states) const = 0;
-  virtual void rollout(
-      const std::vector<double> &params,
-      std::vector<std::vector<double>> &output_states) const = 0;
+  virtual void rollout(const std::vector<ADScalar> &params,
+                       std::vector<std::vector<ADScalar>> &output_states,
+                       double dt) const = 0;
+  virtual void rollout(const std::vector<double> &params,
+                       std::vector<std::vector<double>> &output_states,
+                       double dt) const = 0;
 
   ceres::Problem &setup(ceres::LossFunction *loss_function = nullptr) {
-    assert(static_cast<int>(target_states.size()) == kTimeDim);
-    assert(static_cast<int>(target_states[0].size()) == kStateDim);
+    assert(!target_states.empty() &&
+           static_cast<int>(target_states[0].size()) >= kStateDim);
 
     if (cost_function_) {
       delete cost_function_;
@@ -138,6 +135,7 @@ class TinyCeresEstimator : ceres::IterationCallback {
     for (int i = 0; i < kParameterDim; ++i) {
       problem_.SetParameterLowerBound(vars_, i, parameters[i].minimum);
       problem_.SetParameterUpperBound(vars_, i, parameters[i].maximum);
+      vars_[i] = parameters[i].value;
     }
 
     return problem_;
@@ -179,8 +177,7 @@ class TinyCeresEstimator : ceres::IterationCallback {
  private:
   ceres::Problem problem_;
   double *vars_{nullptr};
-
-  mutable std::vector<std::array<double, kParameterDim>> param_evolution_;
+  std::vector<std::array<double, kParameterDim>> param_evolution_;
   mutable std::array<double, kParameterDim> current_param_;
 
   struct CostFunctor {
@@ -192,13 +189,33 @@ class TinyCeresEstimator : ceres::IterationCallback {
     // TODO use stan::math reverse-mode AD
     template <typename T>
     bool operator()(const T *const x, T *residual) const {
+      // first roll-out simulation given the current parameters
       const std::vector<T> params(x, x + kParameterDim);
-      std::vector<std::vector<T>> output_states;
-      parent->rollout(params, output_states);
+      std::vector<std::vector<T>> rollout_states;
+      const double dt = parent->dt;
+      parent->rollout(params, rollout_states, dt);
+
+      const auto &target_states = parent->target_states;
+      const auto &target_times = parent->target_times;
+      int n_rollout = static_cast<int>(rollout_states.size());
+      int n_target = static_cast<int>(target_states.size());
+      if (target_times.empty() &&
+          rollout_states.size() != target_states.size()) {
+        fprintf(
+            stderr,
+            "If no target_times are provided to TinyCeresEstimator, the "
+            "number of target_states (%i) must match the number of roll-out "
+            "states (%i).\n",
+            n_target, n_rollout);
+        return false;
+      }
+
+      // select the right scalar traits based on the type of the input
       typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
                                  CeresUtils<kParameterDim>>
           Utils;
       for (int i = 0; i < kParameterDim; ++i) {
+        // store current parameters as double for logging purposes
         parent->current_param_[i] = Utils::getDouble(x[i]);
       }
       for (int i = 0; i < kResidualDim; ++i) {
@@ -206,24 +223,50 @@ class TinyCeresEstimator : ceres::IterationCallback {
       }
 
       T difference;
-      for (int t = 0; t < kTimeDim; ++t) {
+      std::vector<T> rollout_state(kStateDim);
+      double time;
+      for (int t = 0; t < n_target; ++t) {
+        if (target_times.empty()) {
+          // assume target states line up with rollout states
+          rollout_state = rollout_states[t];
+          time = dt * t;
+        } else {
+          // linear interpolation of rollout states at the target times
+          double target_time = target_times[t];
+          // numerically stable way to get index of rollout state
+          int rollout_i =
+              static_cast<int>(std::floor(target_time / dt + dt / 2.));
+          if (rollout_i >= n_rollout - 1) {
+            fprintf(stderr,
+                    "Target time %.4f (step %i) corresponds to a state (%i) "
+                    "that has not been rolled out.\n",
+                    target_time, t, rollout_i);
+            break;
+          }
+          double alpha = (target_time - rollout_i * dt) / dt;
+          const std::vector<T> &left = rollout_states[rollout_i];
+          const std::vector<T> &right = rollout_states[rollout_i + 1];
+
+          for (int i = 0; i < kStateDim; ++i) {
+            rollout_state[i] = (1. - alpha) * left[i] + alpha * right[i];
+          }
+          time = target_time;
+        }
+
         // skip time steps for which no target state samples exist
-        int sim_t = t * parent->samples_every_n_frames;
         for (int i = 0; i < kStateDim; ++i) {
-          difference = parent->target_states[t][i] - output_states[sim_t][i];
+          difference = target_states[t][i] - rollout_state[i];
           difference *= difference;
 
           // discount contribution of errors at later time steps to mitigate
           // gradient explosion on long roll-outs
-          if (parent->divide_cost_by_time_step_factor != 0. && t > 0) {
-            difference /= std::pow(parent->divide_cost_by_time_step_factor * t,
-                                   parent->divide_cost_by_time_step_exponent);
+          if (parent->divide_cost_by_time_factor != 0. && t > 0) {
+            difference /= std::pow(parent->divide_cost_by_time_factor * time,
+                                   parent->divide_cost_by_time_exponent);
           }
 
           if constexpr (kResidualMode == RES_MODE_1D) {
             *residual += difference;
-          } else if constexpr (kResidualMode == RES_MODE_TIME) {
-            residual[t] += difference;
           } else if constexpr (kResidualMode == RES_MODE_STATE) {
             residual[i] += difference;
           }
@@ -242,10 +285,11 @@ class TinyCeresEstimator : ceres::IterationCallback {
 
 /**
  * Implements Parallel Basin Hopping that combines local gradient-based
- * optimization using Ceres with random guessing to overcome poor local optima.
+ * optimization using Ceres with random guessing to overcome poor local
+ * optima.
  *
- * McCarty & McGuire "Parallel Monotonic Basin Hopping for Low Thrust Trajectory
- * Optimization"
+ * McCarty & McGuire "Parallel Monotonic Basin Hopping for Low Thrust
+ * Trajectory Optimization"
  */
 template <int ParameterDim, typename Estimator>
 class BasinHoppingEstimator {
