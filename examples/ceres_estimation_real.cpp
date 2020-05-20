@@ -21,7 +21,7 @@
 #include "tiny_multi_body.h"
 #include "tiny_world.h"
 
-#define JUST_VISUALIZE true
+#define JUST_VISUALIZE false
 #define USE_PBH true
 // whether the state consists of [q qd] or just q
 #define STATE_INCLUDES_QD false
