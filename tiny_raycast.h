@@ -176,7 +176,127 @@ struct TinyRaycast
 
 		return results;
 	}
-};
 
+	TinyScalar volume(const std::vector<std::vector<TinyRaycastResult> >& results, int num_objects)
+	{
+		TinyScalar vol = TinyConstants::zero();
+		std::vector<int> inside_primitive_array;
+		for (int ray = 0; ray < results.size(); ray++)
+		{
+			TinyScalar prev_fraction = TinyConstants::zero();
+			const std::vector<TinyRaycastResult>& hits = results[ray];
+			inside_primitive_array.resize(0);
+			inside_primitive_array.resize(num_objects, 0);
+			int inside_primitives = 0;
+			for (int i = 0; i < hits.size(); i++)
+			{
+				const TinyRaycastResult& hit = hits[i];
+				TinyScalar fraction = hit.m_hit_fraction;
+				int prim_uid = hit.m_collider_index;
+				if (inside_primitive_array[prim_uid]>0)
+				{
+					//we must be leaving this primitive
+					inside_primitive_array[prim_uid]--;
+					inside_primitives = inside_primitives - 1;
+					if (inside_primitives == 0)
+					{
+						vol += (fraction - prev_fraction);
+					}
+				}
+				else
+				{
+					inside_primitive_array[prim_uid]++;
+					if (inside_primitives == 0)
+					{
+						prev_fraction = fraction;
+						inside_primitives = inside_primitives + 1;
+					}
+				}
+			}
+		}
+
+		return vol;
+	}
+	TinyScalar intersection_volume(const std::vector<std::vector<TinyRaycastResult> >& results_target,
+		const std::vector<std::vector<TinyRaycastResult> >& results_prims, int num_objects)
+	{
+		TinyScalar intersection_volume = TinyConstants::zero();
+		std::vector<int> inside_primitive_array;
+		for (int ray = 0; ray < results_target.size(); ray++)
+		{
+			const std::vector<TinyRaycastResult>& target_hits = results_target[ray];
+			const std::vector<TinyRaycastResult>& prims_hits = results_prims[ray];
+			if (target_hits.size() && prims_hits.size())
+			{
+				inside_primitive_array.resize(0);
+				inside_primitive_array.resize(num_objects);
+				int target_hit_index = 0;
+				int prim_hit_index = 0;
+				int inside_primitives = 0;
+				int inside_target = 0;
+				TinyScalar prev_fraction = TinyConstants::zero();
+				TinyScalar cur_target_fraction = TinyConstants::zero();
+				TinyScalar cur_prim_fraction = TinyConstants::zero();
+
+				while (prim_hit_index < prims_hits.size() && target_hit_index < target_hits.size())
+				{
+					const TinyRaycastResult& next_target_hit = target_hits[target_hit_index];
+					const TinyRaycastResult& next_prim_hit = prims_hits[prim_hit_index];
+					TinyScalar prim_fraction = next_prim_hit.m_hit_fraction;
+					TinyScalar target_fraction = next_target_hit.m_hit_fraction;
+					int prim_uid = next_prim_hit.m_collider_index;
+
+					if (prim_fraction <= target_fraction)
+					{
+						cur_prim_fraction = prim_fraction;
+						//are we entering a new or existing primitive or leaving a existing primitive ?
+						if (inside_primitive_array[prim_uid]>0)
+						{
+							//we must be leaving this primitive
+							inside_primitive_array[prim_uid]--;
+							inside_primitives--;
+							if (inside_target && (inside_primitives == 0))
+							{
+								intersection_volume += (prim_fraction - prev_fraction);
+							}
+						}
+						else
+						{
+							//we must be entering this primitive
+							if (inside_primitives == 0)
+							{
+								prev_fraction = prim_fraction;
+								inside_primitive_array[prim_uid]++;
+								inside_primitives++;
+							}
+						}
+						prim_hit_index++;
+					}
+					else
+					{
+						//entering or leaving target ?
+						if (inside_target)
+						{
+							if (inside_primitives > 0)
+							{
+								intersection_volume += (target_fraction - prev_fraction);
+								inside_target = inside_target - 1;
+							}
+						}
+						else
+						{
+							//we are entering the target
+							prev_fraction = target_fraction;
+							inside_target = inside_target + 1;
+						}
+						target_hit_index += 1;
+					}
+
+				}
+			}
+		}
+		return intersection_volume;
+	}
+};
 
 #endif //TINY_RAYCAST_H
