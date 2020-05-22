@@ -184,8 +184,8 @@ template <typename TinyScalar, typename TinyConstants> struct TinyRaycast {
           inside_primitive_array[prim_uid]++;
           if (inside_primitives == 0) {
             prev_fraction = fraction;
-            inside_primitives = inside_primitives + 1;
           }
+          inside_primitives = inside_primitives + 1;
         }
       }
     }
@@ -236,9 +236,9 @@ template <typename TinyScalar, typename TinyConstants> struct TinyRaycast {
               // we must be entering this primitive
               if (inside_primitives == 0) {
                 prev_fraction = prim_fraction;
-                inside_primitive_array[prim_uid]++;
-                inside_primitives++;
               }
+              inside_primitive_array[prim_uid]++;
+              inside_primitives++;
             }
             prim_hit_index++;
           } else {
@@ -246,8 +246,8 @@ template <typename TinyScalar, typename TinyConstants> struct TinyRaycast {
             if (inside_target) {
               if (inside_primitives > 0) {
                 intersection_volume += (target_fraction - prev_fraction);
-                inside_target = inside_target - 1;
               }
+              inside_target = inside_target - 1;
             } else {
               // we are entering the target
               prev_fraction = target_fraction;
