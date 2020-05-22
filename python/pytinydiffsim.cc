@@ -399,7 +399,10 @@ PYBIND11_MODULE(pytinydiffsim, m) {
   
   py::class_<TinyRaycast<double, DoubleUtils>>(m, "TinyRaycast")
       .def(py::init<>())
-      .def("cast_rays", &TinyRaycast<double, DoubleUtils>::cast_rays);
+      .def("cast_rays", &TinyRaycast<double, DoubleUtils>::cast_rays)
+      .def("volume", &TinyRaycast<double, DoubleUtils>::volume)
+      .def("intersection_volume", &TinyRaycast<double, DoubleUtils>::intersection_volume)
+      ;
   
 
   ///////////////////////////////////////////////////////////////////////////////////////////
