@@ -31,6 +31,7 @@
 #include "tiny_urdf_to_multi_body.h"
 #include "tiny_vector3.h"
 #include "tiny_world.h"
+#include "tiny_raycast.h"
 
 template <typename TinyScalar, typename TinyConstants>
 struct UrdfToMultiBody2 {
@@ -389,6 +390,18 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def_readwrite("restitution",
                      &TinyWorld<double, DoubleUtils>::default_restitution);
 
+  py::class_<TinyRaycastResult<double, DoubleUtils>>(m, "TinyRaycastResult")
+      .def(py::init<>())
+      .def_readwrite("hit_fraction",
+          &TinyRaycastResult<double, DoubleUtils>::m_hit_fraction)
+      .def_readwrite("collider_index",
+          &TinyRaycastResult<double, DoubleUtils>::m_collider_index);
+  
+  py::class_<TinyRaycast<double, DoubleUtils>>(m, "TinyRaycast")
+      .def(py::init<>())
+      .def("cast_rays", &TinyRaycast<double, DoubleUtils>::cast_rays);
+  
+
   ///////////////////////////////////////////////////////////////////////////////////////////
 
   py::class_<Fix64Scalar>(m, "Fix64Scalar")
@@ -445,6 +458,12 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def_readwrite("radius",
                      &TinyUrdfCollisionSphere<double, DoubleUtils>::m_radius);
 
+  py::class_<TinyUrdfCollisionBox<double, DoubleUtils>>(
+      m, "TinyUrdfCollisionBox")
+      .def(py::init<>())
+      .def_readwrite("extents",
+          &TinyUrdfCollisionBox<double, DoubleUtils>::m_extents);
+
   py::class_<TinyUrdfCollisionCapsule<double, DoubleUtils>>(
       m, "TinyUrdfCollisionCapsule")
       .def(py::init<>())
@@ -474,6 +493,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def_readwrite("geom_type",
                      &TinyUrdfGeometry<double, DoubleUtils>::geom_type)
       .def_readwrite("sphere", &TinyUrdfGeometry<double, DoubleUtils>::m_sphere)
+      .def_readwrite("box", &TinyUrdfGeometry<double, DoubleUtils>::m_box)
       .def_readwrite("plane", &TinyUrdfGeometry<double, DoubleUtils>::m_plane)
       .def_readwrite("capsule",
                      &TinyUrdfGeometry<double, DoubleUtils>::m_capsule)
@@ -571,6 +591,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
   m.attr("__version__") = "dev";
 #endif
   m.attr("SPHERE_TYPE") = py::int_(int(TINY_SPHERE_TYPE));
+  m.attr("BOX_TYPE") = py::int_(int(TINY_BOX_TYPE));
   m.attr("PLANE_TYPE") = py::int_(int(TINY_PLANE_TYPE));
   m.attr("CAPSULE_TYPE") = py::int_(int(TINY_CAPSULE_TYPE));
   m.attr("MESH_TYPE") = py::int_(int(TINY_MESH_TYPE));
