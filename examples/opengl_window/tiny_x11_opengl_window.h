@@ -15,72 +15,71 @@
 #ifndef TINY_X11_OPENGL_WINDOW_H
 #define TINY_X11_OPENGL_WINDOW_H
 
-#define b3gDefaultOpenGLWindow X11OpenGLWindow
+#define TinyDefaultOpenGLWindow TinyX11OpenGLWindow
 
 #include "tiny_window_interface.h"
 
-class X11OpenGLWindow : public TinyWindowInterface
-{
-	struct InternalData2* m_data;
-	bool m_OpenGLInitialized;
-	bool m_requestedExit;
+class TinyX11OpenGLWindow : public TinyWindowInterface {
+  struct InternalData2* m_data;
+  bool m_OpenGLInitialized;
+  bool m_requestedExit;
 
-protected:
-	void enableOpenGL();
+ protected:
+  void enable_opengl();
 
-	void disableOpenGL();
+  void disable_opengl();
 
-	void pumpMessage();
+  void pump_message();
 
-	int getAsciiCodeFromVirtualKeycode(int orgCode);
+  int get_ascii_code_from_virtual_keycode(int orgCode);
 
-public:
-	X11OpenGLWindow();
+ public:
+  TinyX11OpenGLWindow();
 
-	virtual ~X11OpenGLWindow();
+  virtual ~TinyX11OpenGLWindow();
 
-	virtual void create_window(const TinyWindowConstructionInfo& ci);
+  virtual void create_window(const TinyWindowConstructionInfo& ci);
 
-	virtual void close_window();
+  virtual void close_window();
 
-	virtual void start_rendering();
+  virtual void start_rendering();
 
-	virtual void renderAllObjects();
+  virtual void render_all_objects();
 
-	virtual void end_rendering();
+  virtual void end_rendering();
 
-	virtual float get_retina_scale() const { return 1.f; }
-	virtual void set_allow_retina(bool /*allowRetina*/){};
+  virtual float get_retina_scale() const { return 1.f; }
+  virtual void set_allow_retina(bool /*allowRetina*/){};
 
-	virtual void run_main_loop();
-	virtual float get_time_in_seconds();
+  virtual void run_main_loop();
+  virtual float get_time_in_seconds();
 
-	virtual bool requested_exit() const;
-	virtual void set_request_exit();
+  virtual bool requested_exit() const;
+  virtual void set_request_exit();
 
-	virtual bool is_modifier_key_pressed(int key);
+  virtual bool is_modifier_key_pressed(int key);
 
-	virtual void set_mouse_move_callback(b3MouseMoveCallback mouseCallback);
-	virtual void set_mouse_button_callback(b3MouseButtonCallback mouseCallback);
-	virtual void set_resize_callback(b3ResizeCallback resizeCallback);
-	virtual void set_wheel_callback(TinyWheelCallback wheelCallback);
-	virtual void set_keyboard_callback(b3KeyboardCallback keyboardCallback);
+  virtual void set_mouse_move_callback(TinyMouseMoveCallback mouseCallback);
+  virtual void set_mouse_button_callback(TinyMouseButtonCallback mouseCallback);
+  virtual void set_resize_callback(TinyResizeCallback resizeCallback);
+  virtual void set_wheel_callback(TinyWheelCallback wheelCallback);
+  virtual void set_keyboard_callback(TinyKeyboardCallback keyboardCallback);
 
-	virtual b3MouseMoveCallback get_mouse_move_callback();
-	virtual b3MouseButtonCallback get_mouse_button_callback();
-	virtual b3ResizeCallback getResizeCallback();
-	virtual TinyWheelCallback get_wheel_callback();
-	virtual b3KeyboardCallback get_keyboard_callback();
+  virtual TinyMouseMoveCallback get_mouse_move_callback();
+  virtual TinyMouseButtonCallback get_mouse_button_callback();
+  virtual TinyResizeCallback get_resize_callback();
+  virtual TinyWheelCallback get_wheel_callback();
+  virtual TinyKeyboardCallback get_keyboard_callback();
 
-	virtual void set_render_callback(b3RenderCallback renderCallback);
+  virtual void set_render_callback(TinyRenderCallback renderCallback);
 
-	virtual void set_window_title(const char* title);
+  virtual void set_window_title(const char* title);
 
-	virtual int get_width() const;
+  virtual int get_width() const;
 
-	virtual int get_height() const;
+  virtual int get_height() const;
 
-	int file_open_dialog(char* filename, int maxNameLength);
+  int file_open_dialog(char* filename, int maxNameLength);
 };
 
-#endif //TINY_X11_OPENGL_WINDOW_H
+#endif  // TINY_X11_OPENGL_WINDOW_H

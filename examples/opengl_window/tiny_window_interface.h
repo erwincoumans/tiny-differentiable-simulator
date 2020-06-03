@@ -78,7 +78,7 @@ public:
 	virtual TinyMouseButtonCallback get_mouse_button_callback() = 0;
 
 	virtual void set_resize_callback(TinyResizeCallback resizeCallback) = 0;
-	virtual TinyResizeCallback getResizeCallback() = 0;
+	virtual TinyResizeCallback get_resize_callback() = 0;
 
 	virtual void set_wheel_callback(TinyWheelCallback wheelCallback) = 0;
 	virtual TinyWheelCallback get_wheel_callback() = 0;
