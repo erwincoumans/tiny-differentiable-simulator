@@ -18,7 +18,7 @@ subject to the following restrictions:
 
 #include "tiny_win32_window.h"
 
-#define b3gDefaultOpenGLWindow TinyWin32OpenGLWindow
+#define TinyDefaultOpenGLWindow TinyWin32OpenGLWindow
 
 class TinyWin32OpenGLWindow : public TinyWin32Window
 {
