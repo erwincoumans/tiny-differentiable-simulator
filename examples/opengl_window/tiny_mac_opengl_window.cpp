@@ -1,10 +1,10 @@
 #ifndef B3_USE_GLFW
 #ifdef __APPLE__
 
-#include "MacOpenGLWindow.h"
+#include "tiny_mac_opengl_window.h"
 
-#include "OpenGLInclude.h"
-#include "MacOpenGLWindowObjC.h"
+#include "tiny_opengl_include.h"
+#include "tiny_mac_opengl_window_objc.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -22,32 +22,32 @@ MacOpenGLWindow::~MacOpenGLWindow()
 	Mac_destroyData(m_internalData);
 }
 
-void MacOpenGLWindow::closeWindow()
+void MacOpenGLWindow::close_window()
 {
 	Mac_destroyData(m_internalData);
 	m_internalData = Mac_createData();
 }
 
-bool MacOpenGLWindow::isModifierKeyPressed(int key)
+bool MacOpenGLWindow::is_modifier_key_pressed(int key)
 {
 	return Mac_isModifierKeyPressed(m_internalData, key);
 }
 
-float MacOpenGLWindow::getTimeInSeconds()
+float MacOpenGLWindow::get_time_in_seconds()
 {
 	return 0.f;
 }
 
-void MacOpenGLWindow::setRenderCallback(b3RenderCallback renderCallback)
+void MacOpenGLWindow::set_render_callback(TinyRenderCallback renderCallback)
 {
 }
 
-void MacOpenGLWindow::setWindowTitle(const char* windowTitle)
+void MacOpenGLWindow::set_window_title(const char* windowTitle)
 {
 	Mac_setWindowTitle(m_internalData, windowTitle);
 }
 
-void MacOpenGLWindow::createWindow(const b3gWindowConstructionInfo& ci)
+void MacOpenGLWindow::create_window(const TinyWindowConstructionInfo& ci)
 {
 	MacWindowConstructionInfo windowCI;
 	windowCI.m_width = ci.m_width;
@@ -62,36 +62,36 @@ void MacOpenGLWindow::createWindow(const b3gWindowConstructionInfo& ci)
 	Mac_createWindow(m_internalData, &windowCI);
 }
 
-void MacOpenGLWindow::runMainLoop()
+void MacOpenGLWindow::run_main_loop()
 {
 }
 
-void MacOpenGLWindow::startRendering()
+void MacOpenGLWindow::start_rendering()
 {
 	Mac_updateWindow(m_internalData);
 }
 
-void MacOpenGLWindow::endRendering()
+void MacOpenGLWindow::end_rendering()
 {
 	Mac_swapBuffer(m_internalData);
 }
 
-bool MacOpenGLWindow::requestedExit() const
+bool MacOpenGLWindow::requested_exit() const
 {
 	return Mac_requestedExit(m_internalData);
 }
 
-void MacOpenGLWindow::setRequestExit()
+void MacOpenGLWindow::set_request_exit()
 {
 	Mac_setRequestExit(m_internalData);
 }
 
-int MacOpenGLWindow::fileOpenDialog(char* filename, int maxNameLength)
+int MacOpenGLWindow::file_open_dialog(char* filename, int maxNameLength)
 {
 	return Mac_fileOpenDialog(filename, maxNameLength);
 }
 
-void MacOpenGLWindow::getMouseCoordinates(int& x, int& y)
+void MacOpenGLWindow::get_mouse_coordinates(int& x, int& y)
 {
 	int* xPtr = &x;
 	int* yPtr = &y;
@@ -99,72 +99,72 @@ void MacOpenGLWindow::getMouseCoordinates(int& x, int& y)
 	Mac_getMouseCoordinates(m_internalData, xPtr, yPtr);
 }
 
-int MacOpenGLWindow::getWidth() const
+int MacOpenGLWindow::get_width() const
 {
 	return Mac_getWidth(m_internalData);
 }
 
-int MacOpenGLWindow::getHeight() const
+int MacOpenGLWindow::get_height() const
 {
 	return Mac_getHeight(m_internalData);
 }
 
-void MacOpenGLWindow::setResizeCallback(b3ResizeCallback resizeCallback)
+void MacOpenGLWindow::set_resize_callback(TinyResizeCallback resizeCallback)
 {
 	Mac_setResizeCallback(m_internalData, resizeCallback);
 }
 
-b3ResizeCallback MacOpenGLWindow::getResizeCallback()
+TinyResizeCallback MacOpenGLWindow::get_resize_callback()
 {
 	return Mac_getResizeCallback(m_internalData);
 }
 
-void MacOpenGLWindow::setMouseButtonCallback(b3MouseButtonCallback mouseCallback)
+void MacOpenGLWindow::set_mouse_button_callback(TinyMouseButtonCallback mouseCallback)
 {
 	Mac_setMouseButtonCallback(m_internalData, mouseCallback);
 }
 
-void MacOpenGLWindow::setMouseMoveCallback(b3MouseMoveCallback mouseCallback)
+void MacOpenGLWindow::set_mouse_move_callback(TinyMouseMoveCallback mouseCallback)
 {
 	Mac_setMouseMoveCallback(m_internalData, mouseCallback);
 }
 
-void MacOpenGLWindow::setKeyboardCallback(b3KeyboardCallback keyboardCallback)
+void MacOpenGLWindow::set_keyboard_callback(TinyKeyboardCallback keyboardCallback)
 {
 	Mac_setKeyboardCallback(m_internalData, keyboardCallback);
 }
 
-b3MouseMoveCallback MacOpenGLWindow::getMouseMoveCallback()
+TinyMouseMoveCallback MacOpenGLWindow::get_mouse_move_callback()
 {
 	return Mac_getMouseMoveCallback(m_internalData);
 }
 
-b3MouseButtonCallback MacOpenGLWindow::getMouseButtonCallback()
+TinyMouseButtonCallback MacOpenGLWindow::get_mouse_button_callback()
 {
 	return Mac_getMouseButtonCallback(m_internalData);
 }
 
-void MacOpenGLWindow::setWheelCallback(b3WheelCallback wheelCallback)
+void MacOpenGLWindow::set_wheel_callback(TinyWheelCallback wheelCallback)
 {
 	Mac_setWheelCallback(m_internalData, wheelCallback);
 }
 
-b3WheelCallback MacOpenGLWindow::getWheelCallback()
+TinyWheelCallback MacOpenGLWindow::get_wheel_callback()
 {
 	return Mac_getWheelCallback(m_internalData);
 }
 
-b3KeyboardCallback MacOpenGLWindow::getKeyboardCallback()
+TinyKeyboardCallback MacOpenGLWindow::get_keyboard_callback()
 {
 	return Mac_getKeyboardCallback(m_internalData);
 }
 
-float MacOpenGLWindow::getRetinaScale() const
+float MacOpenGLWindow::get_retina_scale() const
 {
 	return Mac_getRetinaScale(m_internalData);
 }
 
-void MacOpenGLWindow::setAllowRetina(bool allow)
+void MacOpenGLWindow::set_allow_retina(bool allow)
 {
 	Mac_setAllowRetina(m_internalData, allow);
 }

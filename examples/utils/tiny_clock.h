@@ -12,12 +12,12 @@ public:
 
 	~TinyClock();
 
-	/// Resets the initial reference time. If zeroReference is true, will set reference to absolute 0.
-	void reset(bool zeroReference = false);
+	/// Resets the initial reference time.
+	void reset();
 
 	/// Returns the time in ms since the last call to reset or since
 	/// the TinyClock was created.
-	unsigned long int get_time_milliseconds();
+	unsigned long long int get_time_milliseconds();
 
 	/// Returns the time in us since the last call to reset or since
 	/// the Clock was created.
@@ -27,7 +27,7 @@ public:
 
 	/// Returns the time in seconds since the last call to reset or since
 	/// the Clock was created.
-	double get_time_in_seconds();
+	double get_time_seconds();
 
 	///Sleep for 'microSeconds', to yield to other threads and not waste 100% CPU cycles.
 	///Note that some operating systems may sleep a longer time.

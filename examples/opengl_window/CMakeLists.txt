@@ -16,17 +16,21 @@ FILE(GLOB OpenGLWindowCommon_CPP "*.cpp" )
 LIST(REMOVE_ITEM OpenGLWindowCommon_CPP ${OpenGLWindowMac_CPP} )
 LIST(REMOVE_ITEM OpenGLWindowCommon_CPP ${OpenGLWindowWin32_CPP} )
 LIST(REMOVE_ITEM OpenGLWindowCommon_CPP ${OpenGLWindowLinux_CPP} )
-LIST(REMOVE_ITEM OpenGLWindowCommon_CPP X11OpenGLWindow.cpp )
-LIST(REMOVE_ITEM OpenGLWindowCommon_CPP MacOpenGLWindow.cpp )
+LIST(REMOVE_ITEM OpenGLWindowCommon_CPP tiny_x11_opengl_window.cpp )
+LIST(REMOVE_ITEM OpenGLWindowCommon_CPP tiny_mac_opengl_window.cpp )
 #MESSAGE (${OpenGLWindowCommon_CPP})
 
 IF (WIN32)
     SET(OpenGLWindow_SRCS ../../third_party/glad/gl.c ${OpenGLWindowWin32_CPP} ${OpenGLWindowCommon_CPP})
 	  ADD_DEFINITIONS(-DGLEW_STATIC)
-ELIF(APPLE)
+ELSE()
+  IF(APPLE)
+  MESSAGE("APPLE!")
   SET(OpenGLWindow_SRCS ${OpenGLWindowMac_CPP} ../../third_party/glad/gl.c ${OpenGLWindowMacObjC_CPP}  ${OpenGLWindowCommon_CPP} )
 ELSE()
+  MESSAGE("LINUX!")
   SET(OpenGLWindow_SRCS ${OpenGLWindowLinux_CPP} ${OpenGLWindowCommon_CPP} ../../third_party/glad/gl.c)
+  ENDIF()
 ENDIF(WIN32)
 
 #no Linux detection?
@@ -43,9 +47,11 @@ IF(NOT WIN32 AND NOT APPLE)
         SET(OpenGLWindow_SRCS ${OpenGLWindowLinux_CPP} ${OpenGLWindowCommon_CPP}  ../../third_party/glad/gl.c  ../../third_party/glad/glx.c )
 ENDIF()
 
-#IF(BUILD_EGL)
+MESSAGE (${OpenGLWindowCommon_CPP})
+
+IF(BUILD_EGL)
     SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}  ../../third_party/glad/egl.c)
-#ENDIF(BUILD_EGL)
+ENDIF(BUILD_EGL)
 
 SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}  ../../third_party/stb_image/stb_image_write.cpp)
 
@@ -55,7 +61,8 @@ ADD_LIBRARY(opengl_window ${OpenGLWindow_SRCS} ${OpenGLWindow_HDRS})
 if (UNIX AND NOT APPLE)
   target_link_libraries(opengl_window ${DL})
 elseif (APPLE)
-  target_link_libraries(opengl_window ${COCOA_LIBRARY})
+  find_library(COCOA NAMES Cocoa)
+  MESSAGE(${COCOA})
 endif ()
 
 if (BUILD_SHARED_LIBS)
@@ -70,6 +77,11 @@ if (BUILD_SHARED_LIBS)
 
   endif()
 endif()
+
+IF(APPLE)
+  FIND_PACKAGE(OpenGL)
+  target_link_libraries(opengl_window ${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
+ENDIF()
 
 #target_link_libraries(opengl_window ${OPENGL_gl_LIBRARY})
 
