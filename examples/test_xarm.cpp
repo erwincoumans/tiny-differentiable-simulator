@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+#include <fenv.h>
 #include "tiny_spatial_motion_vector.h"
 #include "tiny_symmetric_spatial_dyad.h"
 #include "xarm.h"
-#include <fenv.h>
 
-#include "tiny_double_utils.h"
 #include "fix64_scalar.h"
+#include "tiny_double_utils.h"
 #include "tiny_matrix3x3.h"
 #include "tiny_multi_body.h"
 #include "tiny_pose.h"
@@ -48,18 +47,17 @@ void xarm6_fk_fd(TinyMultiBody<TinyScalar, TinyConstants>& mb,
 
   TinyVector3<TinyScalar, TinyConstants> gravity(
       TinyConstants::zero(), TinyConstants::zero(),
-      TinyConstants::fraction(-981,100));
+      TinyConstants::fraction(-981, 100));
   mb.forward_dynamics(q, qd, tau, gravity, qdd);
-  
 }
 int main(int argc, char* argv[]) {
   // Set NaN trap
-  //feenableexcept(FE_INVALID | FE_OVERFLOW);
+  // feenableexcept(FE_INVALID | FE_OVERFLOW);
 
   std::vector<double> new_qdd;
-  
+
   bool isFloating = false;
-  
+
   {
     TinyMultiBody<double, DoubleUtils> mb(isFloating);
     init_xarm6<double, DoubleUtils>(mb);
@@ -73,19 +71,19 @@ int main(int argc, char* argv[]) {
     init_xarm6<Fix64Scalar, Fix64Scalar>(mb);
     xarm6_fk_fd<Fix64Scalar, Fix64Scalar>(mb, new_qdd_fp);
 
-
     for (std::size_t i = 0; i < new_qdd.size(); ++i) {
       double new_d = Fix64Scalar::getDouble(new_qdd_fp[i]);
       double old_d = new_qdd[i];
       if (abs(old_d - new_d) > 1e-4) {
-        printf("ERROR: FP Discrepancy between double (%.4f) and fix64 (%.4f) qdd.\n",
-               old_d, new_d);
+        printf(
+            "ERROR: FP Discrepancy between double (%.4f) and fix64 (%.4f) "
+            "qdd.\n",
+            old_d, new_d);
       } else {
         printf("OK: double matching fix64 (%.4f)\n", old_d);
       }
     }
   }
-
 
   return 0;
 }

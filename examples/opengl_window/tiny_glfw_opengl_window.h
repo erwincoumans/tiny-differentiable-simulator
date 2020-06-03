@@ -21,65 +21,64 @@
 
 #define b3gDefaultOpenGLWindow GLFWOpenGLWindow
 
-class GLFWOpenGLWindow : public CommonWindowInterface
-{
-	struct GLFWOpenGLWindowInternalData* m_data;
+class GLFWOpenGLWindow : public CommonWindowInterface {
+  struct GLFWOpenGLWindowInternalData* m_data;
 
-protected:
-public:
-	GLFWOpenGLWindow();
+ protected:
+ public:
+  GLFWOpenGLWindow();
 
-	virtual ~GLFWOpenGLWindow();
+  virtual ~GLFWOpenGLWindow();
 
-	virtual void create_default_window(int width, int height, const char* title);
+  virtual void create_default_window(int width, int height, const char* title);
 
-	virtual void create_window(const b3gWindowConstructionInfo& ci);
+  virtual void create_window(const b3gWindowConstructionInfo& ci);
 
-	virtual void close_window();
+  virtual void close_window();
 
-	virtual void run_main_loop();
-	virtual float get_time_in_seconds();
+  virtual void run_main_loop();
+  virtual float get_time_in_seconds();
 
-	virtual bool requested_exit() const;
-	virtual void set_request_exit();
+  virtual bool requested_exit() const;
+  virtual void set_request_exit();
 
-	virtual void start_rendering();
+  virtual void start_rendering();
 
-	virtual void end_rendering();
+  virtual void end_rendering();
 
-	virtual bool is_modifier_key_pressed(int key);
+  virtual bool is_modifier_key_pressed(int key);
 
-	virtual void set_mouse_move_callback(b3MouseMoveCallback mouseCallback);
-	virtual b3MouseMoveCallback get_mouse_move_callback();
+  virtual void set_mouse_move_callback(b3MouseMoveCallback mouseCallback);
+  virtual b3MouseMoveCallback get_mouse_move_callback();
 
-	virtual void set_mouse_button_callback(b3MouseButtonCallback mouseCallback);
-	virtual b3MouseButtonCallback get_mouse_button_callback();
+  virtual void set_mouse_button_callback(b3MouseButtonCallback mouseCallback);
+  virtual b3MouseButtonCallback get_mouse_button_callback();
 
-	virtual void set_resize_callback(b3ResizeCallback resizeCallback);
-	virtual b3ResizeCallback getResizeCallback();
+  virtual void set_resize_callback(b3ResizeCallback resizeCallback);
+  virtual b3ResizeCallback getResizeCallback();
 
-	virtual void set_wheel_callback(TinyWheelCallback wheelCallback);
-	virtual TinyWheelCallback get_wheel_callback();
+  virtual void set_wheel_callback(TinyWheelCallback wheelCallback);
+  virtual TinyWheelCallback get_wheel_callback();
 
-	virtual void set_keyboard_callback(b3KeyboardCallback keyboardCallback);
-	virtual b3KeyboardCallback get_keyboard_callback();
+  virtual void set_keyboard_callback(b3KeyboardCallback keyboardCallback);
+  virtual b3KeyboardCallback get_keyboard_callback();
 
-	virtual void set_render_callback(b3RenderCallback renderCallback);
+  virtual void set_render_callback(b3RenderCallback renderCallback);
 
-	virtual void set_window_title(const char* title);
+  virtual void set_window_title(const char* title);
 
-	virtual float get_retina_scale() const;
-	virtual void set_allow_retina(bool allow);
+  virtual float get_retina_scale() const;
+  virtual void set_allow_retina(bool allow);
 
-	virtual int get_width() const;
-	virtual int get_height() const;
+  virtual int get_width() const;
+  virtual int get_height() const;
 
-	virtual int file_open_dialog(char* fileName, int maxFileNameLength);
+  virtual int file_open_dialog(char* fileName, int maxFileNameLength);
 
-	void keyboardCallbackInternal(int key, int state);
-	void mouseButtonCallbackInternal(int button, int state);
-	void mouseCursorCallbackInternal(double xPos, double yPos);
-	void resizeInternal(int width, int height);
+  void keyboardCallbackInternal(int key, int state);
+  void mouseButtonCallbackInternal(int button, int state);
+  void mouseCursorCallbackInternal(double xPos, double yPos);
+  void resizeInternal(int width, int height);
 };
-#endif  //B3_USE_GLFW
-#endif  //TINY_GLFW_OPENGL_WINDOW_H
+#endif  // B3_USE_GLFW
+#endif  // TINY_GLFW_OPENGL_WINDOW_H

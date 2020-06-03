@@ -248,15 +248,16 @@ class BasinHoppingEstimator {
             auto duration = duration_cast<milliseconds>(stop_time - start_time);
             bool time_up = static_cast<long>(duration.count()) >=
                            static_cast<long>(time_limit * 1e3);
-//            if (time_up) {
-//              std::cout << "time up\n";
-//            }
-//            if (this->best_cost_ < this->cost_limit) {
-//              std::cout << "this->best_cost_ < this->cost_limit\n";
-//            }
-//            if (this->stop_) {
-//              std::cout << "this->stop_\n";
-//            }
+            //            if (time_up) {
+            //              std::cout << "time up\n";
+            //            }
+            //            if (this->best_cost_ < this->cost_limit) {
+            //              std::cout << "this->best_cost_ <
+            //              this->cost_limit\n";
+            //            }
+            //            if (this->stop_) {
+            //              std::cout << "this->stop_\n";
+            //            }
             if (time_up || this->stop_ || this->best_cost_ < this->cost_limit) {
               std::cout << "Thread " << k << " has terminated after " << iter
                         << " iterations.\n";
@@ -273,20 +274,20 @@ class BasinHoppingEstimator {
               }
             }
             // apply random step to the parameters
-//            std::cout << "Thread " << k << " uses parameters [  ";
+            //            std::cout << "Thread " << k << " uses parameters [  ";
             for (int i = 0; i < kParameterDim; ++i) {
               auto& param = estimator->parameters[i];
               std::normal_distribution<double> d{
                   this->params[i],
                   initial_std / (iter + 1.) * (param.maximum - param.minimum)};
-//              printf("{%.3f}  ", param.value);
+              //              printf("{%.3f}  ", param.value);
               param.value = d(this->gen_);
-//              printf("(%.3f)  ", param.value);
+              //              printf("(%.3f)  ", param.value);
               param.value = std::max(param.minimum, param.value);
               param.value = std::min(param.maximum, param.value);
-//              printf("%.3f  ;;", param.value);
+              //              printf("%.3f  ;;", param.value);
             }
-//            printf("]\n");
+            //            printf("]\n");
           }
         }
       });
@@ -309,9 +310,7 @@ class BasinHoppingEstimator {
     }
   }
 
-  double best_cost() const {
-    return best_cost_;
-  }
+  double best_cost() const { return best_cost_; }
 
  private:
   std::vector<std::thread> workers_;

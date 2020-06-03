@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <fenv.h>
 #include <stdio.h>
 
@@ -20,20 +19,19 @@
 #include <cstddef>
 
 #include "tiny_double_utils.h"
+#include "tiny_file_utils.h"
 #include "tiny_system_constructor.h"
 #include "tiny_traj_opt.h"
-#include "tiny_file_utils.h"
-
 
 using namespace ct::core;
 using namespace ct::optcon;
 
 int main(int argc, char *argv[]) {
-  
   std::string system_urdf_filename;
   TinyFileUtils::find_file("cartpole.urdf", system_urdf_filename);
   char search_path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(system_urdf_filename.c_str(),search_path,TINY_MAX_EXE_PATH_LEN);
+  TinyFileUtils::extract_path(system_urdf_filename.c_str(), search_path,
+                              TINY_MAX_EXE_PATH_LEN);
   std::string connection_mode = "gui";
   const std::string our_search_path = search_path;
 
@@ -43,12 +41,9 @@ int main(int argc, char *argv[]) {
   VisualizerAPI *vis_api = new VisualizerAPI();
   printf("connection_mode=%s\n", const_cast<char *>(connection_mode.c_str()));
   int mode = eCONNECT_SHARED_MEMORY;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "gui")
-    mode = eCONNECT_GUI;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "gui") mode = eCONNECT_GUI;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
   vis_api->setTimeOut(1e30);
   vis_api->connect(mode);
   vis_api->resetSimulation();
@@ -105,12 +100,10 @@ int main(int argc, char *argv[]) {
   auto intermediate_cost = std::make_shared<CostTerm>();
   auto final_cost = std::make_shared<CostTerm>();
   bool verbose = true;
-  
-  
 
-  intermediate_cost->loadConfigFile(our_search_path +
-                                        "cartpole_swingup_cost.info",
-                                    "intermediateCost", verbose);
+  intermediate_cost->loadConfigFile(
+      our_search_path + "cartpole_swingup_cost.info", "intermediateCost",
+      verbose);
   final_cost->loadConfigFile(our_search_path + "cartpole_swingup_cost.info",
                              "finalCost", verbose);
 
@@ -150,7 +143,7 @@ int main(int argc, char *argv[]) {
   // format we put a box constraint on the velocity, hence the overall
   // constraint dimension is 1.
   Eigen::VectorXi sp_state(state_dim);
-  sp_state << 1, 0, 0, 0; // limit the x-coordinate of the cart
+  sp_state << 1, 0, 0, 0;  // limit the x-coordinate of the cart
   Eigen::VectorXd x_lb(1);
   Eigen::VectorXd x_ub(1);
   x_lb.setConstant(-1);
@@ -173,7 +166,8 @@ int main(int argc, char *argv[]) {
   // initial cartpole angle
   x0[1] = M_PI;
 
-  ct::core::Time time_horizon = Steps * dt; // and a final time horizon in [sec]
+  ct::core::Time time_horizon =
+      Steps * dt;  // and a final time horizon in [sec]
 
   // STEP 1-G: create and initialize an "optimal control problem"
   ContinuousOptConProblem<state_dim, control_dim> optConProblem(
@@ -195,7 +189,7 @@ int main(int argc, char *argv[]) {
    * following, we modify only a few settings, for more detail, check out the
    * NLOptConSettings class. */
   NLOptConSettings ilqr_settings;
-  ilqr_settings.dt = dt; // the control discretization in [sec]
+  ilqr_settings.dt = dt;  // the control discretization in [sec]
   ilqr_settings.integrator = ct::core::IntegrationType::EULERCT;
   ilqr_settings.discretization = NLOptConSettings::APPROXIMATION::FORWARD_EULER;
   ilqr_settings.max_iterations = 100;
@@ -211,7 +205,7 @@ int main(int argc, char *argv[]) {
   //      LQ-problems
   // using HPIPM
   ilqr_settings.lqoc_solver_settings.num_lqoc_iterations =
-      10; // number of riccati sub-iterations
+      10;  // number of riccati sub-iterations
   ilqr_settings.printSummary = true;
 
   /* STEP 2-B: provide an initial guess */

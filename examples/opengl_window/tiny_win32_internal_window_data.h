@@ -17,62 +17,60 @@
 
 #include <windows.h>
 
-struct TinyWin32InternalData2
-{
-	HWND m_hWnd;
-	;
-	int m_fullWindowWidth;  //includes borders etc
-	int m_fullWindowHeight;
+struct TinyWin32InternalData2 {
+  HWND m_hWnd;
+  ;
+  int m_fullWindowWidth;  // includes borders etc
+  int m_fullWindowHeight;
 
-	int m_openglViewportWidth;  //just the 3d viewport/client area
-	int m_openglViewportHeight;
+  int m_openglViewportWidth;  // just the 3d viewport/client area
+  int m_openglViewportHeight;
 
-	HDC m_hDC;
-	HGLRC m_hRC;
-	bool m_OpenGLInitialized;
-	int m_oldScreenWidth;
-	int m_oldHeight;
-	int m_oldBitsPerPel;
-	bool m_quit;
-	int m_mouseLButton;
-	int m_mouseRButton;
-	int m_mouseMButton;
-	int m_mouseXpos;
-	int m_mouseYpos;
+  HDC m_hDC;
+  HGLRC m_hRC;
+  bool m_OpenGLInitialized;
+  int m_oldScreenWidth;
+  int m_oldHeight;
+  int m_oldBitsPerPel;
+  bool m_quit;
+  int m_mouseLButton;
+  int m_mouseRButton;
+  int m_mouseMButton;
+  int m_mouseXpos;
+  int m_mouseYpos;
 
-	int m_internalKeyModifierFlags;
+  int m_internalKeyModifierFlags;
 
-	TinyWheelCallback m_wheelCallback;
-	TinyMouseMoveCallback m_mouseMoveCallback;
-	TinyMouseButtonCallback m_mouseButtonCallback;
-	TinyResizeCallback m_resizeCallback;
-	TinyKeyboardCallback m_keyboardCallback;
+  TinyWheelCallback m_wheelCallback;
+  TinyMouseMoveCallback m_mouseMoveCallback;
+  TinyMouseButtonCallback m_mouseButtonCallback;
+  TinyResizeCallback m_resizeCallback;
+  TinyKeyboardCallback m_keyboardCallback;
 
-	TinyWin32InternalData2()
-	{
-		m_hWnd = 0;
-		m_mouseLButton = 0;
-		m_mouseRButton = 0;
-		m_mouseMButton = 0;
-		m_internalKeyModifierFlags = 0;
-		m_fullWindowWidth = 0;
-		m_fullWindowHeight = 0;
-		m_openglViewportHeight = 0;
-		m_openglViewportWidth = 0;
-		m_hDC = 0;
-		m_hRC = 0;
-		m_OpenGLInitialized = false;
-		m_oldScreenWidth = 0;
-		m_oldHeight = 0;
-		m_oldBitsPerPel = 0;
-		m_quit = false;
+  TinyWin32InternalData2() {
+    m_hWnd = 0;
+    m_mouseLButton = 0;
+    m_mouseRButton = 0;
+    m_mouseMButton = 0;
+    m_internalKeyModifierFlags = 0;
+    m_fullWindowWidth = 0;
+    m_fullWindowHeight = 0;
+    m_openglViewportHeight = 0;
+    m_openglViewportWidth = 0;
+    m_hDC = 0;
+    m_hRC = 0;
+    m_OpenGLInitialized = false;
+    m_oldScreenWidth = 0;
+    m_oldHeight = 0;
+    m_oldBitsPerPel = 0;
+    m_quit = false;
 
-		m_keyboardCallback = 0;
-		m_mouseMoveCallback = 0;
-		m_mouseButtonCallback = 0;
-		m_resizeCallback = 0;
-		m_wheelCallback = 0;
-	}
+    m_keyboardCallback = 0;
+    m_mouseMoveCallback = 0;
+    m_mouseButtonCallback = 0;
+    m_resizeCallback = 0;
+    m_wheelCallback = 0;
+  }
 };
 
-#endif  //TINY_WIN32_INTERNAL_WINDOW_DATA_H
+#endif  // TINY_WIN32_INTERNAL_WINDOW_DATA_H

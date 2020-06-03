@@ -18,14 +18,13 @@
 #include "tiny_opengl_include.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif  //__cplusplus
 
-	GLuint gltLoadShaderPair(const char *szVertexProg, const char *szFragmentProg);
+GLuint gltLoadShaderPair(const char *szVertexProg, const char *szFragmentProg);
 
 #ifdef __cplusplus
 }
 #endif  //__cplusplus
 
-#endif  //TINY_LOAD_SHADER_H
+#endif  // TINY_LOAD_SHADER_H

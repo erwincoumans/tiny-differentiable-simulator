@@ -79,8 +79,9 @@ struct TinyVector3 {
   }
 
   static TinyVector3 zero() {
-      TinyVector3 res(TinyConstants::zero(), TinyConstants::zero(), TinyConstants::zero());
-      return res;
+    TinyVector3 res(TinyConstants::zero(), TinyConstants::zero(),
+                    TinyConstants::zero());
+    return res;
   }
 
   static TinyVector3 makeUnitZ() {
@@ -139,16 +140,12 @@ struct TinyVector3 {
     return res;
   }
 
-  inline void normalize()
-  {
-      *this = *this * (TinyConstants::one()/length());
-  }
+  inline void normalize() { *this = *this * (TinyConstants::one() / length()); }
 
-  inline TinyVector3 normalized() const
-  {
-      TinyVector3 tmp = *this;
-      tmp.normalize();
-      return tmp;
+  inline TinyVector3 normalized() const {
+    TinyVector3 tmp = *this;
+    tmp.normalize();
+    return tmp;
   }
 
   inline TinyScalar sqnorm() const { return m_x * m_x + m_y * m_y + m_z * m_z; }
@@ -190,8 +187,7 @@ struct TinyVector3 {
       case 2: {
         return m_z;
       }
-      default: {
-      }
+      default: {}
     }
     assert(0);
     return m_x;
@@ -208,8 +204,7 @@ struct TinyVector3 {
       case 2: {
         return m_z;
       }
-      default: {
-      }
+      default: {}
     }
     assert(0);
     return m_x;

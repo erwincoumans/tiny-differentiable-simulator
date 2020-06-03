@@ -19,47 +19,37 @@
 struct PrimInternalData;
 class TinyGLPrimitiveRenderer;
 
-struct InternalOpenGL2RenderCallbacks : public RenderCallbacks
-{
-	virtual PrimInternalData* getData() = 0;
+struct InternalOpenGL2RenderCallbacks : public RenderCallbacks {
+  virtual PrimInternalData* getData() = 0;
 
-	virtual ~InternalOpenGL2RenderCallbacks();
+  virtual ~InternalOpenGL2RenderCallbacks();
 
-	virtual void update_texture(sth_texture* texture, sth_glyph* glyph, int textureWidth, int textureHeight);
-	virtual void render(sth_texture* texture);
+  virtual void update_texture(sth_texture* texture, sth_glyph* glyph,
+                              int textureWidth, int textureHeight);
+  virtual void render(sth_texture* texture);
 
-	void display2();
+  void display2();
 };
 
 void dumpTextureToPng(int screenWidth, int screenHeight, const char* fileName);
 
-struct SimpleOpenGL2RenderCallbacks : public InternalOpenGL2RenderCallbacks
-{
-	PrimInternalData* m_data;
-	virtual PrimInternalData* getData()
-	{
-		return m_data;
-	}
-	SimpleOpenGL2RenderCallbacks(PrimInternalData* data)
-		: m_data(data)
-	{
-	}
-	virtual ~SimpleOpenGL2RenderCallbacks()
-	{
-	}
+struct SimpleOpenGL2RenderCallbacks : public InternalOpenGL2RenderCallbacks {
+  PrimInternalData* m_data;
+  virtual PrimInternalData* getData() { return m_data; }
+  SimpleOpenGL2RenderCallbacks(PrimInternalData* data) : m_data(data) {}
+  virtual ~SimpleOpenGL2RenderCallbacks() {}
 };
 
-struct OpenGL2RenderCallbacks : public InternalOpenGL2RenderCallbacks
-{
-	TinyGLPrimitiveRenderer* m_primRender2;
-	virtual PrimInternalData* getData();
+struct OpenGL2RenderCallbacks : public InternalOpenGL2RenderCallbacks {
+  TinyGLPrimitiveRenderer* m_primRender2;
+  virtual PrimInternalData* getData();
 
-	virtual void set_world_position(float pos[3]) {}
-	virtual void set_world_orientation(float orn[4]) {}
-	virtual void set_color_rgba(float color[4]) {}
+  virtual void set_world_position(float pos[3]) {}
+  virtual void set_world_orientation(float orn[4]) {}
+  virtual void set_color_rgba(float color[4]) {}
 
-	OpenGL2RenderCallbacks(TinyGLPrimitiveRenderer* primRender);
-	virtual ~OpenGL2RenderCallbacks();
+  OpenGL2RenderCallbacks(TinyGLPrimitiveRenderer* primRender);
+  virtual ~OpenGL2RenderCallbacks();
 };
 
-#endif  //TINY_OPENGL_FONTSTASH_CALLBACKS_H
+#endif  // TINY_OPENGL_FONTSTASH_CALLBACKS_H

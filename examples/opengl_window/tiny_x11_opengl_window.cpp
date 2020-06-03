@@ -1,8 +1,8 @@
 
 #ifndef B3_USE_GLFW
 
-#include "tiny_opengl_include.h"
 #include "tiny_x11_opengl_window.h"
+#include "tiny_opengl_include.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1069,7 +1069,8 @@ bool TinyX11OpenGLWindow::requested_exit() const { return m_requestedExit; }
 
 void TinyX11OpenGLWindow::set_request_exit() { m_requestedExit = true; }
 
-void TinyX11OpenGLWindow::set_render_callback(TinyRenderCallback renderCallback) {}
+void TinyX11OpenGLWindow::set_render_callback(
+    TinyRenderCallback renderCallback) {}
 
 void TinyX11OpenGLWindow::set_window_title(const char* title) {
   MyXStoreName(m_data->m_dpy, m_data->m_win, title);
@@ -1079,7 +1080,8 @@ void TinyX11OpenGLWindow::set_wheel_callback(TinyWheelCallback wheelCallback) {
   m_data->m_wheelCallback = wheelCallback;
 }
 
-void TinyX11OpenGLWindow::set_mouse_move_callback(TinyMouseMoveCallback mouseCallback) {
+void TinyX11OpenGLWindow::set_mouse_move_callback(
+    TinyMouseMoveCallback mouseCallback) {
   m_data->m_mouseMoveCallback = mouseCallback;
 }
 
@@ -1088,14 +1090,16 @@ void TinyX11OpenGLWindow::set_mouse_button_callback(
   m_data->m_mouseButtonCallback = mouseCallback;
 }
 
-void TinyX11OpenGLWindow::set_resize_callback(TinyResizeCallback resizeCallback) {
+void TinyX11OpenGLWindow::set_resize_callback(
+    TinyResizeCallback resizeCallback) {
   if (resizeCallback && m_data->m_glWidth > 0 && m_data->m_glHeight > 0) {
     resizeCallback(m_data->m_glWidth, m_data->m_glHeight);
   }
   m_data->m_resizeCallback = resizeCallback;
 }
 
-void TinyX11OpenGLWindow::set_keyboard_callback(TinyKeyboardCallback keyboardCallback) {
+void TinyX11OpenGLWindow::set_keyboard_callback(
+    TinyKeyboardCallback keyboardCallback) {
   m_data->m_keyboardCallback = keyboardCallback;
 }
 

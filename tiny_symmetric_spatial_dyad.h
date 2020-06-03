@@ -25,7 +25,8 @@ struct TinySymmetricSpatialDyad {
   typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   typedef ::TinySpatialMotionVector<TinyScalar, TinyConstants>
       TinySpatialMotionVector;
-  typedef ::TinySpatialTransform<TinyScalar, TinyConstants> TinySpatialTransform;
+  typedef ::TinySpatialTransform<TinyScalar, TinyConstants>
+      TinySpatialTransform;
 
   TinyMatrix3x3 m_topLeftMat, m_topRightMat, m_bottomLeftMat, m_bottomRightMat;
 
