@@ -33,7 +33,7 @@
 #include "tiny_win32_opengl_window.h"
 #else
 //let's cross the fingers it is Linux/X11
-#include "X11OpenGLWindow.h"
+#include "tiny_x11_opengl_window.h"
 #define BT_USE_X11  // for runtime backend selection, move to build?
 #endif              //_WIN32
 #endif              //__APPLE__
@@ -329,15 +329,15 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height, bool al
 
 	if (windowType == 0)
 	{
-		m_window = new b3gDefaultOpenGLWindow();
+		m_window = new TinyDefaultOpenGLWindow();
 	}
 	else if (windowType == 1)
 	{
 #ifdef BT_USE_X11
-		m_window = new X11OpenGLWindow();
+		m_window = new TinyX11OpenGLWindow();
 #else
 		printf("X11 requires Linux. Loading default window instead. \n");
-		m_window = new b3gDefaultOpenGLWindow();
+		m_window = new TinyDefaultOpenGLWindow();
 #endif
 	}
 	else if (windowType == 2)
@@ -347,14 +347,14 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height, bool al
 #else
 		printf("EGL window requires compilation with BT_USE_EGL.\n");
 		printf("Loading default window instead. \n");
-		m_window = new b3gDefaultOpenGLWindow();
+		m_window = new TinyDefaultOpenGLWindow();
 #endif
 	}
 	else
 	{
 		printf("Unknown window type %d must be (0=default, 1=X11, 2=EGL).\n", windowType);
 		printf("Loading default window instead. \n");
-		m_window = new b3gDefaultOpenGLWindow();
+		m_window = new TinyDefaultOpenGLWindow();
 	}
 
 	m_window->set_allow_retina(allowRetina);

@@ -867,7 +867,7 @@ TinyMouseButtonCallback TinyWin32Window::get_mouse_button_callback()
 {
 	return m_data->m_mouseButtonCallback;
 }
-TinyResizeCallback TinyWin32Window::getResizeCallback()
+TinyResizeCallback TinyWin32Window::get_resize_callback()
 {
 	return m_data->m_resizeCallback;
 }

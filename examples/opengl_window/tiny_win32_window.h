@@ -64,7 +64,7 @@ public:
 
 	virtual TinyMouseMoveCallback get_mouse_move_callback();
 	virtual TinyMouseButtonCallback get_mouse_button_callback();
-	virtual TinyResizeCallback getResizeCallback();
+	virtual TinyResizeCallback get_resize_callback();
 	virtual TinyWheelCallback get_wheel_callback();
 	virtual TinyKeyboardCallback get_keyboard_callback();
 

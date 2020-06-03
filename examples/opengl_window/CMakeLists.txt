@@ -1,6 +1,6 @@
 
 INCLUDE_DIRECTORIES(
-	../../third_party/glad
+    ../../third_party/glad
     ../../third_party
 )
 
@@ -21,14 +21,13 @@ LIST(REMOVE_ITEM OpenGLWindowCommon_CPP MacOpenGLWindow.cpp )
 #MESSAGE (${OpenGLWindowCommon_CPP})
 
 IF (WIN32)
-        SET(OpenGLWindow_SRCS ../../third_party/glad/gl.c ${OpenGLWindowWin32_CPP} ${OpenGLWindowCommon_CPP})
-	
-	ADD_DEFINITIONS(-DGLEW_STATIC)
+    SET(OpenGLWindow_SRCS ../../third_party/glad/gl.c ${OpenGLWindowWin32_CPP} ${OpenGLWindowCommon_CPP})
+	  ADD_DEFINITIONS(-DGLEW_STATIC)
+ELIF(APPLE)
+  SET(OpenGLWindow_SRCS ${OpenGLWindowMac_CPP} ../../third_party/glad/gl.c ${OpenGLWindowMacObjC_CPP}  ${OpenGLWindowCommon_CPP} )
+ELSE()
+  SET(OpenGLWindow_SRCS ${OpenGLWindowLinux_CPP} ${OpenGLWindowCommon_CPP} ../../third_party/glad/gl.c)
 ENDIF(WIN32)
-
-IF (APPLE)
-        SET(OpenGLWindow_SRCS ${OpenGLWindowMac_CPP} ../../third_party/glad/gl.c ${OpenGLWindowMacObjC_CPP}  ${OpenGLWindowCommon_CPP} )
-ENDIF(APPLE)
 
 #no Linux detection?
 IF(NOT WIN32 AND NOT APPLE)
@@ -38,17 +37,19 @@ IF(NOT WIN32 AND NOT APPLE)
         )
 	ADD_DEFINITIONS(-DGLEW_STATIC)
 	ADD_DEFINITIONS("-DGLEW_INIT_OPENGL11_FUNCTIONS=1")
-       	ADD_DEFINITIONS("-DGLEW_DYNAMIC_LOAD_ALL_GLX_FUNCTIONS=1")
+  ADD_DEFINITIONS("-DGLEW_DYNAMIC_LOAD_ALL_GLX_FUNCTIONS=1")
 	ADD_DEFINITIONS("-DDYNAMIC_LOAD_X11_FUNCTIONS=1")
-        SET(OpenGLWindow_SRCS ${OpenGLWindowLinux_CPP}  ../../third_party/glad/glx.c ../../third_party/glad/gl.c ${OpenGLWindowCommon_CPP} )
+
+        SET(OpenGLWindow_SRCS ${OpenGLWindowLinux_CPP} ${OpenGLWindowCommon_CPP}  ../../third_party/glad/gl.c  ../../third_party/glad/glx.c )
 ENDIF()
 
-IF(BUILD_EGL)
+#IF(BUILD_EGL)
     SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}  ../../third_party/glad/egl.c)
-ENDIF(BUILD_EGL)
+#ENDIF(BUILD_EGL)
 
 SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}  ../../third_party/stb_image/stb_image_write.cpp)
 
+MESSAGE("OpenGLWindow_SRCS=${OpenGLWindow_SRCS}")
 
 ADD_LIBRARY(opengl_window ${OpenGLWindow_SRCS} ${OpenGLWindow_HDRS})
 if (UNIX AND NOT APPLE)
@@ -65,6 +66,8 @@ if (BUILD_SHARED_LIBS)
 	set (CMAKE_THREAD_PREFER_PTHREAD TRUE)
 	FIND_PACKAGE(Threads)
 	target_link_libraries(opengl_window ${CMAKE_THREAD_LIBS_INIT})
+	target_compile_definitions(opengl_window PUBLIC DYNAMIC_LOAD_X11_FUNCTIONS PRIVATE DYNAMIC_LOAD_X11_FUNCTIONS)
+
   endif()
 endif()
 
