@@ -139,6 +139,18 @@ struct TinyVector3 {
     return res;
   }
 
+  inline void normalize()
+  {
+      *this = *this * (TinyConstants::one()/length());
+  }
+
+  inline TinyVector3 normalized() const
+  {
+      TinyVector3 tmp = *this;
+      tmp.normalize();
+      return tmp;
+  }
+
   inline TinyScalar sqnorm() const { return m_x * m_x + m_y * m_y + m_z * m_z; }
 
   inline TinyVector3& operator+=(const TinyVector3& v) {
