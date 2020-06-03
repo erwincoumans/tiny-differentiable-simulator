@@ -53,6 +53,18 @@ struct TinyPose {
       return res;
   }
 
+  void set_identity()
+  {
+      m_position.set_zero();
+      m_orientation.set_identity();
+  }
+
+  void inverse()
+  {
+      m_orientation = m_orientation.inversed();
+      m_position = m_orientation.rotate(-m_position);
+  }
+
 };
 
 #endif  // TINY_POSE_H
