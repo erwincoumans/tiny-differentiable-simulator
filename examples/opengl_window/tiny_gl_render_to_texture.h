@@ -15,29 +15,29 @@
 #ifndef GL_RENDER_TO_TEXTURE_H
 #define GL_RENDER_TO_TEXTURE_H
 
-///See http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-14-render-to-texture/
+/// See
+/// http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-14-render-to-texture/
 #include "tiny_opengl_include.h"
 
-enum
-{
-	RENDERTEXTURE_COLOR = 1,
-	RENDERTEXTURE_DEPTH,
+enum {
+  RENDERTEXTURE_COLOR = 1,
+  RENDERTEXTURE_DEPTH,
 };
-struct GLRenderToTexture
-{
-	GLuint m_framebufferName;
-	GLuint m_depthrenderbuffer;
-	bool m_initialized;
-	int m_renderTextureType;
+struct GLRenderToTexture {
+  GLuint m_framebufferName;
+  GLuint m_depthrenderbuffer;
+  bool m_initialized;
+  int m_renderTextureType;
 
-public:
-	GLRenderToTexture();
+ public:
+  GLRenderToTexture();
 
-	virtual ~GLRenderToTexture();
+  virtual ~GLRenderToTexture();
 
-	void init(int width, int height, GLuint textureId, int renderTextureType = RENDERTEXTURE_COLOR);
-	bool enable();
-	void disable();
+  void init(int width, int height, GLuint textureId,
+            int renderTextureType = RENDERTEXTURE_COLOR);
+  bool enable();
+  void disable();
 };
 
-#endif  //GL_RENDER_TO_TEXTURE_H
+#endif  // GL_RENDER_TO_TEXTURE_H

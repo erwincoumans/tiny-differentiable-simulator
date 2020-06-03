@@ -8,4 +8,4 @@ void TinyChromeUtilsStartTimings();
 void TinyChromeUtilsStopTimingsAndWriteJsonFile(const char* fileNamePrefix);
 void TinyChromeUtilsEnableProfiling();
 
-#endif  //TINY_CHROME_TRACE_UTIL_H
+#endif  // TINY_CHROME_TRACE_UTIL_H

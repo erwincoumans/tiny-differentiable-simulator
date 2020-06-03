@@ -136,8 +136,7 @@ struct TinyQuaternion {
         return m_w;
       }
 
-      default: {
-      }
+      default: {}
     }
     assert(0);
     return m_x;
@@ -158,8 +157,7 @@ struct TinyQuaternion {
         return m_w;
       }
 
-      default: {
-      }
+      default: {}
     }
     assert(0);
     return m_x;

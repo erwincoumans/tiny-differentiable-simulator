@@ -19,68 +19,79 @@ struct MacOpenGLWindowInternalData;
 
 #include "tiny_common_callbacks.h"
 
-struct MacWindowConstructionInfo
-{
-	int m_width;
-	int m_height;
-	int m_fullscreen;
-	int m_colorBitsPerPixel;
-	void* m_windowHandle;
-	const char* m_title;
-	int m_openglVersion;
-	int m_allowRetina;
+struct MacWindowConstructionInfo {
+  int m_width;
+  int m_height;
+  int m_fullscreen;
+  int m_colorBitsPerPixel;
+  void* m_windowHandle;
+  const char* m_title;
+  int m_openglVersion;
+  int m_allowRetina;
 };
 
-enum
-{
-	MY_MAC_ALTKEY = 1,
-	MY_MAC_SHIFTKEY = 2,
-	MY_MAC_CONTROL_KEY = 4
-};
+enum { MY_MAC_ALTKEY = 1, MY_MAC_SHIFTKEY = 2, MY_MAC_CONTROL_KEY = 4 };
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-	struct MacOpenGLWindowInternalData* Mac_createData();
-	void Mac_destroyData(struct MacOpenGLWindowInternalData* data);
+struct MacOpenGLWindowInternalData* Mac_createData();
+void Mac_destroyData(struct MacOpenGLWindowInternalData* data);
 
-	int Mac_createWindow(struct MacOpenGLWindowInternalData* m_internalData, struct MacWindowConstructionInfo* ci);
+int Mac_createWindow(struct MacOpenGLWindowInternalData* m_internalData,
+                     struct MacWindowConstructionInfo* ci);
 
-	void Mac_setWindowTitle(struct MacOpenGLWindowInternalData* data, const char* windowTitle);
-	int Mac_updateWindow(struct MacOpenGLWindowInternalData* m_internalData);
-	void Mac_swapBuffer(struct MacOpenGLWindowInternalData* m_internalData);
-	int Mac_requestedExit(struct MacOpenGLWindowInternalData* m_internalData);
-	void Mac_setRequestExit(struct MacOpenGLWindowInternalData* m_internalData);
-	float Mac_getRetinaScale(struct MacOpenGLWindowInternalData* m_internalData);
-	void Mac_setAllowRetina(struct MacOpenGLWindowInternalData* m_internalData, int allow);
+void Mac_setWindowTitle(struct MacOpenGLWindowInternalData* data,
+                        const char* windowTitle);
+int Mac_updateWindow(struct MacOpenGLWindowInternalData* m_internalData);
+void Mac_swapBuffer(struct MacOpenGLWindowInternalData* m_internalData);
+int Mac_requestedExit(struct MacOpenGLWindowInternalData* m_internalData);
+void Mac_setRequestExit(struct MacOpenGLWindowInternalData* m_internalData);
+float Mac_getRetinaScale(struct MacOpenGLWindowInternalData* m_internalData);
+void Mac_setAllowRetina(struct MacOpenGLWindowInternalData* m_internalData,
+                        int allow);
 
-	int Mac_getWidth(struct MacOpenGLWindowInternalData* m_internalData);
-	int Mac_getHeight(struct MacOpenGLWindowInternalData* m_internalData);
+int Mac_getWidth(struct MacOpenGLWindowInternalData* m_internalData);
+int Mac_getHeight(struct MacOpenGLWindowInternalData* m_internalData);
 
-	int Mac_fileOpenDialog(char* filename, int maxNameLength);
+int Mac_fileOpenDialog(char* filename, int maxNameLength);
 
-	void Mac_setKeyboardCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyKeyboardCallback keyboardCallback);
-	TinyKeyboardCallback Mac_getKeyboardCallback(struct MacOpenGLWindowInternalData* m_internalData);
-	int Mac_isModifierKeyPressed(struct MacOpenGLWindowInternalData* m_internalData, int key);
+void Mac_setKeyboardCallback(struct MacOpenGLWindowInternalData* m_internalData,
+                             TinyKeyboardCallback keyboardCallback);
+TinyKeyboardCallback Mac_getKeyboardCallback(
+    struct MacOpenGLWindowInternalData* m_internalData);
+int Mac_isModifierKeyPressed(struct MacOpenGLWindowInternalData* m_internalData,
+                             int key);
 
-	void Mac_setMouseButtonCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyMouseButtonCallback mouseCallback);
-	TinyMouseButtonCallback Mac_getMouseButtonCallback(struct MacOpenGLWindowInternalData* m_internalData);
-	void Mac_getMouseCoordinates(struct MacOpenGLWindowInternalData* m_internalData, int* xPtr, int* yPtr);
-	void Mac_setMouseMoveCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyMouseMoveCallback mouseCallback);
-	TinyMouseMoveCallback Mac_getMouseMoveCallback(struct MacOpenGLWindowInternalData* m_internalData);
+void Mac_setMouseButtonCallback(
+    struct MacOpenGLWindowInternalData* m_internalData,
+    TinyMouseButtonCallback mouseCallback);
+TinyMouseButtonCallback Mac_getMouseButtonCallback(
+    struct MacOpenGLWindowInternalData* m_internalData);
+void Mac_getMouseCoordinates(struct MacOpenGLWindowInternalData* m_internalData,
+                             int* xPtr, int* yPtr);
+void Mac_setMouseMoveCallback(
+    struct MacOpenGLWindowInternalData* m_internalData,
+    TinyMouseMoveCallback mouseCallback);
+TinyMouseMoveCallback Mac_getMouseMoveCallback(
+    struct MacOpenGLWindowInternalData* m_internalData);
 
-	void Mac_setWheelCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyWheelCallback wheelCallback);
-	TinyWheelCallback Mac_getWheelCallback(struct MacOpenGLWindowInternalData* m_internalData);
+void Mac_setWheelCallback(struct MacOpenGLWindowInternalData* m_internalData,
+                          TinyWheelCallback wheelCallback);
+TinyWheelCallback Mac_getWheelCallback(
+    struct MacOpenGLWindowInternalData* m_internalData);
 
-	void Mac_setResizeCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyResizeCallback resizeCallback);
-	TinyResizeCallback Mac_getResizeCallback(struct MacOpenGLWindowInternalData* m_internalData);
+void Mac_setResizeCallback(struct MacOpenGLWindowInternalData* m_internalData,
+                           TinyResizeCallback resizeCallback);
+TinyResizeCallback Mac_getResizeCallback(
+    struct MacOpenGLWindowInternalData* m_internalData);
 
-	//void Mac_setRenderCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyRenderCallback renderCallback);
+// void Mac_setRenderCallback(struct MacOpenGLWindowInternalData*
+// m_internalData, TinyRenderCallback renderCallback);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  //TINY_MAC_OPENGL_WINDOW_OBJC_H
+#endif  // TINY_MAC_OPENGL_WINDOW_OBJC_H

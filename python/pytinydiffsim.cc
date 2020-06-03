@@ -26,12 +26,12 @@
 #include "tiny_multi_body.h"
 #include "tiny_pose.h"
 #include "tiny_quaternion.h"
+#include "tiny_raycast.h"
 #include "tiny_rigid_body.h"
 #include "tiny_urdf_structures.h"
 #include "tiny_urdf_to_multi_body.h"
 #include "tiny_vector3.h"
 #include "tiny_world.h"
-#include "tiny_raycast.h"
 
 template <typename TinyScalar, typename TinyConstants>
 struct UrdfToMultiBody2 {
@@ -220,12 +220,13 @@ PYBIND11_MODULE(pytinydiffsim, m) {
           &TinySymmetricSpatialDyad<double, DoubleUtils>::m_center_of_mass)
       .def(py::self -= py::self);
 
-  py::enum_< TinyJointType>(m, "TinyJointType")
+  py::enum_<TinyJointType>(m, "TinyJointType")
       .value("JOINT_FIXED", JOINT_FIXED, "JOINT_FIXED")
       .value("JOINT_PRISMATIC_X", JOINT_PRISMATIC_X, "JOINT_PRISMATIC_X")
       .value("JOINT_PRISMATIC_Y", JOINT_PRISMATIC_Y, "JOINT_PRISMATIC_Y")
       .value("JOINT_PRISMATIC_Z", JOINT_PRISMATIC_Z, "JOINT_PRISMATIC_Z")
-      .value("JOINT_PRISMATIC_AXIS", JOINT_PRISMATIC_AXIS, "JOINT_PRISMATIC_AXIS")
+      .value("JOINT_PRISMATIC_AXIS", JOINT_PRISMATIC_AXIS,
+             "JOINT_PRISMATIC_AXIS")
       .value("JOINT_REVOLUTE_X", JOINT_REVOLUTE_X, "JOINT_REVOLUTE_X")
       .value("JOINT_REVOLUTE_Y", JOINT_REVOLUTE_Y, "JOINT_REVOLUTE_Y")
       .value("JOINT_REVOLUTE_Z", JOINT_REVOLUTE_Z, "JOINT_REVOLUTE_Z")
@@ -393,17 +394,16 @@ PYBIND11_MODULE(pytinydiffsim, m) {
   py::class_<TinyRaycastResult<double, DoubleUtils>>(m, "TinyRaycastResult")
       .def(py::init<>())
       .def_readwrite("hit_fraction",
-          &TinyRaycastResult<double, DoubleUtils>::m_hit_fraction)
+                     &TinyRaycastResult<double, DoubleUtils>::m_hit_fraction)
       .def_readwrite("collider_index",
-          &TinyRaycastResult<double, DoubleUtils>::m_collider_index);
-  
+                     &TinyRaycastResult<double, DoubleUtils>::m_collider_index);
+
   py::class_<TinyRaycast<double, DoubleUtils>>(m, "TinyRaycast")
       .def(py::init<>())
       .def("cast_rays", &TinyRaycast<double, DoubleUtils>::cast_rays)
       .def("volume", &TinyRaycast<double, DoubleUtils>::volume)
-      .def("intersection_volume", &TinyRaycast<double, DoubleUtils>::intersection_volume)
-      ;
-  
+      .def("intersection_volume",
+           &TinyRaycast<double, DoubleUtils>::intersection_volume);
 
   ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -461,11 +461,11 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def_readwrite("radius",
                      &TinyUrdfCollisionSphere<double, DoubleUtils>::m_radius);
 
-  py::class_<TinyUrdfCollisionBox<double, DoubleUtils>>(
-      m, "TinyUrdfCollisionBox")
+  py::class_<TinyUrdfCollisionBox<double, DoubleUtils>>(m,
+                                                        "TinyUrdfCollisionBox")
       .def(py::init<>())
       .def_readwrite("extents",
-          &TinyUrdfCollisionBox<double, DoubleUtils>::m_extents);
+                     &TinyUrdfCollisionBox<double, DoubleUtils>::m_extents);
 
   py::class_<TinyUrdfCollisionCapsule<double, DoubleUtils>>(
       m, "TinyUrdfCollisionCapsule")

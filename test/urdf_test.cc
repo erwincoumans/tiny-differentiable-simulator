@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tiny_double_utils.h"
 #include "SharedMemory/PhysicsClientC_API.h"
 #include "SharedMemory/PhysicsDirectC_API.h"
 #include "SharedMemory/b3RobotSimulatorClientAPI_InternalData.h"
 #include "SharedMemory/b3RobotSimulatorClientAPI_NoDirect.h"
-#include "tiny_multi_body.h"
-#include "tiny_world.h"
 #include "Utils/b3Clock.h"
-#include "examples/visualizer_api.h"
 #include "base/init_google.h"
 #include "devtools/build/runtime/get_runfiles_dir.h"
+#include "examples/visualizer_api.h"
 #include "examples/xarm.h"
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
 #include "third_party/absl/flags/flag.h"
+#include "tiny_double_utils.h"
+#include "tiny_multi_body.h"
+#include "tiny_world.h"
 #include "urdf_import.h"
 
 namespace {

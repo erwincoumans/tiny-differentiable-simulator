@@ -19,7 +19,6 @@
 #include "tiny_multi_body.h"
 #include "tiny_world.h"
 
-
 template <typename Scalar = double, typename Utils = DoubleUtils>
 void rollout_pendulum(const std::vector<Scalar>& params,
                       std::vector<std::vector<Scalar>>& output_states,
@@ -143,7 +142,7 @@ void print_states(const std::vector<std::vector<double>>& states) {
 //  return EXIT_SUCCESS;
 //}
 
- int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
   const int time_steps = 50;
   const int param_dim = 2;
   typedef PendulumEstimator<time_steps, param_dim, RES_MODE_TIME> Estimator;
@@ -176,7 +175,7 @@ void print_states(const std::vector<std::vector<double>>& states) {
   return EXIT_SUCCESS;
 }
 
-//int main(int argc, char* argv[]) {
+// int main(int argc, char* argv[]) {
 //  const int time_steps = 50;
 //  const int param_dim = 2;
 //  typedef PendulumEstimator<time_steps, param_dim, RES_MODE_TIME> Estimator;
