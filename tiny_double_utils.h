@@ -20,9 +20,9 @@
 #define _USE_MATH_DEFINES 1
 #include <assert.h>
 #include <stdio.h>
-#include <stdlib.h> 
-#include "math.h"
+#include <stdlib.h>
 #include <string>
+#include "math.h"
 
 struct DoubleUtils {
   static double zero() { return 0.; }
@@ -62,10 +62,9 @@ struct DoubleUtils {
     return double(num) / double(denom);
   }
 
-  static double scalar_from_string(const std::string& txt)
-  {
-      double result = atof(txt.c_str());
-      return result;
+  static double scalar_from_string(const std::string& txt) {
+    double result = atof(txt.c_str());
+    return result;
   }
 
   static void FullAssert(bool a) {

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <assert.h>
 #include <ceres/ceres.h>
 #include <ceres/problem.h>
@@ -25,17 +24,16 @@
 
 #include "Utils/b3Clock.h"
 
-
 #include "pybullet_visualizer_api.h"
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
 #include "ceres_utils.h"
 #include "pybullet_urdf_import.h"
 #include "tiny_double_utils.h"
+#include "tiny_file_utils.h"
 #include "tiny_multi_body.h"
 #include "tiny_urdf_to_multi_body.h"
 #include "tiny_world.h"
-#include "tiny_file_utils.h"
 
 /**
  * Direct shooting trajectory optimization problem formulated as Nonlinear
@@ -93,7 +91,7 @@ struct TrajectoryOptimizationFunctional {
     return problem;
   }
 
-private:
+ private:
   static inline TinyWorld<Scalar, Utils> m_world;
   static inline TinyMultiBody<Scalar, Utils> m_system;
   static inline CostFunction m_cost;
@@ -103,9 +101,10 @@ private:
    */
   static inline std::array<int, ControlDim> m_control_indices;
 
-public:
+ public:
   struct CostFunctor {
-    template <typename T> bool operator()(const T *const x, T *residual) const {
+    template <typename T>
+    bool operator()(const T *const x, T *residual) const {
       Scalar time = Utils::zero();
       // reset world and system
       for (int i = 0; i < m_system.dof(); ++i) {
@@ -195,20 +194,17 @@ void MyTinySubmitProfileTiming3(const std::string &profile_name) {
 }
 
 int main(int argc, char *argv[]) {
-  
   std::string connection_mode = "gui";
   std::string urdf_filename;
   TinyFileUtils::find_file("cartpole.urdf", urdf_filename);
   bool floating_base = false;
   // Set NaN trap
-  //feenableexcept(FE_INVALID | FE_OVERFLOW);
+  // feenableexcept(FE_INVALID | FE_OVERFLOW);
 
-  
   printf("floating_base=%d\n", floating_base);
   printf("urdf_filename=%s\n", urdf_filename.c_str());
   VisualizerAPI *sim2 = new VisualizerAPI();
   bool isConnected2 = sim2->connect(eCONNECT_DIRECT);
-  
 
   const int Steps = 100;
 
@@ -230,15 +226,12 @@ int main(int argc, char *argv[]) {
   VisualizerAPI *sim = new VisualizerAPI();
   printf("connection_mode=%s\n", connection_mode.c_str());
   int mode = eCONNECT_SHARED_MEMORY;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "gui")
-    mode = eCONNECT_GUI;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "gui") mode = eCONNECT_GUI;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
   bool isConnected = sim->connect(mode);
   gSim = sim;
-  
+
   int logId = sim->startStateLogging(STATE_LOGGING_PROFILE_TIMINGS,
                                      "/tmp/laikago_timing.json");
 
@@ -274,8 +267,7 @@ int main(int argc, char *argv[]) {
         urdf_data, robotId, *sim2, *sim);
     TinyUrdfToMultiBody<double, DoubleUtils>::convert_to_multi_body(urdf_data,
                                                                     world, *mb);
-    if (!floating_base)
-      mb->m_base_X_world.m_translation.setValue(0, 0, 1);
+    if (!floating_base) mb->m_base_X_world.m_translation.setValue(0, 0, 1);
     mb->m_isFloating = floating_base;
     mbbodies.push_back(mb);
   }
@@ -327,8 +319,8 @@ int main(int argc, char *argv[]) {
     {
       for (int b = 0; b < mbbodies.size(); b++) {
         const TinyMultiBody<double, DoubleUtils> *body = mbbodies[b];
-        PyBulletUrdfImport<double, DoubleUtils>::sync_graphics_transforms(
-            body, *sim);
+        PyBulletUrdfImport<double, DoubleUtils>::sync_graphics_transforms(body,
+                                                                          *sim);
       }
     }
     sim2->configureDebugVisualizer(COV_ENABLE_SINGLE_STEP_RENDERING, 1);

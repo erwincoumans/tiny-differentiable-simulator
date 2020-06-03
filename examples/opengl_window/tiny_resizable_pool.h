@@ -15,170 +15,128 @@
 #ifndef TINY_RESIZABLE_POOL_H
 #define TINY_RESIZABLE_POOL_H
 
-#include <vector>
 #include <assert.h>
+#include <vector>
 
-enum
-{
-	B3_POOL_HANDLE_TERMINAL_FREE = -1,
-	B3_POOL_HANDLE_TERMINAL_USED = -2
-};
+enum { B3_POOL_HANDLE_TERMINAL_FREE = -1, B3_POOL_HANDLE_TERMINAL_USED = -2 };
 
 template <typename U>
-struct TinyPoolBodyHandle : public U
-{
-	
-	int m_nextFreeHandle;
-	void setNextFree(int next)
-	{
-		m_nextFreeHandle = next;
-	}
-	int getNextFree() const
-	{
-		return m_nextFreeHandle;
-	}
+struct TinyPoolBodyHandle : public U {
+  int m_nextFreeHandle;
+  void setNextFree(int next) { m_nextFreeHandle = next; }
+  int getNextFree() const { return m_nextFreeHandle; }
 };
 
 template <typename T>
-class TinyResizablePool
-{
-protected:
-	std::vector<T> m_bodyHandles;
-	int m_numUsedHandles;   // number of active handles
-	int m_firstFreeHandle;  // free handles list
+class TinyResizablePool {
+ protected:
+  std::vector<T> m_bodyHandles;
+  int m_numUsedHandles;   // number of active handles
+  int m_firstFreeHandle;  // free handles list
 
-	T* getHandleInternal(int handle)
-	{
-		return &m_bodyHandles[handle];
-	}
-	const T* getHandleInternal(int handle) const
-	{
-		return &m_bodyHandles[handle];
-	}
+  T* getHandleInternal(int handle) { return &m_bodyHandles[handle]; }
+  const T* getHandleInternal(int handle) const {
+    return &m_bodyHandles[handle];
+  }
 
-public:
-	TinyResizablePool()
-	{
-		init_handles();
-	}
+ public:
+  TinyResizablePool() { init_handles(); }
 
-	virtual ~TinyResizablePool()
-	{
-		exit_handles();
-	}
-	///handle management
+  virtual ~TinyResizablePool() { exit_handles(); }
+  /// handle management
 
-	int get_num_handles() const
-	{
-		return m_bodyHandles.size();
-	}
+  int get_num_handles() const { return m_bodyHandles.size(); }
 
-	void get_used_handles(std::vector<int>& usedHandles) const
-	{
-		for (int i = 0; i < m_bodyHandles.size(); i++)
-		{
-			if (m_bodyHandles[i].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED)
-			{
-				usedHandles.push_back(i);
-			}
-		}
-	}
+  void get_used_handles(std::vector<int>& usedHandles) const {
+    for (int i = 0; i < m_bodyHandles.size(); i++) {
+      if (m_bodyHandles[i].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED) {
+        usedHandles.push_back(i);
+      }
+    }
+  }
 
-	T* get_handle(int handle)
-	{
-		assert(handle >= 0);
-		assert(handle < m_bodyHandles.size());
-		if ((handle < 0) || (handle >= m_bodyHandles.size()))
-		{
-			return 0;
-		}
+  T* get_handle(int handle) {
+    assert(handle >= 0);
+    assert(handle < m_bodyHandles.size());
+    if ((handle < 0) || (handle >= m_bodyHandles.size())) {
+      return 0;
+    }
 
-		if (m_bodyHandles[handle].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED)
-		{
-			return &m_bodyHandles[handle];
-		}
-		return 0;
-	}
-	const T* get_handle(int handle) const
-	{
-		assert(handle >= 0);
-		assert(handle < m_bodyHandles.size());
-		if ((handle < 0) || (handle >= m_bodyHandles.size()))
-		{
-			return 0;
-		}
+    if (m_bodyHandles[handle].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED) {
+      return &m_bodyHandles[handle];
+    }
+    return 0;
+  }
+  const T* get_handle(int handle) const {
+    assert(handle >= 0);
+    assert(handle < m_bodyHandles.size());
+    if ((handle < 0) || (handle >= m_bodyHandles.size())) {
+      return 0;
+    }
 
-		if (m_bodyHandles[handle].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED)
-		{
-			return &m_bodyHandles[handle];
-		}
-		return 0;
-	}
+    if (m_bodyHandles[handle].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED) {
+      return &m_bodyHandles[handle];
+    }
+    return 0;
+  }
 
-	void increase_handle_capacity(int extraCapacity)
-	{
-		int curCapacity = m_bodyHandles.size();
-		//assert(curCapacity == m_numUsedHandles);
-		int newCapacity = curCapacity + extraCapacity;
-		m_bodyHandles.resize(newCapacity);
+  void increase_handle_capacity(int extraCapacity) {
+    int curCapacity = m_bodyHandles.size();
+    // assert(curCapacity == m_numUsedHandles);
+    int newCapacity = curCapacity + extraCapacity;
+    m_bodyHandles.resize(newCapacity);
 
-		{
-			for (int i = curCapacity; i < newCapacity; i++)
-				m_bodyHandles[i].setNextFree(i + 1);
+    {
+      for (int i = curCapacity; i < newCapacity; i++)
+        m_bodyHandles[i].setNextFree(i + 1);
 
-			m_bodyHandles[newCapacity - 1].setNextFree(-1);
-		}
-		m_firstFreeHandle = curCapacity;
-	}
-	void init_handles()
-	{
-		m_numUsedHandles = 0;
-		m_firstFreeHandle = -1;
+      m_bodyHandles[newCapacity - 1].setNextFree(-1);
+    }
+    m_firstFreeHandle = curCapacity;
+  }
+  void init_handles() {
+    m_numUsedHandles = 0;
+    m_firstFreeHandle = -1;
 
-		increase_handle_capacity(1);
-	}
+    increase_handle_capacity(1);
+  }
 
-	void exit_handles()
-	{
-		m_bodyHandles.resize(0);
-		m_firstFreeHandle = -1;
-		m_numUsedHandles = 0;
-	}
+  void exit_handles() {
+    m_bodyHandles.resize(0);
+    m_firstFreeHandle = -1;
+    m_numUsedHandles = 0;
+  }
 
-	int alloc_handle()
-	{
-		assert(m_firstFreeHandle >= 0);
+  int alloc_handle() {
+    assert(m_firstFreeHandle >= 0);
 
-		int handle = m_firstFreeHandle;
-		m_firstFreeHandle = getHandleInternal(handle)->getNextFree();
-		m_numUsedHandles++;
+    int handle = m_firstFreeHandle;
+    m_firstFreeHandle = getHandleInternal(handle)->getNextFree();
+    m_numUsedHandles++;
 
-		if (m_firstFreeHandle < 0)
-		{
-			//int curCapacity = m_bodyHandles.size();
-			int additionalCapacity = m_bodyHandles.size();
-			increase_handle_capacity(additionalCapacity);
+    if (m_firstFreeHandle < 0) {
+      // int curCapacity = m_bodyHandles.size();
+      int additionalCapacity = m_bodyHandles.size();
+      increase_handle_capacity(additionalCapacity);
 
-			getHandleInternal(handle)->setNextFree(m_firstFreeHandle);
-		}
-		getHandleInternal(handle)->setNextFree(B3_POOL_HANDLE_TERMINAL_USED);
-		getHandleInternal(handle)->clear();
-		return handle;
-	}
+      getHandleInternal(handle)->setNextFree(m_firstFreeHandle);
+    }
+    getHandleInternal(handle)->setNextFree(B3_POOL_HANDLE_TERMINAL_USED);
+    getHandleInternal(handle)->clear();
+    return handle;
+  }
 
-	void free_handle(int handle)
-	{
-		assert(handle >= 0);
+  void free_handle(int handle) {
+    assert(handle >= 0);
 
-		if (m_bodyHandles[handle].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED)
-		{
-			getHandleInternal(handle)->clear();
-			getHandleInternal(handle)->setNextFree(m_firstFreeHandle);
-			m_firstFreeHandle = handle;
-			m_numUsedHandles--;
-		}
-	}
+    if (m_bodyHandles[handle].getNextFree() == B3_POOL_HANDLE_TERMINAL_USED) {
+      getHandleInternal(handle)->clear();
+      getHandleInternal(handle)->setNextFree(m_firstFreeHandle);
+      m_firstFreeHandle = handle;
+      m_numUsedHandles--;
+    }
+  }
 };
-///end handle management
+/// end handle management
 
-#endif  //TINY_RESIZABLE_POOL_H
+#endif  // TINY_RESIZABLE_POOL_H

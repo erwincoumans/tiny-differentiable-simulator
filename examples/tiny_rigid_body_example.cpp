@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include "TinyRigidBodyExample.h"
 
 #include <string.h>
@@ -2411,9 +2410,7 @@ void TinyRigidBodyExample::tutorial1Update(float deltaTime) {
         m_bodies[i].m_angularVelocity = Fix64MakeVector3(0, 0, -1);
         break;
       }
-      default: {
-        m_bodies[i].m_angularVelocity = Fix64MakeVector3(0, 0, 0);
-      }
+      default: { m_bodies[i].m_angularVelocity = Fix64MakeVector3(0, 0, 0); }
     };
   }
 

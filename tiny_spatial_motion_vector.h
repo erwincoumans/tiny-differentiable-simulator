@@ -17,8 +17,8 @@
 #ifndef TINY_SPATIAL_MOTION_VECTOR_H
 #define TINY_SPATIAL_MOTION_VECTOR_H
 
-#include "tiny_vector3.h"
 #include <stdio.h>
+#include "tiny_vector3.h"
 
 template <typename TinyScalar, typename TinyConstants>
 class TinySpatialMotionVector {
@@ -98,9 +98,9 @@ class TinySpatialMotionVector {
   template <typename SpatialVectorType>
   SpatialVectorType crossf(const SpatialVectorType& b) const {
     SpatialVectorType out;
-    out.m_topVec = m_topVec.cross(b.m_topVec)+ m_bottomVec.cross(b.m_bottomVec);
-    out.m_bottomVec =
-        m_topVec.cross(b.m_bottomVec);
+    out.m_topVec =
+        m_topVec.cross(b.m_topVec) + m_bottomVec.cross(b.m_bottomVec);
+    out.m_bottomVec = m_topVec.cross(b.m_bottomVec);
     return out;
   }
 
@@ -125,4 +125,3 @@ class TinySpatialMotionVector {
 };
 
 #endif  // TINY_SPATIAL_MOTION_VECTOR_H
-

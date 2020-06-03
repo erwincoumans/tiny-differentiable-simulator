@@ -53,7 +53,7 @@ struct TinySmoothConstraintSolver
     TinyVector3 vel_b = cp.m_rigid_body_b->get_velocity(rel_pos_b);
     TinyVector3 rel_vel = vel_a - vel_b;
     TinyScalar normal_rel_vel = cp.m_world_normal_on_b.dot(rel_vel);
-//          if (normal_rel_vel < TinyConstants::zero()) {
+    //          if (normal_rel_vel < TinyConstants::zero()) {
     TinyVector3 temp1 = cp.m_rigid_body_a->m_inv_inertia_world.dot(
         TinyVector3::cross2(rel_pos_a, cp.m_world_normal_on_b));
     TinyVector3 temp2 = cp.m_rigid_body_b->m_inv_inertia_world.dot(

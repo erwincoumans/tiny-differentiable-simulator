@@ -44,27 +44,23 @@ struct TinyPose {
     return m_orientation.inversed().rotate(point_out);
   }
 
-  TinyPose operator*(const TinyPose& b) const
-  {
-      const TinyPose& a = *this;
-      TinyPose res = a;
-      res.m_position += a.m_orientation.rotate(b.m_position);
-      res.m_orientation *= b.m_orientation;
-      return res;
+  TinyPose operator*(const TinyPose& b) const {
+    const TinyPose& a = *this;
+    TinyPose res = a;
+    res.m_position += a.m_orientation.rotate(b.m_position);
+    res.m_orientation *= b.m_orientation;
+    return res;
   }
 
-  void set_identity()
-  {
-      m_position.set_zero();
-      m_orientation.set_identity();
+  void set_identity() {
+    m_position.set_zero();
+    m_orientation.set_identity();
   }
 
-  void inverse()
-  {
-      m_orientation = m_orientation.inversed();
-      m_position = m_orientation.rotate(-m_position);
+  void inverse() {
+    m_orientation = m_orientation.inversed();
+    m_position = m_orientation.rotate(-m_position);
   }
-
 };
 
 #endif  // TINY_POSE_H

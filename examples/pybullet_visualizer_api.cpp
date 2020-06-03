@@ -22,21 +22,19 @@
 
 #ifdef BT_ENABLE_ENET
 #include <SharedMemory/PhysicsClientUDP_C_API.h>
-#endif // PHYSICS_UDP
+#endif  // PHYSICS_UDP
 
 #ifdef BT_ENABLE_CLSOCKET
 #include <SharedMemory/PhysicsClientTCP_C_API.h>
-#endif // PHYSICS_TCP
+#endif  // PHYSICS_TCP
 
 PyBulletVisualizerAPI::PyBulletVisualizerAPI() {}
 
 PyBulletVisualizerAPI::~PyBulletVisualizerAPI() {}
 
 bool PyBulletVisualizerAPI::connect(int mode, const std::string &hostName,
-                                    int portOrKey)
-{
-  if (m_data->m_physicsClientHandle)
-  {
+                                    int portOrKey) {
+  if (m_data->m_physicsClientHandle) {
     b3Warning("Already connected, disconnect first.");
     return false;
   }
@@ -46,41 +44,34 @@ bool PyBulletVisualizerAPI::connect(int mode, const std::string &hostName,
   int tcpPort = 6667;
   int key = SHARED_MEMORY_KEY;
 
-  if (portOrKey >= 0)
-  {
+  if (portOrKey >= 0) {
     key = portOrKey;
   }
-  switch (mode)
-  {
-  case eCONNECT_SHARED_MEMORY:
-  {
-    sm = b3ConnectSharedMemory(key);
-    break;
-  }
+  switch (mode) {
+    case eCONNECT_SHARED_MEMORY: {
+      sm = b3ConnectSharedMemory(key);
+      break;
+    }
 
-  case eCONNECT_GUI:
-  {
-    int argc = 0;
-    char *argv[1] = {0};
+    case eCONNECT_GUI: {
+      int argc = 0;
+      char *argv[1] = {0};
 #ifdef __APPLE__
-    sm = b3CreateInProcessPhysicsServerAndConnectMainThread(argc, argv);
+      sm = b3CreateInProcessPhysicsServerAndConnectMainThread(argc, argv);
 #else
-    sm = b3CreateInProcessPhysicsServerAndConnect(argc, argv);
+      sm = b3CreateInProcessPhysicsServerAndConnect(argc, argv);
 #endif
-    break;
-  }
-  case eCONNECT_DIRECT:
-  {
-    sm = b3ConnectPhysicsDirect();
-    break;
-  }
+      break;
+    }
+    case eCONNECT_DIRECT: {
+      sm = b3ConnectPhysicsDirect();
+      break;
+    }
   }
 
-  if (sm)
-  {
+  if (sm) {
     m_data->m_physicsClientHandle = sm;
-    if (!b3CanSubmitCommand(m_data->m_physicsClientHandle))
-    {
+    if (!b3CanSubmitCommand(m_data->m_physicsClientHandle)) {
       disconnect();
       return false;
     }

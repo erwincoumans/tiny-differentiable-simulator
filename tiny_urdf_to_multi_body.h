@@ -144,9 +144,7 @@ struct TinyUrdfToMultiBody {
           joint_conversion_ok = true;
           break;
         }
-        default: {
-          return_code = kCONVERSION_JOINT_FAILED;
-        }
+        default: { return_code = kCONVERSION_JOINT_FAILED; }
       };
 
       if (return_code == kCONVERSION_OK) {
@@ -258,8 +256,7 @@ struct TinyUrdfToMultiBody {
           l.m_X_collisions.push_back(collision_offset);
           break;
         }
-        default: {
-        }
+        default: {}
       };
     }
   }

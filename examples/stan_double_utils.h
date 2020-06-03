@@ -51,7 +51,7 @@ struct StanDoubleUtils {
   template <class T>
   static double convert(T) = delete;  // C++11
 
-  static standouble convert(int value) { return standouble((double) value); }
+  static standouble convert(int value) { return standouble((double)value); }
 
   template <class T>
   static double fraction(T, T) = delete;  // C++11

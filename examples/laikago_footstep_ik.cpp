@@ -27,7 +27,6 @@
 #include "tiny_mb_constraint_solver_spring.h"
 #include "tiny_pd_control.h"
 
-
 #include "pybullet_visualizer_api.h"
 #include "tiny_file_utils.h"
 
@@ -162,22 +161,23 @@ int main(int argc, char* argv[]) {
       abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
   };
 
-      
   std::string connection_mode = "gui";
 
   std::string laikago_filename;
   TinyFileUtils::find_file("laikago/laikago_toes_zup.urdf", laikago_filename);
-  
+
   std::string plane_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
-  
+
   char path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(plane_filename.c_str(),path,TINY_MAX_EXE_PATH_LEN);
+  TinyFileUtils::extract_path(plane_filename.c_str(), path,
+                              TINY_MAX_EXE_PATH_LEN);
   std::string search_path = path;
 
   printf("search_path=%s\n", search_path.c_str());
   VisualizerAPI* sim2 = new VisualizerAPI();
-  bool isConnected2 = sim2->connect(eCONNECT_DIRECT);//eCONNECT_SHARED_MEMORY);
+  bool isConnected2 =
+      sim2->connect(eCONNECT_DIRECT);  // eCONNECT_SHARED_MEMORY);
   sim2->setAdditionalSearchPath(search_path.c_str());
 
   VisualizerAPI* sim = new VisualizerAPI();

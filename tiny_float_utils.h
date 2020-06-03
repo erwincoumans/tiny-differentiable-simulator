@@ -20,10 +20,9 @@
 #define _USE_MATH_DEFINES 1
 #include <assert.h>
 #include <stdio.h>
-#include <stdlib.h> 
-#include "math.h"
+#include <stdlib.h>
 #include <string>
-
+#include "math.h"
 
 struct FloatUtils {
   static float zero() { return 0.f; }
@@ -39,7 +38,7 @@ struct FloatUtils {
   static float atan2(float dy, float dx) { return ::atan2f(dy, dx); }
   static float asin(float v) { return ::asinf(v); }
   static float copysign(float x, float y) { return ::copysignf(x, y); }
-  static float  abs(float v) { return ::fabsf(v); }
+  static float abs(float v) { return ::fabsf(v); }
 
   template <class T>
   static T sqrt1(T v) {
@@ -63,10 +62,9 @@ struct FloatUtils {
     return float(num) / float(denom);
   }
 
-  static float scalar_from_string(const std::string& txt)
-  {
-      float result = atof(txt.c_str());
-      return result;
+  static float scalar_from_string(const std::string& txt) {
+    float result = atof(txt.c_str());
+    return result;
   }
 
   static void FullAssert(bool a) {
@@ -79,44 +77,40 @@ struct FloatUtils {
 };
 
 #include "tiny_matrix3x3.h"
+#include "tiny_pose.h"
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
-#include "tiny_pose.h"
 
 typedef ::TinyVector3<float, FloatUtils> TinyVector3f;
 typedef ::TinyQuaternion<float, FloatUtils> TinyQuaternionf;
 typedef ::TinyMatrix3x3<float, FloatUtils> TinyMatrix3x3f;
 typedef ::TinyPose<float, FloatUtils> TinyPosef;
 
-inline void setFromOpenGLMatrix(TinyPosef& tr, const float* m)
-{
-	TinyMatrix3x3f mat;
-	mat.setValue(m[0], m[4], m[8],
-		m[1], m[5], m[9],
-		m[2], m[6], m[10]);
-	mat.getRotation(tr.m_orientation);
-	tr.m_position.setValue(m[12], m[13], m[14]);
+inline void setFromOpenGLMatrix(TinyPosef& tr, const float* m) {
+  TinyMatrix3x3f mat;
+  mat.setValue(m[0], m[4], m[8], m[1], m[5], m[9], m[2], m[6], m[10]);
+  mat.getRotation(tr.m_orientation);
+  tr.m_position.setValue(m[12], m[13], m[14]);
 }
 
-inline void getOpenGLMatrix(const TinyPosef& tr, float* m)
-{
-	TinyMatrix3x3f mat(tr.m_orientation);
-	m[0] = mat.getRow(0).x();
-	m[1] = mat.getRow(1).x();
-	m[2] = mat.getRow(2).x();
-	m[3] = 0.0f;
-	m[4] = mat.getRow(0).y();
-	m[5] = mat.getRow(1).y();
-	m[6] = mat.getRow(2).y();
-	m[7] = 0.0f;
-	m[8] = mat.getRow(0).z();
-	m[9] = mat.getRow(1).z();
-	m[10] = mat.getRow(2).z();
-	m[11] = 0.0f;
-	m[12] = tr.m_position.x();
-	m[13] = tr.m_position.y();
-	m[14] = tr.m_position.z();
-	m[15] = 1.0f;
+inline void getOpenGLMatrix(const TinyPosef& tr, float* m) {
+  TinyMatrix3x3f mat(tr.m_orientation);
+  m[0] = mat.getRow(0).x();
+  m[1] = mat.getRow(1).x();
+  m[2] = mat.getRow(2).x();
+  m[3] = 0.0f;
+  m[4] = mat.getRow(0).y();
+  m[5] = mat.getRow(1).y();
+  m[6] = mat.getRow(2).y();
+  m[7] = 0.0f;
+  m[8] = mat.getRow(0).z();
+  m[9] = mat.getRow(1).z();
+  m[10] = mat.getRow(2).z();
+  m[11] = 0.0f;
+  m[12] = tr.m_position.x();
+  m[13] = tr.m_position.y();
+  m[14] = tr.m_position.z();
+  m[15] = 1.0f;
 }
 
-#endif  //TINY_FLOAT_UTILS_H
+#endif  // TINY_FLOAT_UTILS_H
