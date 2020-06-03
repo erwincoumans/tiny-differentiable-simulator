@@ -2,12 +2,12 @@
 #define __OBJC2__ 1
 #include <Foundation/NSExtensionContext.h>
 
-#include "MacOpenGLWindowObjC.h"
+#include "tiny_mac_opengl_window_objc.h"
 
 #define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
 
 #import <Cocoa/Cocoa.h>
-#include "OpenGLInclude.h"
+#include "tiny_opengl_include.h"
 
 
 #include <stdlib.h>
@@ -103,7 +103,7 @@ void dumpInfo(void)
     int m_lastWidth;
     int m_lastHeight;
     bool m_requestClose;
-    b3ResizeCallback    m_resizeCallback;
+    TinyResizeCallback    m_resizeCallback;
 
 }
 -(void)drawRect:(NSRect)rect;
@@ -113,8 +113,8 @@ void dumpInfo(void)
 -(float) GetWindowHeight;
 -(BOOL) GetRequestClose;
 - (BOOL)windowShouldClose:(id)sender;
--(void) setResizeCallback:(b3ResizeCallback) callback;
--(b3ResizeCallback) getResizeCallback;
+-(void) setResizeCallback:(TinyResizeCallback) callback;
+-(TinyResizeCallback) getResizeCallback;
 -(NSOpenGLContext*) getContext;
 @end
 
@@ -140,7 +140,7 @@ void dumpInfo(void)
     return m_lastHeight;
 }
 
--(b3ResizeCallback) getResizeCallback
+-(TinyResizeCallback) getResizeCallback
 {
 	return m_resizeCallback;
 }
@@ -149,7 +149,7 @@ void dumpInfo(void)
 {
 	return m_context;
 }
--(void)setResizeCallback:(b3ResizeCallback)callback
+-(void)setResizeCallback:(TinyResizeCallback)callback
 {
     m_resizeCallback = callback;
 }
@@ -268,11 +268,11 @@ struct MacOpenGLWindowInternalData
 	float m_mouseY;
 	int m_modifierFlags;
 	
-	b3MouseButtonCallback m_mouseButtonCallback;
-	b3MouseMoveCallback m_mouseMoveCallback;
-	b3WheelCallback m_wheelCallback;
-	b3KeyboardCallback m_keyboardCallback;
-	b3RenderCallback m_renderCallback;
+	TinyMouseButtonCallback m_mouseButtonCallback;
+	TinyMouseMoveCallback m_mouseMoveCallback;
+	TinyWheelCallback m_wheelCallback;
+	TinyKeyboardCallback m_keyboardCallback;
+	TinyRenderCallback m_renderCallback;
 	
 	float m_retinaScaleFactor;
 	bool m_allowRetina;
@@ -698,36 +698,36 @@ int getAsciiCodeFromVirtualKeycode(int virtualKeyCode)
 		case kVK_Space:		{keycode=' '; break;}
 		case kVK_Escape:	{keycode=27; break;}
 		case kVK_Delete:	{keycode=8; break;}
-		case kVK_ForwardDelete:	{keycode=B3G_INSERT; break;}
+		case kVK_ForwardDelete:	{keycode=TINY_KEY_INSERT; break;}
 		
 			
-		case kVK_F1: {keycode = B3G_F1; break;}
-		case kVK_F2: {keycode = B3G_F2; break;}
-		case kVK_F3: {keycode = B3G_F3; break;}
-		case kVK_F4: {keycode = B3G_F4; break;}
-		case kVK_F5: {keycode = B3G_F5; break;}
-		case kVK_F6: {keycode = B3G_F6; break;}
-		case kVK_F7: {keycode = B3G_F7; break;}
-		case kVK_F8: {keycode = B3G_F8; break;}
-		case kVK_F9: {keycode = B3G_F9; break;}
-		case kVK_F10: {keycode = B3G_F10; break;}
-		case kVK_F11: {keycode = B3G_F11; break;}
-		case kVK_F12: {keycode = B3G_F12; break;}
-		case kVK_F13: {keycode = B3G_F13; break;}
-		case kVK_F14: {keycode = B3G_F14; break;}
-		case kVK_F15: {keycode = B3G_F15; break;}
+		case kVK_F1: {keycode = TINY_KEY_F1; break;}
+		case kVK_F2: {keycode = TINY_KEY_F2; break;}
+		case kVK_F3: {keycode = TINY_KEY_F3; break;}
+		case kVK_F4: {keycode = TINY_KEY_F4; break;}
+		case kVK_F5: {keycode = TINY_KEY_F5; break;}
+		case kVK_F6: {keycode = TINY_KEY_F6; break;}
+		case kVK_F7: {keycode = TINY_KEY_F7; break;}
+		case kVK_F8: {keycode = TINY_KEY_F8; break;}
+		case kVK_F9: {keycode = TINY_KEY_F9; break;}
+		case kVK_F10: {keycode = TINY_KEY_F10; break;}
+		case kVK_F11: {keycode = TINY_KEY_F11; break;}
+		case kVK_F12: {keycode = TINY_KEY_F12; break;}
+		case kVK_F13: {keycode = TINY_KEY_F13; break;}
+		case kVK_F14: {keycode = TINY_KEY_F14; break;}
+		case kVK_F15: {keycode = TINY_KEY_F15; break;}
 			
-		case kVK_LeftArrow: {keycode = B3G_LEFT_ARROW;break;}
-		case kVK_RightArrow: {keycode = B3G_RIGHT_ARROW;break;}
-		case kVK_UpArrow: {keycode = B3G_UP_ARROW;break;}
-		case kVK_DownArrow: {keycode = B3G_DOWN_ARROW;break;}
+		case kVK_LeftArrow: {keycode = TINY_KEY_LEFT_ARROW;break;}
+		case kVK_RightArrow: {keycode = TINY_KEY_RIGHT_ARROW;break;}
+		case kVK_UpArrow: {keycode = TINY_KEY_UP_ARROW;break;}
+		case kVK_DownArrow: {keycode = TINY_KEY_DOWN_ARROW;break;}
 
-		case kVK_PageUp :{keycode = B3G_PAGE_UP;break;}
-		case kVK_PageDown :{keycode = B3G_PAGE_DOWN;break;}
-		case kVK_End :{keycode = B3G_END;break;}
-		case kVK_Home :{keycode = B3G_HOME;break;}
-		case kVK_Control: {keycode = B3G_CONTROL;break;}
-		case kVK_Option: {keycode = B3G_ALT;break;}	
+		case kVK_PageUp :{keycode = TINY_KEY_PAGE_UP;break;}
+		case kVK_PageDown :{keycode = TINY_KEY_PAGE_DOWN;break;}
+		case kVK_End :{keycode = TINY_KEY_END;break;}
+		case kVK_Home :{keycode = TINY_KEY_HOME;break;}
+		case kVK_Control: {keycode = TINY_KEY_CONTROL;break;}
+		case kVK_Option: {keycode = TINY_KEY_ALT;break;}	
 
 		case kVK_ANSI_RightBracket   : {keycode = ']'; break;}
 		case kVK_ANSI_LeftBracket  : {keycode = '['; break;}
@@ -743,7 +743,7 @@ int getAsciiCodeFromVirtualKeycode(int virtualKeyCode)
 		case kVK_ANSI_KeypadPlus      : {keycode = '+'; break;}
 		case kVK_ANSI_KeypadClear    : {keycode = '?'; break;}
 		case kVK_ANSI_KeypadDivide   : {keycode = '/'; break;}
-		case kVK_ANSI_KeypadEnter   : {keycode = B3G_RETURN; break;}
+		case kVK_ANSI_KeypadEnter   : {keycode = TINY_KEY_RETURN; break;}
 		case kVK_ANSI_KeypadMinus   : {keycode = '-'; break;}
 		case kVK_ANSI_KeypadEquals  : {keycode = '='; break;}
 		case kVK_ANSI_Keypad0   : {keycode = '0'; break;}
@@ -758,7 +758,7 @@ int getAsciiCodeFromVirtualKeycode(int virtualKeyCode)
 		case kVK_ANSI_Keypad9   : {keycode = '9'; break;}
         case kVK_Return:
         {
-            keycode = B3G_RETURN; break;
+            keycode = TINY_KEY_RETURN; break;
         }
             
 		default:
@@ -805,37 +805,37 @@ int Mac_updateWindow(struct MacOpenGLWindowInternalData* m_internalData)
 			{
 				if ((modifiers & MyNSEventModifierFlagShift))
 				{
-					m_internalData->m_keyboardCallback(B3G_SHIFT,1);
+					m_internalData->m_keyboardCallback(TINY_KEY_SHIFT,1);
 					m_internalData->m_modifierFlags |= MY_MAC_SHIFTKEY;
 				}else
 				{
 					if (m_internalData->m_modifierFlags& MY_MAC_SHIFTKEY)
 					{
-						m_internalData->m_keyboardCallback(B3G_SHIFT,0);	
+						m_internalData->m_keyboardCallback(TINY_KEY_SHIFT,0);	
 						m_internalData->m_modifierFlags &= ~MY_MAC_SHIFTKEY;
 					}
 				}
 				if (modifiers & MyNSEventModifierFlagControl)
 				{
-					m_internalData->m_keyboardCallback(B3G_CONTROL,1);
+					m_internalData->m_keyboardCallback(TINY_KEY_CONTROL,1);
 					m_internalData->m_modifierFlags |= MY_MAC_CONTROL_KEY;
 				} else
 				{
 					if (m_internalData->m_modifierFlags&MY_MAC_CONTROL_KEY)
 					{
-						m_internalData->m_keyboardCallback(B3G_CONTROL,0);
+						m_internalData->m_keyboardCallback(TINY_KEY_CONTROL,0);
 						m_internalData->m_modifierFlags &= ~MY_MAC_CONTROL_KEY;
 					}
 				}
 				if (modifiers & MyNSEventModifierFlagOption)
 				{
-					m_internalData->m_keyboardCallback(B3G_ALT,1);
+					m_internalData->m_keyboardCallback(TINY_KEY_ALT,1);
 					m_internalData->m_modifierFlags |= MY_MAC_ALTKEY;
 				} else
 				{
 						if (m_internalData->m_modifierFlags&MY_MAC_ALTKEY)
 						{
-								m_internalData->m_keyboardCallback(B3G_ALT,0);
+								m_internalData->m_keyboardCallback(TINY_KEY_ALT,0);
 								m_internalData->m_modifierFlags &= ~MY_MAC_ALTKEY;
 
 						}
@@ -1059,17 +1059,17 @@ int Mac_isModifierKeyPressed(struct MacOpenGLWindowInternalData* m_internalData,
 	
 	switch (key)
 	{
-	        case B3G_ALT:
+	        case TINY_KEY_ALT:
 	        {
 	                isPressed = ((m_internalData->m_modifierFlags & MY_MAC_ALTKEY)!=0);
 	                break;
 	        };
-	        case B3G_SHIFT:
+	        case TINY_KEY_SHIFT:
 	        {
 	                isPressed = ((m_internalData->m_modifierFlags & MY_MAC_SHIFTKEY)!=0);
 	                break;
 	        };
-	        case B3G_CONTROL:
+	        case TINY_KEY_CONTROL:
 	        {
 	                isPressed = ((m_internalData->m_modifierFlags & MY_MAC_CONTROL_KEY )!=0);
 	                break;
@@ -1082,7 +1082,7 @@ int Mac_isModifierKeyPressed(struct MacOpenGLWindowInternalData* m_internalData,
 	return isPressed;
 }  
 
-//void Mac_setRenderCallback(struct MacOpenGLWindowInternalData* m_internalData, b3RenderCallback renderCallback)
+//void Mac_setRenderCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyRenderCallback renderCallback)
 //{
 //	m_internalData->m_renderCallback = renderCallback;
 //}
@@ -1111,44 +1111,44 @@ void Mac_setRequestExit(struct MacOpenGLWindowInternalData* m_internalData)
 
 
     
-void Mac_setMouseButtonCallback(struct MacOpenGLWindowInternalData* m_internalData, b3MouseButtonCallback	mouseCallback)
+void Mac_setMouseButtonCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyMouseButtonCallback	mouseCallback)
 {
 	m_internalData->m_mouseButtonCallback = mouseCallback;
 }
 
-b3MouseButtonCallback Mac_getMouseButtonCallback(struct MacOpenGLWindowInternalData* m_internalData)
+TinyMouseButtonCallback Mac_getMouseButtonCallback(struct MacOpenGLWindowInternalData* m_internalData)
 {
 	return m_internalData->m_mouseButtonCallback;
 }
 
-void Mac_setWheelCallback(struct MacOpenGLWindowInternalData* m_internalData, b3WheelCallback wheelCallback)
+void Mac_setWheelCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyWheelCallback wheelCallback)
 {
 	m_internalData->m_wheelCallback = wheelCallback;
 }
 
-b3WheelCallback Mac_getWheelCallback(struct MacOpenGLWindowInternalData* m_internalData)
+TinyWheelCallback Mac_getWheelCallback(struct MacOpenGLWindowInternalData* m_internalData)
 {
 	return m_internalData->m_wheelCallback;
 }
 
 
 
-void Mac_setMouseMoveCallback(struct MacOpenGLWindowInternalData* m_internalData, b3MouseMoveCallback	mouseCallback)
+void Mac_setMouseMoveCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyMouseMoveCallback	mouseCallback)
 {
 	m_internalData->m_mouseMoveCallback = mouseCallback;
 }    
 
-b3MouseMoveCallback Mac_getMouseMoveCallback(struct MacOpenGLWindowInternalData* m_internalData)
+TinyMouseMoveCallback Mac_getMouseMoveCallback(struct MacOpenGLWindowInternalData* m_internalData)
 {
 	return m_internalData->m_mouseMoveCallback;
 }
 
-b3KeyboardCallback Mac_getKeyboardCallback(struct MacOpenGLWindowInternalData* m_internalData)
+TinyKeyboardCallback Mac_getKeyboardCallback(struct MacOpenGLWindowInternalData* m_internalData)
 {
 	return m_internalData->m_keyboardCallback;
 }
 
-void Mac_setKeyboardCallback( struct MacOpenGLWindowInternalData* m_internalData, b3KeyboardCallback	keyboardCallback)
+void Mac_setKeyboardCallback( struct MacOpenGLWindowInternalData* m_internalData, TinyKeyboardCallback	keyboardCallback)
 {
 	m_internalData->m_keyboardCallback = keyboardCallback;
 }
@@ -1235,7 +1235,7 @@ int   Mac_getHeight(struct MacOpenGLWindowInternalData* m_internalData)
     return 0;
 }
 
-void Mac_setResizeCallback(struct MacOpenGLWindowInternalData* m_internalData, b3ResizeCallback resizeCallback)
+void Mac_setResizeCallback(struct MacOpenGLWindowInternalData* m_internalData, TinyResizeCallback resizeCallback)
 {
     [m_internalData->m_myview setResizeCallback:resizeCallback];
     if (resizeCallback)
@@ -1244,7 +1244,7 @@ void Mac_setResizeCallback(struct MacOpenGLWindowInternalData* m_internalData, b
     }
 }
 
-b3ResizeCallback Mac_getResizeCallback(struct MacOpenGLWindowInternalData* m_internalData)
+TinyResizeCallback Mac_getResizeCallback(struct MacOpenGLWindowInternalData* m_internalData)
 {
 	return [m_internalData->m_myview getResizeCallback];
 }

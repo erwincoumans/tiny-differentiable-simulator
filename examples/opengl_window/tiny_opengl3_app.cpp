@@ -26,7 +26,7 @@
 #include "GLFWOpenGLWindow.h"
 #else
 #ifdef __APPLE__
-#include "MacOpenGLWindow.h"
+#include "tiny_mac_opengl_window.h"
 #else
 
 #ifdef _WIN32

@@ -199,8 +199,6 @@ add_executable(opengl_test opengl_test.cpp utils/tiny_clock.cpp utils/tiny_chrom
 
 IF(WIN32)
     target_link_libraries(opengl_test  Opengl32)
-ELIF(APPLE)
-ELSE()
 ENDIF()
 
 

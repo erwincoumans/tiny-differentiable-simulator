@@ -40,7 +40,7 @@ public:
 
 	virtual void set_request_exit();
 
-	void getMouseCoordinates(int& x, int& y);
+	void get_mouse_coordinates(int& x, int& y);
 
 	void run_main_loop();
 
@@ -58,7 +58,7 @@ public:
 
 	virtual TinyMouseButtonCallback get_mouse_button_callback();
 
-	virtual TinyResizeCallback getResizeCallback();
+	virtual TinyResizeCallback get_resize_callback();
 
 	virtual TinyWheelCallback get_wheel_callback();
 

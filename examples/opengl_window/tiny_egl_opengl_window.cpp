@@ -28,7 +28,7 @@
 //
 //========================================================================
 
-//#ifdef BT_USE_EGL
+#ifdef TINY_USE_EGL
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -361,4 +361,4 @@ int EGLOpenGLWindow::file_open_dialog(char* fileName, int maxFileNameLength)
 	return 0;
 }
 
-//#endif  // BT_USE_EGL
+#endif  // TINY_USE_EGL
