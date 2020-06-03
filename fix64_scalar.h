@@ -539,7 +539,7 @@ struct Fix64Scalar {
     const Fix64Scalar& x = *this;
     return Fix64Scalar::divide(x, y);
   }
-  
+
   Fix64Scalar operator/=(const Fix64Scalar& y) {
     Fix64Scalar& x = *this;
     x = Fix64Scalar::divide(x, y);

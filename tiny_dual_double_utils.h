@@ -23,7 +23,7 @@
 
 typedef ::TinyDual<double> TinyDualDouble;
 
-struct TinyDualDoubleUtils  {
+struct TinyDualDoubleUtils {
   static TinyDualDouble cos1(TinyDualDouble v) {
     return TinyDualDouble(::cos(v.real()));
   }
@@ -32,9 +32,8 @@ struct TinyDualDoubleUtils  {
   static TinyDualDouble fraction(T, T) = delete;  // C++11
 
   static TinyDualDouble fraction(int num, int denom) {
-      return TinyDualDouble(double(num) / double(denom));
+    return TinyDualDouble(double(num) / double(denom));
   }
-
 
   static TinyDualDouble sin1(TinyDualDouble v) { return sin(v); }
 
@@ -42,7 +41,6 @@ struct TinyDualDoubleUtils  {
     double x = ::sqrt(z.real());
     return TinyDualDouble(x, z.dual() / (2. * double(x)));
   }
-
 
   static TinyDualDouble zero() { return TinyDualDouble(0.); }
   static TinyDualDouble one() { return TinyDualDouble(1.); }
@@ -69,13 +67,12 @@ struct TinyDualDoubleUtils  {
 
   static TinyDualDouble convert(int value) { return TinyDualDouble(value); }
 
-
   static void FullAssert(bool a) {
-      if (!a) {
-          printf("!");
-          assert(0);
-          exit(0);
-      }
+    if (!a) {
+      printf("!");
+      assert(0);
+      exit(0);
+    }
   }
 };
 

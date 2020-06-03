@@ -202,8 +202,7 @@ struct TinyUrdfEditor {
           l.m_X_collisions.push_back(collision_offset);
           break;
         }
-        default: {
-        }
+        default: {}
       };
     }
   }
@@ -306,8 +305,7 @@ struct TinyUrdfEditor {
             l.m_X_visuals.push_back(visual_offset);
             break;
           }
-          default: {
-          }
+          default: {}
         }
       }
     }
@@ -415,9 +413,7 @@ struct TinyUrdfEditor {
           joint_conversion_ok = true;
           break;
         }
-        default: {
-          return_code = kCONVERSION_JOINT_FAILED;
-        }
+        default: { return_code = kCONVERSION_JOINT_FAILED; }
       };
 
       if (return_code == kCONVERSION_OK) {

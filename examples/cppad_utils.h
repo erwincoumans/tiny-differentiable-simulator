@@ -20,8 +20,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "math.h"
 #include <cppad/cppad.hpp>
+#include "math.h"
 
 /**
  * Supporting functions for automatic differentiation with CppAD.

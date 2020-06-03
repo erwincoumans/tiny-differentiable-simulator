@@ -18,14 +18,13 @@
 #include <string>
 
 #include "tiny_double_utils.h"
-#include "tiny_urdf_parser.h"
 #include "tiny_file_utils.h"
+#include "tiny_urdf_parser.h"
 
 int main(int argc, char *argv[]) {
-
   std::string file_name;
   TinyFileUtils::find_file("laikago/laikago_toes_zup.urdf", file_name);
-  
+
   std::ifstream ifs(file_name);
   std::string urdf_string;
 

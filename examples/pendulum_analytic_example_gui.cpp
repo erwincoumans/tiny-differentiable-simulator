@@ -17,6 +17,8 @@
 
 #include "pendulum.h"
 int logId = -1;
+#include <chrono>  // std::chrono::seconds
+#include <thread>  // std::this_thread::sleep_for
 #include "assert.h"
 #include "fix64_scalar.h"
 #include "tiny_dual.h"
@@ -24,8 +26,6 @@ int logId = -1;
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
 #include "tiny_world.h"
-#include <chrono> // std::chrono::seconds
-#include <thread> // std::this_thread::sleep_for
 
 #include "pybullet_visualizer_api.h"
 #include "tiny_double_utils.h"
@@ -34,23 +34,20 @@ int logId = -1;
 #include "tiny_pose.h"
 #include "tiny_rigid_body.h"
 
-
 int main(int argc, char *argv[]) {
   const std::string search_path =
       "/home/eric/bullet3/examples/pybullet/gym/pybullet_data";
   std::string connection_mode = "gui";
 
   // Set NaN trap
-  //feenableexcept(FE_INVALID | FE_OVERFLOW);
+  // feenableexcept(FE_INVALID | FE_OVERFLOW);
 
   typedef PyBulletVisualizerAPI VisualizerAPI;
   VisualizerAPI *visualizer = new VisualizerAPI();
   printf("mode=%s\n", connection_mode.c_str());
   int mode = eCONNECT_GUI;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
 
   visualizer->connect(mode);
   visualizer->setAdditionalSearchPath(search_path);
@@ -117,8 +114,7 @@ int main(int argc, char *argv[]) {
         for (int b = 0; b < mbbodies.size(); b++) {
           for (int l = 0; l < mbbodies[b]->m_links.size(); l++) {
             const TinyMultiBody<double, DoubleUtils> *body = mbbodies[b];
-            if (body->m_links[l].m_X_visuals.empty())
-              continue;
+            if (body->m_links[l].m_X_visuals.empty()) continue;
 
             int sphereId = mbvisuals[visual_index++];
 

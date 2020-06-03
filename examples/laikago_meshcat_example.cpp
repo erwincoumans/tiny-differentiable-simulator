@@ -19,17 +19,16 @@
 #include <chrono>
 #include <thread>
 
+#include "Utils/b3Clock.h"
 #include "meshcat_urdf_visualizer.h"
 #include "pybullet_urdf_import.h"
-#include "tiny_urdf_to_multi_body.h"
 #include "pybullet_visualizer_api.h"
-#include "Utils/b3Clock.h"
 #include "tiny_file_utils.h"
+#include "tiny_urdf_to_multi_body.h"
 
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
 bool useLaikago = true;
-
 
 #define USE_TRB
 
@@ -65,20 +64,20 @@ int main(int argc, char* argv[]) {
   // laikago_initial_orn.setEulerZYX(0.7, 0, 0);
   double initialXvel = 0;
   btVector3 initialAngVel(0, 0, 0);
-      
+
   std::string plane_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
-  
+
   char path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(plane_filename.c_str(),path,TINY_MAX_EXE_PATH_LEN);
+  TinyFileUtils::extract_path(plane_filename.c_str(), path,
+                              TINY_MAX_EXE_PATH_LEN);
   std::string search_path = path;
 
   std::string connection_mode = "gui";
 
-
   printf("search_path=%s\n", (char*)search_path.c_str());
   VisualizerAPI* sim2 = new VisualizerAPI();
-  bool isConnected2 = sim2->connect(eCONNECT_DIRECT);//SHARED_MEMORY);
+  bool isConnected2 = sim2->connect(eCONNECT_DIRECT);  // SHARED_MEMORY);
   sim2->setAdditionalSearchPath(search_path.c_str());
 
   VisualizerAPI* sim = new VisualizerAPI();
@@ -127,11 +126,14 @@ int main(int argc, char* argv[]) {
   int force_id = sim->addUserDebugParameter("max force", 0, 1500, 550);
 
 #ifdef USE_TRB
-  printf("creating meshcat\n"); fflush(stdout);
+  printf("creating meshcat\n");
+  fflush(stdout);
   MeshcatUrdfVisualizer<double, DoubleUtils> meshcat_viz;
-  printf("deleting all\n"); fflush(stdout);
+  printf("deleting all\n");
+  fflush(stdout);
   meshcat_viz.delete_all();
-  printf("done meshcat\n"); fflush(stdout);
+  printf("done meshcat\n");
+  fflush(stdout);
 
   if (useLaikago) {
     TinyMultiBody<double, DoubleUtils>* mb = world.create_multi_body();
@@ -146,8 +148,7 @@ int main(int argc, char* argv[]) {
     TinyUrdfToMultiBody<double, DoubleUtils>::convert_to_multi_body(urdf_data,
                                                                     world, *mb);
     mb->initialize();
-  }
-  else {
+  } else {
     TinyMultiBody<double, DoubleUtils>* mb = world.create_multi_body();
     int robotId = sim2->loadURDF("sphere2.urdf");
     TinyUrdfStructures<double, DoubleUtils> urdf_data;

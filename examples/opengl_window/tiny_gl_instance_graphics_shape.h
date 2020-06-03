@@ -16,31 +16,24 @@
 #define TINY_GL_INSTANCE_GRAPHICS_SHAPE_H
 #include <vector>
 
-struct GLInstanceVertex
-{
-	float xyzw[4];
-	float normal[3];
-	float uv[2];
+struct GLInstanceVertex {
+  float xyzw[4];
+  float normal[3];
+  float uv[2];
 };
-struct TinyGLInstanceGraphicsShape
-{
-	std::vector<GLInstanceVertex>* m_vertices;
-	int m_numvertices;
-	std::vector<int>* m_indices;
-	int m_numIndices;
-	float m_scaling[4];
+struct TinyGLInstanceGraphicsShape {
+  std::vector<GLInstanceVertex>* m_vertices;
+  int m_numvertices;
+  std::vector<int>* m_indices;
+  int m_numIndices;
+  float m_scaling[4];
 
-	TinyGLInstanceGraphicsShape()
-		: m_vertices(0),
-		  m_indices(0)
-	{
-	}
+  TinyGLInstanceGraphicsShape() : m_vertices(0), m_indices(0) {}
 
-	virtual ~TinyGLInstanceGraphicsShape()
-	{
-		delete m_vertices;
-		delete m_indices;
-	}
+  virtual ~TinyGLInstanceGraphicsShape() {
+    delete m_vertices;
+    delete m_indices;
+  }
 };
 
-#endif  //TINY_GL_INSTANCE_GRAPHICS_SHAPE_H
+#endif  // TINY_GL_INSTANCE_GRAPHICS_SHAPE_H

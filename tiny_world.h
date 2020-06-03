@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef TINY_WORLD_H
 #define TINY_WORLD_H
 

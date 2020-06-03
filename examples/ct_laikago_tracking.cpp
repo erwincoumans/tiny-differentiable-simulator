@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <assert.h>
 #include <fenv.h>
 #include <stdio.h>
@@ -22,10 +21,10 @@
 
 #include "motion_import.h"
 #include "tiny_double_utils.h"
+#include "tiny_file_utils.h"
 #include "tiny_mb_constraint_solver_spring.h"
 #include "tiny_system_constructor.h"
 #include "tiny_traj_opt.h"
-#include "tiny_file_utils.h"
 
 using namespace ct::core;
 using namespace ct::optcon;
@@ -43,26 +42,28 @@ double initial_z = 0.48;
 double control_limit = 30.;
 #define use_servo_actuator true
 #define symplectic_system false
- std::string motion_file = "laikago_dance_sidestep0";
-//std::string motion_file = "laikago_builtin_walk_inplace";
+std::string motion_file = "laikago_dance_sidestep0";
+// std::string motion_file = "laikago_builtin_walk_inplace";
 bool initialize_from_pd_control = true;
 bool use_spring_contact = true;
 bool playback_controller_with_uff = false;  // or just play back states
 
 int main(int argc, char *argv[]) {
   std::string connection_mode = "gui";
-  
+
   std::string plane_urdf_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_urdf_filename);
 
   std::string system_urdf_filename;
-  TinyFileUtils::find_file("laikago/laikago_toes_zup.urdf", system_urdf_filename);
+  TinyFileUtils::find_file("laikago/laikago_toes_zup.urdf",
+                           system_urdf_filename);
 
   char search_path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(system_urdf_filename.c_str(),search_path,TINY_MAX_EXE_PATH_LEN);
+  TinyFileUtils::extract_path(system_urdf_filename.c_str(), search_path,
+                              TINY_MAX_EXE_PATH_LEN);
   std::string our_search_path = search_path;
-  std::string settings_filename = our_search_path + "laikago_tracking_settings.info";
-  
+  std::string settings_filename =
+      our_search_path + "laikago_tracking_settings.info";
 
   boost::property_tree::ptree exp_settings;
   boost::property_tree::read_info(settings_filename, exp_settings);
@@ -75,34 +76,31 @@ int main(int argc, char *argv[]) {
     initial_z = exp_settings.get<double>("experiment.initial_z");
     control_limit = exp_settings.get<double>("experiment.control_limit");
     motion_file = exp_settings.get<std::string>("experiment.motion_file");
-    initialize_from_pd_control = exp_settings.get<bool>("experiment.initialize_from_pd_control");
-    playback_controller_with_uff = exp_settings.get<bool>("experiment.playback_controller_with_uff");
+    initialize_from_pd_control =
+        exp_settings.get<bool>("experiment.initialize_from_pd_control");
+    playback_controller_with_uff =
+        exp_settings.get<bool>("experiment.playback_controller_with_uff");
     K = static_cast<std::size_t>(exp_settings.get<int>("experiment.K"));
     printf("Successfully loaded experiment settings from %s.\n",
-            settings_filename.c_str());
+           settings_filename.c_str());
   } catch (...) {
     fprintf(stderr, "Failed to load experiment settings from %s.\n",
             settings_filename.c_str());
   }
 
-  
   // Set NaN trap
   // TODO investigate: NANs are encountered with the HPIPM solver but not with
   //  the Riccati solver.
-//     feenableexcept(FE_INVALID | FE_OVERFLOW);
+  //     feenableexcept(FE_INVALID | FE_OVERFLOW);
 
-  
   printf("urdf_filename=%s\n", system_urdf_filename.c_str());
 
   auto *vis_api = new VisualizerAPI();
   printf("connection_mode=%s\n", connection_mode.c_str());
   int mode = eCONNECT_SHARED_MEMORY;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "gui")
-    mode = eCONNECT_GUI;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "gui") mode = eCONNECT_GUI;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
   vis_api->setTimeOut(1e30);
   vis_api->connect(mode);
   vis_api->resetSimulation();
@@ -121,8 +119,7 @@ int main(int argc, char *argv[]) {
 
   // Load solver settings from file
   NLOptConSettings ilqr_settings;
-  ilqr_settings.load(settings_filename,
-                     true);
+  ilqr_settings.load(settings_filename, true);
 
   const double dt = ilqr_settings.dt;
 
@@ -141,10 +138,10 @@ int main(int argc, char *argv[]) {
 
   /* provide an initial guess */
   // calculate the number of time steps K
-//  size_t K = 10000;  //ilqr_settings.computeK(time_horizon);
+  //  size_t K = 10000;  //ilqr_settings.computeK(time_horizon);
 
   // final time horizon in [sec]
-  ct::core::Time time_horizon = K * dt;  //reference.total_duration() * 2.;
+  ct::core::Time time_horizon = K * dt;  // reference.total_duration() * 2.;
 
 #if symplectic_system
   typedef TinySymplecticSystem<q_dim, quat_integration, control_dim, double,
@@ -304,16 +301,16 @@ int main(int argc, char *argv[]) {
     x_ub[i + limit_offset] = 90. * M_PI / 180;
   }
   // constraint terms
-//  auto state_limits = std::make_shared<StateConstraint>(x_lb, x_ub, sp_state);
-//  state_limits->setName("StateBound");
+  //  auto state_limits = std::make_shared<StateConstraint>(x_lb, x_ub,
+  //  sp_state); state_limits->setName("StateBound");
 
   // input box constraint constraint container
-//  auto state_box_constraints = std::make_shared<ConstraintContainer>();
+  //  auto state_box_constraints = std::make_shared<ConstraintContainer>();
 
   // add and initialize constraint terms
-//  state_box_constraints->addIntermediateConstraint(state_limits, verbose);
-//  state_box_constraints->initialize();
-//  optConProblem.setStateBoxConstraints(state_box_constraints);
+  //  state_box_constraints->addIntermediateConstraint(state_limits, verbose);
+  //  state_box_constraints->initialize();
+  //  optConProblem.setStateBoxConstraints(state_box_constraints);
 
   // design trivial initial controller for iLQR. Note that in this simple
   // example, we can simply use zero feedforward with zero feedback gains
@@ -325,15 +322,15 @@ int main(int argc, char *argv[]) {
   for (std::size_t i = 0; i < ref_controls.size(); ++i) {
     for (int j = 0; j < control_dim; ++j) {
       // ref_controls[i][j] = ref_states[i][j + 6 + quat_integration];
-     ref_controls[i][j] = x0[j + 6 + quat_integration];
+      ref_controls[i][j] = x0[j + 6 + quat_integration];
     }
   }
 #else
   if (initialize_from_pd_control) {
     dynamics->initialize_static_pd_control(ref_controls, x0, x0, 150., 3.,
                                            -550., 550.);
-//    dynamics->initialize_static_pd_control(ref_controls, x0, x0, 15., 3.,
-//                                           -50., 50.);
+    //    dynamics->initialize_static_pd_control(ref_controls, x0, x0, 15., 3.,
+    //                                           -50., 50.);
     for (std::size_t i = 0; i < ref_controls.size(); i += 100) {
       printf("k=%03d\tPD control: ", static_cast<int>(i));
       std::cout << ref_controls[i].transpose() << '\n';
@@ -373,18 +370,19 @@ int main(int argc, char *argv[]) {
   ct::core::StateFeedbackController<state_dim, control_dim> controller =
       iLQR.getSolution();
 
-//  std::cout << "SOLUTION:\n";
-//  for (std::size_t i = 0; i < controller.x_ref().size(); ++i) {
-//    if (i % 100 != 0) continue;
-//    printf("%03d\t", static_cast<int>(i));
-//    std::cout << controller.x_ref()[i].transpose() << std::endl;
-//  }
+  //  std::cout << "SOLUTION:\n";
+  //  for (std::size_t i = 0; i < controller.x_ref().size(); ++i) {
+  //    if (i % 100 != 0) continue;
+  //    printf("%03d\t", static_cast<int>(i));
+  //    std::cout << controller.x_ref()[i].transpose() << std::endl;
+  //  }
 
   fflush(stdout);
 
   {
     std::string traj_filename =
-        "/home/eric/tiny-differentiable-simulator/python/plotting/traj_" + motion_file + ".csv";
+        "/home/eric/tiny-differentiable-simulator/python/plotting/traj_" +
+        motion_file + ".csv";
     std::ofstream traj_out(traj_filename);
     for (std::size_t i = 0; i < controller.x_ref().size(); ++i) {
       traj_out << (i * dt) << '\t';
