@@ -98,7 +98,7 @@ if (Bullet_FOUND)
     target_link_libraries(pybullet_visualizer_api BulletRoboticsGUI BulletExampleBrowserLib
             BulletRobotics BulletFileLoader BulletWorldImporter BulletSoftBody BulletDynamics
             BulletCollision BulletInverseDynamicsUtils BulletInverseDynamics LinearMath
-            OpenGLWindow gwen BussIK Bullet3Common pthread ${DL})
+            opengl_window gwen BussIK Bullet3Common pthread ${DL})
 
     if (Ceres_FOUND)
         add_executable(billiard_opt_gui billiard_opt_gui.cpp ${TDS_HDRS})
@@ -191,3 +191,10 @@ endif (tinyxml2_FOUND)
 
 add_executable(world_example world_example.cpp ${TDS_HDRS})
 add_executable(test_xarm test_xarm.cpp ${TDS_HDRS})
+
+subdirs(opengl_window)
+
+add_executable(opengl_test opengl_test.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
+target_link_libraries(opengl_test opengl_window Opengl32)
+
+
