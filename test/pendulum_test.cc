@@ -13,14 +13,14 @@
 // limitations under the License.
 
 #include "examples/pendulum.h"
-#include "tiny_double_utils.h"
 #include "fix64_scalar.h"
+#include "testing/base/public/gmock.h"
+#include "testing/base/public/gunit.h"
+#include "tiny_double_utils.h"
 #include "tiny_dual_double_utils.h"
 #include "tiny_multi_body.h"
 #include "tiny_spatial_transform.h"
 #include "tiny_world.h"
-#include "testing/base/public/gmock.h"
-#include "testing/base/public/gunit.h"
 
 namespace {
 
@@ -103,7 +103,7 @@ void compare_analytic_double_pendulum(double tolerance = 1e-3) {
     our_q2s.reserve(steps);
     our_qd1s.reserve(steps);
     our_qd2s.reserve(steps);
-    TinyVector3<double,DoubleUtils> gravity(0.,0.,-9.81);
+    TinyVector3<double, DoubleUtils> gravity(0., 0., -9.81);
 
     for (int t = 0; t < steps; ++t) {
       our_q1s[t] = q[0];

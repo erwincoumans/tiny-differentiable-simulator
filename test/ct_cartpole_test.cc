@@ -138,8 +138,7 @@ TEST_F(TinyRigidBodyTest, TestCartpoleSwingUp) {
   NLOptConSettings ilqr_settings;
   ilqr_settings.dt = dt;  // the control discretization in [sec]
   ilqr_settings.integrator = ct::core::IntegrationType::EULERCT;
-  ilqr_settings.discretization =
-      NLOptConSettings::APPROXIMATION::FORWARD_EULER;
+  ilqr_settings.discretization = NLOptConSettings::APPROXIMATION::FORWARD_EULER;
   ilqr_settings.max_iterations = 100;
   ilqr_settings.nThreads = 1;
   ilqr_settings.nlocp_algorithm = NLOptConSettings::NLOCP_ALGORITHM::ILQR;

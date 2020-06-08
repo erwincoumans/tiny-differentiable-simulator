@@ -25,9 +25,9 @@ enum TinyGeometryTypes {
   TINY_SPHERE_TYPE = 0,
   TINY_PLANE_TYPE,
   TINY_CAPSULE_TYPE,
-  TINY_MESH_TYPE,//only for visual shapes at the moment
-  TINY_BOX_TYPE,//only for visual shapes at the moment
-  TINY_CYLINDER_TYPE, //unsupported
+  TINY_MESH_TYPE,      // only for visual shapes at the moment
+  TINY_BOX_TYPE,       // only for visual shapes at the moment
+  TINY_CYLINDER_TYPE,  // unsupported
   TINY_MAX_GEOM_TYPE,
 };
 

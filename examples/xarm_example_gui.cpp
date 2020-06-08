@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-#include "xarm.h"
 #include <stdio.h>
+#include "xarm.h"
 
 #include "Bullet3Common/b3CommandLineArgs.h"
 #include "Bullet3Common/b3Quaternion.h"
@@ -29,10 +28,10 @@
 
 #include "fix64_scalar.h"
 #include "tiny_matrix3x3.h"
-#include "tiny_quaternion.h"
-#include "tiny_vector3.h"
 #include "tiny_multi_body.h"
 #include "tiny_pose.h"
+#include "tiny_quaternion.h"
+#include "tiny_vector3.h"
 
 struct DoubleUtils {
   static double zero() { return 0.; }
@@ -134,7 +133,6 @@ void xarm6_fk(class b3RobotSimulatorClientAPI_NoDirect& visualizer,
 }
 
 int main(int argc, char* argv[]) {
-
   b3RobotSimulatorClientAPI_NoDirect visualizer;
   b3PhysicsClientHandle sm = b3ConnectSharedMemory(SHARED_MEMORY_KEY);
   b3RobotSimulatorClientAPI_InternalData data;
@@ -170,7 +168,6 @@ int main(int argc, char* argv[]) {
     linkUids.push_back(link6);
     b3RobotSimulatorLoadFileResults results;
     b3RobotSimulatorLoadSdfFileArgs sdfArgs;
-
   }
 
   {
@@ -208,7 +205,6 @@ int main(int argc, char* argv[]) {
     printf("len = %f!\n", DoubleUtils::getDouble(len));
   }
 
-
   { TinyQuaternion<double, DoubleUtils> q; }
 
   {
@@ -221,7 +217,6 @@ int main(int argc, char* argv[]) {
     printf("len=%f\n", Fix64Scalar::getDouble(len));
     TinyQuaternion<Fix64Scalar, Fix64Scalar> q;
   }
-
 
   {
     dmat3 m;
@@ -250,5 +245,5 @@ int main(int argc, char* argv[]) {
     xarm6_fk<Fix64Scalar, Fix64Scalar>(visualizer, linkUids, paramUids, mb);
   }
 
-   return 0;
+  return 0;
 }

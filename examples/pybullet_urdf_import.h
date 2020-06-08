@@ -271,8 +271,7 @@ struct PyBulletUrdfImport {
             viz.geometry.geom_type = TINY_MESH_TYPE;
             break;
           }
-          default: {
-          }
+          default: {}
         }
 
         urdfLink.urdf_visual_shapes.push_back(viz);
@@ -359,8 +358,7 @@ struct PyBulletUrdfImport {
           urdfLink.urdf_collision_shapes.push_back(col);
           break;
         }
-        default: {
-        }
+        default: {}
       };
     }
   }
@@ -459,8 +457,7 @@ struct PyBulletUrdfImport {
             visual_shape.sync_visual_body_uid1 = viz_uid;
             break;
           }
-          default: {
-          }
+          default: {}
         }
       }
     }

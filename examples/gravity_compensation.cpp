@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 #include <fenv.h>
 #include <stdio.h>
 
@@ -23,17 +21,14 @@
 
 #include "pybullet_visualizer_api.h"
 #include "tiny_double_utils.h"
+#include "tiny_file_utils.h"
 #include "tiny_mb_constraint_solver_spring.h"
 #include "tiny_multi_body.h"
 #include "tiny_system_constructor.h"
-#include "tiny_file_utils.h"
 
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
-
-int main(int argc, char *argv[])
-{
-  
+int main(int argc, char *argv[]) {
   std::string connection_mode = "gui";
   //"pendulum5.urdf";
   //"sphere8cube.urdf";
@@ -43,34 +38,27 @@ int main(int argc, char *argv[])
 
   std::string plane_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
-  
-  if (argc > 1)
-    urdf_filename = std::string(argv[1]);
+
+  if (argc > 1) urdf_filename = std::string(argv[1]);
   bool floating_base = true;
 
   // Set NaN trap
-  //feenableexcept(FE_INVALID | FE_OVERFLOW);
+  // feenableexcept(FE_INVALID | FE_OVERFLOW);
 
-  
   printf("floating_base=%d\n", floating_base);
   printf("urdf_filename=%s\n", urdf_filename.c_str());
   auto *sim2 = new VisualizerAPI();
   bool isConnected2 = sim2->connect(eCONNECT_DIRECT);
-  
-  
+
   auto *sim = new VisualizerAPI();
   printf("connection_mode=%s\n", connection_mode.c_str());
   int mode = eCONNECT_SHARED_MEMORY;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "gui")
-    mode = eCONNECT_GUI;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "gui") mode = eCONNECT_GUI;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
 
   bool isConnected = sim->connect(mode);
-  if (!isConnected)
-  {
+  if (!isConnected) {
     printf("Cannot connect\n");
     return -1;
   }
@@ -81,8 +69,7 @@ int main(int argc, char *argv[])
 
   TinyWorld<double, DoubleUtils> world;
   TinyMultiBody<double, DoubleUtils> *system = world.create_multi_body();
-  TinySystemConstructor<> constructor(urdf_filename,
-                                      plane_filename);
+  TinySystemConstructor<> constructor(urdf_filename, plane_filename);
   constructor.m_is_floating = floating_base;
   constructor(sim2, sim, world, &system);
   //  delete world.m_mb_constraint_solver;
@@ -91,29 +78,16 @@ int main(int argc, char *argv[])
 
   fflush(stdout);
 
-  if (floating_base)
-  {
+  if (floating_base) {
     double knee_angle = -0.5;
     double abduction_angle = 0.2;
     double initial_poses[] = {
-        abduction_angle,
-        0.,
-        knee_angle,
-        abduction_angle,
-        0.,
-        knee_angle,
-        abduction_angle,
-        0.,
-        knee_angle,
-        abduction_angle,
-        0.,
-        knee_angle,
+        abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+        abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
     };
 
-    if (system->m_q.size() >= 12)
-    {
-      for (int cc = 0; cc < 12; cc++)
-      {
+    if (system->m_q.size() >= 12) {
+      for (int cc = 0; cc < 12; cc++) {
         system->m_q[7 + cc] = initial_poses[cc];
       }
     }
@@ -127,8 +101,7 @@ int main(int argc, char *argv[])
   double dt = 1. / 1000.;
   double yaw = 0;
   double distance = 1;
-  while (sim->canSubmitCommand())
-  {
+  while (sim->canSubmitCommand()) {
     double gravZ = sim->readUserDebugParameter(grav_id);
     world.set_gravity(TinyVector3<double, DoubleUtils>(0, 0, gravZ));
 
@@ -139,8 +112,7 @@ int main(int argc, char *argv[])
                              system->m_tau);
     system->m_baseAppliedForce = system->m_baseBiasForce;
     std::cout << "Inverse dynamics tau:  ";
-    for (auto &t : system->m_tau)
-    {
+    for (auto &t : system->m_tau) {
       std::cout << t << "\t";
     }
     std::cout << "\n";

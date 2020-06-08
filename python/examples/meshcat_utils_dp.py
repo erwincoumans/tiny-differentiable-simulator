@@ -82,7 +82,9 @@ def convert_visuals(urdf, texture_path, vis, path_prefix=""):
             image=g.PngImage.from_file(texture_path)))
   else:
     material = g.MeshLambertMaterial(color=0xffffff, reflectivity=0.8)
-
+  
+  #material.transparent=True
+  #material.opacity=0.2
   #first the base link
   link_index = -1
 

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 #include <fenv.h>
 #include <stdio.h>
 
@@ -30,23 +28,18 @@
 #include "pybullet_visualizer_api.h"
 #include "tiny_file_utils.h"
 
-
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
 static VisualizerAPI *gSim = nullptr;
-void MyTinySubmitProfileTiming3(const std::string &profile_name)
-{
-  if (gSim)
-  {
+void MyTinySubmitProfileTiming3(const std::string &profile_name) {
+  if (gSim) {
     gSim->submitProfileTiming(profile_name);
   }
 }
 
-int main(int argc, char *argv[])
-{
-
+int main(int argc, char *argv[]) {
   std::string connection_mode = "gui";
-  
+
   std::string urdf_filename;
   //"cheetah_link0_1.urdf"
   //"pendulum5.urdf"
@@ -54,15 +47,13 @@ int main(int argc, char *argv[])
   TinyFileUtils::find_file("sphere8cube.urdf", urdf_filename);
   std::string plane_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
-  
-  if (argc > 1)
-    urdf_filename = std::string(argv[1]);
+
+  if (argc > 1) urdf_filename = std::string(argv[1]);
   bool floating_base = true;
 
   // Set NaN trap
   feenableexcept(FE_INVALID | FE_OVERFLOW);
 
-  
   printf("floating_base=%d\n", floating_base);
   printf("urdf_filename=%s\n", urdf_filename.c_str());
   VisualizerAPI *sim2 = new VisualizerAPI();
@@ -72,16 +63,12 @@ int main(int argc, char *argv[])
 
   printf("connection_mode=%s\n", connection_mode.c_str());
   int mode = eCONNECT_GUI;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "gui")
-    mode = eCONNECT_GUI;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "gui") mode = eCONNECT_GUI;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
 
   bool isConnected = sim->connect(mode);
-  if (!isConnected)
-  {
+  if (!isConnected) {
     printf("Cannot connect\n");
     return -1;
   }
@@ -94,8 +81,7 @@ int main(int argc, char *argv[])
 
   TinyWorld<double, DoubleUtils> world;
   TinyMultiBody<double, DoubleUtils> *system = world.create_multi_body();
-  TinySystemConstructor<> constructor(urdf_filename,
-                                      plane_filename);
+  TinySystemConstructor<> constructor(urdf_filename, plane_filename);
   constructor.m_is_floating = floating_base;
   constructor(sim2, sim, world, &system);
   delete world.m_mb_constraint_solver;
@@ -109,8 +95,7 @@ int main(int argc, char *argv[])
   system->m_q[1] = .2;
   fflush(stdout);
 
-  if (floating_base)
-  {
+  if (floating_base) {
     // apply some "random" rotation
     system->m_q[0] = 0.06603363263475902;
     system->m_q[1] = 0.2764891273883223;
@@ -121,8 +106,7 @@ int main(int argc, char *argv[])
 
   double dt = 1. / 1000.;
   double time = 0;
-  while (sim->canSubmitCommand())
-  {
+  while (sim->canSubmitCommand()) {
     double gravZ = sim->readUserDebugParameter(grav_id);
     world.set_gravity(TinyVector3<double, DoubleUtils>(0, 0, gravZ));
 
@@ -138,7 +122,7 @@ int main(int argc, char *argv[])
 
     {
       sim->submitProfileTiming("integrate_q");
-      system->integrate_q(dt); //??
+      system->integrate_q(dt);  //??
       sim->submitProfileTiming("");
     }
 
