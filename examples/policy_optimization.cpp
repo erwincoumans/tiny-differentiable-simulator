@@ -20,15 +20,13 @@
 #include "pybullet_visualizer_api.h"
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
+#include "tiny_file_utils.h"
 #include "tiny_gym_env.h"
 #include "tiny_neural_network.h"
 #include "tiny_policy_opt.h"
 #include "tiny_smooth_constraint_solver.h"
-#include "tiny_file_utils.h"
-
 
 std::string search_path;
-
 
 const int time_steps = 200;
 const bool stochastic_policy = false;
@@ -347,16 +345,15 @@ std::unique_ptr<PolicyOptimizer> construct_policy_opt() {
 }
 
 int main(int argc, char *argv[]) {
-  
   std::string plane_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
-  
+
   char path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(plane_filename.c_str(),path,TINY_MAX_EXE_PATH_LEN);
+  TinyFileUtils::extract_path(plane_filename.c_str(), path,
+                              TINY_MAX_EXE_PATH_LEN);
   search_path = path;
 
   std::string connection_mode = "gui";
-
 
   // Set NaN trap
   feenableexcept(FE_INVALID | FE_OVERFLOW);

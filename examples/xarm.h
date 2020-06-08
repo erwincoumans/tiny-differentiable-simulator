@@ -51,7 +51,7 @@ void init_xarm6(TinyMultiBody<TinyScalar, TinyConstants>& mb) {
     inertia_C(1, 1) = TinyConstants::fraction(48979, 10000000);
     inertia_C(2, 2) = TinyConstants::fraction(311573, 100000000);
     l.m_I = TinySymmetricSpatialDyad::computeInertiaDyad(mass, com, inertia_C);
-    //l.m_I.print("inertia");
+    // l.m_I.print("inertia");
     mb.attach(l);
   }
   {
@@ -72,7 +72,7 @@ void init_xarm6(TinyMultiBody<TinyScalar, TinyConstants>& mb) {
     com.setValue(TinyConstants::zero(), TinyConstants::zero(),
                  TinyConstants::zero());
     l.m_I = TinySymmetricSpatialDyad::computeInertiaDyad(mass, com, inertia_C);
-    //l.m_I.print("inertia");
+    // l.m_I.print("inertia");
 
     l.m_X_T.m_rotation.setEulerZYX(-TinyConstants::half_pi(),
                                    TinyConstants::zero(),
@@ -98,7 +98,7 @@ void init_xarm6(TinyMultiBody<TinyScalar, TinyConstants>& mb) {
     com.setValue(TinyConstants::zero(), TinyConstants::zero(),
                  TinyConstants::zero());
     l.m_I = TinySymmetricSpatialDyad::computeInertiaDyad(mass, com, inertia_C);
-    //l.m_I.print("inertia");
+    // l.m_I.print("inertia");
 
     l.m_X_T.m_rotation.setEulerZYX(TinyConstants::zero(), TinyConstants::zero(),
                                    TinyConstants::zero());
@@ -132,7 +132,7 @@ void init_xarm6(TinyMultiBody<TinyScalar, TinyConstants>& mb) {
     com.setValue(TinyConstants::zero(), TinyConstants::zero(),
                  TinyConstants::zero());
     l.m_I = TinySymmetricSpatialDyad::computeInertiaDyad(mass, com, inertia_C);
-    //l.m_I.print("inertia");
+    // l.m_I.print("inertia");
 
     l.m_X_T.m_rotation.setEulerZYX(-TinyConstants::half_pi(),
                                    TinyConstants::zero(),
@@ -168,7 +168,7 @@ void init_xarm6(TinyMultiBody<TinyScalar, TinyConstants>& mb) {
     com.setValue(TinyConstants::zero(), TinyConstants::zero(),
                  TinyConstants::zero());
     l.m_I = TinySymmetricSpatialDyad::computeInertiaDyad(mass, com, inertia_C);
-    //l.m_I.print("inertia");
+    // l.m_I.print("inertia");
 
     l.m_X_T.m_rotation.setEulerZYX(
         TinyConstants::half_pi(), TinyConstants::zero(), TinyConstants::zero());
@@ -195,7 +195,7 @@ void init_xarm6(TinyMultiBody<TinyScalar, TinyConstants>& mb) {
     com.setValue(TinyConstants::zero(), TinyConstants::zero(),
                  TinyConstants::zero());
     l.m_I = TinySymmetricSpatialDyad::computeInertiaDyad(mass, com, inertia_C);
-    //l.m_I.print("inertia");
+    // l.m_I.print("inertia");
 
     l.m_X_T.m_rotation.setEulerZYX(-TinyConstants::half_pi(),
                                    TinyConstants::zero(),

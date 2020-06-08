@@ -19,10 +19,11 @@
 
 #include "pendulum.h"
 
-//simulate a half-cycle and report the q at that time
+// simulate a half-cycle and report the q at that time
 template <typename TinyScalar, typename TinyConstants>
-TinyScalar pendulum_velocity_gradient_wrt_position(TinyScalar q_initial, const TinyVector3<TinyScalar, TinyConstants>& gravity)
-{
+TinyScalar pendulum_velocity_gradient_wrt_position(
+    TinyScalar q_initial,
+    const TinyVector3<TinyScalar, TinyConstants>& gravity) {
   TinyWorld<TinyScalar, TinyConstants> world;
   TinyMultiBody<TinyScalar, TinyConstants> mb;
   init_compound_pendulum<TinyScalar, TinyConstants>(mb, world);
@@ -37,17 +38,16 @@ TinyScalar pendulum_velocity_gradient_wrt_position(TinyScalar q_initial, const T
   std::vector<TinyScalar> qd;
   qd.push_back(cur_qd);
   qd.push_back(TinyConstants::zero());
-  
+
   std::vector<TinyScalar> tau;
   std::vector<TinyScalar> qdd;
   qdd.push_back(TinyConstants::zero());
   qdd.push_back(TinyConstants::zero());
   tau.push_back(TinyConstants::zero());
   tau.push_back(TinyConstants::zero());
-  int step=0;
-  TinyScalar dt = TinyConstants::fraction(1,1000);//0.001 sec time step
-  while (prev_qd * qd[0] >= TinyConstants::zero())
-  {
+  int step = 0;
+  TinyScalar dt = TinyConstants::fraction(1, 1000);  // 0.001 sec time step
+  while (prev_qd * qd[0] >= TinyConstants::zero()) {
     prev_qd = qd[0];
     mb.forward_dynamics(q, qd, tau, gravity, qdd);
     mb.integrate(q, qd, qdd, dt);

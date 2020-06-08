@@ -41,7 +41,7 @@ struct TinyRigidBody {
   const TinyGeometry* m_geometry;
 
   TinyRigidBody(TinyScalar mass, const TinyGeometry* geometry)
-      : m_mass(mass), m_user_index(-1), m_geometry(geometry){
+      : m_mass(mass), m_user_index(-1), m_geometry(geometry) {
     m_inv_mass = m_mass == TinyConstants::zero()
                      ? TinyConstants::zero()
                      : TinyConstants::one() / m_mass;
