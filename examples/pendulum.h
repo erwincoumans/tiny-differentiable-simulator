@@ -28,7 +28,8 @@ template <typename TinyScalar, typename TinyConstants>
 void init_compound_pendulum(TinyMultiBody<TinyScalar, TinyConstants> &mb,
                             TinyWorld<TinyScalar, TinyConstants> &world,
                             int num_links = 2,
-                            std::vector<TinyScalar> link_lengths = {}) {
+                            std::vector<TinyScalar> link_lengths = {},
+                            std::vector<TinyScalar> masses = {}) {
   typedef TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   typedef TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
   typedef TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
@@ -40,19 +41,21 @@ void init_compound_pendulum(TinyMultiBody<TinyScalar, TinyConstants> &mb,
     l.set_joint_type(JOINT_REVOLUTE_X);
     l.m_X_T.m_rotation.set_identity();
     TinyScalar pos_y =
-        !link_lengths.empty()
-            ? link_lengths[i]
-            : (i == 0 ? TinyConstants::zero() : TinyConstants::fraction(5, 10));
+        i == 0 ? TinyConstants::zero()
+               : (!link_lengths.empty() ? link_lengths[i]
+                                        : TinyConstants::fraction(5, 10));
 
     l.m_X_T.m_translation.setValue(TinyConstants::zero(), pos_y,
                                    TinyConstants::zero());
-    TinyScalar mass = TinyConstants::fraction(1, 1);
+    TinyScalar mass = static_cast<int>(masses.size()) > i
+                          ? masses[i]
+                          : TinyConstants::fraction(1, 1);
     TinyVector3 com;
     TinyScalar length = !link_lengths.empty() ? link_lengths[i]
                                               : TinyConstants::fraction(5, 10);
     com.setValue(TinyConstants::zero(), length, TinyConstants::zero());
 
-    TinyScalar radius = TinyConstants::fraction(5, 100);
+    TinyScalar radius = TinyConstants::fraction(15, 100);
     TinySphere<TinyScalar, TinyConstants> *sphere = world.create_sphere(radius);
     TinyVector3 local_inertia = sphere->compute_local_inertia(mass);
     TinyMatrix3x3 inertia_C;

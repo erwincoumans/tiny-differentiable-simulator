@@ -101,6 +101,12 @@ if (Bullet_FOUND)
             OpenGLWindow gwen BussIK Bullet3Common pthread ${DL})
 
     if (Ceres_FOUND)
+        FIND_PACKAGE(PythonLibs REQUIRED)
+        INCLUDE_DIRECTORIES( 
+            ${PYTHON_INCLUDE_DIRS}
+            ${PYTHON_NUMPY_INCLUDE_DIR}
+        )
+
         add_executable(billiard_opt_gui billiard_opt_gui.cpp ${TDS_HDRS})
         target_link_libraries(billiard_opt_gui pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
@@ -116,7 +122,7 @@ if (Bullet_FOUND)
 
         add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
         target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${DL}
-                ${CERES_LIBRARIES})
+                ${CERES_LIBRARIES} python2.7)
 
         add_executable(policy_optimization policy_optimization.cpp ${TDS_HDRS})
         target_link_libraries(policy_optimization pybullet_visualizer_api ${DL}
