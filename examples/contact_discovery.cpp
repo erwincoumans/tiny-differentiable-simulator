@@ -14,8 +14,8 @@
 
 #include <stdio.h>
 
-#include <chrono> // std::chrono::seconds
-#include <thread> // std::this_thread::sleep_for
+#include <chrono>  // std::chrono::seconds
+#include <thread>  // std::this_thread::sleep_for
 #include <type_traits>
 
 #include <ceres/ceres.h>
@@ -32,8 +32,8 @@
 #include "ceres_utils.h"
 #include "tiny_double_utils.h"
 #include "tiny_dual_double_utils.h"
-#include "tiny_rigid_body.h"
 #include "tiny_file_utils.h"
+#include "tiny_rigid_body.h"
 
 #include "pybullet_visualizer_api.h"
 
@@ -46,12 +46,13 @@ const int TARGET_ID = 5;
 const int kNumSteps = 300;
 
 template <typename TinyScalar, typename TinyConstants>
-TinyScalar
-rollout(TinyScalar force_x, TinyScalar force_y, bool smooth,
-        Visualizer *vis = nullptr, TinyScalar *target_end_x = nullptr,
-        TinyScalar *target_end_y = nullptr, TinyScalar *desired_x = nullptr,
-        TinyScalar *desired_y = nullptr,
-        TinyScalar dt = TinyConstants::fraction(1, 60)) {
+TinyScalar rollout(TinyScalar force_x, TinyScalar force_y, bool smooth,
+                   Visualizer *vis = nullptr,
+                   TinyScalar *target_end_x = nullptr,
+                   TinyScalar *target_end_y = nullptr,
+                   TinyScalar *desired_x = nullptr,
+                   TinyScalar *desired_y = nullptr,
+                   TinyScalar dt = TinyConstants::fraction(1, 60)) {
   typedef TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   typedef TinyRigidBody<TinyScalar, TinyConstants> TinyRigidBody;
   typedef TinyGeometry<TinyScalar, TinyConstants> TinyGeometry;
@@ -87,7 +88,7 @@ rollout(TinyScalar force_x, TinyScalar force_y, bool smooth,
   TinyScalar radius = TinyConstants::half();
   TinyScalar mass = TinyConstants::one();
   TinyScalar deg_60 =
-      TinyConstants::pi() / TinyConstants::fraction(3, 1); // even triangle
+      TinyConstants::pi() / TinyConstants::fraction(3, 1);  // even triangle
   TinyScalar dx = TinyConstants::cos1(deg_60) * radius * TinyConstants::two();
   TinyScalar dy = TinyConstants::sin1(deg_60) * radius * TinyConstants::two();
   TinyScalar rx = TinyConstants::zero(), y = TinyConstants::zero();
@@ -199,7 +200,8 @@ rollout(TinyScalar force_x, TinyScalar force_y, bool smooth,
 }
 
 struct CostFunctor {
-  template <typename T> bool operator()(const T *const x, T *residual) const {
+  template <typename T>
+  bool operator()(const T *const x, T *residual) const {
     bool smooth = true;
     T target_end_x(0.), target_end_y(0.);
     T desired_x(0.), desired_y(0.);
@@ -218,9 +220,8 @@ struct CostFunctor {
 };
 
 int main(int argc, char *argv[]) {
-  
   TinyFileUtils::find_file("sphere2red.urdf", sphere2red);
-  
+
   std::string connection_mode = "gui";
 
   using namespace std::chrono;
@@ -229,12 +230,9 @@ int main(int argc, char *argv[]) {
   visualizer->setTimeOut(1e30);
   printf("mode=%s\n", const_cast<char *>(connection_mode.c_str()));
   int mode = eCONNECT_GUI;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
   visualizer->connect(mode);
-  
 
   if (visualizer->canSubmitCommand()) {
     visualizer->resetSimulation();

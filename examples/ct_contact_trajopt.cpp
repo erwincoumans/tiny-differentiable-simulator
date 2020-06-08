@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 #include <assert.h>
 #include <fenv.h>
 #include <stdio.h>
@@ -22,11 +20,10 @@
 #include <chrono>
 
 #include "tiny_double_utils.h"
+#include "tiny_file_utils.h"
 #include "tiny_mb_constraint_solver_spring.h"
 #include "tiny_system_constructor.h"
 #include "tiny_traj_opt.h"
-#include "tiny_file_utils.h"
-
 
 using namespace ct::core;
 using namespace ct::optcon;
@@ -34,11 +31,9 @@ using namespace ct::optcon;
 //#define USE_HOPPER
 
 int main(int argc, char* argv[]) {
-
-  
   std::string connection_mode = "gui";
   std::string plane_urdf_filename;
-  
+
   std::string system_urdf_filename;
 #ifdef USE_HOPPER
   TinyFileUtils::find_file("hopper_link0_1.urdf", plane_urdf_filename);
@@ -47,31 +42,25 @@ int main(int argc, char* argv[]) {
 #endif
 
   TinyFileUtils::find_file("plane_implicit.urdf", plane_urdf_filename);
-  
+
   char search_path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(plane_urdf_filename.c_str(),search_path,TINY_MAX_EXE_PATH_LEN);
+  TinyFileUtils::extract_path(plane_urdf_filename.c_str(), search_path,
+                              TINY_MAX_EXE_PATH_LEN);
   std::string our_search_path = search_path;
-
-
-  
 
   // Set NaN trap
   // TODO investigate: NANs are encountered with the HPIPM solver but not with
   //  the Riccati solver.
   // feenableexcept(FE_INVALID | FE_OVERFLOW);
 
-  
   printf("urdf_filename=%s\n", system_urdf_filename.c_str());
 
   VisualizerAPI* vis_api = new VisualizerAPI();
   printf("connection_mode=%s\n", connection_mode.c_str());
   int mode = eCONNECT_SHARED_MEMORY;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "gui")
-    mode = eCONNECT_GUI;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "gui") mode = eCONNECT_GUI;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
   vis_api->setTimeOut(1e30);
   vis_api->connect(mode);
   vis_api->resetSimulation();
@@ -129,7 +118,7 @@ int main(int argc, char* argv[]) {
 
   Dynamics::State x0;
   x0.setZero();
-  x0[1] = -0.05; // initial z coordinate (should not fall from a large height)
+  x0[1] = -0.05;  // initial z coordinate (should not fall from a large height)
 
   typedef TermQuadratic<state_dim, control_dim> CostTerm;
   typedef CostFunctionAnalytical<state_dim, control_dim> CostFunction;
@@ -245,7 +234,8 @@ int main(int argc, char* argv[]) {
 #endif
 
     std::string traj_filename =
-        "/home/eric/tiny-differentiable-simulator/python/plotting/traj_" + model_name + ".csv";
+        "/home/eric/tiny-differentiable-simulator/python/plotting/traj_" +
+        model_name + ".csv";
     std::ofstream traj_out(traj_filename);
     for (std::size_t i = 0; i < controller.x_ref().size(); ++i) {
       traj_out << (i * dt) << '\t';

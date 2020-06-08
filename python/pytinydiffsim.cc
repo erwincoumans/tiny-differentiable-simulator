@@ -26,6 +26,7 @@
 #include "tiny_multi_body.h"
 #include "tiny_pose.h"
 #include "tiny_quaternion.h"
+#include "tiny_raycast.h"
 #include "tiny_rigid_body.h"
 #include "tiny_urdf_structures.h"
 #include "tiny_urdf_to_multi_body.h"
@@ -219,12 +220,13 @@ PYBIND11_MODULE(pytinydiffsim, m) {
           &TinySymmetricSpatialDyad<double, DoubleUtils>::m_center_of_mass)
       .def(py::self -= py::self);
 
-  py::enum_< TinyJointType>(m, "TinyJointType")
+  py::enum_<TinyJointType>(m, "TinyJointType")
       .value("JOINT_FIXED", JOINT_FIXED, "JOINT_FIXED")
       .value("JOINT_PRISMATIC_X", JOINT_PRISMATIC_X, "JOINT_PRISMATIC_X")
       .value("JOINT_PRISMATIC_Y", JOINT_PRISMATIC_Y, "JOINT_PRISMATIC_Y")
       .value("JOINT_PRISMATIC_Z", JOINT_PRISMATIC_Z, "JOINT_PRISMATIC_Z")
-      .value("JOINT_PRISMATIC_AXIS", JOINT_PRISMATIC_AXIS, "JOINT_PRISMATIC_AXIS")
+      .value("JOINT_PRISMATIC_AXIS", JOINT_PRISMATIC_AXIS,
+             "JOINT_PRISMATIC_AXIS")
       .value("JOINT_REVOLUTE_X", JOINT_REVOLUTE_X, "JOINT_REVOLUTE_X")
       .value("JOINT_REVOLUTE_Y", JOINT_REVOLUTE_Y, "JOINT_REVOLUTE_Y")
       .value("JOINT_REVOLUTE_Z", JOINT_REVOLUTE_Z, "JOINT_REVOLUTE_Z")
@@ -389,6 +391,20 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def_readwrite("restitution",
                      &TinyWorld<double, DoubleUtils>::default_restitution);
 
+  py::class_<TinyRaycastResult<double, DoubleUtils>>(m, "TinyRaycastResult")
+      .def(py::init<>())
+      .def_readwrite("hit_fraction",
+                     &TinyRaycastResult<double, DoubleUtils>::m_hit_fraction)
+      .def_readwrite("collider_index",
+                     &TinyRaycastResult<double, DoubleUtils>::m_collider_index);
+
+  py::class_<TinyRaycast<double, DoubleUtils>>(m, "TinyRaycast")
+      .def(py::init<>())
+      .def("cast_rays", &TinyRaycast<double, DoubleUtils>::cast_rays)
+      .def("volume", &TinyRaycast<double, DoubleUtils>::volume)
+      .def("intersection_volume",
+           &TinyRaycast<double, DoubleUtils>::intersection_volume);
+
   ///////////////////////////////////////////////////////////////////////////////////////////
 
   py::class_<Fix64Scalar>(m, "Fix64Scalar")
@@ -445,6 +461,12 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def_readwrite("radius",
                      &TinyUrdfCollisionSphere<double, DoubleUtils>::m_radius);
 
+  py::class_<TinyUrdfCollisionBox<double, DoubleUtils>>(m,
+                                                        "TinyUrdfCollisionBox")
+      .def(py::init<>())
+      .def_readwrite("extents",
+                     &TinyUrdfCollisionBox<double, DoubleUtils>::m_extents);
+
   py::class_<TinyUrdfCollisionCapsule<double, DoubleUtils>>(
       m, "TinyUrdfCollisionCapsule")
       .def(py::init<>())
@@ -474,6 +496,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def_readwrite("geom_type",
                      &TinyUrdfGeometry<double, DoubleUtils>::geom_type)
       .def_readwrite("sphere", &TinyUrdfGeometry<double, DoubleUtils>::m_sphere)
+      .def_readwrite("box", &TinyUrdfGeometry<double, DoubleUtils>::m_box)
       .def_readwrite("plane", &TinyUrdfGeometry<double, DoubleUtils>::m_plane)
       .def_readwrite("capsule",
                      &TinyUrdfGeometry<double, DoubleUtils>::m_capsule)
@@ -571,6 +594,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
   m.attr("__version__") = "dev";
 #endif
   m.attr("SPHERE_TYPE") = py::int_(int(TINY_SPHERE_TYPE));
+  m.attr("BOX_TYPE") = py::int_(int(TINY_BOX_TYPE));
   m.attr("PLANE_TYPE") = py::int_(int(TINY_PLANE_TYPE));
   m.attr("CAPSULE_TYPE") = py::int_(int(TINY_CAPSULE_TYPE));
   m.attr("MESH_TYPE") = py::int_(int(TINY_MESH_TYPE));

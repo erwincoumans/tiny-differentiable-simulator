@@ -23,20 +23,19 @@
 #include "pendulum.h"
 #include "pybullet_visualizer_api.h"
 #include "tiny_double_utils.h"
+#include "tiny_file_utils.h"
 #include "tiny_multi_body.h"
 #include "tiny_rigid_body.h"
 #include "tiny_world.h"
-#include "tiny_file_utils.h"
-
 
 int main(int argc, char* argv[]) {
   std::string plane_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
-  
-  char path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(plane_filename.c_str(),path,TINY_MAX_EXE_PATH_LEN);
-  std::string search_path = path;
 
+  char path[TINY_MAX_EXE_PATH_LEN];
+  TinyFileUtils::extract_path(plane_filename.c_str(), path,
+                              TINY_MAX_EXE_PATH_LEN);
+  std::string search_path = path;
 
   std::string connection_mode = "gui";
 
