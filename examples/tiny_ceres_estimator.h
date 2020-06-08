@@ -25,7 +25,9 @@
 #include <thread>
 
 #include "ceres_utils.h"
+#include "third_party/matplotlib-cpp/matplotlibcpp.h"
 #include "tiny_double_utils.h"
+namespace plt = matplotlibcpp;
 
 struct EstimationParameter {
   std::string name{"unnamed_param"};
@@ -185,6 +187,22 @@ class TinyCeresEstimator : ceres::IterationCallback {
 
     CostFunctor(CeresEstimator *parent) : parent(parent) {}
 
+    template <typename T>
+    void plot_trajectory(const std::vector<std::vector<T>> &states) const {
+      typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
+                                 CeresUtils<kParameterDim>>
+          Utils;
+      for (int i = 0; i < static_cast<int>(states[0].size()); ++i) {
+        std::vector<double> traj(states.size());
+        for (int t = 0; t < static_cast<int>(states.size()); ++t) {
+          traj[t] = Utils::getDouble(states[t][i]);
+        }
+        plt::named_plot("state[" + std::to_string(i) + "]", traj);
+      }
+      plt::legend();
+      plt::show();
+    }
+
     // Computes the cost (residual) for input parameters x.
     // TODO use stan::math reverse-mode AD
     template <typename T>
@@ -194,8 +212,10 @@ class TinyCeresEstimator : ceres::IterationCallback {
       std::vector<std::vector<T>> rollout_states;
       const double dt = parent->dt;
       parent->rollout(params, rollout_states, dt);
+      // plot_trajectory(rollout_states);
 
       const auto &target_states = parent->target_states;
+      // plot_trajectory(target_states);
       const auto &target_times = parent->target_times;
       int n_rollout = static_cast<int>(rollout_states.size());
       int n_target = static_cast<int>(target_states.size());
@@ -223,8 +243,13 @@ class TinyCeresEstimator : ceres::IterationCallback {
       }
 
       T difference;
-      std::vector<T> rollout_state(kStateDim);
+
+      int nonfinite = 0;
+      std::vector<T> rollout_state(kStateDim, Utils::zero());
       double time;
+      std::vector<std::vector<double>> error_evolution;
+      // plot_trajectory(target_states);
+      // plot_trajectory(rollout_states);
       for (int t = 0; t < n_target; ++t) {
         if (target_times.empty()) {
           // assume target states line up with rollout states
@@ -234,8 +259,7 @@ class TinyCeresEstimator : ceres::IterationCallback {
           // linear interpolation of rollout states at the target times
           double target_time = target_times[t];
           // numerically stable way to get index of rollout state
-          int rollout_i =
-              static_cast<int>(std::floor(target_time / dt + dt / 2.));
+          int rollout_i = static_cast<int>(std::floor(target_time / dt + 0.5));
           if (rollout_i >= n_rollout - 1) {
             fprintf(stderr,
                     "Target time %.4f (step %i) corresponds to a state (%i) "
@@ -254,24 +278,59 @@ class TinyCeresEstimator : ceres::IterationCallback {
         }
 
         // skip time steps for which no target state samples exist
+        std::vector<double> error_state(kStateDim);
         for (int i = 0; i < kStateDim; ++i) {
           difference = target_states[t][i] - rollout_state[i];
           difference *= difference;
+          double dd = Utils::getDouble(difference);
+          if (std::isinf(dd) || std::isnan(dd)) {
+            ++nonfinite;
+            continue;
+          } else if (std::abs(dd) > 1e10) {
+            ++nonfinite;
+            printf("NONFINITE!!!!");
+            plot_trajectory(rollout_states);
+            continue;
+          }
+          // printf("%.3f  ", Utils::getDouble(difference));
 
           // discount contribution of errors at later time steps to mitigate
           // gradient explosion on long roll-outs
-          if (parent->divide_cost_by_time_factor != 0. && t > 0) {
-            difference /= std::pow(parent->divide_cost_by_time_factor * time,
-                                   parent->divide_cost_by_time_exponent);
-          }
+          // if (parent->divide_cost_by_time_factor != 0. && t > 0) {
+          //   difference /= std::pow(parent->divide_cost_by_time_factor * time,
+          //                          parent->divide_cost_by_time_exponent);
+          // }
 
           if constexpr (kResidualMode == RES_MODE_1D) {
             *residual += difference;
           } else if constexpr (kResidualMode == RES_MODE_STATE) {
             residual[i] += difference;
           }
+          error_state[i] = dd;
         }
+        error_evolution.push_back(error_state);
+        // printf("[[res: %.3f]]  ", Utils::getDouble(*residual));
       }
+      // plot_trajectory(error_evolution);
+      // plt::named_plot("difference", error_evolution);
+      // plt::show();
+
+      // if (parent->options.minimizer_progress_to_stdout &&
+      // Utils::getDouble(residual[0]) < 0.) {
+      std::cerr << "params: ";
+      for (int ri = 0; ri < kParameterDim; ++ri) {
+        fprintf(stderr, "%.20f  ", Utils::getDouble(params[ri]));
+      }
+      std::cerr << "residual: ";
+      for (int ri = 0; ri < kResidualDim; ++ri) {
+        fprintf(stderr, "%.6f  ", Utils::getDouble(residual[ri]));
+      }
+      std::cerr << "nonfinite: " << nonfinite;
+      std::cerr << "\n";
+      // } else {
+      //   printf("\tcost: %.6f  nonfinite: %d\n",
+      //   Utils::getDouble(residual[0]), nonfinite);
+      // }
       return true;
     }
   };
@@ -364,9 +423,12 @@ class BasinHoppingEstimator {
               std::cout << "this->stop_\n";
             }
 #endif
-            if (time_up || this->stop_ || this->best_cost_ < this->cost_limit) {
+            if (time_up ||
+                this->stop_) {  // || this->best_cost_ < this->cost_limit) {
               std::cout << "Thread " << k << " has terminated after " << iter
-                        << " iterations.\n";
+                        << " iterations. ";
+              printf("time up? %d  stop? %d  best cost? %d\n", time_up,
+                     this->stop_, this->best_cost_ < this->cost_limit);
               return;
             }
           }
@@ -375,6 +437,7 @@ class BasinHoppingEstimator {
             std::unique_lock<std::mutex> lock(this->mutex_);
             if (summary.final_cost < this->best_cost_) {
               this->best_cost_ = summary.final_cost;
+              printf("FOUND NEW BEST COST: %.6f\n", summary.final_cost);
               for (int i = 0; i < kParameterDim; ++i) {
                 this->params[i] = estimator->parameters[i].value;
               }
@@ -382,9 +445,12 @@ class BasinHoppingEstimator {
             // apply random change to the parameters
             for (int i = 0; i < kParameterDim; ++i) {
               auto &param = estimator->parameters[i];
+              // std::normal_distribution<double> d{
+              //     this->params[i],
+              //     initial_std / (iter + 1.) * (param.maximum - param.minimum)};
               std::normal_distribution<double> d{
                   this->params[i],
-                  initial_std / (iter + 1.) * (param.maximum - param.minimum)};
+                  initial_std * (param.maximum - param.minimum)};
               param.value = d(this->gen_);
               param.value = std::max(param.minimum, param.value);
               param.value = std::min(param.maximum, param.value);

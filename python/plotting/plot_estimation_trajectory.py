@@ -32,6 +32,7 @@ with open(path, "r") as f:
     true_data = np.array([np.fromstring(line, sep=" ") for line in lines])
     # the first joint angle is rotated by 90deg compared to our model
     true_data[:, 2] -= np.pi / 2
+    # true_data[:, 3] -= np.pi / 2
     true_data = true_data[:500, :]
 
 state_dim = 2
