@@ -47,7 +47,7 @@ class TinyMatrixXxX_ {
   TinyMatrixXxX_(int rows, int cols) : m_rows(rows), m_cols(cols) {
     allocate();
   }
-      
+
   inline TinyMatrixXxX_(const TinyMatrixXxX_& other)
       : m_rows(other.m_rows), m_cols(other.m_cols) {
     allocate();
@@ -219,118 +219,115 @@ class TinyMatrixXxX_ {
     return m;
   }
 
-
   /**
    *    main method for Cholesky decomposition.
    *    input/output  a  Symmetric positive def. matrix
    *    output        diagonal  vector of resulting diag of a
    *    inspired by public domain https://math.nist.gov/javanumerics/jama
    */
-  bool cholesky_decomposition(TinyMatrixXxX_ < TinyScalar, TinyConstants, TinyVectorX>& a, TinyVectorX<TinyScalar, TinyConstants>& diagonal) const {
-      int i, j, k;
-      TinyScalar sum;
-      int n = a.m_cols;
-      bool is_positive_definite = true;
+  bool cholesky_decomposition(
+      TinyMatrixXxX_<TinyScalar, TinyConstants, TinyVectorX>& a,
+      TinyVectorX<TinyScalar, TinyConstants>& diagonal) const {
+    int i, j, k;
+    TinyScalar sum;
+    int n = a.m_cols;
+    bool is_positive_definite = true;
+    for (i = 0; i < n; i++) {
+      for (j = i; j < n; j++) {
+        sum = a[i][j];
+        for (k = i - 1; k >= 0; k--) {
+          sum -= a[i][k] * a[j][k];
+        }
+        if (i == j) {
+          if (sum <= TinyConstants::zero()) {
+            is_positive_definite = false;
+            break;
+          }
+          diagonal[i] = TinyConstants::sqrt1(sum);
+        } else {
+          a[j][i] = sum / diagonal[i];
+        }
+      }
+    }
+    return is_positive_definite;
+  }
+
+  /**
+   *     Inverse of Cholesky decomposition.
+   *
+   *     input    A  Symmetric positive def. matrix
+   *     output   a  inverse of lower decomposed matrix
+   *     uses        cholesky_decomposition
+   */
+  bool inverse_cholesky_decomposition(
+      const TinyMatrixXxX_<TinyScalar, TinyConstants, TinyVectorX>& A,
+      TinyMatrixXxX_<TinyScalar, TinyConstants, TinyVectorX>& a) const {
+    int i, j, k;
+    int n = A.m_rows;
+    TinyScalar sum;
+    TinyVectorX<TinyScalar, TinyConstants> diagonal(A.m_rows);
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) a[i][j] = A[i][j];
+    bool is_positive_definite = cholesky_decomposition(a, diagonal);
+    if (is_positive_definite) {
       for (i = 0; i < n; i++) {
-          for (j = i; j < n; j++) {
-              sum = a[i][j];
-              for (k = i - 1; k >= 0; k--) {
-                  sum -= a[i][k] * a[j][k];
-              }
-              if (i == j) {
-                  if (sum <= TinyConstants::zero()) {
-                      is_positive_definite = false;
-                      break;
-                  }
-                  diagonal[i] = TinyConstants::sqrt1(sum);
-              }
-              else {
-                  a[j][i] = sum / diagonal[i];
-              }
+        a[i][i] = TinyConstants::one() / diagonal[i];
+        for (j = i + 1; j < n; j++) {
+          sum = TinyConstants::zero();
+          for (k = i; k < j; k++) {
+            sum -= a[j][k] * a[k][i];
           }
+          a[j][i] = sum / diagonal[j];
+        }
       }
-      return is_positive_definite;
+    }
+    return is_positive_definite;
   }
 
-
-
   /**
-    *     Inverse of Cholesky decomposition.
-    *
-    *     input    A  Symmetric positive def. matrix
-    *     output   a  inverse of lower decomposed matrix
-    *     uses        cholesky_decomposition
-  */
-  bool inverse_cholesky_decomposition(const TinyMatrixXxX_ < TinyScalar, TinyConstants, TinyVectorX>& A, TinyMatrixXxX_ < TinyScalar, TinyConstants, TinyVectorX>& a) const {
+   *     Inverse of a matrix, using Cholesky decomposition.
+   *
+   *     input    A  Symmetric positive def. matrix
+   *     input    a  storage for the result
+   *     output   boolean is_positive_definite if operation succeeded
+   */
+  bool inversed(
+      TinyMatrixXxX_<TinyScalar, TinyConstants, TinyVectorX>& a) const {
+    assert(m_cols == m_cols);
+    assert(a.m_cols == m_cols);
+    assert(a.m_rows == m_rows);
+
+    const TinyMatrixXxX_<TinyScalar, TinyConstants, TinyVectorX>& A = *this;
+
+    bool is_positive_definite = inverse_cholesky_decomposition(A, a);
+    if (is_positive_definite) {
+      int n = m_cols;
       int i, j, k;
-      int n = A.m_rows;
-      TinyScalar sum;
-      TinyVectorX<TinyScalar, TinyConstants> diagonal(A.m_rows);
-      for (i = 0; i < n; i++)
-          for (j = 0; j < n; j++)
-              a[i][j] = A[i][j];
-      bool is_positive_definite = cholesky_decomposition(a, diagonal);
-      if (is_positive_definite)
-      {
-          for (i = 0; i < n; i++) {
-              a[i][i] = TinyConstants::one() / diagonal[i];
-              for (j = i + 1; j < n; j++) {
-                  sum = TinyConstants::zero();
-                  for (k = i; k < j; k++) {
-                      sum -= a[j][k] * a[k][i];
-                  }
-                  a[j][i] = sum / diagonal[j];
-              }
-          }
+
+      for (i = 0; i < n; i++) {
+        for (j = i + 1; j < n; j++) {
+          a[i][j] = TinyConstants::zero();
+        }
       }
-      return is_positive_definite;
-  }
 
-  /**
-    *     Inverse of a matrix, using Cholesky decomposition.
-    *
-    *     input    A  Symmetric positive def. matrix
-    *     input    a  storage for the result
-    *     output   boolean is_positive_definite if operation succeeded
-  */
-  bool inversed(TinyMatrixXxX_ < TinyScalar, TinyConstants, TinyVectorX>& a) const
-  {
-      assert(m_cols == m_cols);
-      assert(a.m_cols == m_cols);
-      assert(a.m_rows == m_rows);
-      
-      const TinyMatrixXxX_ < TinyScalar, TinyConstants, TinyVectorX>& A = *this;
-      
-      bool is_positive_definite = inverse_cholesky_decomposition(A, a);
-      if (is_positive_definite)
-      {
-          int n = m_cols;
-          int i, j, k;
-
-          for (i = 0; i < n; i++) {
-              for (j = i + 1; j < n; j++) {
-                  a[i][j] = TinyConstants::zero();
-              }
+      for (i = 0; i < n; i++) {
+        a[i][i] = a[i][i] * a[i][i];
+        for (k = i + 1; k < n; k++) {
+          a[i][i] += a[k][i] * a[k][i];
+        }
+        for (j = i + 1; j < n; j++) {
+          for (k = j; k < n; k++) {
+            a[i][j] += a[k][i] * a[k][j];
           }
-
-          for (i = 0; i < n; i++) {
-              a[i][i] = a[i][i]*a[i][i];
-              for (k = i + 1; k < n; k++) {
-                  a[i][i] += a[k][i] * a[k][i];
-              }
-              for (j = i + 1; j < n; j++) {
-                  for (k = j; k < n; k++) {
-                      a[i][j] += a[k][i] * a[k][j];
-                  }
-              }
-          }
-          for (i = 0; i < n; i++) {
-              for (j = 0; j < i; j++) {
-                  a[i][j] = a[j][i];
-              }
-          }
+        }
       }
-      return is_positive_definite;
+      for (i = 0; i < n; i++) {
+        for (j = 0; j < i; j++) {
+          a[i][j] = a[j][i];
+        }
+      }
+    }
+    return is_positive_definite;
   }
 };
 

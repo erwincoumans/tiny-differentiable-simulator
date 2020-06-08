@@ -23,7 +23,6 @@
 #include <thread>
 bool useLaikago = true;
 
-
 #define USE_TRB
 #include "tiny_double_utils.h"
 
@@ -66,16 +65,14 @@ int main(int argc, char* argv[]) {
   double initialXvel = 0;
   btVector3 initialAngVel(0, 0, 0);
 
-  
-  
   std::string connection_mode = "gui";
 
   std::string plane_urdf_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_urdf_filename);
-  
-  
+
   char path[TINY_MAX_EXE_PATH_LEN];
-  TinyFileUtils::extract_path(plane_urdf_filename.c_str(),path,TINY_MAX_EXE_PATH_LEN);
+  TinyFileUtils::extract_path(plane_urdf_filename.c_str(), path,
+                              TINY_MAX_EXE_PATH_LEN);
   std::string search_path = path;
 
   printf("search_path=%s\n", search_path.c_str());
@@ -180,10 +177,8 @@ int main(int argc, char* argv[]) {
       b3JointInfo jointInfo;
       sim2->getJointInfo(robotId, i, &jointInfo);
       if (jointInfo.m_jointType != eFixedType) {
-
         paramUids.push_back(sim->addUserDebugParameter(
             jointInfo.m_jointName, -4, 4, initial_poses[pose_index++]));
-
       }
     }
     mbbodies.push_back(mb);
@@ -219,7 +214,6 @@ int main(int argc, char* argv[]) {
   // sim->removeBody(robotId);
 #endif  // USE_TRB
 
-
   sim->setTimeStep(dt);
   while (sim->isConnected()) {
     sim->submitProfileTiming("loop");
@@ -234,7 +228,6 @@ int main(int argc, char* argv[]) {
     double kd = sim->readUserDebugParameter(kd_id);
     double max_force = sim->readUserDebugParameter(force_id);
     int param_index = 0;
-
 
 #ifdef USE_TRB
 
@@ -290,8 +283,7 @@ int main(int argc, char* argv[]) {
         }
         sim->submitProfileTiming("");
         printf("-------------------\n");
-        for (int i=0;i<mb->m_tau.size();i++)
-        {
+        for (int i = 0; i < mb->m_tau.size(); i++) {
           printf("mb->m_tau[%d]=%f\n", i, mb->m_tau[i]);
         }
       }
@@ -320,8 +312,7 @@ int main(int argc, char* argv[]) {
         // printf("mb qdd:%f,%f,%f\n", mb->m_qdd[0], mb->m_qdd[1],
         // mb->m_qdd[2]); printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0],
         // q[1], qd[0],
-        for (int i=0;i<mb->m_q.size();i++)
-        {
+        for (int i = 0; i < mb->m_q.size(); i++) {
           printf("mb->m_q[%d] = %f\n", i, mb->m_q[i]);
         }
         sim->submitProfileTiming("");

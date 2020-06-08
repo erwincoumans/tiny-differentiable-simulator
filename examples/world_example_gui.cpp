@@ -19,8 +19,8 @@
 #include "SharedMemory/PhysicsDirectC_API.h"
 #include "SharedMemory/b3RobotSimulatorClientAPI_InternalData.h"
 #include "SharedMemory/b3RobotSimulatorClientAPI_NoDirect.h"
-#include "tiny_world.h"
 #include "assert.h"
+#include "tiny_world.h"
 #include "xarm.h"
 // DoubleScalar
 // FixedPointScalar
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     int logId = visualizer.startStateLogging(STATE_LOGGING_PROFILE_TIMINGS,
                                              "/tmp/fileName.json");
     visualizer.resetSimulation();
-    
+
     {
       TinyWorld<double, DoubleUtils> world;
       // world.m_profileTimingFunc = MyTinySubmitProfileTiming;
@@ -115,8 +115,7 @@ int main(int argc, char* argv[]) {
       std::vector<double> qd;
       std::vector<double> tau;
       std::vector<double> qdd;
-        TinyVector3<double,DoubleUtils> gravity(0.,0.,-9.81);
-
+      TinyVector3<double, DoubleUtils> gravity(0., 0., -9.81);
 
       for (int i = 0; i < mb->m_links.size(); i++) {
         q.push_back(DoubleUtils::fraction(1, 10) +

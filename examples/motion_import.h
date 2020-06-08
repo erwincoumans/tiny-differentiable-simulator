@@ -35,9 +35,7 @@ struct Motion {
    */
   double frame_duration{0};
 
-  double total_duration() const {
-    return frame_duration * frames.size();
-  }
+  double total_duration() const { return frame_duration * frames.size(); }
 
  private:
   void get_blend_parameters(double time, int* idx_left, int* idx_right,
