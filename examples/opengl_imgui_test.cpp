@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
     float height = (float) app.m_window->get_height();
 
     io.DisplaySize = ImVec2((float)width, (float)height);
-    io.DisplayFramebufferScale = ImVec2(width > 0 ? ((float)1.) : 0, height > 0 ? ((float)1.) : 0);
+    io.DisplayFramebufferScale = ImVec2(app.m_window->get_retina_scale(), app.m_window->get_retina_scale());
     double t = clock.get_time_seconds();
     float dt = t - prev_time;
     prev_time = t;
