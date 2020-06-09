@@ -155,9 +155,7 @@ if (Bullet_FOUND)
       target_link_libraries(pendulum_ik_gui pybullet_visualizer_api)
     endif()
 
-    add_executable(pendulum_example_gui pendulum_example_gui.cpp ${TDS_HDRS})
-    target_link_libraries(pendulum_example_gui pybullet_visualizer_api)
-
+    
     add_executable(generic_urdf_collision generic_urdf_collision.cpp ${TDS_HDRS})
     target_link_libraries(generic_urdf_collision pybullet_visualizer_api)
 
@@ -194,11 +192,23 @@ add_executable(test_xarm test_xarm.cpp ${TDS_HDRS})
 
 subdirs(opengl_window)
 
+add_executable(pendulum_example_gui pendulum_example_gui.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
+target_link_libraries(pendulum_example_gui opengl_window)
+
 add_executable(opengl_test opengl_test.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
- target_link_libraries(opengl_test opengl_window)
+target_link_libraries(opengl_test opengl_window)
+
+subdirs(../third_party/dear_imgui)
+
+add_executable(opengl_imgui_test opengl_imgui_test.cpp ../third_party/dear_imgui/opengl3/imgui_impl_opengl3.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
+target_link_libraries(opengl_imgui_test opengl_window dear_imgui)
+target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../third_party/dear_imgui )
+
 
 IF(WIN32)
+    target_link_libraries(pendulum_example_gui  Opengl32)
     target_link_libraries(opengl_test  Opengl32)
+    target_link_libraries(opengl_imgui_test Opengl32)
 ENDIF()
 
 
