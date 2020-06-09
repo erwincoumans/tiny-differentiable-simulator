@@ -6,7 +6,6 @@ IF(WIN32)
 ELSE()
 IF(APPLE)
 	target_compile_definitions(dear_imgui PUBLIC GUID_LIBUUID PRIVATE GUID_LIBUUID)
-	target_link_libraries(dear_imgui PUBLIC uuid PRIVATE uuid)
 ENDIF()
 ENDIF()
 
