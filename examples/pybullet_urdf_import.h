@@ -75,9 +75,9 @@ struct PyBulletUrdfImport {
         }
       };
 
-      joint.joint_axis_xyz.setValue(TinyScalar(jointInfo.m_jointAxis[0]),
-                                    TinyScalar(jointInfo.m_jointAxis[1]),
-                                    TinyScalar(jointInfo.m_jointAxis[2]));
+      joint.joint_axis_xyz.setValue(TinyConstants::scalar_from_double(jointInfo.m_jointAxis[0]),
+                                    TinyConstants::scalar_from_double(jointInfo.m_jointAxis[1]),
+                                    TinyConstants::scalar_from_double(jointInfo.m_jointAxis[2]));
 
       if (jointInfo.m_parentIndex < 0) {
         joint.parent_name = urdf_structures.m_base_links[0].link_name;
@@ -129,14 +129,14 @@ struct PyBulletUrdfImport {
 
       btTransform tmp2(btQuaternion::getIdentity(), parentCom2JointPos);
       btTransform pos = parentInertia * tmp2;
-      joint.joint_origin_xyz.setValue(TinyScalar(pos.getOrigin()[0]),
-                                      TinyScalar(pos.getOrigin()[1]),
-                                      TinyScalar(pos.getOrigin()[2]));
+      joint.joint_origin_xyz.setValue(TinyConstants::scalar_from_double(pos.getOrigin()[0]),
+                                      TinyConstants::scalar_from_double(pos.getOrigin()[1]),
+                                      TinyConstants::scalar_from_double(pos.getOrigin()[2]));
       btScalar roll, pitch, yaw;
       pos_.getRotation().getEulerZYX(yaw, pitch, roll);
       btVector3 rpy = btVector3(roll, pitch, yaw);
-      joint.joint_origin_rpy.setValue(TinyScalar(rpy[0]), TinyScalar(rpy[1]),
-                                      TinyScalar(rpy[2]));
+      joint.joint_origin_rpy.setValue(TinyConstants::scalar_from_double(rpy[0]), TinyConstants::scalar_from_double(rpy[1]),
+                                      TinyConstants::scalar_from_double(rpy[2]));
       urdf_structures.m_links.push_back(child_link);
       urdf_structures.m_joints.push_back(joint);
     }
@@ -192,20 +192,20 @@ struct PyBulletUrdfImport {
     b3DynamicsInfo dyn;
     sim_api.getDynamicsInfo(body_unique_id, linkIndex, &dyn);
 
-    urdfLink.urdf_inertial.mass = TinyScalar(dyn.m_mass);
+    urdfLink.urdf_inertial.mass = TinyConstants::scalar_from_double(dyn.m_mass);
     urdfLink.urdf_inertial.inertia_xxyyzz.setValue(
-        TinyScalar(dyn.m_localInertialDiagonal[0]),
-        TinyScalar(dyn.m_localInertialDiagonal[1]),
-        TinyScalar(dyn.m_localInertialDiagonal[2]));
+        TinyConstants::scalar_from_double(dyn.m_localInertialDiagonal[0]),
+        TinyConstants::scalar_from_double(dyn.m_localInertialDiagonal[1]),
+        TinyConstants::scalar_from_double(dyn.m_localInertialDiagonal[2]));
     urdfLink.urdf_inertial.origin_xyz.setValue(
-        TinyScalar(dyn.m_localInertialFrame[0]),
-        TinyScalar(dyn.m_localInertialFrame[1]),
-        TinyScalar(dyn.m_localInertialFrame[2]));
+        TinyConstants::scalar_from_double(dyn.m_localInertialFrame[0]),
+        TinyConstants::scalar_from_double(dyn.m_localInertialFrame[1]),
+        TinyConstants::scalar_from_double(dyn.m_localInertialFrame[2]));
     btVector3 rpy = sim_api.getEulerFromQuaternion(
         btQuaternion(dyn.m_localInertialFrame[3], dyn.m_localInertialFrame[4],
                      dyn.m_localInertialFrame[5], dyn.m_localInertialFrame[6]));
     urdfLink.urdf_inertial.origin_rpy.setValue(
-        TinyScalar(rpy[0]), TinyScalar(rpy[1]), TinyScalar(rpy[2]));
+        TinyConstants::scalar_from_double(rpy[0]), TinyConstants::scalar_from_double(rpy[1]), TinyConstants::scalar_from_double(rpy[2]));
 
     // visual shapes
     b3VisualShapeInformation visualShapeInfo;
@@ -216,41 +216,41 @@ struct PyBulletUrdfImport {
       if (visual.m_linkIndex == linkIndex) {
         TinyUrdfVisual<TinyScalar, TinyConstants> viz;
         // offset
-        viz.origin_xyz.setValue(TinyScalar(visual.m_localVisualFrame[0]),
-                                TinyScalar(visual.m_localVisualFrame[1]),
-                                TinyScalar(visual.m_localVisualFrame[2]));
+        viz.origin_xyz.setValue(TinyConstants::scalar_from_double(visual.m_localVisualFrame[0]),
+                                TinyConstants::scalar_from_double(visual.m_localVisualFrame[1]),
+                                TinyConstants::scalar_from_double(visual.m_localVisualFrame[2]));
         btVector3 rpy = sim_api.getEulerFromQuaternion(btQuaternion(
             visual.m_localVisualFrame[3], visual.m_localVisualFrame[4],
             visual.m_localVisualFrame[5], visual.m_localVisualFrame[6]));
-        viz.origin_rpy.setValue(TinyScalar(rpy[0]), TinyScalar(rpy[1]),
-                                TinyScalar(rpy[2]));
+        viz.origin_rpy.setValue(TinyConstants::scalar_from_double(rpy[0]), TinyConstants::scalar_from_double(rpy[1]),
+                                TinyConstants::scalar_from_double(rpy[2]));
 
-        viz.m_material.material_rgb.setValue(TinyScalar(visual.m_rgbaColor[0]),
-                                             TinyScalar(visual.m_rgbaColor[1]),
-                                             TinyScalar(visual.m_rgbaColor[2]));
-        // viz.material_a = TinyScalar(visual.m_rgbaColor[3]);
+        viz.m_material.material_rgb.setValue(TinyConstants::scalar_from_double(visual.m_rgbaColor[0]),
+                                             TinyConstants::scalar_from_double(visual.m_rgbaColor[1]),
+                                             TinyConstants::scalar_from_double(visual.m_rgbaColor[2]));
+        // viz.material_a = TinyConstants::scalar_from_double(visual.m_rgbaColor[3]);
 
         // try to load for now, until we can manually 'override' the shape world
         // transform
         switch (visual.m_visualGeometryType) {
           case GEOM_SPHERE: {
-            viz.geometry.m_sphere.m_radius = TinyScalar(visual.m_dimensions[0]);
+            viz.geometry.m_sphere.m_radius = TinyConstants::scalar_from_double(visual.m_dimensions[0]);
             viz.geometry.geom_type = TINY_SPHERE_TYPE;
             break;
           }
           case GEOM_CAPSULE: {
             viz.geometry.m_capsule.m_length =
-                TinyScalar(visual.m_dimensions[0]);
+                TinyConstants::scalar_from_double(visual.m_dimensions[0]);
             viz.geometry.m_capsule.m_radius =
-                TinyScalar(visual.m_dimensions[1]);
+                TinyConstants::scalar_from_double(visual.m_dimensions[1]);
             viz.geometry.geom_type = TINY_CAPSULE_TYPE;
             break;
           }
           case GEOM_BOX: {
             TinyVector3<TinyScalar, TinyConstants> halfExtents;
-            halfExtents.setValue(TinyScalar(visual.m_dimensions[0]),
-                                 TinyScalar(visual.m_dimensions[1]),
-                                 TinyScalar(visual.m_dimensions[2]));
+            halfExtents.setValue(TinyConstants::scalar_from_double(visual.m_dimensions[0]),
+                                 TinyConstants::scalar_from_double(visual.m_dimensions[1]),
+                                 TinyConstants::scalar_from_double(visual.m_dimensions[2]));
             viz.geometry.m_box.m_extents =
                 halfExtents * TinyConstants::fraction(2, 1);
             viz.geometry.geom_type = TINY_BOX_TYPE;
@@ -258,9 +258,9 @@ struct PyBulletUrdfImport {
           }
           case GEOM_MESH: {
             viz.geometry.m_mesh.m_scale.setValue(
-                TinyScalar(visual.m_dimensions[0]),
-                TinyScalar(visual.m_dimensions[1]),
-                TinyScalar(visual.m_dimensions[2]));
+                TinyConstants::scalar_from_double(visual.m_dimensions[0]),
+                TinyConstants::scalar_from_double(visual.m_dimensions[1]),
+                TinyConstants::scalar_from_double(visual.m_dimensions[2]));
             viz.geometry.m_mesh.m_file_name = visual.m_meshAssetFileName;
             printf("extract mesh: %s\n",
                    viz.geometry.m_mesh.m_file_name.c_str());
@@ -307,45 +307,45 @@ struct PyBulletUrdfImport {
                        colShapeData.m_localCollisionFrame[6]));
       btTransform col_tr = inertial_tr * col_local_tr;
 
-      col.origin_xyz.setValue(TinyScalar(col_tr.getOrigin()[0]),
-                              TinyScalar(col_tr.getOrigin()[1]),
-                              TinyScalar(col_tr.getOrigin()[2]));
+      col.origin_xyz.setValue(TinyConstants::scalar_from_double(col_tr.getOrigin()[0]),
+                              TinyConstants::scalar_from_double(col_tr.getOrigin()[1]),
+                              TinyConstants::scalar_from_double(col_tr.getOrigin()[2]));
       btVector3 rpy;
       col_tr.getRotation().getEulerZYX(rpy[0], rpy[1], rpy[2]);
 
-      col.origin_rpy.setValue(TinyScalar(rpy[0]), TinyScalar(rpy[1]),
-                              TinyScalar(rpy[2]));
+      col.origin_rpy.setValue(TinyConstants::scalar_from_double(rpy[0]), TinyConstants::scalar_from_double(rpy[1]),
+                              TinyConstants::scalar_from_double(rpy[2]));
 
       switch (colShapeData.m_collisionGeometryType) {
         case GEOM_SPHERE: {
           col.geometry.m_sphere.m_radius =
-              TinyScalar(colShapeData.m_dimensions[0]);
+              TinyConstants::scalar_from_double(colShapeData.m_dimensions[0]);
           col.geometry.geom_type = TINY_SPHERE_TYPE;
           urdfLink.urdf_collision_shapes.push_back(col);
           break;
         }
         // case GEOM_BOX: {
-        //	col.m_box.m_extents.setValue(TinyScalar(colShapeData.m_dimensions[0]),
-        //		TinyScalar(colShapeData.m_dimensions[1]),
-        //		TinyScalar(colShapeData.m_dimensions[2]));
+        //	col.m_box.m_extents.setValue(TinyConstants::scalar_from_double(colShapeData.m_dimensions[0]),
+        //		TinyConstants::scalar_from_double(colShapeData.m_dimensions[1]),
+        //		TinyConstants::scalar_from_double(colShapeData.m_dimensions[2]));
         //	col.geom_type1 = BOX_TYPE;
         //	urdfLink.urdf_collision_shapes.push_back(col);
         //	break;
         //}
         case GEOM_CAPSULE: {
           col.geometry.m_capsule.m_length =
-              TinyScalar(colShapeData.m_dimensions[0]);
+              TinyConstants::scalar_from_double(colShapeData.m_dimensions[0]);
           col.geometry.m_capsule.m_radius =
-              TinyScalar(colShapeData.m_dimensions[1]);
+              TinyConstants::scalar_from_double(colShapeData.m_dimensions[1]);
           col.geometry.geom_type = TINY_CAPSULE_TYPE;
           urdfLink.urdf_collision_shapes.push_back(col);
           break;
         }
         // case GEOM_MESH: {
         //	col.m_mesh.m_file_name = colShapeData.m_meshAssetFileName;
-        //	col.m_mesh.m_scale.setValue(TinyScalar(colShapeData.m_dimensions[0]),
-        //		TinyScalar(colShapeData.m_dimensions[1]),
-        //		TinyScalar(colShapeData.m_dimensions[2]));
+        //	col.m_mesh.m_scale.setValue(TinyConstants::scalar_from_double(colShapeData.m_dimensions[0]),
+        //		TinyConstants::scalar_from_double(colShapeData.m_dimensions[1]),
+        //		TinyConstants::scalar_from_double(colShapeData.m_dimensions[2]));
         //	col.geom_type1 = MESH_TYPE;
         //	break;
         //}
