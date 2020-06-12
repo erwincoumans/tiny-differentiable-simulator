@@ -24,6 +24,8 @@ find_package(ct_optcon)
 find_package(Ceres)
 find_package(PkgConfig)
 
+find_package(Torch)
+
 add_definitions(-DBT_USE_DOUBLE_PRECISION)
 find_package(Bullet)
 
@@ -176,15 +178,21 @@ if (Bullet_FOUND)
 
 if (HAS_MESHCAT)
     add_executable(laikago_meshcat_example laikago_meshcat_example.cpp ${TDS_HDRS})
-    target_link_libraries(laikago_meshcat_example  pybullet_visualizer_api ${MESHCAT_LIBRARIES})
-    
+    target_link_libraries(laikago_meshcat_example pybullet_visualizer_api ${MESHCAT_LIBRARIES})
 endif (HAS_MESHCAT)
+
+if (Torch_FOUND)
+    include_directories(${TORCH_INCLUDE_DIRS})
+    message("Torch libraries: ${TORCH_LIBRARIES}")
+    add_executable(torch_example torch_example.cpp ${TDS_HDRS})
+    target_link_libraries(torch_example pybullet_visualizer_api ${TORCH_LIBRARIES})
+endif (Torch_FOUND)
+
 endif (Bullet_FOUND)
 
 
+if (HAS_MESHCAT AND tinyxml2_FOUND)    
 
-if (HAS_MESHCAT AND tinyxml2_FOUND)
-    
     add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS}) 
     target_link_libraries(tiny_urdf_parser_meshcat_example  tinyxml2 ${MESHCAT_LIBRARIES}) 
 
@@ -210,6 +218,3 @@ add_executable(opengl_test opengl_test.cpp utils/tiny_clock.cpp utils/tiny_chrom
 IF(WIN32)
     target_link_libraries(opengl_test  Opengl32)
 ENDIF()
-
-
-

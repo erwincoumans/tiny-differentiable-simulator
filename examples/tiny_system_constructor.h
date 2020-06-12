@@ -91,8 +91,8 @@ struct TinySystemConstructor {
         mb->m_actuator = new Actuator<Scalar, Utils>(*m_actuator);
       }
       for (auto& link : mb->m_links) {
-        link.m_stiffness = Scalar(m_joint_stiffness);
-        link.m_damping = Scalar(m_joint_damping);
+        link.m_stiffness = Utils::scalar_from_double(m_joint_stiffness);
+        link.m_damping = Utils::scalar_from_double(m_joint_damping);
       }
       *system = mb;
     }
