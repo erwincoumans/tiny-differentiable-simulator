@@ -21,7 +21,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <string>
+
 #include "math.h"
 
 struct DoubleUtils {
@@ -66,6 +68,8 @@ struct DoubleUtils {
     double result = atof(txt.c_str());
     return result;
   }
+
+  static double scalar_from_double(double value) { return value; }
 
   static void FullAssert(bool a) {
     if (!a) {
