@@ -45,7 +45,7 @@ enum TinyNeuralNetworkInitialization {
 class TinyNeuralNetworkSpecification {
  protected:
   std::vector<TinyNeuralNetworkActivation> activations_;
-  std::vector<int> layers_{0};
+  std::vector<int> layers_{std::vector<int>{0}};
   std::vector<bool> use_bias_{true};
 
  public:
@@ -73,6 +73,7 @@ class TinyNeuralNetworkSpecification {
     use_bias_.push_back(learn_bias);
   }
 
+  bool empty() const { return layers_.empty(); }
   int input_dim() const { return layers_[0]; }
   int output_dim() const { return layers_.back(); }
   int num_weights() const {
@@ -241,7 +242,7 @@ class TinyNeuralNetwork : public TinyNeuralNetworkSpecification {
   }
 
   void compute(const std::vector<TinyScalar>& input,
-               std::vector<TinyScalar>& output) {
+               std::vector<TinyScalar>& output) const {
     this->template compute<TinyScalar, TinyConstants>(weights, biases, input,
                                                       output);
   }

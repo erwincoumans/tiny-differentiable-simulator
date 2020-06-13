@@ -25,9 +25,12 @@
 #include <thread>
 
 #include "ceres_utils.h"
-#include "third_party/matplotlib-cpp/matplotlibcpp.h"
 #include "tiny_double_utils.h"
+
+#ifdef USE_MATPLOTLIB
+#include "third_party/matplotlib-cpp/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
+#endif
 
 struct EstimationParameter {
   std::string name{"unnamed_param"};
@@ -187,6 +190,7 @@ class TinyCeresEstimator : ceres::IterationCallback {
 
     CostFunctor(CeresEstimator *parent) : parent(parent) {}
 
+#ifdef USE_MATPLOTLIB
     template <typename T>
     void plot_trajectory(const std::vector<std::vector<T>> &states) const {
       typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
@@ -202,6 +206,7 @@ class TinyCeresEstimator : ceres::IterationCallback {
       plt::legend();
       plt::show();
     }
+#endif
 
     // Computes the cost (residual) for input parameters x.
     // TODO use stan::math reverse-mode AD
@@ -289,7 +294,9 @@ class TinyCeresEstimator : ceres::IterationCallback {
           } else if (std::abs(dd) > 1e10) {
             ++nonfinite;
             printf("NONFINITE!!!!");
+#ifdef USE_MATPLOTLIB
             plot_trajectory(rollout_states);
+#endif
             continue;
           }
           // printf("%.3f  ", Utils::getDouble(difference));
@@ -447,7 +454,8 @@ class BasinHoppingEstimator {
               auto &param = estimator->parameters[i];
               // std::normal_distribution<double> d{
               //     this->params[i],
-              //     initial_std / (iter + 1.) * (param.maximum - param.minimum)};
+              //     initial_std / (iter + 1.) * (param.maximum -
+              //     param.minimum)};
               std::normal_distribution<double> d{
                   this->params[i],
                   initial_std * (param.maximum - param.minimum)};

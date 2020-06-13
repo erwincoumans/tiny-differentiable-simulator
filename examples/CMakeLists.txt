@@ -18,7 +18,6 @@ include_directories(. ..)
 
 set(DL ${CMAKE_DL_LIBS})
 
-
 find_package(ct_core)
 find_package(ct_optcon)
 find_package(Ceres)
@@ -122,8 +121,13 @@ if (Bullet_FOUND)
         target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
 
+        # set(DUSE_MATPLOTLIB true)
         add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
         target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${DL}
+                ${CERES_LIBRARIES} python2.7)
+
+        add_executable(neural_pendulum neural_pendulum.cpp ${TDS_HDRS})
+        target_link_libraries(neural_pendulum pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES} python2.7)
 
         add_executable(policy_optimization policy_optimization.cpp ${TDS_HDRS})
