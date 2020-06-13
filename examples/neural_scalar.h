@@ -4,16 +4,17 @@
 #include "tiny_neural_network.h"
 
 /**
- * Implements a "neural network" scalar type that accepts input wiring from
+ * Implements a "neural network" scalar type that accepts input connections from
  * other NeuralScalars. The scalar can either be evaluated as residual module,
  * where the output of the neural network is combined with the value of the
- * scalar, or the value is only comprised of the neural network output.
+ * scalar, or computed solely by the neural network ignoring the scalar's stored
+ * value.
  */
 template <typename Scalar, typename Utils>
 class NeuralScalar {
  private:
   /**
-   * Value this is assigned from outside.
+   * Value assigned from outside.
    */
   Scalar value_{Utils::zero()};
 
@@ -33,14 +34,17 @@ class NeuralScalar {
 
  public:
   /**
-   * Whether the internal value is added to the neural network's output.
+   * Whether the internal value is added to, or replaced by, the neural network's output.
    */
   bool is_residual{true};
 
   NeuralScalar() = default;
-  NeuralScalar(const NeuralScalar&) = default;
+  // NeuralScalar(const NeuralScalar& rhs) {
+  //   value_ = rhs.evaluate();
+  //   is_dirty_ = true;
+  // }
 
-  inline NeuralScalar(const Scalar& value) : value_(value) {}
+  inline NeuralScalar(const Scalar& value) : value_(value) { is_dirty_ = true; }
   //   inline NeuralScalar(double value) : value_(value) {}
   //   NeuralScalar(typename std::enable_if<!std::is_same_v<Scalar, double>,
   //   double>::type value) : value_(value) {}
@@ -55,21 +59,21 @@ class NeuralScalar {
 
   // implement custom assignment operator to prevent internal data get wiped
   // by unwanted overwrite with a copy-constructed object
-  NeuralScalar& operator=(const NeuralScalar& rhs) {
-    value_ = rhs.evaluate();
-    is_dirty_ = true;
-    return *this;
-  }
-  NeuralScalar& operator=(const Scalar& rhs) {
-    value_ = rhs;
-    is_dirty_ = true;
-    return *this;
-  }
-  NeuralScalar& operator=(double rhs) {
-    value_ = Scalar(rhs);
-    is_dirty_ = true;
-    return *this;
-  }
+  // NeuralScalar& operator=(const NeuralScalar& rhs) {
+  //   value_ = rhs.evaluate();
+  //   is_dirty_ = true;
+  //   return *this;
+  // }
+  // NeuralScalar& operator=(const Scalar& rhs) {
+  //   value_ = rhs;
+  //   is_dirty_ = true;
+  //   return *this;
+  // }
+  // NeuralScalar& operator=(double rhs) {
+  //   value_ = Scalar(rhs);
+  //   is_dirty_ = true;
+  //   return *this;
+  // }
 
   const TinyNeuralNetwork<Scalar, Utils>& net() const { return net_; }
   TinyNeuralNetwork<Scalar, Utils>& net() { return net_; }
@@ -95,6 +99,7 @@ class NeuralScalar {
       return cache_;
     }
     if (net_.empty()) {
+      is_dirty_ = false;
       return value_;
     }
     std::vector<Scalar> inputs(inputs_.size());
