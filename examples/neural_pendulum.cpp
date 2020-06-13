@@ -19,7 +19,7 @@ const int param_dim = 2;
 template <typename T>
 void plot_trajectory(const std::vector<std::vector<T>> &states) {
   typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
-                             CeresUtils<4>>
+                             CeresUtils<param_dim>>
       Utils;
   for (int i = 0; i < static_cast<int>(states[0].size()); ++i) {
     std::vector<double> traj(states.size());
@@ -153,12 +153,13 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   if constexpr (std::is_same_v<Scalar, double>) {
     mb->m_links[0].m_damping = damping[0];
     mb->m_links[1].m_damping = damping[1];
-  } else {
-    if (!params.empty()) {
-      mb->m_tau[0].connect(&(mb->m_q[0]));
-      mb->m_tau[1].connect(&(mb->m_q[1]));
-    }
   }
+  // else {
+  //   if (!params.empty()) {
+  //     mb->m_tau[0].connect(&(mb->m_q[0]));
+  //     mb->m_tau[1].connect(&(mb->m_q[1]));
+  //   }
+  // }
 
   if (static_cast<int>(start_state.size()) >= mb->dof()) {
     for (int i = 0; i < mb->dof(); ++i) {
@@ -292,6 +293,42 @@ void print_states(const std::vector<std::vector<double>> &states) {
 }
 
 int main(int argc, char *argv[]) {
+  typedef PendulumEstimator<RES_MODE_1D> Estimator;
+
+  // typedef CeresUtils<param_dim> ADUtils;
+  // typedef NeuralScalar<Estimator::ADScalar, ADUtils> NScalar;
+  // typedef NeuralScalarUtils<Estimator::ADScalar, ADUtils> NUtils;
+  // typedef NeuralScalar<double, DoubleUtils> NScalar;
+  // typedef NeuralScalarUtils<double, DoubleUtils> NUtils;
+  // NScalar a(NUtils::scalar_from_double(3.));
+  // NScalar b(NUtils::scalar_from_double(5.));
+  // NScalar c(NUtils::scalar_from_double(9.));
+  // b = c;
+  // TinyVector3<NScalar, NUtils> com(a, b, c);
+  // printf("%f\n", NUtils::getDouble(com.length()));
+
+  // NScalar mass(NUtils::scalar_from_double(.5));
+  // std::vector<NScalar> vs(3);
+  // vs.push_back(a);
+  // vs[0] += b;
+  // vs[1] = NUtils::convert(0);
+  // printf("%f\n", NUtils::getDouble(vs[0]));
+  // com.setValue(NUtils::convert(0), NUtils::convert(1), NUtils::convert(0));
+  // com.print("com");
+  // TinyMatrix3x3<NScalar, NUtils> inertia_C;
+  // inertia_C.set_identity();
+  // TinyVector3<NScalar, NUtils> h = com * mass;
+  // NScalar norm_cm = h.length();
+  // // NScalar norm_cm = (com * mass).length();
+  // printf("inplace norm: %f\n", NUtils::getDouble(norm_cm));
+  // NScalar o = NUtils::zero();
+  // TinyMatrix3x3<NScalar, NUtils> hx = TinyVectorCrossMatrix(com);
+  // TinyMatrix3x3<NScalar, NUtils> hxt = hx.transpose();
+  // TinyMatrix3x3<NScalar, NUtils> hxxt = hx * hxt;
+  // TinyMatrix3x3<NScalar, NUtils> I = inertia_C + hx * hx.transpose(); // * mass;
+
+  // return 0;
+
   const double dt = 1. / 500;
   const double time_limit = 5;
   const int time_steps = time_limit / dt;
@@ -307,8 +344,6 @@ int main(int argc, char *argv[]) {
   std::array<double, 2> true_damping{0.2, 0.1};
   rollout_pendulum(empty_params, target_states, time_steps, dt, true_damping);
   start_state = target_states[0];
-
-  typedef PendulumEstimator<RES_MODE_1D> Estimator;
 
   std::function<std::unique_ptr<Estimator>()> construct_estimator =
       [&target_times, &target_states, &time_steps, &dt, &init_params]() {
