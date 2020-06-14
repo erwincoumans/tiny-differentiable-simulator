@@ -34,7 +34,8 @@ class NeuralScalar {
 
  public:
   /**
-   * Whether the internal value is added to, or replaced by, the neural network's output.
+   * Whether the internal value is added to, or replaced by, the neural
+   * network's output.
    */
   bool is_residual{true};
 
@@ -59,21 +60,21 @@ class NeuralScalar {
 
   // implement custom assignment operator to prevent internal data get wiped
   // by unwanted overwrite with a copy-constructed object
-  // NeuralScalar& operator=(const NeuralScalar& rhs) {
-  //   value_ = rhs.evaluate();
-  //   is_dirty_ = true;
-  //   return *this;
-  // }
-  // NeuralScalar& operator=(const Scalar& rhs) {
-  //   value_ = rhs;
-  //   is_dirty_ = true;
-  //   return *this;
-  // }
-  // NeuralScalar& operator=(double rhs) {
-  //   value_ = Scalar(rhs);
-  //   is_dirty_ = true;
-  //   return *this;
-  // }
+  NeuralScalar& operator=(const NeuralScalar& rhs) {
+    value_ = rhs.evaluate();
+    is_dirty_ = true;
+    return *this;
+  }
+  NeuralScalar& operator=(const Scalar& rhs) {
+    value_ = rhs;
+    is_dirty_ = true;
+    return *this;
+  }
+  NeuralScalar& operator=(double rhs) {
+    value_ = Scalar(rhs);
+    is_dirty_ = true;
+    return *this;
+  }
 
   const TinyNeuralNetwork<Scalar, Utils>& net() const { return net_; }
   TinyNeuralNetwork<Scalar, Utils>& net() { return net_; }
@@ -84,7 +85,20 @@ class NeuralScalar {
   void connect(NeuralScalar* scalar) {
     inputs_.push_back(scalar);
     net_.set_input_dim(net_.input_dim() + 1);
+    // add output layer
+    if (net_.num_layers() == 1) {
+      net_.add_linear_layer(NN_ACT_IDENTITY, 1);
+    }
+    initialize();
     set_dirty();
+  }
+
+  /**
+   * Updates / initializes neural network weights and biases.
+   */
+  void initialize(
+      TinyNeuralNetworkInitialization init_method = NN_INIT_XAVIER) {
+    net_.initialize(init_method);
   }
 
   bool is_dirty() const { return is_dirty_; }
@@ -98,8 +112,9 @@ class NeuralScalar {
     if (!is_dirty_) {
       return cache_;
     }
-    if (net_.empty()) {
+    if (inputs_.empty()) {
       is_dirty_ = false;
+      cache_ = value_;
       return value_;
     }
     std::vector<Scalar> inputs(inputs_.size());

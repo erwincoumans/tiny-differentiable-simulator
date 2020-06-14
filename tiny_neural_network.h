@@ -91,6 +91,7 @@ class TinyNeuralNetworkSpecification {
     return num;
   }
   int num_parameters() const { return num_weights() + num_biases(); }
+  int num_layers() const { return static_cast<int>(layers_.size()); }
 
   template <typename TinyScalar, typename TinyConstants>
   static void print_states(const std::vector<TinyScalar>& numbers) {
@@ -131,15 +132,15 @@ class TinyNeuralNetworkSpecification {
           if (init_method == NN_INIT_ZERO) {
             weights[ci * layers_[i - 1] + pi] = TinyConstants::zero();
           } else {
-            weights[ci * layers_[i - 1] + pi] = d(gen_);
+            weights[ci * layers_[i - 1] + pi] = TinyScalar(d(gen_));
           }
         }
       }
     }
-    printf("NN weights:  ");
-    this->template print_states<TinyScalar, TinyConstants>(weights);
-    printf("NN biases:  ");
-    this->template print_states<TinyScalar, TinyConstants>(biases);
+    // printf("NN weights:  ");
+    // this->template print_states<TinyScalar, TinyConstants>(weights);
+    // printf("NN biases:  ");
+    // this->template print_states<TinyScalar, TinyConstants>(biases);
   }
 
   /**
@@ -253,6 +254,13 @@ class TinyNeuralNetwork : public TinyNeuralNetworkSpecification {
     biases.resize(num_biases());
     std::copy(params.begin(), params.begin() + num_weights(), weights.begin());
     std::copy(params.begin() + num_weights(), params.end(), biases.begin());
+  }
+
+  void print_params() const {
+    printf("NN weights:  ");
+    this->template print_states<TinyScalar, TinyConstants>(weights);
+    printf("NN biases:  ");
+    this->template print_states<TinyScalar, TinyConstants>(biases);
   }
 };
 
