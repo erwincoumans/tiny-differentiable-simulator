@@ -146,8 +146,8 @@ class TinyCeresEstimator : ceres::IterationCallback {
     return problem_;
   }
 
-  void compute_gradient(const double *parameters, double *cost,
-                        double *gradient) const {
+  void compute_loss(const double *parameters, double *cost,
+                    double *gradient) const {
     double const *const *params = &parameters;
     cost_function_->Evaluate(params, cost, &gradient);
   }

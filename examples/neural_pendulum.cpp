@@ -153,13 +153,20 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   if constexpr (std::is_same_v<Scalar, double>) {
     mb->m_links[0].m_damping = damping[0];
     mb->m_links[1].m_damping = damping[1];
+  } else {
+    if (!params.empty()) {
+      mb->m_tau[0].connect(&(mb->m_qd[0]));
+      mb->m_tau[1].connect(&(mb->m_qd[1]));
+
+      mb->m_tau[0].net().weights[0] = params[0].evaluate();
+      mb->m_tau[1].net().weights[0] = params[1].evaluate();
+
+      // printf("tau[0]'s net:\n");
+      // mb->m_tau[0].net().print_params();
+      // printf("tau[1]'s net:\n");
+      // mb->m_tau[1].net().print_params();
+    }
   }
-  // else {
-  //   if (!params.empty()) {
-  //     mb->m_tau[0].connect(&(mb->m_q[0]));
-  //     mb->m_tau[1].connect(&(mb->m_q[1]));
-  //   }
-  // }
 
   if (static_cast<int>(start_state.size()) >= mb->dof()) {
     for (int i = 0; i < mb->dof(); ++i) {
@@ -210,48 +217,11 @@ class PendulumEstimator
 
   int time_steps;
 
-  // sane parameter initialization (link lengths)
-  PendulumEstimator(int time_steps, double dt, double initial_link_length = 0.5,
-                    double initial_mass = 0.5)
+  PendulumEstimator(int time_steps, double dt)
       : CeresEstimator(dt), time_steps(time_steps) {
-    // TODO initialize neural networks
-
-    //     for (int i = 0; i < 2; ++i) {
-    //       parameters[i] = {"link_length_" + std::to_string(i + 1),
-    //                        initial_link_length, 0.1, 0.4};
-    //     }
-    //     for (int i = 0; i < 2; ++i) {
-    //       parameters[2 + i] = {"mass_" + std::to_string(i + 1), initial_mass,
-    //       0.05, 0.4};
-    //     }
-    // #if ESTIMATE_INERTIA
-    //     parameters[4] = {"I0_xx", 0.005, 0.02, 0.3};
-    //     parameters[5] = {"I0_yy", 0.005, 0.02, 0.3};
-    //     parameters[6] = {"I0_zz", 0.005, 0.02, 0.3};
-    //     parameters[7] = {"I1_xx", 0.005, 0.02, 0.3};
-    //     parameters[8] = {"I1_yy", 0.005, 0.02, 0.3};
-    //     parameters[9] = {"I1_zz", 0.005, 0.02, 0.3};
-    // #endif
-
-    /// XXX just for testing
-    // std::vector<double> params = {
-    //     0.20814544087513831006, 2.00000000000000000000,
-    //     0.14999999999999999445, 1.85036736762471165640};
-
-    // for (int i = 0; i < 2; ++i) {
-    //   parameters[i] = {"link_length_" + std::to_string(i + 1), params[i],
-    //   0.15,
-    //                    2.};
-    // }
-    // for (int i = 0; i < 2; ++i) {
-    //   parameters[2 + i] = {"mass_" + std::to_string(i + 1), params[i + 2],
-    //   0.15,
-    //                        2.};
-    // }
-
-    // std::vector<std::vector<double>> states;
-    // rollout_pendulum<double, DoubleUtils>(params, states, time_steps, dt);
-    // plot_trajectory(states);
+    for (int i = 0; i < param_dim; ++i) {
+      parameters[i] = {"weight_" + std::to_string(i + 1), 0., -1., 1.};
+    }
   }
 
   void rollout(const std::vector<ADScalar> &params,
@@ -325,14 +295,14 @@ int main(int argc, char *argv[]) {
   // TinyMatrix3x3<NScalar, NUtils> hx = TinyVectorCrossMatrix(com);
   // TinyMatrix3x3<NScalar, NUtils> hxt = hx.transpose();
   // TinyMatrix3x3<NScalar, NUtils> hxxt = hx * hxt;
-  // TinyMatrix3x3<NScalar, NUtils> I = inertia_C + hx * hx.transpose(); // * mass;
+  // TinyMatrix3x3<NScalar, NUtils> I = inertia_C + hx * hx.transpose(); // *
+  // mass;
 
   // return 0;
 
   const double dt = 1. / 500;
   const double time_limit = 5;
   const int time_steps = time_limit / dt;
-  const double init_params = 0.2;
 
   google::InitGoogleLogging(argv[0]);
 
@@ -346,9 +316,8 @@ int main(int argc, char *argv[]) {
   start_state = target_states[0];
 
   std::function<std::unique_ptr<Estimator>()> construct_estimator =
-      [&target_times, &target_states, &time_steps, &dt, &init_params]() {
-        auto estimator =
-            std::make_unique<Estimator>(time_steps, dt, init_params);
+      [&target_times, &target_states, &time_steps, &dt]() {
+        auto estimator = std::make_unique<Estimator>(time_steps, dt);
         estimator->target_times = target_times;
         estimator->target_states = target_states;
         estimator->options.minimizer_progress_to_stdout = !USE_PBH;
@@ -363,7 +332,7 @@ int main(int argc, char *argv[]) {
 #if USE_PBH
   std::array<double, param_dim> initial_guess;
   for (int i = 0; i < param_dim; ++i) {
-    initial_guess[i] = init_params;
+    initial_guess[i] = 0.0;
   }
   BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
                                                   initial_guess);
@@ -387,12 +356,17 @@ int main(int argc, char *argv[]) {
   std::unique_ptr<Estimator> estimator = construct_estimator();
   estimator->setup(new ceres::HuberLoss(1.));
 
+  // XXX verify cost is zero for the true network weights
   double cost;
   double gradient[4];
-  estimator->compute_gradient(estimator->vars(), &cost, gradient);
+  double my_params[] = {-true_damping[0], -true_damping[1]};
+  estimator->compute_loss(my_params, &cost, gradient);
   std::cout << "Gradient: " << gradient[0] << "  " << gradient[1] << "  "
             << gradient[2] << "  " << gradient[3] << "  \n";
   std::cout << "Cost: " << cost << "\n";
+  assert(cost < 1e-4);
+
+  // return 0;
 
   auto summary = estimator->solve();
   std::cout << summary.FullReport() << std::endl;
