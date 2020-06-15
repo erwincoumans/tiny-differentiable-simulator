@@ -430,7 +430,7 @@ bool TinyGLInstancingRenderer::read_single_instance_transform_to_cpu(
 }
 
 void TinyGLInstancingRenderer::write_single_instance_transform_to_cpu(
-    const float* position, const float* orientation, int srcIndex2) {
+    const TinyVector3f& position, const TinyQuaternionf& orientation, int srcIndex2) {
   TinyPublicGraphicsInstance* pg =
       m_data->m_publicGraphicsInstances.get_handle(srcIndex2);
   assert(pg);
