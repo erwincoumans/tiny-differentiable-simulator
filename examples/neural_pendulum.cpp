@@ -153,18 +153,41 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   if constexpr (std::is_same_v<Scalar, double>) {
     mb->m_links[0].m_damping = damping[0];
     mb->m_links[1].m_damping = damping[1];
-  } else {
+  }
+  // if constexpr (is_neural_scalar<Scalar, Utils>::value) {
+  //   if (!params.empty()) {
+  //     mb->m_tau[0].connect(&(mb->m_qd[0]));
+  //     mb->m_tau[1].connect(&(mb->m_qd[1]));
+
+  //     mb->m_tau[0].net().weights[0] = params[0].evaluate();
+  //     mb->m_tau[1].net().weights[0] = params[1].evaluate();
+
+  //     // printf("tau[0]'s net:\n");
+  //     // mb->m_tau[0].net().print_params();
+  //     // printf("tau[1]'s net:\n");
+  //     // mb->m_tau[1].net().print_params();
+  //   }
+  // }
+  if constexpr (is_neural_scalar<Scalar, Utils>::value) {
     if (!params.empty()) {
-      mb->m_tau[0].connect(&(mb->m_qd[0]));
-      mb->m_tau[1].connect(&(mb->m_qd[1]));
+      typedef typename Scalar::NeuralNetworkType NeuralNetwork;
+      NeuralNetwork net_tau_0(1);
+      net_tau_0.add_linear_layer(NN_ACT_IDENTITY, 1, false);
+      net_tau_0.initialize();
+      net_tau_0.weights[0] = params[0].evaluate();
+      Scalar::add_blueprint("tau_0", {"qd_0"}, net_tau_0);
 
-      mb->m_tau[0].net().weights[0] = params[0].evaluate();
-      mb->m_tau[1].net().weights[0] = params[1].evaluate();
+      NeuralNetwork net_tau_1(1);
+      net_tau_1.add_linear_layer(NN_ACT_IDENTITY, 1, false);
+      net_tau_1.initialize();
+      net_tau_1.weights[0] = params[1].evaluate();
+      Scalar::add_blueprint("tau_1", {"qd_1"}, net_tau_1);
 
-      // printf("tau[0]'s net:\n");
-      // mb->m_tau[0].net().print_params();
-      // printf("tau[1]'s net:\n");
-      // mb->m_tau[1].net().print_params();
+      // assign scalar names so that the defined blueprints can be used
+      mb->m_qd[0].assign("qd_0");
+      mb->m_qd[1].assign("qd_1");
+      mb->m_tau[0].assign("tau_0");
+      mb->m_tau[1].assign("tau_1");
     }
   }
 

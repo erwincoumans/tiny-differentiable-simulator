@@ -21,6 +21,8 @@
 #include "tiny_mb_constraint_solver.h"
 #include "tiny_multi_body.h"
 
+#include "examples/neural_scalar.h"
+
 //#define DEBUG
 
 enum TinyVelocitySmoothingMethod {
