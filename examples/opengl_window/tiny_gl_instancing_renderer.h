@@ -122,24 +122,9 @@ class TinyGLInstancingRenderer {
                                                      float* orientation,
                                                      int srcIndex);
 
-  virtual void write_single_instance_transform_to_cpu(const float* position,
-                                                      const float* orientation,
+  virtual void write_single_instance_transform_to_cpu(const TinyVector3f& position,
+                                                      const TinyQuaternionf& orientation,
                                                       int srcIndex);
-  virtual void write_single_instance_transform_to_cpu(const double* position,
-                                                      const double* orientation,
-                                                      int srcIndex) {
-    float pos[4];
-    float orn[4];
-    pos[0] = (float)position[0];
-    pos[1] = (float)position[1];
-    pos[2] = (float)position[2];
-    pos[3] = (float)position[3];
-    orn[0] = (float)orientation[0];
-    orn[1] = (float)orientation[1];
-    orn[2] = (float)orientation[2];
-    orn[3] = (float)orientation[3];
-    write_single_instance_transform_to_cpu(pos, orn, srcIndex);
-  }
 
   virtual void read_single_instance_transform_from_cpu(int srcIndex,
                                                        float* position,
