@@ -1,6 +1,9 @@
 #ifndef NEURAL_SCALAR_H
 #define NEURAL_SCALAR_H
 
+#include <iostream>
+#include <map>
+
 #include "tiny_neural_network.h"
 
 /**
@@ -12,6 +15,11 @@
  */
 template <typename Scalar, typename Utils>
 class NeuralScalar {
+ public:
+  typedef ::TinyNeuralNetwork<Scalar, Utils> NeuralNetworkType;
+  typedef Scalar InnerScalarType;
+  typedef Utils InnerUtilsType;
+
  private:
   /**
    * Value assigned from outside.
@@ -30,7 +38,39 @@ class NeuralScalar {
 
   std::vector<NeuralScalar*> inputs_;
 
-  TinyNeuralNetwork<Scalar, Utils> net_;
+  NeuralNetworkType net_;
+
+  /**
+   * Neural scalars with the same name reuse the same neural network inputs,
+   * parameters. No sharing takes place if the name is empty.
+   */
+  std::string name_;
+
+  /**
+   * This blueprint allows the user to specify neural network inputs and weights
+   * to be used once a NeuralScalar with the given name is created.
+   */
+  struct NeuralBlueprint {
+    std::vector<std::string> input_names;
+    NeuralNetworkType net;
+  };
+
+  static inline std::map<std::string, NeuralScalar*> named_scalars_{};
+  static inline std::map<std::string, NeuralBlueprint> blueprints_{};
+
+  Scalar evaluate_network_() const {
+    if (!name_.empty() && named_scalars_[name_] != this) {
+      return named_scalars_[name_]->evaluate_network_();
+    }
+    static std::vector<Scalar> inputs(inputs_.size());
+    for (std::size_t i = 0; i < inputs_.size(); ++i) {
+      if (inputs_[i] == nullptr) continue;
+      inputs[i] = inputs_[i]->evaluate();
+    }
+    static std::vector<Scalar> output(1);
+    net_.compute(inputs, output);
+    return output[0];
+  }
 
  public:
   /**
@@ -40,15 +80,8 @@ class NeuralScalar {
   bool is_residual{true};
 
   NeuralScalar() = default;
-  // NeuralScalar(const NeuralScalar& rhs) {
-  //   value_ = rhs.evaluate();
-  //   is_dirty_ = true;
-  // }
 
   inline NeuralScalar(const Scalar& value) : value_(value) { is_dirty_ = true; }
-  //   inline NeuralScalar(double value) : value_(value) {}
-  //   NeuralScalar(typename std::enable_if<!std::is_same_v<Scalar, double>,
-  //   double>::type value) : value_(value) {}
 
   NeuralScalar(const std::vector<NeuralScalar*>& inputs,
                bool use_input_bias = true)
@@ -76,26 +109,24 @@ class NeuralScalar {
     return *this;
   }
 
-  const TinyNeuralNetwork<Scalar, Utils>& net() const { return net_; }
-  TinyNeuralNetwork<Scalar, Utils>& net() { return net_; }
+  const NeuralNetworkType& net() const { return net_; }
+  NeuralNetworkType& net() { return net_; }
 
   /**
    * Add input connection to this neural network.
    */
-  void connect(NeuralScalar* scalar) {
+  void connect(NeuralScalar* scalar,
+               TinyNeuralNetworkActivation activation = NN_ACT_IDENTITY) {
     inputs_.push_back(scalar);
     net_.set_input_dim(net_.input_dim() + 1);
-    // add output layer
+    // add output layer (if none has been created yet)
     if (net_.num_layers() == 1) {
-      net_.add_linear_layer(NN_ACT_IDENTITY, 1);
+      net_.add_linear_layer(activation, 1);
     }
     initialize();
     set_dirty();
   }
 
-  /**
-   * Updates / initializes neural network weights and biases.
-   */
   void initialize(
       TinyNeuralNetworkInitialization init_method = NN_INIT_XAVIER) {
     net_.initialize(init_method);
@@ -108,6 +139,40 @@ class NeuralScalar {
     }
   }
 
+  /**
+   * Retrieves neural network scalar by name, returns nullptr if no scalar with
+   * such name exists.
+   */
+  static NeuralScalar* retrieve(const std::string& name) {
+    if (named_scalars_.find(name) == named_scalars_.end()) {
+      return nullptr;
+    }
+    return named_scalars_[name];
+  }
+
+  /**
+   * Assigns a name to this scalar and looks up whether any blueprint
+   * for this scalar has been defined to set up input connections and the neural
+   * network.
+   */
+  void assign(const std::string& name) {
+    name_ = name;
+    if (blueprints_.find(name) != blueprints_.end()) {
+      const NeuralBlueprint& blueprint = blueprints_[name];
+      for (const std::string& input_name : blueprint.input_names) {
+        NeuralScalar* input = retrieve(input_name);
+        if (input == nullptr) {
+          std::cerr << "NeuralScalar named \"" << input_name
+                    << "\" has been requested before it was assigned.\n";
+          assert(0);
+        }
+        inputs_.push_back(input);
+      }
+      net_ = blueprint.net;
+    }
+    named_scalars_[name] = this;
+  }
+
   const Scalar& evaluate() const {
     if (!is_dirty_) {
       return cache_;
@@ -117,15 +182,23 @@ class NeuralScalar {
       cache_ = value_;
       return value_;
     }
-    std::vector<Scalar> inputs(inputs_.size());
-    for (std::size_t i = 0; i < inputs_.size(); ++i) {
-      inputs[i] = inputs_[i]->evaluate();
-    }
-    std::vector<Scalar> output(1);
-    net_.compute(inputs, output);
-    cache_ = is_residual ? value_ + output[0] : output[0];
+    Scalar net_output = evaluate_network_();
+    cache_ = is_residual ? value_ + net_output : net_output;
     is_dirty_ = false;
     return cache_;
+  }
+
+  /**
+   * Defines a neural network connection for a scalar with a given name.
+   * Once this scalar is registered with this name using assign(), the
+   * specified input connections are made and neural network with the given
+   * weights and biases is set up for this scalar.
+   */
+  static void add_blueprint(const std::string& scalar_name,
+                            const std::vector<std::string>& input_names,
+                            const NeuralNetworkType& net) {
+    NeuralBlueprint blueprint{input_names, net};
+    blueprints_[scalar_name] = blueprint;
   }
 
   /// Scalar operators create plain NeuralScalars that do not have neural
@@ -176,7 +249,7 @@ class NeuralScalar {
     return NeuralScalar(-rhs.evaluate());
   }
 
-  inline NeuralScalar& operator+=(const NeuralScalar& lhs) {
+  inline NeuralScalar& operator += (const NeuralScalar& lhs) {
     value_ += lhs.evaluate();
     is_dirty_ = true;
     return *this;
@@ -264,6 +337,16 @@ struct NeuralScalarUtils {
     }
     return output;
   }
+};
+
+template <typename Scalar, typename Utils>
+struct is_neural_scalar {
+  static constexpr bool value = false;
+};
+template <typename Scalar, typename Utils>
+struct is_neural_scalar<NeuralScalar<Scalar, Utils>,
+                        NeuralScalarUtils<Scalar, Utils>> {
+  static constexpr bool value = true;
 };
 
 #endif  // NEURAL_SCALAR_H
