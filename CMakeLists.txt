@@ -18,6 +18,7 @@
 cmake_minimum_required(VERSION 2.4.3)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
 
 cmake_policy(SET CMP0042 NEW)
 
