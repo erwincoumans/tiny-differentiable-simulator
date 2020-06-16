@@ -17,12 +17,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = np.loadtxt("param_evolution.txt")
+data = np.loadtxt("../../param_evolution.txt")
 print(data[0])
 
 lines = plt.plot(data)
 plt.legend()
 plt.grid()
 plt.xlabel("Iteration")
-plt.legend(iter(lines), ('Link length 1', 'Link length 2'))
+# plt.legend(iter(lines), ('Link length 1', 'Link length 2'))
 plt.show()

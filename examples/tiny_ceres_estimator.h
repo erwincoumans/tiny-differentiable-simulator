@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TINY_ESTIMATOR_H
-#define TINY_ESTIMATOR_H
+#ifndef TINY_CERES_ESTIMATOR_H
+#define TINY_CERES_ESTIMATOR_H
 
 #include <ceres/ceres.h>
 
@@ -37,6 +37,9 @@ struct EstimationParameter {
   double value{1.0};
   double minimum{-std::numeric_limits<double>::infinity()};
   double maximum{std::numeric_limits<double>::infinity()};
+
+  // coefficient of L2 regularization for this parameter
+  double regularization{0.};
 
   EstimationParameter &operator=(double rhs) {
     value = rhs;
@@ -239,12 +242,17 @@ class TinyCeresEstimator : ceres::IterationCallback {
       typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
                                  CeresUtils<kParameterDim>>
           Utils;
+      T regularization = Utils::zero();
       for (int i = 0; i < kParameterDim; ++i) {
         // store current parameters as double for logging purposes
         parent->current_param_[i] = Utils::getDouble(x[i]);
+        // weighted sum of parameter L2 norms
+        regularization += parent->parameters[i].regularization * x[i] * x[i];
       }
       for (int i = 0; i < kResidualDim; ++i) {
-        residual[i] = Utils::zero();
+        // TODO consider adding separate residual dimension for parameter
+        // regularization
+        residual[i] = regularization;
       }
 
       T difference;
@@ -324,16 +332,18 @@ class TinyCeresEstimator : ceres::IterationCallback {
 
       // if (parent->options.minimizer_progress_to_stdout &&
       // Utils::getDouble(residual[0]) < 0.) {
-      std::cerr << "params: ";
+      printf("params: ");
       for (int ri = 0; ri < kParameterDim; ++ri) {
-        fprintf(stderr, "%.20f  ", Utils::getDouble(params[ri]));
+        printf("%.4f  ", Utils::getDouble(params[ri]));
       }
-      std::cerr << "residual: ";
+      printf("\tresidual: ");
       for (int ri = 0; ri < kResidualDim; ++ri) {
-        fprintf(stderr, "%.6f  ", Utils::getDouble(residual[ri]));
+        printf("%.6f  ", Utils::getDouble(residual[ri]));
       }
-      std::cerr << "nonfinite: " << nonfinite;
-      std::cerr << "\n";
+      if (nonfinite > 0) {
+        std::cerr << "nonfinite: " << nonfinite;
+      }
+      printf("\n");
       // } else {
       //   printf("\tcost: %.6f  nonfinite: %d\n",
       //   Utils::getDouble(residual[0]), nonfinite);
@@ -498,4 +508,4 @@ class BasinHoppingEstimator {
   std::mt19937 gen_{rd_()};
 };
 
-#endif  // TINY_ESTIMATOR_H
+#endif  // TINY_CERES_ESTIMATOR_H

@@ -20,7 +20,41 @@
 #include "pybullet_urdf_import.h"
 #include "tiny_actuator.h"
 #include "tiny_double_utils.h"
+#include "tiny_urdf_parser.h"
 #include "tiny_urdf_to_multi_body.h"
+
+template <typename Scalar, typename Utils>
+struct TinyUrdfCache {
+  typedef ::TinyUrdfStructures<Scalar, Utils> UrdfStructures;
+  typedef ::PyBulletUrdfImport<Scalar, Utils> UrdfImport;
+  typedef b3RobotSimulatorLoadUrdfFileArgs UrdfFileArgs;
+
+  std::map<std::string, UrdfStructures> data;
+
+  template <typename VisualizerAPI>
+  const UrdfStructures& retrieve(const std::string& urdf_filename,
+                                 VisualizerAPI* sim, VisualizerAPI* vis,
+                                 UrdfFileArgs args = UrdfFileArgs()) {
+    if (data.find(urdf_filename) == data.end()) {
+      printf("Loading URDF \"%s\".\n", urdf_filename.c_str());
+      int robotId = sim->loadURDF(urdf_filename, args);
+      data[urdf_filename] = UrdfStructures();
+      UrdfImport::extract_urdf_structs(data[urdf_filename], robotId, *sim,
+                                       *vis);
+      sim->removeBody(robotId);
+    }
+    return data[urdf_filename];
+  }
+
+  const UrdfStructures& retrieve(const std::string& urdf_filename) {
+    if (data.find(urdf_filename) == data.end()) {
+      printf("Loading URDF \"%s\".\n", urdf_filename.c_str());
+      TinyUrdfParser<Scalar, Utils> parser;
+      data[urdf_filename] = parser.load_urdf(urdf_filename);
+    }
+    return data[urdf_filename];
+  }
+};
 
 /**
  * Provides the system construction function to TinySystem and derived classes.
@@ -80,6 +114,43 @@ struct TinySystemConstructor {
       TinyMultiBody<Scalar, Utils>* mb = world.create_multi_body();
       const auto& urdf_data =
           cache.retrieve(m_system_urdf_filename, sim, vis, args);
+      TinyUrdfToMultiBody<Scalar, Utils>::convert_to_multi_body(urdf_data,
+                                                                world, *mb);
+      mb->m_isFloating = m_is_floating;
+      if (!m_control_indices.empty()) {
+        mb->m_control_indices = m_control_indices;
+      }
+      mb->initialize();
+      if (m_actuator) {
+        mb->m_actuator = new Actuator<Scalar, Utils>(*m_actuator);
+      }
+      for (auto& link : mb->m_links) {
+        link.m_stiffness = Utils::scalar_from_double(m_joint_stiffness);
+        link.m_damping = Utils::scalar_from_double(m_joint_damping);
+      }
+      *system = mb;
+    }
+  }
+
+  template <typename Scalar, typename Utils>
+  void operator()(TinyWorld<Scalar, Utils>& world,
+                  TinyMultiBody<Scalar, Utils>** system,
+                  bool clear_cache = false) const {
+    static TinyUrdfCache<Scalar, Utils> cache;
+    if (clear_cache) {
+      cache.data.clear();
+    }
+
+    if (!m_plane_urdf_filename.empty()) {
+      TinyMultiBody<Scalar, Utils>* mb = world.create_multi_body();
+      const auto& urdf_data = cache.retrieve(m_plane_urdf_filename);
+      TinyUrdfToMultiBody<Scalar, Utils>::convert_to_multi_body(urdf_data,
+                                                                world, *mb);
+    }
+
+    {
+      TinyMultiBody<Scalar, Utils>* mb = world.create_multi_body();
+      const auto& urdf_data = cache.retrieve(m_system_urdf_filename);
       TinyUrdfToMultiBody<Scalar, Utils>::convert_to_multi_body(urdf_data,
                                                                 world, *mb);
       mb->m_isFloating = m_is_floating;

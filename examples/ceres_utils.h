@@ -18,9 +18,9 @@
 #define CERES_UTILS_H
 
 #include <assert.h>
+#include <ceres/jet.h>
 #include <stdio.h>
 
-#include <ceres/jet.h>
 #include "math.h"
 
 /**
@@ -60,6 +60,51 @@ struct CeresUtils {
     return sqrt(v);
   }
 
+  template <class T>
+  static T atan2(const T& dy, const T& dx) {
+    return ::atan2(dy, dx);
+  }
+
+  template <class T>
+  static T asin(const T& v) {
+    return ::asin(v);
+  }
+
+  template <class T>
+  static T copysign(const T& x, const T& y) {
+    return ::copysign(x, y);
+  }
+
+  template <class T>
+  static T abs(const T& v) {
+    return ceres::abs(v);
+  }
+
+  template <class T>
+  static T pow(const T& a, const T& b) {
+    return ceres::pow(a, b);
+  }
+
+  template <class T>
+  static T exp(const T& v) {
+    return ceres::exp(v);
+  }
+
+  template <class T>
+  static T tanh(const T& v) {
+    return ceres::tanh(v);
+  }
+
+  template <class T>
+  static T min(const T& a, const T& b) {
+    return min(a, b);
+  }
+
+  template <class T>
+  static T max(const T& a, const T& b) {
+    return max(a, b);
+  }
+
   static double getDouble(const Jet& v) { return v.a; }
   template <class T>
   static double getDouble(const T& v) {
@@ -77,6 +122,12 @@ struct CeresUtils {
   static Jet fraction(int num, int denom) {
     return Jet(double(num) / double(denom));
   }
+
+  static Jet scalar_from_string(const std::string& txt) {
+    double result = atof(txt.c_str());
+    return Jet(result);
+  }
+  static inline Jet scalar_from_double(double value) { return Jet(value); }
 
   static void FullAssert(bool a) {
     if (!a) {

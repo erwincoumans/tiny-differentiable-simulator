@@ -36,15 +36,15 @@ class NeuralScalar {
    */
   mutable bool is_dirty_{true};
 
-  std::vector<NeuralScalar*> inputs_;
+  mutable std::vector<const NeuralScalar*> inputs_;
 
-  NeuralNetworkType net_;
+  mutable NeuralNetworkType net_;
 
   /**
    * Neural scalars with the same name reuse the same neural network inputs,
    * parameters. No sharing takes place if the name is empty.
    */
-  std::string name_;
+  mutable std::string name_;
 
   /**
    * This blueprint allows the user to specify neural network inputs and weights
@@ -55,7 +55,7 @@ class NeuralScalar {
     NeuralNetworkType net;
   };
 
-  static inline std::map<std::string, NeuralScalar*> named_scalars_{};
+  static inline std::map<std::string, const NeuralScalar*> named_scalars_{};
   static inline std::map<std::string, NeuralBlueprint> blueprints_{};
 
   Scalar evaluate_network_() const {
@@ -103,11 +103,6 @@ class NeuralScalar {
     is_dirty_ = true;
     return *this;
   }
-  NeuralScalar& operator=(double rhs) {
-    value_ = Scalar(rhs);
-    is_dirty_ = true;
-    return *this;
-  }
 
   const NeuralNetworkType& net() const { return net_; }
   NeuralNetworkType& net() { return net_; }
@@ -143,7 +138,7 @@ class NeuralScalar {
    * Retrieves neural network scalar by name, returns nullptr if no scalar with
    * such name exists.
    */
-  static NeuralScalar* retrieve(const std::string& name) {
+  static const NeuralScalar* retrieve(const std::string& name) {
     if (named_scalars_.find(name) == named_scalars_.end()) {
       return nullptr;
     }
@@ -155,12 +150,12 @@ class NeuralScalar {
    * for this scalar has been defined to set up input connections and the neural
    * network.
    */
-  void assign(const std::string& name) {
+  void assign(const std::string& name) const {
     name_ = name;
     if (blueprints_.find(name) != blueprints_.end()) {
       const NeuralBlueprint& blueprint = blueprints_[name];
       for (const std::string& input_name : blueprint.input_names) {
-        NeuralScalar* input = retrieve(input_name);
+        const NeuralScalar* input = retrieve(input_name);
         if (input == nullptr) {
           std::cerr << "NeuralScalar named \"" << input_name
                     << "\" has been requested before it was assigned.\n";
@@ -199,6 +194,42 @@ class NeuralScalar {
                             const NeuralNetworkType& net) {
     NeuralBlueprint blueprint{input_names, net};
     blueprints_[scalar_name] = blueprint;
+  }
+
+  /**
+   * Returns the number of total network parameters across all defined
+   * blueprints.
+   */
+  static int num_blueprint_parameters() {
+    int total = 0;
+    for (const auto& entry : blueprints_) {
+      total += entry.second.net.num_parameters();
+    }
+    return total;
+  }
+
+  static void set_blueprint_parameters(const std::vector<Scalar>& params) {
+    int provided = static_cast<int>(params.size());
+    int total = num_blueprint_parameters();
+    if (provided != total) {
+      fprintf(stderr,
+              "Wrong number of blueprint parameters provided (%d). %d "
+              "parameters are needed.\n",
+              provided, total);
+      assert(0);
+      return;
+    }
+    int index = 0, next_index;
+    for (auto& entry : blueprints_) {
+      int num_net = entry.second.net.num_parameters();
+      next_index = index + num_net;
+      std::vector<Scalar> net_params(params.begin() + index,
+                                     params.begin() + next_index);
+      entry.second.net.set_parameters(net_params);
+      printf("Assigned %d parameters to network of scalar \"%s\".\n", num_net,
+             entry.first.c_str());
+      index = next_index;
+    }
   }
 
   /// Scalar operators create plain NeuralScalars that do not have neural
@@ -249,7 +280,7 @@ class NeuralScalar {
     return NeuralScalar(-rhs.evaluate());
   }
 
-  inline NeuralScalar& operator += (const NeuralScalar& lhs) {
+  inline NeuralScalar& operator+=(const NeuralScalar& lhs) {
     value_ += lhs.evaluate();
     is_dirty_ = true;
     return *this;
@@ -284,15 +315,41 @@ struct NeuralScalarUtils {
     return scalar_from_double(double(num) / double(denom));
   }
 
-  static NeuralScalar sin1(const NeuralScalar& v) {
-    return Utils::sin1(v.evaluate());
-  }
   static NeuralScalar cos1(const NeuralScalar& v) {
     return Utils::cos1(v.evaluate());
   }
-
+  static NeuralScalar sin1(const NeuralScalar& v) {
+    return Utils::sin1(v.evaluate());
+  }
   static NeuralScalar sqrt1(const NeuralScalar& v) {
     return Utils::sqrt1(v.evaluate());
+  }
+  static NeuralScalar atan2(const NeuralScalar& dy, const NeuralScalar& dx) {
+    return Utils::atan2(dy.evaluate(), dx.evaluate());
+  }
+  static NeuralScalar asin(const NeuralScalar& v) {
+    return Utils::asin(v.evaluate());
+  }
+  static NeuralScalar copysign(const NeuralScalar& x, const NeuralScalar& y) {
+    return Utils::copysign(x.evaluate(), y.evaluate());
+  }
+  static NeuralScalar abs(const NeuralScalar& v) {
+    return Utils::abs(v.evaluate());
+  }
+  static NeuralScalar pow(const NeuralScalar& a, const NeuralScalar& b) {
+    return Utils::pow(a.evaluate(), b.evaluate());
+  }
+  static NeuralScalar exp(const NeuralScalar& v) {
+    return Utils::exp(v.evaluate());
+  }
+  static NeuralScalar tanh(const NeuralScalar& v) {
+    return Utils::tanh(v.evaluate());
+  }
+  static NeuralScalar min(const NeuralScalar& a, const NeuralScalar& b) {
+    return Utils::min(a.evaluate(), b.evaluate());
+  }
+  static NeuralScalar max(const NeuralScalar& a, const NeuralScalar& b) {
+    return Utils::max(a.evaluate(), b.evaluate());
   }
 
   static NeuralScalar zero() { return scalar_from_double(0.); }
@@ -308,6 +365,10 @@ struct NeuralScalarUtils {
   }
   static inline NeuralScalar scalar_from_double(double value) {
     return NeuralScalar(Scalar(value));
+  }
+
+  static NeuralScalar scalar_from_string(const std::string& txt) {
+    return NeuralScalar(Utils::scalar_from_string(txt));
   }
 
   template <class T>

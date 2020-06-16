@@ -85,8 +85,6 @@ void visualize_trajectory(const std::vector<std::vector<T>> &states,
     // sync transforms
     int visual_index = 0;
     for (int l = 0; l < mb->m_links.size(); l++) {
-      // if (mb->m_X_visuals.empty()) continue;
-
       int sphereId = mbvisuals[visual_index++];
       TinyQuaternion<T, Utils> rot;
       const TinySpatialTransform<T, Utils> &geom_X_world =
@@ -95,8 +93,6 @@ void visualize_trajectory(const std::vector<std::vector<T>> &states,
                          Utils::getDouble(geom_X_world.m_translation.getY()),
                          Utils::getDouble(geom_X_world.m_translation.getZ()));
       geom_X_world.m_rotation.getRotation(rot);
-      // printf("Sphere %i position: %.6f %.6f %.6f\n", sphereId, base_pos[0],
-      // base_pos[1], base_pos[2]);
       btQuaternion base_orn(
           Utils::getDouble(rot.getX()), Utils::getDouble(rot.getY()),
           Utils::getDouble(rot.getZ()), Utils::getDouble(rot.getW()));
@@ -122,33 +118,6 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   TinyWorld<Scalar, Utils> world;
   TinyMultiBody<Scalar, Utils> *mb = world.create_multi_body();
   init_compound_pendulum<Scalar, Utils>(*mb, world, 2);
-
-  //   std::vector<Scalar> link_lengths(params.begin(), params.begin() + 2);
-  //   std::vector<Scalar> masses(params.begin() + 2, params.begin() + 4);
-  //   init_compound_pendulum<Scalar, Utils>(*mb, world, 2, link_lengths,
-  //   masses);
-  // #if ESTIMATE_INERTIA
-  //   TinyMatrix3x3<Scalar, Utils> inertia_0;
-  //   inertia_0.set_zero();
-  //   inertia_0(0, 0) = params[4];
-  //   inertia_0(1, 1) = params[5];
-  //   inertia_0(2, 2) = params[6];
-  //   TinyVector3<Scalar, Utils> com_0(Utils::zero(), link_lengths[0],
-  //                                    Utils::zero());
-  //   mb->m_links[0].m_I =
-  //       TinySymmetricSpatialDyad<Scalar, Utils>::computeInertiaDyad(
-  //           masses[0], com_0, inertia_0);
-  //   TinyMatrix3x3<Scalar, Utils> inertia_1;
-  //   inertia_1.set_zero();
-  //   inertia_1(0, 0) = params[7];
-  //   inertia_1(1, 1) = params[8];
-  //   inertia_1(2, 2) = params[9];
-  //   TinyVector3<Scalar, Utils> com_1(Utils::zero(), link_lengths[1],
-  //                                    Utils::zero());
-  //   mb->m_links[1].m_I =
-  //       TinySymmetricSpatialDyad<Scalar, Utils>::computeInertiaDyad(
-  //           masses[1], com_1, inertia_1);
-  // #endif
 
   if constexpr (std::is_same_v<Scalar, double>) {
     mb->m_links[0].m_damping = damping[0];
@@ -215,10 +184,6 @@ void rollout_pendulum(const std::vector<Scalar> &params,
     }
     mb->forward_dynamics(gravity);
 
-    // if (t > 150) {
-    //   mb->print_state();
-    // }
-    // mb->integrate_q(Scalar(dt));
     mb->integrate(Utils::scalar_from_double(dt));
   }
 
@@ -287,41 +252,6 @@ void print_states(const std::vector<std::vector<double>> &states) {
 
 int main(int argc, char *argv[]) {
   typedef PendulumEstimator<RES_MODE_1D> Estimator;
-
-  // typedef CeresUtils<param_dim> ADUtils;
-  // typedef NeuralScalar<Estimator::ADScalar, ADUtils> NScalar;
-  // typedef NeuralScalarUtils<Estimator::ADScalar, ADUtils> NUtils;
-  // typedef NeuralScalar<double, DoubleUtils> NScalar;
-  // typedef NeuralScalarUtils<double, DoubleUtils> NUtils;
-  // NScalar a(NUtils::scalar_from_double(3.));
-  // NScalar b(NUtils::scalar_from_double(5.));
-  // NScalar c(NUtils::scalar_from_double(9.));
-  // b = c;
-  // TinyVector3<NScalar, NUtils> com(a, b, c);
-  // printf("%f\n", NUtils::getDouble(com.length()));
-
-  // NScalar mass(NUtils::scalar_from_double(.5));
-  // std::vector<NScalar> vs(3);
-  // vs.push_back(a);
-  // vs[0] += b;
-  // vs[1] = NUtils::convert(0);
-  // printf("%f\n", NUtils::getDouble(vs[0]));
-  // com.setValue(NUtils::convert(0), NUtils::convert(1), NUtils::convert(0));
-  // com.print("com");
-  // TinyMatrix3x3<NScalar, NUtils> inertia_C;
-  // inertia_C.set_identity();
-  // TinyVector3<NScalar, NUtils> h = com * mass;
-  // NScalar norm_cm = h.length();
-  // // NScalar norm_cm = (com * mass).length();
-  // printf("inplace norm: %f\n", NUtils::getDouble(norm_cm));
-  // NScalar o = NUtils::zero();
-  // TinyMatrix3x3<NScalar, NUtils> hx = TinyVectorCrossMatrix(com);
-  // TinyMatrix3x3<NScalar, NUtils> hxt = hx.transpose();
-  // TinyMatrix3x3<NScalar, NUtils> hxxt = hx * hxt;
-  // TinyMatrix3x3<NScalar, NUtils> I = inertia_C + hx * hx.transpose(); // *
-  // mass;
-
-  // return 0;
 
   const double dt = 1. / 500;
   const double time_limit = 5;
