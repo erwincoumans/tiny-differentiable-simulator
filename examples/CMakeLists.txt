@@ -198,7 +198,6 @@ if (HAS_MESHCAT AND tinyxml2_FOUND)
     add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS}) 
     target_link_libraries(tiny_urdf_parser_meshcat_example  tinyxml2 ${MESHCAT_LIBRARIES}) 
 
-
     add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
     target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
 
@@ -207,6 +206,10 @@ endif (HAS_MESHCAT AND tinyxml2_FOUND)
 if (tinyxml2_FOUND)
     add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
     target_link_libraries(tiny_urdf_parser_example tinyxml2)
+
+    add_executable(neural_contact neural_contact.cpp ${TDS_HDRS})
+    target_link_libraries(neural_contact opengl_window ${DL}
+            ${CERES_LIBRARIES} ${MESHCAT_LIBRARIES} python2.7 tinyxml2)
 endif (tinyxml2_FOUND)
 
 add_executable(world_example world_example.cpp ${TDS_HDRS})

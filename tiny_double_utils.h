@@ -41,6 +41,11 @@ struct DoubleUtils {
   static double asin(double v) { return ::asin(v); }
   static double copysign(double x, double y) { return ::copysign(x, y); }
   static double abs(double v) { return ::fabs(v); }
+  static double pow(double a, double b) { return ::pow(a, b); }
+  static double exp(double v) { return ::exp(v); }
+  static double tanh(double v) { return ::tanh(v); }
+  static double min(double a, double b) { return min(a, b); }
+  static double max(double a, double b) { return max(a, b); }
 
   template <class T>
   static T sqrt1(T v) {

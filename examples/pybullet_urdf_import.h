@@ -464,28 +464,4 @@ struct PyBulletUrdfImport {
   }
 };
 
-template <typename TinyScalar, typename TinyConstants>
-struct TinyUrdfCache {
-  typedef ::TinyUrdfStructures<TinyScalar, TinyConstants> UrdfStructures;
-  typedef ::PyBulletUrdfImport<TinyScalar, TinyConstants> UrdfImport;
-  typedef b3RobotSimulatorLoadUrdfFileArgs UrdfFileArgs;
-
-  std::map<std::string, UrdfStructures> data;
-
-  template <typename VisualizerAPI>
-  const UrdfStructures& retrieve(const std::string& urdf_filename,
-                                 VisualizerAPI* sim, VisualizerAPI* vis,
-                                 UrdfFileArgs args = UrdfFileArgs()) {
-    if (data.find(urdf_filename) == data.end()) {
-      printf("Loading URDF \"%s\".\n", urdf_filename.c_str());
-      int robotId = sim->loadURDF(urdf_filename, args);
-      data[urdf_filename] = UrdfStructures();
-      UrdfImport::extract_urdf_structs(data[urdf_filename], robotId, *sim,
-                                       *vis);
-      sim->removeBody(robotId);
-    }
-    return data[urdf_filename];
-  }
-};
-
 #endif  // PYBULLET_URDF_IMPORT_H
