@@ -128,7 +128,7 @@ if (Bullet_FOUND)
 
         add_executable(neural_pendulum neural_pendulum.cpp ${TDS_HDRS})
         target_link_libraries(neural_pendulum pybullet_visualizer_api ${DL}
-                ${CERES_LIBRARIES} python2.7)
+                ${CERES_LIBRARIES})
 
         add_executable(policy_optimization policy_optimization.cpp ${TDS_HDRS})
         target_link_libraries(policy_optimization pybullet_visualizer_api ${DL}
