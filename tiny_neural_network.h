@@ -156,7 +156,7 @@ class TinyNeuralNetworkSpecification {
     assert(static_cast<int>(biases.size() == num_biases()));
     assert(static_cast<int>(input.size()) == input_dim());
 
-    using std::tanh, std::exp, std::sin, std::max, std::max, std::log;
+    using std::tanh, std::exp, std::sin, std::max, std::max, std::log, std::abs;
     const TinyScalar zero = TinyConstants::zero();
     const TinyScalar one = TinyConstants::one();
 
