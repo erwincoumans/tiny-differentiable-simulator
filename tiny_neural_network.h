@@ -28,6 +28,7 @@ enum TinyNeuralNetworkActivation {
   NN_ACT_SIN,
   NN_ACT_RELU,
   NN_ACT_SOFT_RELU,
+  NN_ACT_ELU,
   NN_ACT_SIGMOID,
   NN_ACT_SOFTSIGN
 };
@@ -156,7 +157,6 @@ class TinyNeuralNetworkSpecification {
     assert(static_cast<int>(biases.size() == num_biases()));
     assert(static_cast<int>(input.size()) == input_dim());
 
-    using std::tanh, std::exp, std::sin, std::max, std::max, std::log;
     const TinyScalar zero = TinyConstants::zero();
     const TinyScalar one = TinyConstants::one();
 
@@ -183,24 +183,30 @@ class TinyNeuralNetworkSpecification {
         }
         switch (activations_[i - 1]) {
           case NN_ACT_TANH:
-            current[ci] = tanh(current[ci]);
+            current[ci] = TinyConstants::tanh(current[ci]);
             break;
           case NN_ACT_SIN:
-            current[ci] = sin(current[ci]);
+            current[ci] = TinyConstants::sin1(current[ci]);
             break;
           case NN_ACT_RELU:
-            current[ci] = max(zero, current[ci]);
+            current[ci] = TinyConstants::max(zero, current[ci]);
             break;
           case NN_ACT_SOFT_RELU:
-            current[ci] = log(one + exp(current[ci]));
+            current[ci] =
+                TinyConstants::log(one + TinyConstants::exp(current[ci]));
+            break;
+          case NN_ACT_ELU:
+            current[ci] = current[ci] >= zero
+                              ? current[ci]
+                              : TinyConstants::exp(current[ci]) - one;
             break;
           case NN_ACT_SIGMOID: {
-            TinyScalar exp_x = exp(current[ci]);
+            TinyScalar exp_x = TinyConstants::exp(current[ci]);
             current[ci] = exp_x / (exp_x + one);
             break;
           }
           case NN_ACT_SOFTSIGN:
-            current[ci] = current[ci] / (one + abs(current[ci]));
+            current[ci] = current[ci] / (one + TinyConstants::abs(current[ci]));
             break;
           case NN_ACT_IDENTITY:
           default:
@@ -210,6 +216,13 @@ class TinyNeuralNetworkSpecification {
       previous = current;
     }
     output = current;
+    // {
+    //   double d0 = TinyConstants::getDouble(output[0]);
+    //   printf("\tNetwork output[0]: %.3f\n", d0);
+    //   if (std::isinf(d0) || std::isnan(d0)) {
+    //     printf("NAN!!!\n");
+    //   }
+    // }
   }
 };
 

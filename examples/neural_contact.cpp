@@ -16,7 +16,7 @@
 #define STATE_INCLUDES_QD true
 std::vector<double> start_state;
 const int analytical_param_dim = 2;
-const int neural_param_dim = 11;
+const int neural_param_dim = 22;
 
 const int param_dim = analytical_param_dim + neural_param_dim;
 
@@ -215,27 +215,17 @@ struct rollout_dynamics {
         world.m_mb_constraint_solver = contact_model;
 
         // neural network for contact friction force
+        Scalar::clear_registers();
         typedef typename Scalar::NeuralNetworkType NeuralNetwork;
         NeuralNetwork net_contact_friction(2);  // # inputs
-        net_contact_friction.add_linear_layer(NN_ACT_SOFT_RELU, 2, true);
+        net_contact_friction.add_linear_layer(NN_ACT_ELU, 3, true);
+        net_contact_friction.add_linear_layer(NN_ACT_IDENTITY, 2, true);
         net_contact_friction.add_linear_layer(NN_ACT_IDENTITY, 1, true);
         net_contact_friction.initialize();
         Scalar::add_blueprint(
             "contact_friction_force/force",
             {"contact_friction_force/fn", "contact_friction_force/v"},
             net_contact_friction);
-
-        // NeuralNetwork net_tau_1(1);
-        // net_tau_1.add_linear_layer(NN_ACT_IDENTITY, 1, false);
-        // net_tau_1.initialize();
-        // net_tau_1.weights[0] = params[1].evaluate();
-        // Scalar::add_blueprint("tau_1", {"qd_1"}, net_tau_1);
-
-        // // assign scalar names so that the defined blueprints can be used
-        // mb->m_qd[0].assign("qd_0");
-        // mb->m_qd[1].assign("qd_1");
-        // mb->m_tau[0].assign("tau_0");
-        // mb->m_tau[1].assign("tau_1");
 
         std::vector<typename Scalar::InnerScalarType> blueprint_params(
             neural_param_dim);
@@ -280,10 +270,10 @@ struct rollout_dynamics {
     }
 
 #if !USE_PBH
-    if (call_counter++ % 10 == 0) {
-      visualize_trajectory<Scalar, Utils>(output_states,
-                                          Utils::scalar_from_double(dt));
-    }
+    // if (call_counter++ % 100 == 0) {
+    //   visualize_trajectory<Scalar, Utils>(output_states,
+    //                                       Utils::scalar_from_double(dt));
+    // }
 #endif
   }
 };
@@ -313,7 +303,8 @@ class ContactEstimator
     for (int i = 0; i < neural_param_dim; ++i) {
       double regularization = 1;
       parameters[i + analytical_param_dim] = {"nn_weight_" + std::to_string(i),
-                                              1., -100., 100., regularization};
+                                              double(rand()) / RAND_MAX, -1.,
+                                              1., regularization};
     }
   }
 
@@ -381,6 +372,7 @@ int main(int argc, char *argv[]) {
   const int time_steps = time_limit / dt;
   const double initial_height = 1.2;
   const TinyVector3<double, DoubleUtils> initial_velocity(0.7, 5., 0.);
+  srand(123);
 
   google::InitGoogleLogging(argv[0]);
 
@@ -422,8 +414,8 @@ int main(int argc, char *argv[]) {
         estimator->options.max_num_iterations = 200;
         // divide each cost term by integer time step ^ 2 to reduce gradient
         // explosion
-        estimator->divide_cost_by_time_factor = 10.;
-        estimator->divide_cost_by_time_exponent = 1.2;
+        estimator->divide_cost_by_time_factor = 0.;
+        // estimator->divide_cost_by_time_exponent = 1.2;
         return estimator;
       };
 
