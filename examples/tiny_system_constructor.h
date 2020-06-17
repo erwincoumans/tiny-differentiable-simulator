@@ -95,7 +95,7 @@ struct TinySystemConstructor {
                   TinyWorld<Scalar, Utils>& world,
                   TinyMultiBody<Scalar, Utils>** system,
                   bool clear_cache = false) const {
-    static TinyUrdfCache<Scalar, Utils> cache;
+    thread_local static TinyUrdfCache<Scalar, Utils> cache;
     if (clear_cache) {
       cache.data.clear();
     }
@@ -136,7 +136,7 @@ struct TinySystemConstructor {
   void operator()(TinyWorld<Scalar, Utils>& world,
                   TinyMultiBody<Scalar, Utils>** system,
                   bool clear_cache = false) const {
-    static TinyUrdfCache<Scalar, Utils> cache;
+    thread_local static TinyUrdfCache<Scalar, Utils> cache;
     if (clear_cache) {
       cache.data.clear();
     }

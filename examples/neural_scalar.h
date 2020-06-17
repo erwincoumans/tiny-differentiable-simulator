@@ -6,6 +6,14 @@
 
 #include "tiny_neural_network.h"
 
+#if defined(__GNUC__) || defined(__GNUG__)
+// thread_local causes compilation issue on GCC, but multi-threading issues
+// exist even with Clang
+#define static_local static
+#else
+#define static_local thread_local static
+#endif
+
 /**
  * Implements a "neural network" scalar type that accepts input connections from
  * other NeuralScalars. The scalar can either be evaluated as residual module,
@@ -55,19 +63,20 @@ class NeuralScalar {
     NeuralNetworkType net;
   };
 
-  static inline std::map<std::string, const NeuralScalar*> named_scalars_{};
-  static inline std::map<std::string, NeuralBlueprint> blueprints_{};
+  static_local inline std::map<std::string, const NeuralScalar*>
+      named_scalars_{};
+  static_local inline std::map<std::string, NeuralBlueprint> blueprints_{};
 
   Scalar evaluate_network_() const {
     if (!name_.empty() && named_scalars_[name_] != this) {
       return named_scalars_[name_]->evaluate_network_();
     }
-    static std::vector<Scalar> inputs(inputs_.size());
+    std::vector<Scalar> inputs(inputs_.size());
     for (std::size_t i = 0; i < inputs_.size(); ++i) {
       if (inputs_[i] == nullptr) continue;
       inputs[i] = inputs_[i]->evaluate();
     }
-    static std::vector<Scalar> output(1);
+    std::vector<Scalar> output(1);
     net_.compute(inputs, output);
     return output[0];
   }
@@ -232,6 +241,11 @@ class NeuralScalar {
     }
   }
 
+  static void clear_registers() {
+    blueprints_.clear();
+    named_scalars_.clear();
+  }
+
   /// Scalar operators create plain NeuralScalars that do not have neural
   /// networks.
 
@@ -341,6 +355,9 @@ struct NeuralScalarUtils {
   }
   static NeuralScalar exp(const NeuralScalar& v) {
     return Utils::exp(v.evaluate());
+  }
+  static NeuralScalar log(const NeuralScalar& v) {
+    return Utils::log(v.evaluate());
   }
   static NeuralScalar tanh(const NeuralScalar& v) {
     return Utils::tanh(v.evaluate());

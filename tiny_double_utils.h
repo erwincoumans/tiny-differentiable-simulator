@@ -43,6 +43,7 @@ struct DoubleUtils {
   static double abs(double v) { return ::fabs(v); }
   static double pow(double a, double b) { return ::pow(a, b); }
   static double exp(double v) { return ::exp(v); }
+  static double log(double v) { return ::log(v); }
   static double tanh(double v) { return ::tanh(v); }
   static double min(double a, double b) { return min(a, b); }
   static double max(double a, double b) { return max(a, b); }

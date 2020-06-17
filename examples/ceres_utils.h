@@ -91,6 +91,11 @@ struct CeresUtils {
   }
 
   template <class T>
+  static T log(const T& v) {
+    return ceres::log(v);
+  }
+
+  template <class T>
   static T tanh(const T& v) {
     return ceres::tanh(v);
   }

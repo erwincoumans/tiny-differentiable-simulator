@@ -301,7 +301,7 @@ class TinyCeresEstimator : ceres::IterationCallback {
             continue;
           } else if (std::abs(dd) > 1e10) {
             ++nonfinite;
-            printf("NONFINITE!!!!");
+            printf(" NONFINITE!!! ");
 #ifdef USE_MATPLOTLIB
             plot_trajectory(rollout_states);
 #endif
