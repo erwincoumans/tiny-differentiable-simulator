@@ -216,13 +216,6 @@ class TinyNeuralNetworkSpecification {
       previous = current;
     }
     output = current;
-    // {
-    //   double d0 = TinyConstants::getDouble(output[0]);
-    //   printf("\tNetwork output[0]: %.3f\n", d0);
-    //   if (std::isinf(d0) || std::isnan(d0)) {
-    //     printf("NAN!!!\n");
-    //   }
-    // }
   }
 };
 
