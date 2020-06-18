@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
   const int time_steps = time_limit / dt;
   const double init_params = 0.2;
 
-  if (argc < 2) {
+  if (argc != 2) {
     std::cout << "Usage: " << argv[0] << " <dataset.csv>\n";
     return 1;
   }
