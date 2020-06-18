@@ -14,6 +14,7 @@
 
 #include <fstream>
 
+#include "data/ibm-double-pendulum/load_data.h"
 #include "pendulum.h"
 #include "pybullet_visualizer_api.h"
 #include "tiny_ceres_estimator.h"
@@ -29,61 +30,6 @@
 #define ESTIMATE_INERTIA false
 std::vector<double> start_state;
 const int param_dim = ESTIMATE_INERTIA ? 10 : 4;
-
-/**
- * Load data from txt files provided by Schmidt & Lipson.
- */
-bool load_schmidt_lipson(const std::string &filename,
-                         std::vector<double> &times,
-                         std::vector<std::vector<double>> &states,
-                         double clip_after_t = 0.) {
-  std::ifstream input(filename);
-  if (!input) {
-    std::cerr << "Could not open file \"" << filename << "\".\n";
-    return false;
-  }
-  std::string header;
-  getline(input, header);
-  if (header.size() < 3 || header[0] != '%') {
-    std::cerr << "Invalid first line in file \"" << filename << "\".\n";
-    return false;
-  }
-  int num_columns = 0;
-  std::size_t pos = 0;
-  while ((pos = header.find(" ", pos + 1)) != std::string::npos) {
-    ++num_columns;
-  }
-  printf("Loading %i columns from %s: %s\n", num_columns, filename.c_str(),
-         header.c_str() + 2);
-  std::stringstream ss;
-  double val;
-  double last_time, time_delta_avg = 0;
-  int num_lines = 0;
-  for (std::string line; getline(input, line); ++num_lines) {
-    ss = std::stringstream(line);
-    ss >> val;  // ignore first zero
-    ss >> val;
-    times.push_back(val);
-    if (num_lines > 0) {
-      time_delta_avg += val - last_time;
-    }
-    last_time = val;
-    if (clip_after_t > 0. && last_time > clip_after_t) {
-      break;
-    }
-    std::vector<double> state(num_columns);
-    for (int i = 0; i < num_columns; ++i) {
-      ss >> val;
-      state[i] = val;
-    }
-    // state[0] -= M_PI_2;
-    states.push_back(state);
-  }
-  time_delta_avg /= num_lines;
-  printf("Loaded %i samples with a mean time delta of %.6f s.\n", num_lines,
-         time_delta_avg);
-  return true;
-}
 
 #ifdef USE_MATPLOTLIB
 template <typename T>
@@ -199,7 +145,8 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   inertia_0(0, 0) = params[4];
   inertia_0(1, 1) = params[5];
   inertia_0(2, 2) = params[6];
-  TinyVector3<Scalar, Utils> com_0(Utils::zero(), link_lengths[0], Utils::zero());
+  TinyVector3<Scalar, Utils> com_0(Utils::zero(), link_lengths[0],
+                                   Utils::zero());
   mb->m_links[0].m_I =
       TinySymmetricSpatialDyad<Scalar, Utils>::computeInertiaDyad(
           masses[0], com_0, inertia_0);
@@ -208,7 +155,8 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   inertia_1(0, 0) = params[7];
   inertia_1(1, 1) = params[8];
   inertia_1(2, 2) = params[9];
-  TinyVector3<Scalar, Utils> com_1(Utils::zero(), link_lengths[1], Utils::zero());
+  TinyVector3<Scalar, Utils> com_1(Utils::zero(), link_lengths[1],
+                                   Utils::zero());
   mb->m_links[1].m_I =
       TinySymmetricSpatialDyad<Scalar, Utils>::computeInertiaDyad(
           masses[1], com_1, inertia_1);
@@ -219,7 +167,7 @@ void rollout_pendulum(const std::vector<Scalar> &params,
     }
     if (static_cast<int>(start_state.size()) >= 2 * mb->dof()) {
       for (int i = 0; i < mb->dof_qd(); ++i) {
-        mb->m_qd[i] = Scalar(start_state[i + mb->dof()]);  // / 5.;
+        mb->m_qd[i] = Scalar(start_state[i + mb->dof()]); // / 5.;
       }
     }
   }
@@ -253,7 +201,7 @@ template <ResidualMode ResMode>
 class PendulumEstimator
     : public TinyCeresEstimator<param_dim, (1 + STATE_INCLUDES_QD) * 2,
                                 ResMode> {
- public:
+public:
   typedef TinyCeresEstimator<param_dim, (1 + STATE_INCLUDES_QD) * 2, ResMode>
       CeresEstimator;
   using CeresEstimator::kStateDim, CeresEstimator::kParameterDim;
@@ -327,23 +275,28 @@ void print_states(const std::vector<std::vector<double>> &states) {
 }
 
 int main(int argc, char *argv[]) {
-  const double dt = 1. / 500;
+  const double dt = 1. / 400;
   const double time_limit = 5;
   const int time_steps = time_limit / dt;
   const double init_params = 0.2;
 
+  if (argc < 2) {
+    std::cout << "Usage: " << argv[0] << " <dataset.csv>\n";
+    return 1;
+  }
+
   google::InitGoogleLogging(argv[0]);
 
-  std::string exp_filename;
-  TinyFileUtils::find_file("schmidt-lipson-exp-data/real_double_pend_h_1.txt",
-                           exp_filename);
+  auto dataset = LoadIbmPendulumFile<double>(argv[1]);
+  dataset.resize(time_steps); // Discard after the clip time.
+  auto target_states = PendulumIk(dataset);
+  assert(dataset.size() > 0);
+
   std::vector<double> target_times;
-  std::vector<std::vector<double>> target_states;
-  // clip earlier
-  bool success = load_schmidt_lipson(exp_filename, target_times, target_states,
-                                     time_limit);
-  assert(success);
-  printf("load_schmidt_lipson - success? %i\n", success);
+  target_times.reserve(dataset.size());
+  for (const auto &row : dataset) {
+    target_times.push_back(row[0]);
+  }
   start_state = target_states[0];
 
 #if JUST_VISUALIZE
@@ -352,8 +305,10 @@ int main(int argc, char *argv[]) {
   VisualizerAPI *visualizer = new VisualizerAPI();
   printf("mode=%s\n", (char *)connection_mode.c_str());
   int mode = eCONNECT_GUI;
-  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
-  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct")
+    mode = eCONNECT_DIRECT;
+  if (connection_mode == "shared_memory")
+    mode = eCONNECT_SHARED_MEMORY;
 
   visualizer->connect(mode);
   std::string plane_filename;
@@ -401,7 +356,8 @@ int main(int argc, char *argv[]) {
           for (int b = 0; b < mbbodies.size(); b++) {
             for (int l = 0; l < mbbodies[b]->m_links.size(); l++) {
               const TinyMultiBody<double, DoubleUtils> *body = mbbodies[b];
-              if (body->m_links[l].m_X_visuals.empty()) continue;
+              if (body->m_links[l].m_X_visuals.empty())
+                continue;
 
               int sphereId = mbvisuals[visual_index++];
 
@@ -502,7 +458,8 @@ int main(int argc, char *argv[]) {
   for (const auto &params : estimator->parameter_evolution()) {
     for (int i = 0; i < static_cast<int>(params.size()); ++i) {
       file << params[i];
-      if (i < static_cast<int>(params.size()) - 1) file << "\t";
+      if (i < static_cast<int>(params.size()) - 1)
+        file << "\t";
     }
     file << "\n";
   }
