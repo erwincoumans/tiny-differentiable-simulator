@@ -138,6 +138,11 @@ struct TinyVector3 {
     return res;
   }
 
+  inline TinyScalar length_squared() const {
+      TinyScalar res = (*this).dot(*this);
+      return res;
+  }
+
   inline void normalize() { *this = *this * (TinyConstants::one() / length()); }
 
   inline TinyVector3 normalized() const {
