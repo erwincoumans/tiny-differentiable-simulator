@@ -373,7 +373,8 @@ int main(int argc, char *argv[]) {
     }
   }
   while (true) {
-    for (const auto &state : target_states) {
+    const auto state = target_states[0];
+    // for (const auto &state : target_states) {
       mb->m_q[0] = state[0];
       mb->m_q[1] = state[1];
       mb->forward_kinematics();
@@ -405,7 +406,7 @@ int main(int argc, char *argv[]) {
           }
         }
       }
-    }
+    // }
   }
 #endif
 
