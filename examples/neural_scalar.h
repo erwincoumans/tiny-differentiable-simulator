@@ -237,15 +237,17 @@ class NeuralScalar {
       return;
     }
     int index = 0, next_index;
-    const auto& blueprints = get_data_().blueprints_;
+    auto& blueprints = get_data_().blueprints_;
     for (auto& entry : blueprints) {
       int num_net = entry.second.net.num_parameters();
       next_index = index + num_net;
       std::vector<Scalar> net_params(params.begin() + index,
                                      params.begin() + next_index);
       entry.second.net.set_parameters(net_params);
+#if DEBUG
       printf("Assigned %d parameters to network of scalar \"%s\".\n", num_net,
              entry.first.c_str());
+#endif
       index = next_index;
     }
   }
