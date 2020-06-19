@@ -37,9 +37,9 @@ auto PendulumIk(const std::vector<std::array<T, 7>> &input) {
   for (int i = 0; i < input.size(); ++i) {
     // Closed-form IK.
     const auto &[time, x0, y0, x1, y1, x2, y2] = input[i];
-    const auto q0 = std::atan2(y1 - y0, x1 - x0) - M_PI_2;
+    const auto q0 = std::atan2(y1 - y0, x1 - x0);
     const auto q1 = std::atan2(y2 - y1, x2 - x1) - q0;
-    output.push_back({q0, q1});
+    output.push_back({q0 - M_PI_2, q1});
   }
 
   return output;
