@@ -22,14 +22,23 @@
 #include "tiny_multi_body.h"
 #include "tiny_world.h"
 
-#define JUST_VISUALIZE false
+#define JUST_VISUALIZE true
 #define USE_PBH true
 // whether the state consists of [q qd] or just q
 #define STATE_INCLUDES_QD false
 // whether to estimate the diagonal elements of the inertia 3x3 matrix
+#define ESTIMATE_LENGTH false
+#define ESTIMATE_MASS true
 #define ESTIMATE_INERTIA false
 std::vector<double> start_state;
-const int param_dim = ESTIMATE_INERTIA ? 10 : 4;
+const int param_dim_length = ESTIMATE_LENGTH ? 2 : 0;
+const int param_dim_mass = ESTIMATE_MASS ? 2 : 0;
+const int param_dim_inertia = ESTIMATE_INERTIA ? 6 : 0;
+const int param_dim = param_dim_inertia + param_dim_length + param_dim_mass;
+#define TRUE_LENGTH_LINK1 0.091
+#define TRUE_LENGTH_LINK2 0.070
+#define TRUE_MASS_LINK1 0.1 // Not actually in the paper.
+#define TRUE_MASS_LINK2 0.1 // Not actually in the paper.
 
 #ifdef USE_MATPLOTLIB
 template <typename T>
@@ -136,15 +145,30 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   output_states.resize(time_steps);
   TinyWorld<Scalar, Utils> world;
   TinyMultiBody<Scalar, Utils> *mb = world.create_multi_body();
-  std::vector<Scalar> link_lengths(params.begin(), params.begin() + 2);
-  std::vector<Scalar> masses(params.begin() + 2, params.begin() + 4);
+  int param_count = 0;
+#if ESTIMATE_LENGTH
+  std::vector<Scalar> link_lengths(params.begin() + param_count,
+                                   params.begin() + param_count + 2);
+  param_count += 2;
+#else
+  std::vector<Scalar> link_lengths = {Scalar(TRUE_LENGTH_LINK1),
+                                      Scalar(TRUE_LENGTH_LINK2)};
+#endif
+#if ESTIMATE_MASS
+  std::vector<Scalar> masses(params.begin() + param_count,
+                             params.begin() + param_count + 2);
+  param_count += 2;
+#else
+  std::vector<Scalar> masses = {Scalar(TRUE_MASS_LINK1),
+                                Scalar(TRUE_MASS_LINK2)};
+#endif
   init_compound_pendulum<Scalar, Utils>(*mb, world, 2, link_lengths, masses);
 #if ESTIMATE_INERTIA
   TinyMatrix3x3<Scalar, Utils> inertia_0;
   inertia_0.set_zero();
-  inertia_0(0, 0) = params[4];
-  inertia_0(1, 1) = params[5];
-  inertia_0(2, 2) = params[6];
+  inertia_0(0, 0) = params[param_count + 0];
+  inertia_0(1, 1) = params[param_count + 1];
+  inertia_0(2, 2) = params[param_count + 2];
   TinyVector3<Scalar, Utils> com_0(Utils::zero(), link_lengths[0],
                                    Utils::zero());
   mb->m_links[0].m_I =
@@ -152,9 +176,9 @@ void rollout_pendulum(const std::vector<Scalar> &params,
           masses[0], com_0, inertia_0);
   TinyMatrix3x3<Scalar, Utils> inertia_1;
   inertia_1.set_zero();
-  inertia_1(0, 0) = params[7];
-  inertia_1(1, 1) = params[8];
-  inertia_1(2, 2) = params[9];
+  inertia_1(0, 0) = params[param_count + 3];
+  inertia_1(1, 1) = params[param_count + 4];
+  inertia_1(2, 2) = params[param_count + 5];
   TinyVector3<Scalar, Utils> com_1(Utils::zero(), link_lengths[1],
                                    Utils::zero());
   mb->m_links[1].m_I =
@@ -214,21 +238,26 @@ public:
   PendulumEstimator(int time_steps, double dt, double initial_link_length = 0.5,
                     double initial_mass = 0.5)
       : CeresEstimator(dt), time_steps(time_steps) {
-    for (int i = 0; i < 2; ++i) {
-      parameters[i] = {"link_length_" + std::to_string(i + 1),
-                       initial_link_length, 0.1, 0.4};
+    int param_count = 0;
+#if ESTIMATE_LENGTH
+    for (int i = 0; i < 2; ++param_count, ++i) {
+      parameters[param_count] = {"link_length_" + std::to_string(i + 1),
+                                 initial_link_length, 0.05, 0.15};
     }
-    for (int i = 0; i < 2; ++i) {
-      parameters[2 + i] = {"mass_" + std::to_string(i + 1), initial_mass, 0.05,
-                           0.4};
+#endif
+#if ESTIMATE_MASS
+    for (int i = 0; i < 2; ++param_count, ++i) {
+      parameters[param_count] = {"mass_" + std::to_string(i + 1), initial_mass,
+                                 0.05, 0.4};
     }
+#endif
 #if ESTIMATE_INERTIA
-    parameters[4] = {"I0_xx", 0.005, 0.02, 0.3};
-    parameters[5] = {"I0_yy", 0.005, 0.02, 0.3};
-    parameters[6] = {"I0_zz", 0.005, 0.02, 0.3};
-    parameters[7] = {"I1_xx", 0.005, 0.02, 0.3};
-    parameters[8] = {"I1_yy", 0.005, 0.02, 0.3};
-    parameters[9] = {"I1_zz", 0.005, 0.02, 0.3};
+    parameters[param_count + 0] = {"I0_xx", 0.005, 0.02, 0.3};
+    parameters[param_count + 1] = {"I0_yy", 0.005, 0.02, 0.3};
+    parameters[param_count + 2] = {"I0_zz", 0.005, 0.02, 0.3};
+    parameters[param_count + 3] = {"I1_xx", 0.005, 0.02, 0.3};
+    parameters[param_count + 4] = {"I1_yy", 0.005, 0.02, 0.3};
+    parameters[param_count + 5] = {"I1_zz", 0.005, 0.02, 0.3};
 #endif
 
     /// XXX just for testing
