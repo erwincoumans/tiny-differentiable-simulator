@@ -131,7 +131,7 @@ struct OpenGLUrdfVisualizer {
 
       printf("v.geom_type=%d", v.geometry.geom_type);
       std::string vis_name =
-          std::string("/meshcat/") + link.link_name + std::to_string(m_uid);
+          std::string("/opengl/") + link.link_name + std::to_string(m_uid);
       TinyVisualLinkInfo b2v;
       b2v.vis_name = vis_name;
       b2v.link_index = link_index;
@@ -176,53 +176,54 @@ struct OpenGLUrdfVisualizer {
     }
   }
 
-  void sync_visual_transforms(const TinyMultiBody *body) {
-    // sync base transform
-    for (int v = 0; v < body->m_visual_uids2.size(); v++) {
-      int visual_id = body->m_visual_uids2[v];
-      if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-        TinyQuaternion<TinyScalar, TinyConstants> rot;
-        TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
-            body->m_base_X_world * body->m_X_visuals[v];
+  void sync_visual_transforms(const TinyMultiBody* body) {
+      // sync base transform
+      for (int v = 0; v < body->m_visual_uids2.size(); v++) {
+          int visual_id = body->m_visual_uids2[v];
+          if (m_b2vis.find(visual_id) != m_b2vis.end()) {
+              TinyQuaternion<TinyScalar, TinyConstants> rot;
+              TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
+                  body->m_base_X_world * body->m_X_visuals[v];
 
-        const TinyMatrix3x3<TinyScalar, TinyConstants> &m =
-            geom_X_world.m_rotation;
-        m.getRotation(rot);
-        const TinyVisualLinkInfo &viz = m_b2vis.at(visual_id);
-        for (int i = 0; i < viz.instance_ids.size(); i++)
-        {
-            int instance_id = viz.instance_ids[i];
-            TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
-            TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
-            m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
-        }
-      }
-    }
-
-    for (int l = 0; l < body->m_links.size(); l++) {
-      for (int v = 0; v < body->m_links[l].m_visual_uids2.size(); v++) {
-        int visual_id = body->m_links[l].m_visual_uids2[v];
-        if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-          TinyQuaternion<TinyScalar, TinyConstants> rot;
-          TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
-              body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[v];
-          ;
-          const TinyMatrix3x3<TinyScalar, TinyConstants> &m =
-              geom_X_world.m_rotation;
-          const TinyVisualLinkInfo &viz = m_b2vis.at(visual_id);
-          m.getRotation(rot);
-          for (int i = 0; i < viz.instance_ids.size(); i++)
-          {
-              int instance_id = viz.instance_ids[i];
-              TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
-              TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
-              m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos,orn, instance_id);
+              const TinyMatrix3x3<TinyScalar, TinyConstants>& m =
+                  geom_X_world.m_rotation;
+              m.getRotation(rot);
+              const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
+              for (int i = 0; i < viz.instance_ids.size(); i++)
+              {
+                  int instance_id = viz.instance_ids[i];
+                  TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
+                  TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+                  m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
+              }
           }
-
-        }
       }
-    }
 
+      for (int l = 0; l < body->m_links.size(); l++) {
+          for (int v = 0; v < body->m_links[l].m_visual_uids2.size(); v++) {
+              int visual_id = body->m_links[l].m_visual_uids2[v];
+              if (m_b2vis.find(visual_id) != m_b2vis.end()) {
+                  TinyQuaternion<TinyScalar, TinyConstants> rot;
+                  TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
+                      body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[v];
+                  ;
+                  const TinyMatrix3x3<TinyScalar, TinyConstants>& m =
+                      geom_X_world.m_rotation;
+                  const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
+                  m.getRotation(rot);
+                  for (int i = 0; i < viz.instance_ids.size(); i++)
+                  {
+                      int instance_id = viz.instance_ids[i];
+                      TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
+                      TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+                      m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
+                  }
+
+              }
+          }
+      }
+  }
+  void render() {
     int upAxis = 2;
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);

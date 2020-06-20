@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
       mb.m_q[start_index + cc] = initial_poses[cc];
     }
   }
-  mb.set_position(TinyVector3<double, DoubleUtils>(0., 0., 3.));
+  mb.set_position(TinyVector3<double, DoubleUtils>(0., 0., 0.8));
 
   TinyVector3<double, DoubleUtils> grav(DoubleUtils::zero(),
                                         DoubleUtils::zero(),
@@ -180,6 +180,7 @@ int main(int argc, char* argv[]) {
     if (sync_counter > frameskip_gfx_sync) {
       sync_counter = 0;
       visualizer.sync_visual_transforms(&mb);
+      visualizer.render();
       std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync*dt));
     }
     
