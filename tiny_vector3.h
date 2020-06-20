@@ -26,11 +26,9 @@ typedef void (*TinySubmitProfileTiming)(const std::string& profileName);
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyVector3 {
-  struct {
-    TinyScalar m_x;
-    TinyScalar m_y;
-    TinyScalar m_z;
-  };
+  TinyScalar m_x;
+  TinyScalar m_y;
+  TinyScalar m_z;
 
   int m_size{3};
 
@@ -192,7 +190,8 @@ struct TinyVector3 {
       case 2: {
         return m_z;
       }
-      default: {}
+      default: {
+      }
     }
     assert(0);
     return m_x;
@@ -209,7 +208,8 @@ struct TinyVector3 {
       case 2: {
         return m_z;
       }
-      default: {}
+      default: {
+      }
     }
     assert(0);
     return m_x;

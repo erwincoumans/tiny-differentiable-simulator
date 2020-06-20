@@ -52,8 +52,10 @@ struct TinyActuator {
     gear_ratios.resize(dof);
     limits.resize(dof);
     for (int i = 0; i < dof; ++i) {
-      gear_ratios[i] = TinyScalar(Utils::getDouble(rhs.gear_ratios[i]));
-      limits[i] = TinyScalar(Utils::getDouble(rhs.limits[i]));
+      gear_ratios[i] = TinyConstants::scalar_from_double(
+          Utils::getDouble(rhs.gear_ratios[i]));
+      limits[i] =
+          TinyConstants::scalar_from_double(Utils::getDouble(rhs.limits[i]));
     }
   }
 

@@ -866,7 +866,8 @@ void TinyGLInstancingRenderer::remove_graphics_instance(int instanceUid) {
 
 int TinyGLInstancingRenderer::register_graphics_instance_internal(
     int newUid, const TinyVector3f& position, const TinyQuaternionf& quaternion,
-    const TinyVector3f& color, const TinyVector3f& scaling) {
+    const TinyVector3f& color, const TinyVector3f& scaling,
+    float opacity) {
   TinyPublicGraphicsInstance* pg =
       m_data->m_publicGraphicsInstances.get_handle(newUid);
   int shapeIndex = pg->m_shapeIndex;
@@ -892,7 +893,7 @@ int TinyGLInstancingRenderer::register_graphics_instance_internal(
     m_data->m_instance_colors_ptr[index * 4] = color[0];
     m_data->m_instance_colors_ptr[index * 4 + 1] = color[1];
     m_data->m_instance_colors_ptr[index * 4 + 2] = color[2];
-    m_data->m_instance_colors_ptr[index * 4 + 3] = 1;
+    m_data->m_instance_colors_ptr[index * 4 + 3] = opacity;
 
     m_data->m_instance_scale_ptr[index * 4] = scaling[0];
     m_data->m_instance_scale_ptr[index * 4 + 1] = scaling[1];
@@ -917,7 +918,7 @@ int TinyGLInstancingRenderer::register_graphics_instance_internal(
 int TinyGLInstancingRenderer::register_graphics_instance(
     int shapeIndex, const TinyVector3f& position,
     const TinyQuaternionf& quaternion, const TinyVector3f& color,
-    const TinyVector3f& scaling) {
+    const TinyVector3f& scaling, float opacity) {
   int newUid = m_data->m_publicGraphicsInstances.alloc_handle();
   TinyPublicGraphicsInstance* pg =
       m_data->m_publicGraphicsInstances.get_handle(newUid);
@@ -945,7 +946,7 @@ int TinyGLInstancingRenderer::register_graphics_instance(
     m_data->m_instance_colors_ptr[srcIndex * 4 + 0] = color[0];
     m_data->m_instance_colors_ptr[srcIndex * 4 + 1] = color[1];
     m_data->m_instance_colors_ptr[srcIndex * 4 + 2] = color[2];
-    m_data->m_instance_colors_ptr[srcIndex * 4 + 3] = 1.f;
+    m_data->m_instance_colors_ptr[srcIndex * 4 + 3] = opacity;
 
     m_data->m_instance_scale_ptr[srcIndex * 4 + 0] = scaling[0];
     m_data->m_instance_scale_ptr[srcIndex * 4 + 1] = scaling[1];
