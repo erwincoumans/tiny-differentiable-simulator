@@ -20,13 +20,12 @@
 #include <thread>
 
 #include "Utils/b3Clock.h"
+#include "pybullet_visualizer_api.h"
 #include "tiny_double_utils.h"
+#include "tiny_file_utils.h"
 #include "tiny_mb_constraint_solver_spring.h"
 #include "tiny_multi_body.h"
 #include "tiny_system_constructor.h"
-
-#include "pybullet_visualizer_api.h"
-#include "tiny_file_utils.h"
 
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
@@ -75,7 +74,7 @@ int main(int argc, char *argv[]) {
 
   sim->resetSimulation();
   sim->setTimeOut(10);
-  int grav_id = sim->addUserDebugParameter("gravity", -10, 10, -9.81);
+  int grav_id = sim->addUserDebugParameter("gravity", -10, 10, -2);
 
   int rotateCamera = 0;
 
@@ -84,9 +83,9 @@ int main(int argc, char *argv[]) {
   TinySystemConstructor<> constructor(urdf_filename, plane_filename);
   constructor.m_is_floating = floating_base;
   constructor(sim2, sim, world, &system);
-  delete world.m_mb_constraint_solver;
-  world.m_mb_constraint_solver =
-      new TinyMultiBodyConstraintSolverSpring<double, DoubleUtils>;
+  // delete world.m_mb_constraint_solver;
+  // world.m_mb_constraint_solver =
+  //     new TinyMultiBodyConstraintSolverSpring<double, DoubleUtils>;
 
   //  system->m_q[0] = 2.;
   //  system->m_q[1] = 1.2;
@@ -96,13 +95,34 @@ int main(int argc, char *argv[]) {
   fflush(stdout);
 
   if (floating_base) {
+    TinyQuaternion<double, DoubleUtils> start_rot;
+    start_rot.set_euler_rpy(TinyVector3<double, DoubleUtils>(0.8, 1.1, 0.9));
+    const double initial_height = 1.2;
+    const TinyVector3<double, DoubleUtils> initial_velocity(
+      0.7, 2., 0.);
+    system->m_q[0] = start_rot.x();
+    system->m_q[1] = start_rot.y();
+    system->m_q[2] = start_rot.z();
+    system->m_q[3] = start_rot.w();
+    system->m_q[4] = 0.;
+    system->m_q[5] = 0.;
+    system->m_q[6] = initial_height;
+
+    system->m_qd[0] = 0.;
+    system->m_qd[1] = 0.;
+    system->m_qd[2] = 0.;
+    system->m_qd[3] = initial_velocity.x();
+    system->m_qd[4] = initial_velocity.y();
+    system->m_qd[5] = initial_velocity.z();
+
     // apply some "random" rotation
-    system->m_q[0] = 0.06603363263475902;
-    system->m_q[1] = 0.2764891273883223;
-    system->m_q[2] = 0.2477976811032405;
-    system->m_q[3] = 0.9261693317298725;
-    system->m_q[6] = 2;
+    // system->m_q[0] = 0.06603363263475902;
+    // system->m_q[1] = 0.2764891273883223;
+    // system->m_q[2] = 0.2477976811032405;
+    // system->m_q[3] = 0.9261693317298725;
+    // system->m_q[6] = 2;
   }
+  system->print_state();
 
   double dt = 1. / 1000.;
   double time = 0;
@@ -122,7 +142,7 @@ int main(int argc, char *argv[]) {
 
     {
       sim->submitProfileTiming("integrate_q");
-      system->integrate_q(dt);  //??
+      // system->integrate_q(dt);  //??
       sim->submitProfileTiming("");
     }
 
@@ -147,8 +167,8 @@ int main(int argc, char *argv[]) {
   sim->disconnect();
   sim2->disconnect();
 
-  delete sim;
-  delete sim2;
+  // delete sim;
+  // delete sim2;
 
   return EXIT_SUCCESS;
 }

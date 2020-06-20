@@ -28,6 +28,7 @@ enum TinyNeuralNetworkActivation {
   NN_ACT_SIN,
   NN_ACT_RELU,
   NN_ACT_SOFT_RELU,
+  NN_ACT_ELU,
   NN_ACT_SIGMOID,
   NN_ACT_SOFTSIGN
 };
@@ -45,7 +46,7 @@ enum TinyNeuralNetworkInitialization {
 class TinyNeuralNetworkSpecification {
  protected:
   std::vector<TinyNeuralNetworkActivation> activations_;
-  std::vector<int> layers_{0};
+  std::vector<int> layers_{std::vector<int>{0}};
   std::vector<bool> use_bias_{true};
 
  public:
@@ -73,6 +74,7 @@ class TinyNeuralNetworkSpecification {
     use_bias_.push_back(learn_bias);
   }
 
+  bool empty() const { return layers_.empty(); }
   int input_dim() const { return layers_[0]; }
   int output_dim() const { return layers_.back(); }
   int num_weights() const {
@@ -90,6 +92,7 @@ class TinyNeuralNetworkSpecification {
     return num;
   }
   int num_parameters() const { return num_weights() + num_biases(); }
+  int num_layers() const { return static_cast<int>(layers_.size()); }
 
   template <typename TinyScalar, typename TinyConstants>
   static void print_states(const std::vector<TinyScalar>& numbers) {
@@ -130,15 +133,15 @@ class TinyNeuralNetworkSpecification {
           if (init_method == NN_INIT_ZERO) {
             weights[ci * layers_[i - 1] + pi] = TinyConstants::zero();
           } else {
-            weights[ci * layers_[i - 1] + pi] = d(gen_);
+            weights[ci * layers_[i - 1] + pi] = TinyScalar(d(gen_));
           }
         }
       }
     }
-    printf("NN weights:  ");
-    this->template print_states<TinyScalar, TinyConstants>(weights);
-    printf("NN biases:  ");
-    this->template print_states<TinyScalar, TinyConstants>(biases);
+    // printf("NN weights:  ");
+    // this->template print_states<TinyScalar, TinyConstants>(weights);
+    // printf("NN biases:  ");
+    // this->template print_states<TinyScalar, TinyConstants>(biases);
   }
 
   /**
@@ -154,7 +157,6 @@ class TinyNeuralNetworkSpecification {
     assert(static_cast<int>(biases.size() == num_biases()));
     assert(static_cast<int>(input.size()) == input_dim());
 
-    using std::tanh, std::exp, std::sin, std::max, std::max, std::log;
     const TinyScalar zero = TinyConstants::zero();
     const TinyScalar one = TinyConstants::one();
 
@@ -181,24 +183,30 @@ class TinyNeuralNetworkSpecification {
         }
         switch (activations_[i - 1]) {
           case NN_ACT_TANH:
-            current[ci] = tanh(current[ci]);
+            current[ci] = TinyConstants::tanh(current[ci]);
             break;
           case NN_ACT_SIN:
-            current[ci] = sin(current[ci]);
+            current[ci] = TinyConstants::sin1(current[ci]);
             break;
           case NN_ACT_RELU:
-            current[ci] = max(zero, current[ci]);
+            current[ci] = TinyConstants::max(zero, current[ci]);
             break;
           case NN_ACT_SOFT_RELU:
-            current[ci] = log(one + exp(current[ci]));
+            current[ci] =
+                TinyConstants::log(one + TinyConstants::exp(current[ci]));
+            break;
+          case NN_ACT_ELU:
+            current[ci] = current[ci] >= zero
+                              ? current[ci]
+                              : TinyConstants::exp(current[ci]) - one;
             break;
           case NN_ACT_SIGMOID: {
-            TinyScalar exp_x = exp(current[ci]);
+            TinyScalar exp_x = TinyConstants::exp(current[ci]);
             current[ci] = exp_x / (exp_x + one);
             break;
           }
           case NN_ACT_SOFTSIGN:
-            current[ci] = current[ci] / (one + abs(current[ci]));
+            current[ci] = current[ci] / (one + TinyConstants::abs(current[ci]));
             break;
           case NN_ACT_IDENTITY:
           default:
@@ -241,7 +249,7 @@ class TinyNeuralNetwork : public TinyNeuralNetworkSpecification {
   }
 
   void compute(const std::vector<TinyScalar>& input,
-               std::vector<TinyScalar>& output) {
+               std::vector<TinyScalar>& output) const {
     this->template compute<TinyScalar, TinyConstants>(weights, biases, input,
                                                       output);
   }
@@ -252,6 +260,13 @@ class TinyNeuralNetwork : public TinyNeuralNetworkSpecification {
     biases.resize(num_biases());
     std::copy(params.begin(), params.begin() + num_weights(), weights.begin());
     std::copy(params.begin() + num_weights(), params.end(), biases.begin());
+  }
+
+  void print_params() const {
+    printf("NN weights:  ");
+    this->template print_states<TinyScalar, TinyConstants>(weights);
+    printf("NN biases:  ");
+    this->template print_states<TinyScalar, TinyConstants>(biases);
   }
 };
 

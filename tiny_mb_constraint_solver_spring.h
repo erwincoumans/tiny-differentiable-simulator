@@ -17,6 +17,7 @@
 #ifndef TINY_MB_CONSTRAINT_SOLVER_SPRING_H
 #define TINY_MB_CONSTRAINT_SOLVER_SPRING_H
 
+#include "examples/neural_scalar.h"
 #include "tiny_constraint_solver.h"
 #include "tiny_mb_constraint_solver.h"
 #include "tiny_multi_body.h"
@@ -35,7 +36,8 @@ enum TinyFrictionForceModel {
   FRICTION_COULOMB,
   FRICTION_ANDERSSON,
   FRICTION_HOLLARS,
-  FRICTION_BROWN
+  FRICTION_BROWN,
+  FRICTION_NEURAL,
 };
 
 /**
@@ -87,7 +89,7 @@ struct TinyMultiBodyConstraintSolverSpring
   /**
    * Smoothing method to use for velocity smoothing.
    */
-  TinyVelocitySmoothingMethod smoothing_method{SMOOTH_VEL_ABS};
+  TinyVelocitySmoothingMethod smoothing_method{SMOOTH_VEL_NONE};
   /**
    * Velocity smoothing coefficient.
    */
@@ -145,20 +147,19 @@ struct TinyMultiBodyConstraintSolverSpring
    */
   virtual TinyScalar compute_contact_force(const TinyScalar& x,
                                            const TinyScalar& xd) const {
-    // TODO move these to TinyConstants
-    using std::tanh, std::exp, std::fabs, std::pow;
-
     const TinyScalar one = TinyConstants::one();
     const TinyScalar half = TinyConstants::half();
     const TinyScalar two = TinyConstants::two();
     const TinyScalar zero = TinyConstants::zero();
 
     // use abs(x) as base since x may be negative and pow() would yield NaN
-    TinyScalar xn = pow(fabs(x), x < zero ? exponent_n_air : exponent_n);
+    TinyScalar xn = TinyConstants::pow(TinyConstants::abs(x),
+                                       x < zero ? exponent_n_air : exponent_n);
     if (x < zero) {
       xn = -xn;
     }
-    TinyScalar xdn = pow(fabs(xd), xd < zero ? exponent_vel_air : one);
+    TinyScalar xdn = TinyConstants::pow(TinyConstants::abs(xd),
+                                        xd < zero ? exponent_vel_air : one);
     if (xd < zero) {
       xdn = -xdn;
     }
@@ -171,15 +172,16 @@ struct TinyMultiBodyConstraintSolverSpring
     // smooth force
     switch (smoothing_method) {
       case SMOOTH_VEL_SIGMOID:
-        force *= one / (one + exp(x * smooth_alpha_vel));
+        force *= one / (one + TinyConstants::exp(x * smooth_alpha_vel));
         break;
       case SMOOTH_VEL_TANH:
-        force *= half * tanh(-half * x * smooth_alpha_vel) + half;
+        force *=
+            half * TinyConstants::tanh(-half * x * smooth_alpha_vel) + half;
         break;
       case SMOOTH_VEL_ABS:
-        force *=
-            half * -x * smooth_alpha_vel / (one + fabs(-x * smooth_alpha_vel)) +
-            half;
+        force *= half * -x * smooth_alpha_vel /
+                     (one + TinyConstants::abs(-x * smooth_alpha_vel)) +
+                 half;
         break;
       case SMOOTH_VEL_NONE:
       default:
@@ -188,9 +190,16 @@ struct TinyMultiBodyConstraintSolverSpring
 
     // normal spring
     if (smooth_alpha_normal > zero) {
-      force -= spring_k * exp(-smooth_alpha_normal * x);
+      force -= spring_k * TinyConstants::exp(-smooth_alpha_normal * x);
     } else if (x > zero) {
       force -= spring_k * xn;
+    }
+
+    if constexpr (is_neural_scalar<TinyScalar, TinyConstants>::value) {
+      // evaluate neural network blueprint (if available)
+      x.assign("contact_normal_force/x");
+      xd.assign("contact_normal_force/xd");
+      force.assign("contact_normal_force/force");
     }
 
     return force;
@@ -212,9 +221,6 @@ struct TinyMultiBodyConstraintSolverSpring
   virtual TinyScalar compute_friction_force(const TinyScalar& fn,
                                             const TinyScalar& v,
                                             const TinyScalar& mu) const {
-    // TODO move these to TinyConstants
-    using std::tanh, std::exp, std::fabs, std::pow, std::abs, std::min;
-
     const TinyScalar one = TinyConstants::one();
     const TinyScalar half = TinyConstants::half();
     const TinyScalar fourth = half * half;
@@ -235,18 +241,31 @@ struct TinyMultiBodyConstraintSolverSpring
         return mu * fn * (v < zero ? -one : one);
       case FRICTION_ANDERSSON:
         return fn *
-               (mu + (mu_static - mu) *
-                         exp(-pow(abs(v) / andersson_vs, andersson_p))) *
-               tanh(andersson_ktanh * v);
+               (mu +
+                (mu_static - mu) *
+                    TinyConstants::exp(-TinyConstants::pow(
+                        TinyConstants::abs(v) / andersson_vs, andersson_p))) *
+               TinyConstants::tanh(andersson_ktanh * v);
       case FRICTION_HOLLARS:
-        return fn * min(vvt, one) *
+        return fn * TinyConstants::min(vvt, one) *
                (mu + (two * (mu_static - mu)) / (one + vvt * vvt));
-      case FRICTION_BROWN:
+      case FRICTION_BROWN: {
         // Simplified three-parameter model (Eq. (4.5))
         // Brown "Contact Modelling for Forward Dynamics of Human Motion"
         TinyScalar denom = fourth * vvt * vvt + three_fourth;
-        return fn * (mu * tanh(four * vvt) +
+        return fn * (mu * TinyConstants::tanh(four * vvt) +
                      (mu_static - mu) * vvt / (denom * denom));
+      }
+      case FRICTION_NEURAL:
+        if constexpr (is_neural_scalar<TinyScalar, TinyConstants>::value) {
+          // evaluate neural network blueprint (if available)
+          fn.assign("contact_friction_force/fn");
+          v.assign("contact_friction_force/v");
+          TinyScalar force = zero;
+          force.assign("contact_friction_force/force");
+          return force.evaluate();
+        }
+        return zero;
     }
   }
 
