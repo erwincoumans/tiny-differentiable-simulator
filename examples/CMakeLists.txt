@@ -207,9 +207,11 @@ if (tinyxml2_FOUND)
     add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
     target_link_libraries(tiny_urdf_parser_example tinyxml2)
 
+if (Ceres_FOUND)
     add_executable(neural_contact neural_contact.cpp ${TDS_HDRS})
     target_link_libraries(neural_contact opengl_window ${DL}
             ${CERES_LIBRARIES} ${MESHCAT_LIBRARIES} python2.7 tinyxml2)
+endif (Ceres_FOUND)
 endif (tinyxml2_FOUND)
 
 add_executable(world_example world_example.cpp ${TDS_HDRS})
