@@ -11,7 +11,7 @@
 #include "tiny_world.h"
 
 // whether to use Parallel Basin Hopping
-#define USE_PBH false
+#define USE_PBH true
 // whether the state consists of [q qd] or just q
 #define STATE_INCLUDES_QD true
 std::vector<double> start_state;
@@ -58,12 +58,16 @@ std::vector<std::vector<double>> to_double_states(
 template <typename Scalar1 = double, typename Utils1 = DoubleUtils,
           typename Scalar2 = double, typename Utils2 = DoubleUtils>
 void visualize_traces(const std::vector<std::vector<Scalar1>> &our_states_raw,
+                      const std::vector<std::vector<Scalar1>> &ini_states_raw,
                       const std::vector<std::vector<Scalar2>> &ref_states_raw,
                       int num_states = 10) {
   auto our_states = to_double_states<Scalar1, Utils1>(our_states_raw);
+  auto ini_states = to_double_states<Scalar1, Utils1>(ini_states_raw);
   auto ref_states = to_double_states<Scalar2, Utils2>(ref_states_raw);
 
-  TinyOpenGL3App app("neural_contact", 1024, 768);
+  TinyOpenGL3App app(
+      "Trajectories (green = reference, blue = initial, orange = ours)", 1024,
+      768);
   app.m_renderer->init();
   app.set_up_axis(2);
   app.m_renderer->get_active_camera()->set_camera_distance(4);
@@ -78,6 +82,7 @@ void visualize_traces(const std::vector<std::vector<Scalar1>> &our_states_raw,
   int cube_shape = app.register_cube_shape(1.f, 1.f, 1.f);
   TinyVector3f ref_color(0.3, 0.8, 0.);
   TinyVector3f our_color(1.0, 0.6, 0.);
+  TinyVector3f ini_color(0.1, 0.6, 1.);
   float opacity = 0.5f;
   float scale = 0.5f;
   TinyVector3f scaling(scale, scale, scale);
@@ -107,6 +112,18 @@ void visualize_traces(const std::vector<std::vector<Scalar1>> &our_states_raw,
                                                scaling, opacity);
   }
 
+  // show initial states
+  i = 0;
+  for (const std::vector<double> &state : ini_states) {
+    if (i++ % show_every != 0) {
+      continue;
+    }
+    TinyVector3f pos(state[4], state[5], state[6]);
+    TinyQuaternionf orn(state[0], state[1], state[2], state[3]);
+    app.m_renderer->register_graphics_instance(cube_shape, pos, orn, ini_color,
+                                               scaling, opacity);
+  }
+
   while (!app.m_window->requested_exit()) {
     app.m_renderer->update_camera(2);
     DrawGridData data;
@@ -121,10 +138,10 @@ void visualize_traces(const std::vector<std::vector<Scalar1>> &our_states_raw,
 
 template <typename Scalar = double, typename Utils = DoubleUtils>
 void visualize_trajectory(const std::vector<std::vector<Scalar>> &states_raw,
-                          const Scalar &dt) {
+                          const Scalar &dt, const char *window_title) {
   auto states = to_double_states<Scalar, Utils>(states_raw);
 
-  TinyOpenGL3App app("neural_contact", 1024, 768);
+  TinyOpenGL3App app(window_title, 1024, 768);
   app.m_renderer->init();
   app.set_up_axis(2);
   app.m_renderer->get_active_camera()->set_camera_distance(4);
@@ -288,6 +305,8 @@ class ContactEstimator
   using CeresEstimator::parameters;
   using typename CeresEstimator::ADScalar;
 
+  std::vector<double> initial_params;
+
   int time_steps;
 
   rollout_dynamics *sampler;
@@ -298,13 +317,16 @@ class ContactEstimator
     TinyFileUtils::find_file("sphere8cube.urdf", urdf_filename);
     TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);
     sampler = new rollout_dynamics(urdf_filename, plane_filename);
-    parameters[0] = {"spring_k", 5000., 1000., 20000.};
-    parameters[1] = {"damper_d", 5000., 1000., 20000.};
+    parameters[0] = {"spring_k", 0., 0., 20000.};
+    parameters[1] = {"damper_d", 0., 0., 20000.};
     for (int i = 0; i < neural_param_dim; ++i) {
       double regularization = 1;
       parameters[i + analytical_param_dim] = {"nn_weight_" + std::to_string(i),
                                               double(rand()) / RAND_MAX, -1.,
                                               1., regularization};
+    }
+    for (const auto &p : parameters) {
+      initial_params.push_back(p.value);
     }
   }
 
@@ -337,7 +359,9 @@ class ContactEstimator
   }
 };
 
-void print_states(const std::vector<std::vector<double>> &states) {
+template <typename Scalar = double, typename Utils = DoubleUtils>
+void print_states(const std::vector<std::vector<Scalar>> &states_raw) {
+  auto states = to_double_states<Scalar, Utils>(states_raw);
   for (const auto &s : states) {
     for (double d : s) {
       printf("%.2f ", d);
@@ -402,7 +426,8 @@ int main(int argc, char *argv[]) {
                  initial_velocity.z()};
   sampler(empty_params, target_states, time_steps, dt);
   save_states("neural_contact_ref.csv", target_states, dt);
-  visualize_trajectory(target_states, dt);
+  visualize_trajectory(target_states, dt, "Reference trajectory");
+  const std::vector<std::vector<double>> ref_states = target_states;
 
   std::function<std::unique_ptr<Estimator>()> construct_estimator =
       [&target_times, &target_states, &time_steps, &dt]() {
@@ -426,7 +451,7 @@ int main(int argc, char *argv[]) {
   }
   BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
                                                   initial_guess);
-  bhe.time_limit = 20;
+  bhe.time_limit = 100;
   bhe.run();
 
   printf("Optimized parameters:");
@@ -482,18 +507,28 @@ int main(int argc, char *argv[]) {
 
   typedef NeuralScalar<double, DoubleUtils> NScalar;
   typedef NeuralScalarUtils<double, DoubleUtils> NUtils;
-  std::vector<std::vector<NScalar>> our_states;
-  std::vector<NScalar> neural_params(param_dim);
+  std::vector<std::vector<NScalar>> our_states, initial_states;
+  std::vector<NScalar> neural_params(param_dim), initial_params(param_dim);
+#if USE_PBH
+  std::unique_ptr<Estimator> estimator = construct_estimator();
+#endif
   for (int i = 0; i < param_dim; ++i) {
     neural_params[i] = NScalar(best_params[i]);
+    initial_params[i] = NScalar(estimator->initial_params[i]);
   }
   sampler.template operator()<NScalar, NUtils>(neural_params, our_states,
                                                time_steps, dt);
   save_states<NScalar, NUtils>("neural_contact_ours.csv", our_states, dt);
+  sampler.template operator()<NScalar, NUtils>(initial_params, initial_states,
+                                               time_steps, dt);
+  save_states<NScalar, NUtils>("neural_contact_initial.csv", initial_states,
+                               dt);
 
-  visualize_trajectory(target_states, dt);
-  visualize_trajectory<NScalar, NUtils>(our_states, dt);
-  visualize_traces<NScalar, NUtils>(our_states, target_states);
+  visualize_trajectory(ref_states, dt, "Reference trajectory");
+  // print_states<NScalar, NUtils>(our_states);
+  visualize_trajectory<NScalar, NUtils>(our_states, dt,
+                                        "Simulated trajectory after Sys ID");
+  visualize_traces<NScalar, NUtils>(our_states, initial_states, ref_states);
 
   return EXIT_SUCCESS;
 }
