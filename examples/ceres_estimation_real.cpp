@@ -22,14 +22,14 @@
 #include "tiny_multi_body.h"
 #include "tiny_world.h"
 
-#define JUST_VISUALIZE true
+#define JUST_VISUALIZE false
 #define USE_PBH true
 // whether the state consists of [q qd] or just q
 #define STATE_INCLUDES_QD false
 // whether to estimate the diagonal elements of the inertia 3x3 matrix
 #define ESTIMATE_LENGTH false
 #define ESTIMATE_MASS true
-#define ESTIMATE_INERTIA false
+#define ESTIMATE_INERTIA true
 std::vector<double> start_state;
 const int param_dim_length = ESTIMATE_LENGTH ? 2 : 0;
 const int param_dim_mass = ESTIMATE_MASS ? 2 : 0;
@@ -248,16 +248,16 @@ public:
 #if ESTIMATE_MASS
     for (int i = 0; i < 2; ++param_count, ++i) {
       parameters[param_count] = {"mass_" + std::to_string(i + 1), initial_mass,
-                                 0.05, 0.4};
+                                 0.001, 0.2};
     }
 #endif
 #if ESTIMATE_INERTIA
-    parameters[param_count + 0] = {"I0_xx", 0.005, 0.02, 0.3};
-    parameters[param_count + 1] = {"I0_yy", 0.005, 0.02, 0.3};
-    parameters[param_count + 2] = {"I0_zz", 0.005, 0.02, 0.3};
-    parameters[param_count + 3] = {"I1_xx", 0.005, 0.02, 0.3};
-    parameters[param_count + 4] = {"I1_yy", 0.005, 0.02, 0.3};
-    parameters[param_count + 5] = {"I1_zz", 0.005, 0.02, 0.3};
+    parameters[param_count + 0] = {"I0_xx", 0.005, 0.002, 0.3};
+    parameters[param_count + 1] = {"I0_yy", 0.005, 0.002, 0.3};
+    parameters[param_count + 2] = {"I0_zz", 0.005, 0.002, 0.3};
+    parameters[param_count + 3] = {"I1_xx", 0.005, 0.002, 0.3};
+    parameters[param_count + 4] = {"I1_yy", 0.005, 0.002, 0.3};
+    parameters[param_count + 5] = {"I1_zz", 0.005, 0.002, 0.3};
 #endif
 
     /// XXX just for testing
@@ -305,7 +305,7 @@ void print_states(const std::vector<std::vector<double>> &states) {
 
 int main(int argc, char *argv[]) {
   const double dt = 1. / 400;
-  const double time_limit = 5;
+  const double time_limit = 0.5;
   const int time_steps = time_limit / dt;
   const double init_params = 0.2;
 
@@ -318,6 +318,7 @@ int main(int argc, char *argv[]) {
 
   auto dataset = LoadIbmPendulumFile<double>(argv[1]);
   dataset.resize(time_steps); // Discard after the clip time.
+  std::cout << "Using " << dataset.size() << " data steps.\n";
   auto target_states = PendulumIk(dataset);
   assert(dataset.size() > 0);
 
