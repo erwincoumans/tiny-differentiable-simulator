@@ -74,7 +74,8 @@ class TinyGLInstancingRenderer {
                                           const TinyVector3f& position,
                                           const TinyQuaternionf& quaternion,
                                           const TinyVector3f& color,
-                                          const TinyVector3f& scaling);
+                                          const TinyVector3f& scaling,
+                                          float opacity = 1.f);
   void rebuild_graphics_instances();
 
  public:
@@ -114,7 +115,8 @@ class TinyGLInstancingRenderer {
                                          const TinyVector3f& position,
                                          const TinyQuaternionf& quaternion,
                                          const TinyVector3f& color,
-                                         const TinyVector3f& scaling);
+                                         const TinyVector3f& scaling,
+                                         float opacity = 1.f);
 
   void write_transforms();
 

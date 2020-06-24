@@ -23,8 +23,8 @@ template <typename TinyScalar, typename TinyConstants>
 struct TinyContactPointRigidBody
     : public TinyContactPoint<TinyScalar, TinyConstants> {
   typedef ::TinyRigidBody<TinyScalar, TinyConstants> TinyRigidBody;
-  TinyRigidBody* m_rigid_body_a;
-  TinyRigidBody* m_rigid_body_b;
+  TinyRigidBody* m_rigid_body_a{nullptr};
+  TinyRigidBody* m_rigid_body_b{nullptr};
   TinyScalar m_restitution;
   TinyScalar m_friction;
 };

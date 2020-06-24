@@ -874,7 +874,7 @@ class TinyMultiBody {
         m_baseVelocity.set_zero();
       }
 
-      TinySpatialMotionVector I0_mul_v0 = m_baseInertia.mul_inv(m_baseVelocity);
+      TinySpatialMotionVector I0_mul_v0 = m_baseInertia.mul_org(m_baseVelocity);
       m_baseBiasForce = m_baseVelocity.crossf(I0_mul_v0) - m_baseAppliedForce;
 
       m_baseArticulatedInertia = m_baseInertia;

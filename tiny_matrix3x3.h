@@ -31,7 +31,7 @@ class TinyMatrix3x3 {
 
  public:
   /** @brief No initialization constructor */
-  TinyMatrix3x3() {}
+  TinyMatrix3x3() = default;
 
   // necessary for variable-size matrix interoperability
   int m_rows{3};
