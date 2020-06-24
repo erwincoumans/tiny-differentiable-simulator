@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef MOTION_IMPORT
-#define MOTION_IMPORT
+#ifndef MOTION_IMPORT_H
+#define MOTION_IMPORT_H
 
+#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -126,4 +127,4 @@ struct Motion {
   }
 };
 
-#endif  // MOTION_IMPORT
+#endif  // MOTION_IMPORT_H

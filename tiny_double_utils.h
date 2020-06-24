@@ -21,7 +21,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <string>
+
 #include "math.h"
 
 struct DoubleUtils {
@@ -39,6 +41,12 @@ struct DoubleUtils {
   static double asin(double v) { return ::asin(v); }
   static double copysign(double x, double y) { return ::copysign(x, y); }
   static double abs(double v) { return ::fabs(v); }
+  static double pow(double a, double b) { return ::pow(a, b); }
+  static double exp(double v) { return ::exp(v); }
+  static double log(double v) { return ::log(v); }
+  static double tanh(double v) { return ::tanh(v); }
+  static double min1(double a, double b) { return a < b ? a : b; }
+  static double max1(double a, double b) { return a > b ? a : b; }
 
   template <class T>
   static T sqrt1(T v) {
@@ -66,6 +74,8 @@ struct DoubleUtils {
     double result = atof(txt.c_str());
     return result;
   }
+
+  static double scalar_from_double(double value) { return value; }
 
   static void FullAssert(bool a) {
     if (!a) {

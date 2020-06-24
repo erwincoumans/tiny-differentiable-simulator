@@ -18,11 +18,12 @@ include_directories(. ..)
 
 set(DL ${CMAKE_DL_LIBS})
 
-
 find_package(ct_core)
 find_package(ct_optcon)
 find_package(Ceres)
 find_package(PkgConfig)
+
+find_package(Torch)
 
 add_definitions(-DBT_USE_DOUBLE_PRECISION)
 find_package(Bullet)
@@ -101,6 +102,12 @@ if (Bullet_FOUND)
             OpenGLWindow  gwen BussIK Bullet3Common pthread ${DL})
 
     if (Ceres_FOUND)
+        FIND_PACKAGE(PythonLibs REQUIRED)
+        INCLUDE_DIRECTORIES( 
+            ${PYTHON_INCLUDE_DIRS}
+            ${PYTHON_NUMPY_INCLUDE_DIR}
+        )
+
         add_executable(billiard_opt_gui billiard_opt_gui.cpp ${TDS_HDRS})
         target_link_libraries(billiard_opt_gui pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
@@ -112,6 +119,15 @@ if (Bullet_FOUND)
 
         add_executable(ceres_estimation ceres_estimation.cpp ${TDS_HDRS})
         target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
+                ${CERES_LIBRARIES})
+
+        # set(DUSE_MATPLOTLIB true)
+        add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
+        target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${DL}
+                ${CERES_LIBRARIES} python2.7)
+
+        add_executable(neural_pendulum neural_pendulum.cpp ${TDS_HDRS})
+        target_link_libraries(neural_pendulum pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
 
         add_executable(policy_optimization policy_optimization.cpp ${TDS_HDRS})
@@ -164,18 +180,23 @@ if (Bullet_FOUND)
 
 if (HAS_MESHCAT)
     add_executable(laikago_meshcat_example laikago_meshcat_example.cpp ${TDS_HDRS})
-    target_link_libraries(laikago_meshcat_example  pybullet_visualizer_api ${MESHCAT_LIBRARIES})
-    
+    target_link_libraries(laikago_meshcat_example pybullet_visualizer_api ${MESHCAT_LIBRARIES})
 endif (HAS_MESHCAT)
+
+if (Torch_FOUND)
+    include_directories(${TORCH_INCLUDE_DIRS})
+    message("Torch libraries: ${TORCH_LIBRARIES}")
+    add_executable(torch_example torch_example.cpp ${TDS_HDRS})
+    target_link_libraries(torch_example pybullet_visualizer_api ${TORCH_LIBRARIES})
+endif (Torch_FOUND)
+
 endif (Bullet_FOUND)
 
 
+if (HAS_MESHCAT AND tinyxml2_FOUND)    
 
-if (HAS_MESHCAT AND tinyxml2_FOUND)
-    
     add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS}) 
     target_link_libraries(tiny_urdf_parser_meshcat_example  tinyxml2 ${MESHCAT_LIBRARIES}) 
-
 
     add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
     target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
@@ -185,6 +206,12 @@ endif (HAS_MESHCAT AND tinyxml2_FOUND)
 if (tinyxml2_FOUND)
     add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
     target_link_libraries(tiny_urdf_parser_example tinyxml2)
+
+if (Ceres_FOUND)
+    add_executable(neural_contact neural_contact.cpp ${TDS_HDRS})
+    target_link_libraries(neural_contact opengl_window ${DL}
+            ${CERES_LIBRARIES} ${MESHCAT_LIBRARIES} python2.7 tinyxml2)
+endif (Ceres_FOUND)
 endif (tinyxml2_FOUND)
 
 add_executable(world_example world_example.cpp ${TDS_HDRS})
@@ -195,7 +222,19 @@ subdirs(opengl_window)
 add_executable(pendulum_example_gui pendulum_example_gui.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
 target_link_libraries(pendulum_example_gui opengl_window)
 
-add_executable(opengl_test opengl_test.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
+add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
+target_include_directories(opengl_test PRIVATE ../third_party/tinyobjloader)
+target_include_directories(opengl_test PRIVATE ../third_party)
+
+
+
+add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS}) 
+target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window) 
+target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party/tinyobjloader)
+target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party)
+
+
+
 target_link_libraries(opengl_test opengl_window)
 
 subdirs(../third_party/dear_imgui)
@@ -206,10 +245,8 @@ target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../thir
 
 
 IF(WIN32)
-    target_link_libraries(pendulum_example_gui  Opengl32)
+    target_link_libraries(pendulum_example_gui Opengl32)
+    target_link_libraries(tiny_urdf_parser_opengl_example Opengl32)
     target_link_libraries(opengl_test  Opengl32)
     target_link_libraries(opengl_imgui_test Opengl32)
 ENDIF()
-
-
-

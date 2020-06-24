@@ -84,9 +84,11 @@ struct TinyUrdfToMultiBody {
     // then convert each link
     int num_links = urdf_structures.m_joints.size();
 
+#if DEBUG
     printf("-----------------------\n");
     printf("num_links=%d\n", num_links);
     printf("-----------------------\n");
+#endif
     for (int i = 0; i < num_links; i++) {
       TinyLink<TinyScalar, TinyConstants> l;
       bool joint_conversion_ok = false;
@@ -144,7 +146,9 @@ struct TinyUrdfToMultiBody {
           joint_conversion_ok = true;
           break;
         }
-        default: { return_code = kCONVERSION_JOINT_FAILED; }
+        default: {
+          return_code = kCONVERSION_JOINT_FAILED;
+        }
       };
 
       if (return_code == kCONVERSION_OK) {
@@ -256,7 +260,8 @@ struct TinyUrdfToMultiBody {
           l.m_X_collisions.push_back(collision_offset);
           break;
         }
-        default: {}
+        default: {
+        }
       };
     }
   }
