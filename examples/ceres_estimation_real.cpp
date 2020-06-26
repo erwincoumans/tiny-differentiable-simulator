@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ceres/iteration_callback.h>
+#include <ceres/types.h>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 
 #include "data/ibm-double-pendulum/load_data.h"
 #include "pendulum.h"
@@ -23,7 +27,7 @@
 #include "tiny_world.h"
 
 #define JUST_VISUALIZE false
-#define USE_PBH true
+#define USE_PBH false
 // whether the state consists of [q qd] or just q
 #define STATE_INCLUDES_QD false
 // whether to estimate the diagonal elements of the inertia 3x3 matrix
@@ -236,7 +240,7 @@ public:
 
   // sane parameter initialization (link lengths)
   PendulumEstimator(int time_steps, double dt, double initial_link_length = 0.5,
-                    double initial_mass = 0.5)
+                    double initial_mass = 0.1)
       : CeresEstimator(dt), time_steps(time_steps) {
     int param_count = 0;
 #if ESTIMATE_LENGTH
@@ -248,16 +252,16 @@ public:
 #if ESTIMATE_MASS
     for (int i = 0; i < 2; ++param_count, ++i) {
       parameters[param_count] = {"mass_" + std::to_string(i + 1), initial_mass,
-                                 0.001, 0.2};
+                                 0.00001, 2000.0};
     }
 #endif
 #if ESTIMATE_INERTIA
-    parameters[param_count + 0] = {"I0_xx", 0.005, 0.002, 0.3};
-    parameters[param_count + 1] = {"I0_yy", 0.005, 0.002, 0.3};
-    parameters[param_count + 2] = {"I0_zz", 0.005, 0.002, 0.3};
-    parameters[param_count + 3] = {"I1_xx", 0.005, 0.002, 0.3};
-    parameters[param_count + 4] = {"I1_yy", 0.005, 0.002, 0.3};
-    parameters[param_count + 5] = {"I1_zz", 0.005, 0.002, 0.3};
+    parameters[param_count + 0] = {"I0_xx", 0.005, 0.002, 1.0};
+    parameters[param_count + 1] = {"I0_yy", 0.005, 0.002, 1.0};
+    parameters[param_count + 2] = {"I0_zz", 0.005, 0.002, 1.0};
+    parameters[param_count + 3] = {"I1_xx", 0.005, 0.002, 1.0};
+    parameters[param_count + 4] = {"I1_yy", 0.005, 0.002, 1.0};
+    parameters[param_count + 5] = {"I1_zz", 0.005, 0.002, 1.0};
 #endif
 
     /// XXX just for testing
@@ -303,6 +307,22 @@ void print_states(const std::vector<std::vector<double>> &states) {
   }
 }
 
+void write_trajectory_file(const std::string &filename,
+                           std::vector<double> params, int time_steps,
+                           double dt) {
+  std::vector<std::vector<double>> states;
+  rollout_pendulum<double, DoubleUtils>(params, states, time_steps, dt);
+  std::ofstream traj_file(filename);
+  for (int t = 0; t < time_steps; ++t) {
+    traj_file << (t * dt);
+    for (double v : states[t]) {
+      traj_file << "\t" << v;
+    }
+    traj_file << "\n";
+  }
+  traj_file.close();
+}
+
 int main(int argc, char *argv[]) {
   const double dt = 1. / 400;
   const double time_limit = 0.5;
@@ -321,6 +341,16 @@ int main(int argc, char *argv[]) {
   std::cout << "Using " << dataset.size() << " data steps.\n";
   auto target_states = PendulumIk(dataset);
   assert(dataset.size() > 0);
+
+  std::ofstream true_traj_file("true_trajectory.csv");
+  for (int t = 0; t < time_steps; ++t) {
+    true_traj_file << (t * dt);
+    for (double v : target_states[t]) {
+      true_traj_file << "\t" << v;
+    }
+    true_traj_file << "\n";
+  }
+  true_traj_file.close();
 
   std::vector<double> target_times;
   target_times.reserve(dataset.size());
@@ -376,37 +406,37 @@ int main(int argc, char *argv[]) {
   while (true) {
     const auto state = target_states[0];
     // for (const auto &state : target_states) {
-      mb->m_q[0] = state[0];
-      mb->m_q[1] = state[1];
-      mb->forward_kinematics();
-      if (visualizer->canSubmitCommand()) {
-        std::this_thread::sleep_for(std::chrono::duration<double>(dt));
-        // sync transforms
-        int visual_index = 0;
-        if (!mbvisuals.empty()) {
-          for (int b = 0; b < mbbodies.size(); b++) {
-            for (int l = 0; l < mbbodies[b]->m_links.size(); l++) {
-              const TinyMultiBody<double, DoubleUtils> *body = mbbodies[b];
-              if (body->m_links[l].m_X_visuals.empty())
-                continue;
+    mb->m_q[0] = state[0];
+    mb->m_q[1] = state[1];
+    mb->forward_kinematics();
+    if (visualizer->canSubmitCommand()) {
+      std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+      // sync transforms
+      int visual_index = 0;
+      if (!mbvisuals.empty()) {
+        for (int b = 0; b < mbbodies.size(); b++) {
+          for (int l = 0; l < mbbodies[b]->m_links.size(); l++) {
+            const TinyMultiBody<double, DoubleUtils> *body = mbbodies[b];
+            if (body->m_links[l].m_X_visuals.empty())
+              continue;
 
-              int sphereId = mbvisuals[visual_index++];
+            int sphereId = mbvisuals[visual_index++];
 
-              TinyQuaternion<double, DoubleUtils> rot;
-              const TinySpatialTransform<double, DoubleUtils> &geom_X_world =
-                  body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[0];
-              btVector3 base_pos(geom_X_world.m_translation.getX(),
-                                 geom_X_world.m_translation.getY(),
-                                 geom_X_world.m_translation.getZ());
-              geom_X_world.m_rotation.getRotation(rot);
-              btQuaternion base_orn(rot.getX(), rot.getY(), rot.getZ(),
-                                    rot.getW());
-              visualizer->resetBasePositionAndOrientation(sphereId, base_pos,
-                                                          base_orn);
-            }
+            TinyQuaternion<double, DoubleUtils> rot;
+            const TinySpatialTransform<double, DoubleUtils> &geom_X_world =
+                body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[0];
+            btVector3 base_pos(geom_X_world.m_translation.getX(),
+                               geom_X_world.m_translation.getY(),
+                               geom_X_world.m_translation.getZ());
+            geom_X_world.m_rotation.getRotation(rot);
+            btQuaternion base_orn(rot.getX(), rot.getY(), rot.getZ(),
+                                  rot.getW());
+            visualizer->resetBasePositionAndOrientation(sphereId, base_pos,
+                                                        base_orn);
           }
         }
       }
+    }
     // }
   }
 #endif
@@ -468,13 +498,6 @@ int main(int argc, char *argv[]) {
   return 0;
 #endif
 
-  double cost;
-  double gradient[4];
-  estimator->compute_gradient(estimator->vars(), &cost, gradient);
-  std::cout << "Gradient: " << gradient[0] << "  " << gradient[1] << "  "
-            << gradient[2] << "  " << gradient[3] << "  \n";
-  std::cout << "Cost: " << cost << "\n";
-
   auto summary = estimator->solve();
   std::cout << summary.FullReport() << std::endl;
   std::cout << "Final cost: " << summary.final_cost << "\n";
@@ -497,17 +520,21 @@ int main(int argc, char *argv[]) {
   file.close();
 #endif
 
-  rollout_pendulum<double, DoubleUtils>(best_params, target_states, time_steps,
-                                        dt);
-  std::ofstream traj_file("estimated_trajectory.csv");
-  for (int t = 0; t < time_steps; ++t) {
-    traj_file << (t * dt);
-    for (double v : target_states[t]) {
-      traj_file << "\t" << v;
-    }
-    traj_file << "\n";
+  for (int solver_iteration = 0;
+       solver_iteration < estimator->parameter_evolution().size();
+       ++solver_iteration) {
+    const auto &params = estimator->parameter_evolution()[solver_iteration];
+    const std::vector<double> step_params(params.begin(), params.end());
+    rollout_pendulum<double, DoubleUtils>(step_params, target_states,
+                                          time_steps, dt);
+    std::ostringstream fn;
+    fn << "step_" << std::setw(3) << std::setfill('0') << solver_iteration
+       << "_estimated_trajectory.csv";
+    write_trajectory_file(fn.str(), step_params, time_steps, dt);
   }
-  traj_file.close();
+
+  write_trajectory_file("best_estimated_trajectory.csv", best_params,
+                        time_steps, dt);
 
   return EXIT_SUCCESS;
 }
