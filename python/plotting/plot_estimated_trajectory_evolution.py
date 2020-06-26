@@ -37,12 +37,18 @@ def main():
     truth = pd.read_table('./true_trajectory.csv', header=None)
     est = pd.read_table('./best_estimated_trajectory.csv', header=None)
 
-    plt.subplots()
+    fig = plt.figure(figsize=(3.5, 4))
+    fig.subplots()
     plt.plot(truth[0], truth[1], 'r-', label="True $\\mathbf{q}_0$")
     plt.plot(truth[0], truth[2], 'b-', label="True $\\mathbf{q}_1$")
     plt.plot(est[0], est[1], 'r--', label="Estimated $\\mathbf{q}_0$")
     plt.plot(est[0], est[2], 'b--', label="Estimated $\\mathbf{q}_1$")
     plt.legend()
+
+    plt.grid()
+    plt.xlabel("Time [s]")
+
+    plt.savefig("ibm_pendulum_estimation.pdf")
 
     plt.show()
 

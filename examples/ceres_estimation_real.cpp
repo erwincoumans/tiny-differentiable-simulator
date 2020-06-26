@@ -36,13 +36,17 @@
 #define ESTIMATE_MASS true
 #define ESTIMATE_INERTIA true
 #define ESTIMATE_INITIAL_VELOCITY true
+#define ESTIMATE_JOINT_DAMPING false
+#define ESTIMATE_TIME_STEP true
 std::vector<double> start_state;
 const int param_dim_length = ESTIMATE_LENGTH ? 2 : 0;
 const int param_dim_mass = ESTIMATE_MASS ? 2 : 0;
 const int param_dim_inertia = ESTIMATE_INERTIA ? 6 : 0;
 const int param_dim_initial_vel = ESTIMATE_INITIAL_VELOCITY ? 2 : 0;
+const int param_dim_joint_damping = ESTIMATE_JOINT_DAMPING ? 2 : 0;
+const int param_dim_time_step = ESTIMATE_TIME_STEP ? 1 : 0;
 const int param_dim = param_dim_inertia + param_dim_length + param_dim_mass +
-                      param_dim_initial_vel;
+                      param_dim_initial_vel + param_dim_joint_damping + param_dim_time_step;
 #define TRUE_LENGTH_LINK1 0.091
 #define TRUE_LENGTH_LINK2 0.070
 #define TRUE_MASS_LINK1 0.1  // Not actually in the paper.
@@ -203,6 +207,18 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   param_count += 2;
 #endif
 
+#if ESTIMATE_JOINT_DAMPING
+  mb->m_links[0].m_damping = params[param_count];
+  mb->m_links[1].m_damping = params[param_count + 1];
+  param_count += 2;
+#endif
+
+#if ESTIMATE_TIME_STEP
+  Scalar actual_dt = params[param_count++];
+#else
+  Scalar actual_dt(dt);
+#endif
+
   for (int t = 0; t < time_steps; ++t) {
 #if STATE_INCLUDES_QD
     output_states[t].resize(2 * mb->dof());
@@ -220,8 +236,8 @@ void rollout_pendulum(const std::vector<Scalar> &params,
     // if (t > 150) {
     //   mb->print_state();
     // }
-    mb->integrate_q(Scalar(dt));
-    mb->integrate(Scalar(dt));
+    // mb->integrate_q(actual_dt);
+    mb->integrate(actual_dt);
   }
 
 #if !USE_PBH
@@ -273,6 +289,14 @@ class PendulumEstimator
     parameters[param_count + 1] = {"qd[1]", 0.0, -50., 50.0};
     param_count += 2;
 #endif
+#if ESTIMATE_JOINT_DAMPING
+    parameters[param_count + 0] = {"damping[0]", 0.0, 0., 5.0};
+    parameters[param_count + 1] = {"damping[1]", 0.0, 0., 5.0};
+    param_count += 2;
+#endif
+#if ESTIMATE_TIME_STEP
+    parameters[param_count++] = {"dt", 1. / 400, 1. / 1000., 1. / 50};
+#endif
   }
 
   void rollout(const std::vector<ADScalar> &params,
@@ -315,7 +339,7 @@ void write_trajectory_file(const std::string &filename,
 
 int main(int argc, char *argv[]) {
   const double dt = 1. / 400;
-  const double time_limit = 0.5;
+  const double time_limit = 1.0;
   const int time_steps = time_limit / dt;
   const double init_params = 0.2;
 
@@ -454,7 +478,7 @@ int main(int argc, char *argv[]) {
   }
   BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
                                                   initial_guess);
-  bhe.time_limit = 30;
+  bhe.time_limit = 300;
   bhe.run();
 
   printf("Optimized parameters:");
