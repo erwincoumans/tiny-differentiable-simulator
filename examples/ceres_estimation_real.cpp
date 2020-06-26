@@ -14,6 +14,7 @@
 
 #include <ceres/iteration_callback.h>
 #include <ceres/types.h>
+
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -27,22 +28,25 @@
 #include "tiny_world.h"
 
 #define JUST_VISUALIZE false
-#define USE_PBH false
+#define USE_PBH true
 // whether the state consists of [q qd] or just q
 #define STATE_INCLUDES_QD false
 // whether to estimate the diagonal elements of the inertia 3x3 matrix
 #define ESTIMATE_LENGTH false
 #define ESTIMATE_MASS true
 #define ESTIMATE_INERTIA true
+#define ESTIMATE_INITIAL_VELOCITY true
 std::vector<double> start_state;
 const int param_dim_length = ESTIMATE_LENGTH ? 2 : 0;
 const int param_dim_mass = ESTIMATE_MASS ? 2 : 0;
 const int param_dim_inertia = ESTIMATE_INERTIA ? 6 : 0;
-const int param_dim = param_dim_inertia + param_dim_length + param_dim_mass;
+const int param_dim_initial_vel = ESTIMATE_INITIAL_VELOCITY ? 2 : 0;
+const int param_dim = param_dim_inertia + param_dim_length + param_dim_mass +
+                      param_dim_initial_vel;
 #define TRUE_LENGTH_LINK1 0.091
 #define TRUE_LENGTH_LINK2 0.070
-#define TRUE_MASS_LINK1 0.1 // Not actually in the paper.
-#define TRUE_MASS_LINK2 0.1 // Not actually in the paper.
+#define TRUE_MASS_LINK1 0.1  // Not actually in the paper.
+#define TRUE_MASS_LINK2 0.1  // Not actually in the paper.
 
 #ifdef USE_MATPLOTLIB
 template <typename T>
@@ -83,12 +87,8 @@ void visualize_trajectory(const std::vector<std::vector<T>> &states,
   }
   TinyWorld<T, Utils> world;
   TinyMultiBody<T, Utils> *mb = world.create_multi_body();
-  std::vector<T> link_lengths(params.begin(), params.begin() + 2);
-  std::vector<T> masses(2);
-  for (int i = 0; i < 2; ++i) {
-    masses[i] = params[2 + i];
-  }
-  init_compound_pendulum<T, Utils>(*mb, world, 2, link_lengths, masses);
+  std::vector<T> link_lengths{TRUE_LENGTH_LINK1, TRUE_LENGTH_LINK2};
+  init_compound_pendulum<T, Utils>(*mb, world, 2, link_lengths);
   std::vector<int> mbvisuals;
   if (visualizer->canSubmitCommand()) {
     for (int i = 0; i < mb->m_links.size(); i++) {
@@ -106,16 +106,14 @@ void visualize_trajectory(const std::vector<std::vector<T>> &states,
     q[0] = state[0];
     q[1] = state[1];
     mb->forward_kinematics(q);
-    printf("  q: [%.6f  %.6f]\n", Utils::getDouble(q[0]),
-           Utils::getDouble(q[1]));
+    // printf("  q: [%.6f  %.6f]\n", Utils::getDouble(q[0]),
+    //        Utils::getDouble(q[1]));
 
     std::this_thread::sleep_for(
-        std::chrono::duration<double>(Utils::getDouble(dt)));
+        std::chrono::duration<double>(Utils::getDouble(dt * 20.)));
     // sync transforms
     int visual_index = 0;
     for (int l = 0; l < mb->m_links.size(); l++) {
-      // if (mb->m_X_visuals.empty()) continue;
-
       int sphereId = mbvisuals[visual_index++];
       TinyQuaternion<T, Utils> rot;
       const TinySpatialTransform<T, Utils> &geom_X_world =
@@ -124,8 +122,6 @@ void visualize_trajectory(const std::vector<std::vector<T>> &states,
                          Utils::getDouble(geom_X_world.m_translation.getY()),
                          Utils::getDouble(geom_X_world.m_translation.getZ()));
       geom_X_world.m_rotation.getRotation(rot);
-      // printf("Sphere %i position: %.6f %.6f %.6f\n", sphereId, base_pos[0],
-      // base_pos[1], base_pos[2]);
       btQuaternion base_orn(
           Utils::getDouble(rot.getX()), Utils::getDouble(rot.getY()),
           Utils::getDouble(rot.getZ()), Utils::getDouble(rot.getW()));
@@ -188,6 +184,7 @@ void rollout_pendulum(const std::vector<Scalar> &params,
   mb->m_links[1].m_I =
       TinySymmetricSpatialDyad<Scalar, Utils>::computeInertiaDyad(
           masses[1], com_1, inertia_1);
+  param_count += 6;
 #endif
   if (static_cast<int>(start_state.size()) >= mb->dof()) {
     for (int i = 0; i < mb->dof(); ++i) {
@@ -195,10 +192,17 @@ void rollout_pendulum(const std::vector<Scalar> &params,
     }
     if (static_cast<int>(start_state.size()) >= 2 * mb->dof()) {
       for (int i = 0; i < mb->dof_qd(); ++i) {
-        mb->m_qd[i] = Scalar(start_state[i + mb->dof()]); // / 5.;
+        mb->m_qd[i] = Scalar(start_state[i + mb->dof()]);  // / 5.;
       }
     }
   }
+
+#if ESTIMATE_INITIAL_VELOCITY
+  mb->m_qd[0] = params[param_count];
+  mb->m_qd[1] = params[param_count + 1];
+  param_count += 2;
+#endif
+
   for (int t = 0; t < time_steps; ++t) {
 #if STATE_INCLUDES_QD
     output_states[t].resize(2 * mb->dof());
@@ -216,7 +220,7 @@ void rollout_pendulum(const std::vector<Scalar> &params,
     // if (t > 150) {
     //   mb->print_state();
     // }
-    // mb->integrate_q(Scalar(dt));
+    mb->integrate_q(Scalar(dt));
     mb->integrate(Scalar(dt));
   }
 
@@ -229,7 +233,7 @@ template <ResidualMode ResMode>
 class PendulumEstimator
     : public TinyCeresEstimator<param_dim, (1 + STATE_INCLUDES_QD) * 2,
                                 ResMode> {
-public:
+ public:
   typedef TinyCeresEstimator<param_dim, (1 + STATE_INCLUDES_QD) * 2, ResMode>
       CeresEstimator;
   using CeresEstimator::kStateDim, CeresEstimator::kParameterDim;
@@ -252,7 +256,7 @@ public:
 #if ESTIMATE_MASS
     for (int i = 0; i < 2; ++param_count, ++i) {
       parameters[param_count] = {"mass_" + std::to_string(i + 1), initial_mass,
-                                 0.00001, 2000.0};
+                                 0.00001, 1.5};
     }
 #endif
 #if ESTIMATE_INERTIA
@@ -262,27 +266,13 @@ public:
     parameters[param_count + 3] = {"I1_xx", 0.005, 0.002, 1.0};
     parameters[param_count + 4] = {"I1_yy", 0.005, 0.002, 1.0};
     parameters[param_count + 5] = {"I1_zz", 0.005, 0.002, 1.0};
+    param_count += 6;
 #endif
-
-    /// XXX just for testing
-    // std::vector<double> params = {
-    //     0.20814544087513831006, 2.00000000000000000000,
-    //     0.14999999999999999445, 1.85036736762471165640};
-
-    // for (int i = 0; i < 2; ++i) {
-    //   parameters[i] = {"link_length_" + std::to_string(i + 1), params[i],
-    //   0.15,
-    //                    2.};
-    // }
-    // for (int i = 0; i < 2; ++i) {
-    //   parameters[2 + i] = {"mass_" + std::to_string(i + 1), params[i + 2],
-    //   0.15,
-    //                        2.};
-    // }
-
-    // std::vector<std::vector<double>> states;
-    // rollout_pendulum<double, DoubleUtils>(params, states, time_steps, dt);
-    // plot_trajectory(states);
+#if ESTIMATE_INITIAL_VELOCITY
+    parameters[param_count + 0] = {"qd[0]", 0.0, -50., 50.0};
+    parameters[param_count + 1] = {"qd[1]", 0.0, -50., 50.0};
+    param_count += 2;
+#endif
   }
 
   void rollout(const std::vector<ADScalar> &params,
@@ -329,15 +319,17 @@ int main(int argc, char *argv[]) {
   const int time_steps = time_limit / dt;
   const double init_params = 0.2;
 
-  if (argc != 2) {
-    std::cout << "Usage: " << argv[0] << " <dataset.csv>\n";
-    return 1;
-  }
+  // if (argc != 2) {
+  //   std::cout << "Usage: " << argv[0] << " <dataset.csv>\n";
+  //   return 1;
+  // }
 
   google::InitGoogleLogging(argv[0]);
 
-  auto dataset = LoadIbmPendulumFile<double>(argv[1]);
-  dataset.resize(time_steps); // Discard after the clip time.
+  std::string filename =
+      "data/ibm-double-pendulum/original/dpc_dataset_csv/0.csv";
+  auto dataset = LoadIbmPendulumFile<double>(filename);
+  dataset.resize(time_steps);  // Discard after the clip time.
   std::cout << "Using " << dataset.size() << " data steps.\n";
   auto target_states = PendulumIk(dataset);
   assert(dataset.size() > 0);
@@ -365,10 +357,8 @@ int main(int argc, char *argv[]) {
   VisualizerAPI *visualizer = new VisualizerAPI();
   printf("mode=%s\n", (char *)connection_mode.c_str());
   int mode = eCONNECT_GUI;
-  if (connection_mode == "direct")
-    mode = eCONNECT_DIRECT;
-  if (connection_mode == "shared_memory")
-    mode = eCONNECT_SHARED_MEMORY;
+  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
+  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
 
   visualizer->connect(mode);
   std::string plane_filename;
@@ -417,8 +407,7 @@ int main(int argc, char *argv[]) {
         for (int b = 0; b < mbbodies.size(); b++) {
           for (int l = 0; l < mbbodies[b]->m_links.size(); l++) {
             const TinyMultiBody<double, DoubleUtils> *body = mbbodies[b];
-            if (body->m_links[l].m_X_visuals.empty())
-              continue;
+            if (body->m_links[l].m_X_visuals.empty()) continue;
 
             int sphereId = mbvisuals[visual_index++];
 
@@ -453,7 +442,7 @@ int main(int argc, char *argv[]) {
         estimator->options.max_num_consecutive_invalid_steps = 100;
         // divide each cost term by integer time step ^ 2 to reduce gradient
         // explosion
-        estimator->divide_cost_by_time_factor = 10.;
+        estimator->divide_cost_by_time_factor = 0.;  // 10.;
         estimator->divide_cost_by_time_exponent = 1.2;
         return estimator;
       };
@@ -465,7 +454,7 @@ int main(int argc, char *argv[]) {
   }
   BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
                                                   initial_guess);
-  bhe.time_limit = 20;
+  bhe.time_limit = 30;
   bhe.run();
 
   printf("Optimized parameters:");
@@ -476,9 +465,16 @@ int main(int argc, char *argv[]) {
 
   printf("Best cost: %f\n", bhe.best_cost());
 
+  printf("Best parameters:\n");
+  // just create an estimator to get the parameter names
+  auto estimator = construct_estimator();
   std::vector<double> best_params;
+  int pi = 0;
   for (const auto &p : bhe.params) {
     best_params.push_back(p);
+    const auto &named_param = estimator->parameters[pi];
+    printf("\t%s: %.6f\n", named_param.name.c_str(), p);
+    ++pi;
   }
   target_states.clear();
 #else
@@ -512,14 +508,14 @@ int main(int argc, char *argv[]) {
   for (const auto &params : estimator->parameter_evolution()) {
     for (int i = 0; i < static_cast<int>(params.size()); ++i) {
       file << params[i];
-      if (i < static_cast<int>(params.size()) - 1)
-        file << "\t";
+      if (i < static_cast<int>(params.size()) - 1) file << "\t";
     }
     file << "\n";
   }
   file.close();
 #endif
 
+#if !USE_PBH
   for (int solver_iteration = 0;
        solver_iteration < estimator->parameter_evolution().size();
        ++solver_iteration) {
@@ -532,9 +528,18 @@ int main(int argc, char *argv[]) {
        << "_estimated_trajectory.csv";
     write_trajectory_file(fn.str(), step_params, time_steps, dt);
   }
+#endif
 
   write_trajectory_file("best_estimated_trajectory.csv", best_params,
                         time_steps, dt);
+
+  std::vector<std::vector<double>> best_states;
+  rollout_pendulum(best_params, best_states, time_steps, dt);
+  while (true) {
+    visualize_trajectory(best_states, best_params, dt);
+    printf("Playing back in 5s again...");
+    std::this_thread::sleep_for(std::chrono::duration<double>(5.));
+  }
 
   return EXIT_SUCCESS;
 }

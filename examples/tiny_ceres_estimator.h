@@ -273,10 +273,10 @@ class TinyCeresEstimator : ceres::IterationCallback {
           // numerically stable way to get index of rollout state
           int rollout_i = static_cast<int>(std::floor(target_time / dt + 0.5));
           if (rollout_i >= n_rollout - 1) {
-            fprintf(stderr,
-                    "Target time %.4f (step %i) corresponds to a state (%i) "
-                    "that has not been rolled out.\n",
-                    target_time, t, rollout_i);
+            // fprintf(stderr,
+            //         "Target time %.4f (step %i) corresponds to a state (%i) "
+            //         "that has not been rolled out.\n",
+            //         target_time, t, rollout_i);
             break;
           }
           double alpha = (target_time - rollout_i * dt) / dt;
