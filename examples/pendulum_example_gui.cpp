@@ -36,7 +36,8 @@ int main(int argc, char* argv[]) {
   app.m_renderer->get_active_camera()->set_camera_distance(4);
   app.m_renderer->get_active_camera()->set_camera_pitch(-30);
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
-
+  //install ffmpeg in path and uncomment, to enable video recording
+  //app.dump_frames_to_video("test.mp4");
  
 
   // Set NaN trap
@@ -92,6 +93,7 @@ int main(int argc, char* argv[]) {
   TinyMatrixXxX<double, DoubleUtils> M(mb->m_links.size(), mb->m_links.size());
 
   double dt = 1. / 240.;
+  app.set_mp4_fps(1./dt);
   int upAxis = 2;
   while (!app.m_window->requested_exit()) 
   {
@@ -121,9 +123,13 @@ int main(int argc, char* argv[]) {
     std::this_thread::sleep_for(std::chrono::duration<double>(dt));
     // sync transforms
     int visual_index = 0;
+    TinyVector3f prev_pos(0,0,0);
+    TinyVector3f color(0,0,1);
+    float line_width = 1;
+
     if (!mbvisuals.empty()) {
     for (int b = 0; b < mbbodies.size(); b++) {
-        for (int l = 0; l < mbbodies[b]->m_links.size(); l++) {
+        for (int l = 0; l<mbbodies[b]->m_links.size();l++) {
         const TinyMultiBody<double, DoubleUtils>* body = mbbodies[b];
         if (body->m_links[l].m_X_visuals.empty()) continue;
 
@@ -138,11 +144,20 @@ int main(int argc, char* argv[]) {
         geom_X_world.m_rotation.getRotation(rot);
         TinyQuaternionf base_orn(rot.getX(), rot.getY(), rot.getZ(),
                                 rot.getW());
+        if (l>=0)
+        {
+          printf("b=%d\n",b);
+          app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
+        }
+        else
+	{
+		printf("!! b=%d\n",b);
+	}
+        prev_pos = base_pos;
         app.m_renderer->write_single_instance_transform_to_cpu(base_pos, base_orn, sphereId);
         }
     }
     }
-    
     app.m_renderer->render_scene();
     app.m_renderer->write_transforms();
     app.swap_buffer();
