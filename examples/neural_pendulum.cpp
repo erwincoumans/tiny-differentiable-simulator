@@ -9,7 +9,7 @@
 #include "tiny_world.h"
 
 // whether to use Parallel Basin Hopping
-#define USE_PBH false
+#define USE_PBH true
 // whether the state consists of [q qd] or just q
 #define STATE_INCLUDES_QD false
 std::vector<double> start_state;
@@ -289,7 +289,7 @@ int main(int argc, char *argv[]) {
   }
   BasinHoppingEstimator<param_dim, Estimator> bhe(construct_estimator,
                                                   initial_guess);
-  bhe.time_limit = 20;
+  bhe.time_limit = 60;
   bhe.run();
 
   printf("Optimized parameters:");
