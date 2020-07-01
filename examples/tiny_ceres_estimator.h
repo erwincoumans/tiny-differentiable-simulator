@@ -212,7 +212,6 @@ class TinyCeresEstimator : ceres::IterationCallback {
 #endif
 
     // Computes the cost (residual) for input parameters x.
-    // TODO use stan::math reverse-mode AD
     template <typename T>
     bool operator()(const T *const x, T *residual) const {
       // first roll-out simulation given the current parameters
@@ -274,10 +273,10 @@ class TinyCeresEstimator : ceres::IterationCallback {
           // numerically stable way to get index of rollout state
           int rollout_i = static_cast<int>(std::floor(target_time / dt + 0.5));
           if (rollout_i >= n_rollout - 1) {
-            fprintf(stderr,
-                    "Target time %.4f (step %i) corresponds to a state (%i) "
-                    "that has not been rolled out.\n",
-                    target_time, t, rollout_i);
+            // fprintf(stderr,
+            //         "Target time %.4f (step %i) corresponds to a state (%i) "
+            //         "that has not been rolled out.\n",
+            //         target_time, t, rollout_i);
             break;
           }
           double alpha = (target_time - rollout_i * dt) / dt;
@@ -311,10 +310,10 @@ class TinyCeresEstimator : ceres::IterationCallback {
 
           // discount contribution of errors at later time steps to mitigate
           // gradient explosion on long roll-outs
-          // if (parent->divide_cost_by_time_factor != 0. && t > 0) {
-          //   difference /= std::pow(parent->divide_cost_by_time_factor * time,
-          //                          parent->divide_cost_by_time_exponent);
-          // }
+          if (parent->divide_cost_by_time_factor != 0. && t > 0) {
+            difference /= std::pow(parent->divide_cost_by_time_factor * time,
+                                   parent->divide_cost_by_time_exponent);
+          }
 
           if constexpr (kResidualMode == RES_MODE_1D) {
             *residual += difference;
@@ -343,6 +342,7 @@ class TinyCeresEstimator : ceres::IterationCallback {
       if (nonfinite > 0) {
         std::cerr << "nonfinite: " << nonfinite;
       }
+      // std::cout << "  thread ID: " << std::this_thread::get_id();
       printf("\n");
       // } else {
       //   printf("\tcost: %.6f  nonfinite: %d\n",
@@ -385,13 +385,19 @@ class BasinHoppingEstimator {
   /**
    * Terminate if estimation cost drops below this value.
    */
-  double cost_limit{1e-20};
+  double cost_limit{1e-3};
 
   /**
    * Initial standard deviation used for Gaussian noise applied to the
    * parameters, normalized by the bounds of the parameter.
    */
   double initial_std{1.};
+
+  /**
+   * Whether to reduce the standard deviation of the random guess in the
+   * parameter as the iteration count increases.
+   */
+  bool fade_std{true};
 
   BasinHoppingEstimator(
       const EstimatorConstructor &estimator_constructor,
@@ -408,9 +414,9 @@ class BasinHoppingEstimator {
     using namespace std::chrono;
     best_cost_ = std::numeric_limits<double>::max();
     std::cout << "Starting " << num_workers << " worker(s).\n";
+    auto start_time = high_resolution_clock::now();
     for (std::size_t k = 0; k < num_workers; ++k) {
-      workers_.emplace_back([this, k]() {
-        auto start_time = high_resolution_clock::now();
+      workers_.emplace_back([this, k, &start_time]() {
         auto estimator = this->estimator_constructor();
         estimator->setup(new ceres::HuberLoss(1.));  // TODO expose this
         if (k == 0) {
@@ -440,8 +446,7 @@ class BasinHoppingEstimator {
               std::cout << "this->stop_\n";
             }
 #endif
-            if (time_up ||
-                this->stop_) {  // || this->best_cost_ < this->cost_limit) {
+            if (time_up || this->stop_ || this->best_cost_ < this->cost_limit) {
               std::cout << "Thread " << k << " has terminated after " << iter
                         << " iterations. ";
               printf("time up? %d  stop? %d  best cost? %d\n", time_up,
@@ -449,7 +454,13 @@ class BasinHoppingEstimator {
               return;
             }
           }
+          double &solver_time_limit =
+              estimator->options.max_solver_time_in_seconds;
+          if (solver_time_limit > time_limit) {
+            solver_time_limit = time_limit;
+          }
           auto summary = estimator->solve();
+          std::cout << summary.FullReport() << std::endl;
           {
             std::unique_lock<std::mutex> lock(this->mutex_);
             if (summary.final_cost < this->best_cost_) {
@@ -459,20 +470,23 @@ class BasinHoppingEstimator {
                 this->params[i] = estimator->parameters[i].value;
               }
             }
-            // apply random change to the parameters
-            for (int i = 0; i < kParameterDim; ++i) {
-              auto &param = estimator->parameters[i];
-              // std::normal_distribution<double> d{
-              //     this->params[i],
-              //     initial_std / (iter + 1.) * (param.maximum -
-              //     param.minimum)};
+          }
+          // apply random change to the parameters
+          for (int i = 0; i < kParameterDim; ++i) {
+            auto &param = estimator->parameters[i];
+            if (fade_std) {
+              std::normal_distribution<double> d{
+                  this->params[i],
+                  initial_std / (iter + 1.) * (param.maximum - param.minimum)};
+              param.value = d(this->gen_);
+            } else {
               std::normal_distribution<double> d{
                   this->params[i],
                   initial_std * (param.maximum - param.minimum)};
               param.value = d(this->gen_);
-              param.value = std::max(param.minimum, param.value);
-              param.value = std::min(param.maximum, param.value);
             }
+            param.value = std::max(param.minimum, param.value);
+            param.value = std::min(param.maximum, param.value);
           }
         }
       });
