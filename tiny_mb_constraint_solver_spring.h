@@ -247,7 +247,7 @@ struct TinyMultiBodyConstraintSolverSpring
                         TinyConstants::abs(v) / andersson_vs, andersson_p))) *
                TinyConstants::tanh(andersson_ktanh * v);
       case FRICTION_HOLLARS:
-        return fn * TinyConstants::min(vvt, one) *
+        return fn * TinyConstants::min1(vvt, one) *
                (mu + (two * (mu_static - mu)) / (one + vvt * vvt));
       case FRICTION_BROWN: {
         // Simplified three-parameter model (Eq. (4.5))
