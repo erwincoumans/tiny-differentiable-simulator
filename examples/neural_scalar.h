@@ -3,16 +3,9 @@
 
 #include <iostream>
 #include <map>
+#include <thread>
 
 #include "tiny_neural_network.h"
-
-#if defined(__GNUC__) || defined(__GNUG__)
-// thread_local causes compilation issue on GCC, but multi-threading issues
-// exist even with Clang
-#define static_local static
-#else
-#define static_local thread_local static
-#endif
 
 /**
  * Implements a "neural network" scalar type that accepts input connections from
@@ -63,14 +56,25 @@ class NeuralScalar {
     NeuralNetworkType net;
   };
 
-  static_local inline std::map<std::string, const NeuralScalar*>
-      named_scalars_{};
-  static_local inline std::map<std::string, NeuralBlueprint> blueprints_{};
+  struct GlobalData {
+    std::map<std::string, const NeuralScalar*> named_scalars_;
+    std::map<std::string, NeuralBlueprint> blueprints_;
+  };
+
+  static inline std::map<std::thread::id, GlobalData> data_{};
+
+  static GlobalData& get_data_() {
+    auto id = std::this_thread::get_id();
+    if (data_.find(id) == data_.end()) {
+      data_[id] = GlobalData();
+    }
+    return data_[id];
+  }
 
   Scalar evaluate_network_() const {
-    if (!name_.empty() && named_scalars_[name_] != this) {
-      return named_scalars_[name_]->evaluate_network_();
-    }
+    // if (!name_.empty() && named_scalars_[name_] != this) {
+    //   return named_scalars_[name_]->evaluate_network_();
+    // }
     std::vector<Scalar> inputs(inputs_.size());
     for (std::size_t i = 0; i < inputs_.size(); ++i) {
       if (inputs_[i] == nullptr) continue;
@@ -148,10 +152,11 @@ class NeuralScalar {
    * such name exists.
    */
   static const NeuralScalar* retrieve(const std::string& name) {
-    if (named_scalars_.find(name) == named_scalars_.end()) {
+    const auto& named_scalars = get_data_().named_scalars_;
+    if (named_scalars.find(name) == named_scalars.end()) {
       return nullptr;
     }
-    return named_scalars_[name];
+    return named_scalars.at(name);
   }
 
   /**
@@ -161,8 +166,10 @@ class NeuralScalar {
    */
   void assign(const std::string& name) const {
     name_ = name;
-    if (blueprints_.find(name) != blueprints_.end()) {
-      const NeuralBlueprint& blueprint = blueprints_[name];
+    auto& data = get_data_();
+    auto& blueprints = data.blueprints_;
+    if (blueprints.find(name) != blueprints.end()) {
+      const NeuralBlueprint& blueprint = blueprints[name];
       for (const std::string& input_name : blueprint.input_names) {
         const NeuralScalar* input = retrieve(input_name);
         if (input == nullptr) {
@@ -174,7 +181,7 @@ class NeuralScalar {
       }
       net_ = blueprint.net;
     }
-    named_scalars_[name] = this;
+    data.named_scalars_[name] = this;
   }
 
   const Scalar& evaluate() const {
@@ -202,7 +209,7 @@ class NeuralScalar {
                             const std::vector<std::string>& input_names,
                             const NeuralNetworkType& net) {
     NeuralBlueprint blueprint{input_names, net};
-    blueprints_[scalar_name] = blueprint;
+    get_data_().blueprints_[scalar_name] = blueprint;
   }
 
   /**
@@ -211,7 +218,8 @@ class NeuralScalar {
    */
   static int num_blueprint_parameters() {
     int total = 0;
-    for (const auto& entry : blueprints_) {
+    const auto& blueprints = get_data_().blueprints_;
+    for (const auto& entry : blueprints) {
       total += entry.second.net.num_parameters();
     }
     return total;
@@ -229,21 +237,25 @@ class NeuralScalar {
       return;
     }
     int index = 0, next_index;
-    for (auto& entry : blueprints_) {
+    auto& blueprints = get_data_().blueprints_;
+    for (auto& entry : blueprints) {
       int num_net = entry.second.net.num_parameters();
       next_index = index + num_net;
       std::vector<Scalar> net_params(params.begin() + index,
                                      params.begin() + next_index);
       entry.second.net.set_parameters(net_params);
+#if DEBUG
       printf("Assigned %d parameters to network of scalar \"%s\".\n", num_net,
              entry.first.c_str());
+#endif
       index = next_index;
     }
   }
 
   static void clear_registers() {
-    blueprints_.clear();
-    named_scalars_.clear();
+    auto& data = get_data_();
+    data.blueprints_.clear();
+    data.named_scalars_.clear();
   }
 
   /// Scalar operators create plain NeuralScalars that do not have neural

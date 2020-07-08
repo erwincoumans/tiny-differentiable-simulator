@@ -207,9 +207,11 @@ if (tinyxml2_FOUND)
     add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
     target_link_libraries(tiny_urdf_parser_example tinyxml2)
 
+if (Ceres_FOUND)
     add_executable(neural_contact neural_contact.cpp ${TDS_HDRS})
     target_link_libraries(neural_contact opengl_window ${DL}
             ${CERES_LIBRARIES} ${MESHCAT_LIBRARIES} python2.7 tinyxml2)
+endif (Ceres_FOUND)
 endif (tinyxml2_FOUND)
 
 add_executable(world_example world_example.cpp ${TDS_HDRS})
@@ -224,6 +226,15 @@ add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.c
 target_include_directories(opengl_test PRIVATE ../third_party/tinyobjloader)
 target_include_directories(opengl_test PRIVATE ../third_party)
 
+
+
+add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS}) 
+target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window) 
+target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party/tinyobjloader)
+target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party)
+
+
+
 target_link_libraries(opengl_test opengl_window)
 
 subdirs(../third_party/dear_imgui)
@@ -235,6 +246,7 @@ target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../thir
 
 IF(WIN32)
     target_link_libraries(pendulum_example_gui Opengl32)
+    target_link_libraries(tiny_urdf_parser_opengl_example Opengl32)
     target_link_libraries(opengl_test  Opengl32)
     target_link_libraries(opengl_imgui_test Opengl32)
 ENDIF()
