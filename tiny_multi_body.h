@@ -799,6 +799,9 @@ class TinyMultiBody {
    * matrix. M must be a properly initialized square matrix of size dof_qd().
    */
   void mass_matrix(TinyMatrixXxX* M) { mass_matrix(m_q, M); }
+  void mass_matrix1(TinyMatrixXxX* M) { 
+      mass_matrix(m_q, M); 
+  }
 
   /**
    * LTDL factorization exploiting branch-induced sparsity pattern in

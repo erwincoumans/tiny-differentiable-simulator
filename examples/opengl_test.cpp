@@ -49,10 +49,13 @@ int main(int argc, char* argv[]) {
       &texels[0], texWidth, texHeight);
 
   int shape = app.register_cube_shape(10, 10, 0.01, textureIndex, 40);  //, 10);
-  app.m_renderer->register_graphics_instance(shape, pos, orn, color, scaling);
-  pos.setValue(0, 0, 2);
+  
+  int inst = app.m_renderer->register_graphics_instance(shape, pos, orn, color, scaling);
+  //app.m_renderer->write_single_instance_color_to_cpu(color, inst);
+  pos.setValue(0, 0, 1);
   shape = app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
-  app.m_renderer->register_graphics_instance(shape, pos, orn, color, scaling);
+  float opacity = 0.7;
+  app.m_renderer->register_graphics_instance(shape, pos, orn, color, scaling, opacity);
 
 
   tinyobj::attrib_t attrib;
