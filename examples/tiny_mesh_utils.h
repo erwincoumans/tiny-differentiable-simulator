@@ -1,6 +1,8 @@
 #ifndef TINY_MESH_UTILS_H
 #define TINY_MESH_UTILS_H
 #include "tiny_min_max.h"
+#include <float.h>
+
 class TinyMeshUtils {
 public:
 	static void extract_shape(
