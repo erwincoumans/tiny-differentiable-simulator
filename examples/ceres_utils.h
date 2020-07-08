@@ -101,13 +101,13 @@ struct CeresUtils {
   }
 
   template <class T>
-  static T min(const T& a, const T& b) {
-    return min(a, b);
+  static T min1(const T& a, const T& b) {
+    return ceres::fmin(a, b);
   }
 
   template <class T>
-  static T max(const T& a, const T& b) {
-    return max(a, b);
+  static T max1(const T& a, const T& b) {
+    return ceres::fmax(a, b);
   }
 
   static double getDouble(const Jet& v) { return v.a; }

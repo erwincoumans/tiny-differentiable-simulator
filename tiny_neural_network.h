@@ -189,7 +189,7 @@ class TinyNeuralNetworkSpecification {
             current[ci] = TinyConstants::sin1(current[ci]);
             break;
           case NN_ACT_RELU:
-            current[ci] = TinyConstants::max(zero, current[ci]);
+            current[ci] = TinyConstants::max1(zero, current[ci]);
             break;
           case NN_ACT_SOFT_RELU:
             current[ci] =
