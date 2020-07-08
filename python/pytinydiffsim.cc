@@ -22,6 +22,7 @@
 #include "fix64_scalar.h"
 #include "tiny_double_utils.h"
 #include "tiny_matrix3x3.h"
+#include "tiny_matrix_x.h"
 #include "tiny_mb_constraint_solver_spring.h"
 #include "tiny_multi_body.h"
 #include "tiny_pose.h"
@@ -132,6 +133,18 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def("apply_impulse", &TinyRigidBody<double, DoubleUtils>::apply_impulse)
       .def("clear_forces", &TinyRigidBody<double, DoubleUtils>::clear_forces)
       .def("integrate", &TinyRigidBody<double, DoubleUtils>::integrate);
+
+  py::class_<TinyMatrixXxX<double, DoubleUtils>>(m, "TinyMatrixXxX")
+      .def(py::init<int, int>())
+      .def("inversed", &TinyMatrixXxX<double, DoubleUtils>::inversed)
+      .def("set_zero", &TinyMatrixXxX<double, DoubleUtils>::set_zero)
+      .def("print", &TinyMatrixXxX<double, DoubleUtils>::print)
+      .def("__getitem__", [](const TinyMatrixXxX<double, DoubleUtils>& a,
+          int row, int col) { return a(row,col); })
+      .def_readonly("num_rows", &TinyMatrixXxX<double, DoubleUtils>::m_rows)
+      .def_readonly("num_columns", &TinyMatrixXxX<double, DoubleUtils>::m_cols)
+      
+      ;
 
   py::class_<TinyMatrix3x3<double, DoubleUtils>>(m, "TinyMatrix3x3")
       .def(py::init<>())
@@ -253,7 +266,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
            &TinyMultiBody<double, DoubleUtils>::set_position)
       .def("get_world_transform",
            &TinyMultiBody<double, DoubleUtils>::get_world_transform)
-
+      .def("mass_matrix", &TinyMultiBody<double, DoubleUtils>::mass_matrix1)
       .def("attach_link", &TinyMultiBody<double, DoubleUtils>::attach_link)
       .def("forward_kinematics",
            &TinyMultiBody<double, DoubleUtils>::forward_kinematics1)
@@ -268,6 +281,8 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def("point_jacobian",
            &TinyMultiBody<double, DoubleUtils>::point_jacobian1)
       .def("bias_forces", &TinyMultiBody<double, DoubleUtils>::bias_forces)
+      .def_property_readonly("num_dofs", &TinyMultiBody<double, DoubleUtils>::dof)
+      .def_property_readonly("num_dofs_qd", &TinyMultiBody<double, DoubleUtils>::dof_qd)
       .def_readwrite("q", &TinyMultiBody<double, DoubleUtils>::m_q)
       .def_readwrite("links", &TinyMultiBody<double, DoubleUtils>::m_links)
       .def_readwrite("qd", &TinyMultiBody<double, DoubleUtils>::m_qd)

@@ -902,7 +902,7 @@ int TinyGLInstancingRenderer::register_graphics_instance_internal(
     c.setInt(newUid);
     m_data->m_instance_scale_ptr[index * 4 + 3] = c.getFloat();
 
-    if (0)  // color[3] < 1 && color[3] > 0)
+    if (opacity < 1 && opacity > 0)
     {
       gfxObj->m_flags |= B3_INSTANCE_TRANSPARANCY;
     }
@@ -928,11 +928,11 @@ int TinyGLInstancingRenderer::register_graphics_instance(
   assert(m_graphicsInstances.size() < m_data->m_maxNumObjectCapacity - 1);
   if (shapeIndex == (m_graphicsInstances.size() - 1)) {
     register_graphics_instance_internal(newUid, position, quaternion, color,
-                                        scaling);
+                                        scaling, opacity);
   } else {
     int srcIndex = m_data->m_totalNumInstances++;
     pg->m_internalInstanceIndex = srcIndex;
-
+    
     m_data->m_instance_positions_ptr[srcIndex * 4 + 0] = position[0];
     m_data->m_instance_positions_ptr[srcIndex * 4 + 1] = position[1];
     m_data->m_instance_positions_ptr[srcIndex * 4 + 2] = position[2];
