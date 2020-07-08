@@ -117,9 +117,9 @@ if (Bullet_FOUND)
         target_link_libraries(cartpole_opt pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
 
-        add_executable(ceres_estimation ceres_estimation.cpp ${TDS_HDRS})
-        target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
-                ${CERES_LIBRARIES})
+        #add_executable(ceres_estimation ceres_estimation.cpp ${TDS_HDRS})
+        #target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
+        #        ${CERES_LIBRARIES})
 
         # set(DUSE_MATPLOTLIB true)
         add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
