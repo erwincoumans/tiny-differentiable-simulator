@@ -164,8 +164,6 @@ if (Bullet_FOUND)
     target_link_libraries(laikago_example_gui pybullet_visualizer_api)
 
     if (Eigen3_FOUND)
-      add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
-      target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
 
       add_executable(pendulum_ik_gui pendulum_ik_gui.cpp)
       target_link_libraries(pendulum_ik_gui pybullet_visualizer_api)
@@ -218,6 +216,11 @@ add_executable(world_example world_example.cpp ${TDS_HDRS})
 add_executable(test_xarm test_xarm.cpp ${TDS_HDRS})
 
 subdirs(opengl_window)
+
+if (Eigen3_FOUND)
+      add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
+      target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
+endif(Eigen3_FOUND)
 
 add_executable(pendulum_example_gui pendulum_example_gui.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
 target_link_libraries(pendulum_example_gui opengl_window)
