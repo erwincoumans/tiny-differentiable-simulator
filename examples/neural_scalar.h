@@ -374,11 +374,11 @@ struct NeuralScalarUtils {
   static NeuralScalar tanh(const NeuralScalar& v) {
     return Utils::tanh(v.evaluate());
   }
-  static NeuralScalar min(const NeuralScalar& a, const NeuralScalar& b) {
-    return Utils::min(a.evaluate(), b.evaluate());
+  static NeuralScalar min1(const NeuralScalar& a, const NeuralScalar& b) {
+    return Utils::min1(a.evaluate(), b.evaluate());
   }
-  static NeuralScalar max(const NeuralScalar& a, const NeuralScalar& b) {
-    return Utils::max(a.evaluate(), b.evaluate());
+  static NeuralScalar max1(const NeuralScalar& a, const NeuralScalar& b) {
+    return Utils::max1(a.evaluate(), b.evaluate());
   }
 
   static NeuralScalar zero() { return scalar_from_double(0.); }
