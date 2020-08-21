@@ -79,6 +79,13 @@ class TinyMatrixXxX_ {
     return m_columns[col][row];
   }
 
+  inline const TinyScalar& get_at(int row, int col)
+  {
+      TinyConstants::FullAssert(0 <= row && row < m_rows);
+      TinyConstants::FullAssert(0 <= col && col < m_cols);
+      return m_columns[col][row];
+  }
+
   inline const ColumnVector& operator[](int col) const {
     TinyConstants::FullAssert(0 <= col && col < m_cols);
     return m_columns[col];

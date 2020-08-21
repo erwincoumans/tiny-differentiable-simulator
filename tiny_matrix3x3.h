@@ -120,6 +120,13 @@ class TinyMatrix3x3 {
     TinyConstants::FullAssert(0 <= col && col < 3);
     return m_el[row][col];
   }
+
+  inline const TinyScalar& get_at(int row, int col) const {
+	  TinyConstants::FullAssert(0 <= row && row < 3);
+	  TinyConstants::FullAssert(0 <= col && col < 3);
+	  return m_el[row][col];
+  }
+
   inline TinyScalar& operator()(int row, int col) {
     TinyConstants::FullAssert(0 <= row && row < 3);
     TinyConstants::FullAssert(0 <= col && col < 3);
