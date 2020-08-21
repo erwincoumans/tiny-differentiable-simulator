@@ -139,6 +139,7 @@ PYBIND11_MODULE(pytinydiffsim, m) {
       .def("inversed", &TinyMatrixXxX<double, DoubleUtils>::inversed)
       .def("set_zero", &TinyMatrixXxX<double, DoubleUtils>::set_zero)
       .def("print", &TinyMatrixXxX<double, DoubleUtils>::print)
+      .def("get_at", &TinyMatrixXxX<double, DoubleUtils>::get_at)
       .def("__getitem__", [](const TinyMatrixXxX<double, DoubleUtils>& a,
           int row, int col) { return a(row,col); })
       .def_readonly("num_rows", &TinyMatrixXxX<double, DoubleUtils>::m_rows)
@@ -149,8 +150,15 @@ PYBIND11_MODULE(pytinydiffsim, m) {
   py::class_<TinyMatrix3x3<double, DoubleUtils>>(m, "TinyMatrix3x3")
       .def(py::init<>())
       .def(py::init<TinyQuaternion<double, DoubleUtils>>())
-      .def("get_row", &TinyMatrix3x3<double, DoubleUtils>::getRow)
+      .def("get_at", &TinyMatrix3x3<double, DoubleUtils>::get_at)
       .def("set_identity", &TinyMatrix3x3<double, DoubleUtils>::set_identity);
+
+  py::class_<TinyMatrix3xX<double, DoubleUtils>>(m, "TinyMatrix3xX")
+      .def(py::init<>())
+      .def_readonly("num_rows", &TinyMatrix3xX<double, DoubleUtils>::m_rows)
+      .def_readonly("num_columns", &TinyMatrix3xX<double, DoubleUtils>::m_cols)
+      .def("print", &TinyMatrix3xX<double, DoubleUtils>::print)
+      .def("get_at", &TinyMatrix3xX<double, DoubleUtils>::get_at);
 
   py::class_<TinyQuaternion<double, DoubleUtils>>(m, "TinyQuaternion")
       .def(py::init<double, double, double, double>())
