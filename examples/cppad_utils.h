@@ -76,6 +76,7 @@ struct CppADUtils {
 
   static Scalar convert(int value) { return Scalar(double(value)); }
 
+  static Scalar scalar_from_double(double value) { return Scalar(value);}
   template <class T>
   static Scalar fraction(T, T) = delete;  // C++11
 
