@@ -116,15 +116,15 @@ if (Bullet_FOUND)
         add_executable(cartpole_opt cartpole_opt.cpp ${TDS_HDRS})
         target_link_libraries(cartpole_opt pybullet_visualizer_api ${DL}
                 ${CERES_LIBRARIES})
+# broken targets
+#        add_executable(ceres_estimation ceres_estimation.cpp ${TDS_HDRS})
+#        target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
+#                ${CERES_LIBRARIES})
 
-        #add_executable(ceres_estimation ceres_estimation.cpp ${TDS_HDRS})
-        #target_link_libraries(ceres_estimation pybullet_visualizer_api ${DL}
-        #        ${CERES_LIBRARIES})
-
-        # set(DUSE_MATPLOTLIB true)
-        add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
-        target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${DL}
-                ${CERES_LIBRARIES} python2.7)
+#        # set(DUSE_MATPLOTLIB true)
+#        add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
+#        target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${DL}
+#                ${CERES_LIBRARIES} python2.7)
 
         add_executable(neural_pendulum neural_pendulum.cpp ${TDS_HDRS})
         target_link_libraries(neural_pendulum pybullet_visualizer_api ${DL}
@@ -164,6 +164,8 @@ if (Bullet_FOUND)
     target_link_libraries(laikago_example_gui pybullet_visualizer_api)
 
     if (Eigen3_FOUND)
+      add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
+      target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
 
       add_executable(pendulum_ik_gui pendulum_ik_gui.cpp)
       target_link_libraries(pendulum_ik_gui pybullet_visualizer_api)
@@ -216,11 +218,6 @@ add_executable(world_example world_example.cpp ${TDS_HDRS})
 add_executable(test_xarm test_xarm.cpp ${TDS_HDRS})
 
 subdirs(opengl_window)
-
-if (Eigen3_FOUND)
-      add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
-      target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
-endif(Eigen3_FOUND)
 
 add_executable(pendulum_example_gui pendulum_example_gui.cpp utils/tiny_clock.cpp utils/tiny_chrome_trace_util.cpp utils/tiny_logging.cpp ${TDS_HDRS})
 target_link_libraries(pendulum_example_gui opengl_window)
