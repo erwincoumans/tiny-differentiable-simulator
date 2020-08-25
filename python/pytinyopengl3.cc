@@ -21,7 +21,21 @@
 #include "tiny_vector3.h"
 #include "examples/opengl_window/tiny_opengl3_app.h"
 #include "examples/opengl_window/tiny_camera.h"
+#include <string>
 
+std::string file_open_dialog(TinyWindowInterface* window)
+{
+  std::string file_name="";
+  char file_name_buffer[1024]={0};
+  if (window)
+  {
+    if (window->file_open_dialog(file_name_buffer, 1024))
+      {
+        file_name = file_name_buffer;
+      }
+  }
+  return file_name;
+}
 
 
 namespace py = pybind11;
@@ -55,11 +69,12 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("draw_text_3d", (void (TinyOpenGL3App::*)(const char*, float [3], float[4], float[4], float, int)) &TinyOpenGL3App::draw_text_3d)
       .def("draw_text_3d", (void (TinyOpenGL3App::*)(const char*, float, float, float, float)) &TinyOpenGL3App::draw_text_3d)
       .def_readwrite("renderer",&TinyOpenGL3App::m_renderer)
+      .def_readwrite("window",&TinyOpenGL3App::m_window)
       ;
       
   
   py::class_<TinyCamera>(m, "TinyCamera")
-    .def(py::init<>())
+    //.def(py::init<>())
     .def("update", &TinyCamera::update)
     .def("set_camera_distance", &TinyCamera::set_camera_distance)
     .def("set_camera_pitch", &TinyCamera::set_camera_pitch)
@@ -70,11 +85,43 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       
   py::class_<TinyGLInstancingRenderer>(m, "TinyGLInstancingRenderer")
     .def("init", &TinyGLInstancingRenderer::init)
-    .def("register_graphics_instance", &TinyGLInstancingRenderer::register_graphics_instance)
+    
     .def("update_camera", &TinyGLInstancingRenderer::update_camera)
+    
+    .def("register_shape", &TinyGLInstancingRenderer::register_shape1)
+    //.def("update_shape", &TinyGLInstancingRenderer::update_shape)
+
+    .def("register_texture", &TinyGLInstancingRenderer::register_texture1)
+    //.def("update_texture", &TinyGLInstancingRenderer::update_texture)
+    .def("remove_texture", &TinyGLInstancingRenderer::remove_texture)
+
+    .def("register_graphics_instance", &TinyGLInstancingRenderer::register_graphics_instance)
+    .def("write_single_instance_transform_to_cpu", &TinyGLInstancingRenderer::write_single_instance_transform_to_cpu)
+    
     .def("render_scene", &TinyGLInstancingRenderer::render_scene)
+    .def("write_transforms", &TinyGLInstancingRenderer::write_transforms)
+    .def("remove_all_instances", &TinyGLInstancingRenderer::remove_all_instances)
+    .def("remove_graphics_instance", &TinyGLInstancingRenderer::remove_graphics_instance)
       
+    .def("get_active_camera", (TinyCamera* (TinyGLInstancingRenderer::*)()) &TinyGLInstancingRenderer::get_active_camera)
+    //.def("set_active_camera", &TinyGLInstancingRenderer::set_active_camera)
+      
+    .def("draw_line", &TinyGLInstancingRenderer::draw_line)
+    .def("draw_lines", &TinyGLInstancingRenderer::draw_lines)
+    .def("get_screen_width", &TinyGLInstancingRenderer::get_screen_width)
+    .def("get_screen_height", &TinyGLInstancingRenderer::get_screen_height)
+    .def("get_total_num_instances", &TinyGLInstancingRenderer::get_total_num_instances)
+    .def("set_plane_reflection_shape_index", &TinyGLInstancingRenderer::set_plane_reflection_shape_index)
     ;
+    
+   py::class_<TinyWindowInterface>(m, "TinyWindowInterface")
+  .def("requested_exit", &TinyWindowInterface::requested_exit)
+  .def("set_request_exit", &TinyWindowInterface::requested_exit)
+  //.def("set_mouse_button_callback", &TinyWindowInterface::set_mouse_button_callback)
+  .def("set_window_title", &TinyWindowInterface::set_window_title)
+  ;
+  
+  m.def("file_open_dialog", &file_open_dialog);
       
   py::class_<TinyVector3<float, FloatUtils>>(m, "TinyVector3f")
       .def(py::init<float, float, float>())
