@@ -53,6 +53,10 @@ class TinyDual {
     return lhs.real() > rhs.real();
   }
 
+  inline friend bool operator>=(const TinyDual& lhs, const TinyDual& rhs) {
+      return lhs.real() >= rhs.real();
+  }
+  
   inline friend bool operator==(const TinyDual& lhs, const TinyDual& rhs) {
     return lhs.real() == rhs.real();
   }
