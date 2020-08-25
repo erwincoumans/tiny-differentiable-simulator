@@ -51,7 +51,12 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                                  int depthBufferSizeInBytes);
   virtual void set_viewport(int width, int height);
 
-  void draw_grid(DrawGridData data = DrawGridData());
+  void draw_grid(DrawGridData data);
+  void draw_grid()
+  {
+      DrawGridData data = DrawGridData();
+      draw_grid(data);
+  }
   virtual void set_up_axis(int axis);
   virtual int get_up_axis() const;
 
