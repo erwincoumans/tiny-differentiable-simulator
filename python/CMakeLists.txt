@@ -67,12 +67,13 @@ INCLUDE_DIRECTORIES(
 ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 
 
-SET(pytinydiffsim_SRCS
-	pytinydiffsim.cc 
-)
 
 
-ADD_LIBRARY(pytinydiffsim SHARED ${pytinydiffsim_SRCS} ${TDS_HDRS})
+ADD_LIBRARY(pytinydiffsim SHARED pytinydiffsim.cc ${TDS_HDRS})
+
+
+ADD_LIBRARY(pytinydiffsim_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
+
 
 
 #SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES PREFIX "")
@@ -84,7 +85,7 @@ ADD_LIBRARY(pytinydiffsim SHARED ${pytinydiffsim_SRCS} ${TDS_HDRS})
 
 
 TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2)
-
+TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2)
 
 IF (WIN32)
   TARGET_COMPILE_OPTIONS(pytinydiffsim PUBLIC -bigobj)
@@ -99,6 +100,17 @@ ELSEIF (APPLE)
   SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 ENDIF ()
 
+IF (WIN32)
+  TARGET_COMPILE_OPTIONS(pytinydiffsim_dual PUBLIC -bigobj)
+  
+  GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
+  
+  target_link_directories (pytinydiffsim_dual PUBLIC "${PYTHON_LIBRARY_DIR}")
+  TARGET_LINK_LIBRARIES(pytinydiffsim_dual ${PYTHON_LIBRARIES})
+ELSEIF (APPLE)
+  SET_TARGET_PROPERTIES(pytinydiffsim_dual PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+ENDIF ()
+
 
 INCLUDE_DIRECTORIES( 
     ${DIFF_PHYSICS_SOURCE_DIR}
@@ -107,12 +119,29 @@ INCLUDE_DIRECTORIES(
     ${PYTHON_NUMPY_INCLUDE_DIR}
 )
 
+##################################################################
+
+SET(pytinyopengl3_SRCS
+	pytinyopengl3.cc
+)
+
+ADD_LIBRARY(pytinyopengl3 SHARED ${pytinyopengl3_SRCS} ${TDS_HDRS})
+TARGET_LINK_LIBRARIES(pytinyopengl3 opengl_window)
 
 
 
-
-
-
-
+IF (WIN32)
+  TARGET_COMPILE_OPTIONS(pytinyopengl3 PUBLIC -bigobj)
+  MESSAGE("PYTHON_LIBRARIES")
+  MESSAGE(${PYTHON_LIBRARIES})
+  GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
+  MESSAGE("PYTHON_LIBRARY_DIR ")
+  MESSAGE(${PYTHON_LIBRARY_DIR})
+  target_link_directories (pytinyopengl3 PUBLIC "${PYTHON_LIBRARY_DIR}")
+  TARGET_LINK_LIBRARIES(pytinyopengl3 ${PYTHON_LIBRARIES} Opengl32)
+  
+ELSEIF (APPLE)
+  SET_TARGET_PROPERTIES(pytinyopengl3 PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+ENDIF ()
 
 

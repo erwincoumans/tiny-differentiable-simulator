@@ -109,7 +109,7 @@ else:
         print("numpy_include_dirs = %s" % d)
     include_dirs += NP_DIRS
 
-sources = ["python/pytinydiffsim.cc", "third_party/tinyxml2/tinyxml2.cpp"]
+sources = ["third_party/tinyxml2/tinyxml2.cpp"]
 
 pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
 "examples/opengl_window/tiny_camera.cpp",\
@@ -206,12 +206,21 @@ extensions = []
 
 pytinydiffsim_ext = Extension(
     "pytinydiffsim",
-    sources=sources,
+    sources=sources+["python/pytinydiffsim.cc"],
     libraries=libraries,
     extra_compile_args=CXX_FLAGS.split(),
     include_dirs=include_dirs + ["."])
 
 extensions.append(pytinydiffsim_ext)
+
+pytinydiffsim_dual_ext = Extension(
+    "pytinydiffsim_dual",
+    sources=sources+["python/pytinydiffsim_dual.cc"],
+    libraries=libraries,
+    extra_compile_args=CXX_FLAGS.split(),
+    include_dirs=include_dirs + ["."])
+
+extensions.append(pytinydiffsim_dual_ext)
 
 pytinyopengl3_ext = Extension(
     "pytinyopengl3",
