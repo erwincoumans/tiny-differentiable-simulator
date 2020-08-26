@@ -107,6 +107,7 @@
       .def(py::init<>())
       .def(py::init<TinyQuaternion<MyScalar, MyTinyConstants>>())
       .def("get_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::get_at)
+      .def("get_row",&TinyMatrix3x3<MyScalar, MyTinyConstants>::getRow)
       .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity);
 
   py::class_<TinyMatrix3xX<MyScalar, MyTinyConstants>>(m, "TinyMatrix3xX")
@@ -541,7 +542,6 @@
 #else
   m.attr("__version__") = "dev";
 #endif
-#if 0
   m.attr("SPHERE_TYPE") = py::int_(int(TINY_SPHERE_TYPE));
   m.attr("BOX_TYPE") = py::int_(int(TINY_BOX_TYPE));
   m.attr("PLANE_TYPE") = py::int_(int(TINY_PLANE_TYPE));
@@ -557,7 +557,6 @@
   m.attr("JOINT_REVOLUTE_Y") = py::int_(int(JOINT_REVOLUTE_Y));
   m.attr("JOINT_REVOLUTE_Z") = py::int_(int(JOINT_REVOLUTE_Z));
   m.attr("JOINT_REVOLUTE_AXIS") = py::int_(int(JOINT_REVOLUTE_AXIS));
-#endif
 
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;
