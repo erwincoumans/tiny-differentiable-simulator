@@ -14,12 +14,45 @@
  * limitations under the License.
  */
 
+
+// this work contains parts derived from 
+// https://github.com/dtecta/motion-toolkit
+// MIT license
+
+// Copyright(c) 2006 Gino van den Bergen, DTECTA
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this softwareand associated documentation files(the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+// 
+// The above copyright noticeand this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+
 #ifndef TINY_DUAL_DOUBLE_UTILS_H
 #define TINY_DUAL_DOUBLE_UTILS_H
 
+#ifdef _WIN32 
+//for M_PI
+#define _USE_MATH_DEFINES
+#endif
 #include <math.h>
 
 #include "tiny_dual.h"
+#include <assert.h>
+#include <stdio.h>
+#include <string>
 
 typedef ::TinyDual<double> TinyDualDouble;
 
@@ -55,7 +88,79 @@ struct TinyDualDoubleUtils {
     return sqrt(v);
   }
 
+  static TinyDualDouble log(const TinyDualDouble& z)
+  {
+      return TinyDualDouble(::log(z.real()), z.dual() / z.real());
+  }
+
+  static TinyDualDouble pow(const TinyDualDouble& x, const TinyDualDouble& y)
+  {
+      return exp(log(x) * y);
+  }
+
+
+  static TinyDualDouble exp(TinyDualDouble z)
+  {
+      double x = ::exp(z.real());
+      return TinyDualDouble(x, z.dual() * x);
+  }
+
+  static TinyDualDouble tanh(const TinyDualDouble& z)
+  {
+      double x = ::tanh(z.real());
+      return TinyDualDouble(x, z.dual() * (double(1) - x * x));
+  }
+
+  template <typename T> int sgn1(T val) {
+      return (T(0) < val) - (val < T(0));
+  }
+
+  static TinyDualDouble abs(const TinyDualDouble& a)
+  {
+      double signa = (a.real() < 0) - (0 < a.real());
+      return TinyDualDouble(::abs(a.real()), a.dual()  * signa);
+  }
+
+  //todo: check if this is ok
+  static TinyDualDouble min1(const TinyDualDouble& a, const TinyDualDouble& b)
+  {
+      if (a.real() <= b.real())
+      {
+          return a;
+      }
+      else
+      {
+          return b;
+      }
+  }
+
+ static TinyDualDouble copysign(const TinyDualDouble& x, const TinyDualDouble& y)
+ { 
+     return TinyDualDouble(::copysign(x.real(), y.real()));
+ }
+  
+ static TinyDualDouble asin(const TinyDualDouble& z)
+ {
+     return TinyDualDouble(::asin(z.real()), z.dual() / ::sqrt(double(1) - z.real() * z.real()));
+ }
+
+  static TinyDualDouble atan2(const TinyDualDouble& y, const TinyDualDouble& x)
+  {
+      TinyDualDouble z = y / x;
+      bool neg_x = x.real() < 0;
+      bool neg_y = y.real() < 0;
+
+      double quadrant = neg_x ? (neg_y ? -M_PI : M_PI) : 0;
+      return TinyDualDouble(atan(z.real()) + quadrant, z.dual() / (double(1) + (z.real()*z.real())));
+  }
+
+
   static double getDouble(TinyDualDouble v) { return (double)v.real(); }
+
+  static TinyDualDouble scalar_from_string(const std::string& txt) {
+      double result = atof(txt.c_str());
+      return TinyDualDouble(result);
+  }
 
   template <class T>
   static double getDouble(T v) {

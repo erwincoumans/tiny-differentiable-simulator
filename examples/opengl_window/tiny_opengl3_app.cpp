@@ -293,6 +293,7 @@ static void printGLString(const char* name, GLenum s) {
 
 bool sOpenGLVerbose = true;
 
+
 TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
                                bool allowRetina, int windowType,
                                int renderDevice, int maxNumObjectCapacity,
