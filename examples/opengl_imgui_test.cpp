@@ -26,56 +26,7 @@ void MyMouseButtonCallback(int button, int state, float x, float y)
 }
 
 int main(int argc, char* argv[]) {
-
-  TinyOpenGL3App app("test", 1024, 768);
-  app.m_renderer->init();
-  
-  TinyVector3f pos(0, 0, 0);
-  TinyQuaternionf orn(0, 0, 0, 1);
-  TinyVector3f color(1, 1, 1);
-  TinyVector3f scaling(1, 1, 1);
-  int textureIndex = -1;
-  
-  int red = 0;
-  int green = 128;
-  int blue = 255;
-
-  int texWidth = 1024;
-  int texHeight = 1024;
-  std::vector<unsigned char> texels;
-  texels.resize(texWidth * texHeight * 3);
-  for (int i = 0; i < texWidth * texHeight * 3; i++) texels[i] = 255;
-
-  for (int i = 0; i < texWidth; i++) {
-      for (int j = 0; j < texHeight; j++) {
-          int a = i < texWidth / 2 ? 1 : 0;
-          int b = j < texWidth / 2 ? 1 : 0;
-
-          if (a == b) {
-              texels[(i + j * texWidth) * 3 + 0] = red;
-              texels[(i + j * texWidth) * 3 + 1] = green;
-              texels[(i + j * texWidth) * 3 + 2] = blue;
-          }
-      }
-  }
-
-  textureIndex = -1;// app.m_instancingRenderer->register_texture(      &texels[0], texWidth, texHeight);
-  int shape = app.register_cube_shape(1, 1, 1, textureIndex, 40);  //, 10);
-  app.m_renderer->register_graphics_instance(shape, pos, orn, color, scaling);
-  app.m_renderer->write_transforms();
-  while (!app.m_window->requested_exit()) {
-      B3_PROFILE("mainloop");
-      int upAxis = 2;
-      app.m_renderer->update_camera(upAxis);
-      app.draw_grid();
-      app.m_renderer->render_scene();
-      
-      app.swap_buffer();
-  }
-
-#if 0
-
-  TinyChromeUtilsStartTimings();
+  //TinyChromeUtilsStartTimings();
   TinyClock clock;
   clock.reset();
   double prev_time = clock.get_time_seconds();
@@ -196,6 +147,6 @@ int main(int argc, char* argv[]) {
       app.swap_buffer();
     }
   }
-  TinyChromeUtilsStopTimingsAndWriteJsonFile("diffsim.json");
-#endif
+  //TinyChromeUtilsStopTimingsAndWriteJsonFile("diffsim.json");
+
 }
