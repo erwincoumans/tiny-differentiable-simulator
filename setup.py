@@ -137,6 +137,7 @@ if _platform == "linux" or _platform == "linux2":
     CXX_FLAGS += '-DGLEW_INIT_OPENGL11_FUNCTIONS=1 '
     CXX_FLAGS += '-DGLEW_DYNAMIC_LOAD_ALL_GLX_FUNCTIONS=1 '
     CXX_FLAGS += '-DDYNAMIC_LOAD_X11_FUNCTIONS '
+
     CXX_FLAGS += '-DHAS_SOCKLEN_T '
     CXX_FLAGS += '-fno-inline-functions-called-once '
     CXX_FLAGS += '-fvisibility=hidden '
@@ -147,6 +148,9 @@ if _platform == "linux" or _platform == "linux2":
     CXX_FLAGS += '-Wno-unused-local-typedefs '
     CXX_FLAGS += '-Wno-unused-variable '
     CXX_FLAGS += '-Wno-unused-but-set-variable '
+    pytinyopengl3_libraries += ['dl','pthread']
+    pytinyopengl3_sources += ["examples/opengl_window/tiny_x11_opengl_window.cpp",\
+      "third_party/glad/glx.c"]
 
 
 elif _platform == "win32":
@@ -229,6 +233,7 @@ pytinyopengl3_ext = Extension(
     extra_compile_args=CXX_FLAGS.split(),
     include_dirs=pytinyopengl3_include_dirs + [
         ".", "third_party/pybind11/include", 
+        "third_party/optionalX11",
         "third_party/glad",
         "third_party",
     ])
