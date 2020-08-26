@@ -17,6 +17,8 @@
 #ifndef _TINYDUAL_H_
 #define _TINYDUAL_H_
 
+#include <math.h>
+
 template <typename Scalar>
 class TinyDual {
  public:
@@ -99,12 +101,12 @@ class TinyDual {
 
 template <typename Scalar>
 inline TinyDual<Scalar> sin(const TinyDual<Scalar>& z) {
-  return TinyDual<Scalar>(sin(z.real()), z.dual() * cos(z.real()));
+  return TinyDual<Scalar>(::sin(z.real()), z.dual() * ::cos(z.real()));
 }
 
 template <typename Scalar>
 inline TinyDual<Scalar> cos(const TinyDual<Scalar>& z) {
-  return TinyDual<Scalar>(cos(z.real()), -z.dual() * sin(z.real()));
+  return TinyDual<Scalar>(::cos(z.real()), -z.dual() * ::sin(z.real()));
 }
 
 #endif  // _TINYDUAL_H_
