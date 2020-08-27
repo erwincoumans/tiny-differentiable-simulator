@@ -185,3 +185,29 @@ double TinyClock::get_time_seconds() {
   static const double microseconds_to_seconds = double(0.000001);
   return double(get_time_microseconds()) * microseconds_to_seconds;
 }
+
+void TinyClock::usleep(int microSeconds)
+{
+#ifdef _WIN32
+	if (microSeconds == 0)
+	{
+		Sleep(0);
+	}
+	else
+	{
+		int millis = microSeconds / 1000;
+		if (millis < 1)
+			millis = 1;
+		Sleep(millis);
+	}
+#else
+	if (microSeconds > 0)
+	{
+		::usleep(microSeconds);
+		//struct timeval tv;
+		//tv.tv_sec = microSeconds/1000000L;
+		//tv.tv_usec = microSeconds%1000000L;
+		//return select(0, 0, 0, 0, &tv);
+	}
+#endif
+}

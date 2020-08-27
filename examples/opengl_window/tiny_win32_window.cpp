@@ -137,6 +137,12 @@ int getSpecialKeyFromVirtualKeycode(int virtualKeyCode) {
       break;
     }
 
+    case VK_TAB:
+    {
+        keycode = TINY_KEY_TAB;
+        break;
+    }
+
     case VK_END: {
       keycode = TINY_KEY_END;
       break;
