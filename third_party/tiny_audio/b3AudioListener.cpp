@@ -105,8 +105,8 @@ int b3AudioListener::tick(void* outputBuffer, void* inputBuffer1, unsigned int n
 	
 
 	b3AudioListenerInternalData* data = (b3AudioListenerInternalData*)dataPointer;
-	register double outs[2], *samples = (double*)outputBuffer;
-	register double tempOuts[2];
+	double outs[2], *samples = (double*)outputBuffer;
+	double tempOuts[2];
 	int counter, nTicks = (int)nBufferFrames;
 	bool done = false;
 
