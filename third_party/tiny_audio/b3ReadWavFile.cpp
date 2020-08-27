@@ -6,6 +6,7 @@
 
 #include "b3ReadWavFile.h"
 #include "b3SwapUtils.h"
+#include <math.h>
 
 const unsigned long B3_SINT8 = 0x1;
 const unsigned long B3_SINT16 = 0x2;
