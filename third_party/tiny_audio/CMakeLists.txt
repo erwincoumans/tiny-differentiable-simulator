@@ -26,6 +26,13 @@ IF(APPLE)
 	
 ELSE()
   #linux
+	#links {"asound","pthread"}
+	target_compile_definitions(TinyAudio 
+	    PUBLIC __STK_REALTIME__ __OS_LINUX__ __LINUX_ALSA__
+	    PRIVATE __STK_REALTIME__ __OS_LINUX__ __LINUX_ALSA__
+	    )
+	    target_link_libraries(TinyAudio PUBLIC asound pthread PRIVATE asound pthread)
+	    
 ENDIF()
 
 ENDIF()

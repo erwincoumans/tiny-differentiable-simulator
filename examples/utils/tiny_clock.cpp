@@ -31,6 +31,7 @@
 
 #else  //_WIN32
 #include <sys/time.h>
+#include <unistd.h>
 
 #ifdef BT_LINUX_REALTIME
 // required linking against rt (librt)

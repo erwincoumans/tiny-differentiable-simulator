@@ -158,7 +158,7 @@ static void finish(int ignore)
 #include "imgui.h"
 //#include "imgui_impl_glfw.h"
 #include "opengl3/imgui_impl_opengl3.h"
-#include "imfilebrowser.h"
+//#include "imfilebrowser.h"
 #include "imnodes.h"
 
 
@@ -642,13 +642,13 @@ int main(int argc, char* argv[]) {
         bool res = ImGui_ImplOpenGL3_CreateDeviceObjects();
 
 
-
+#if 0
         ImGui::FileBrowser fileDialog;
 
         // (optional) set browser properties
         fileDialog.SetTitle("title");
         fileDialog.SetTypeFilters({ ".wav" });
-
+#endif
         imnodes::Initialize();
         //imnodes::SetNodeGridSpacePos(1, ImVec2(200.0f, 200.0f));
 
@@ -703,7 +703,7 @@ int main(int argc, char* argv[]) {
             ImGui::NewFrame();
 
             /// <summary>
-
+#if 0
             if (ImGui::Begin("dummy window"))
             {
                 // open file dialog when user clicks this button
@@ -719,6 +719,7 @@ int main(int argc, char* argv[]) {
                 std::cout << "Selected filename" << fileDialog.GetSelected().string() << std::endl;
                 fileDialog.ClearSelected();
             }
+#endif
 
             /// <returns></returns>
             /// 
