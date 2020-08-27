@@ -19,8 +19,10 @@
 #include "b3ReadWavFile.h"
 #include "b3WriteWavFile.h"
 
+#ifdef USE_WAV_READER
 b3ReadWavFile wavReader;
 b3WavTicker wavTicker;
+#endif//USE_WAV_READER
 
 #ifdef USE_WAV_WRITER
 b3WriteWavFile wavWriter;
@@ -30,7 +32,7 @@ b3WriteWavFile wavWriter;
 double sampleRate = 44100.0;
 
 
-#define MY_BUFFER_SIZE 256//512
+#define MY_BUFFER_SIZE 512
 
 static bool animate = true;
 
@@ -103,25 +105,30 @@ int tick(void* outputBuffer, void* inputBuffer1, unsigned int nBufferFrames,
         
         leftOsc.m_frequency = 420 + 220 * lfoMod;
         rightOsc.m_frequency = 420 + 120 * lfoMod;
+#ifdef USE_WAV_READER
         wavReader.tick(0, &wavTicker);
         if (wavTicker.finished_)
         {
             wavTicker.time_ = 0;
             wavTicker.finished_ = false;
         }
-
-
-        //samples[index] = leftOsc.sampleSineWaveForm(sampleRate);// +leftOsc2.sampleSineWaveForm(sampleRate));
         samples[index] = wavTicker.lastFrame_[0];
+#else
+        samples[index] = leftOsc.sampleSineWaveForm(sampleRate);// +leftOsc2.sampleSineWaveForm(sampleRate));
+#endif
 
         if (animate)
         {
-            float scaling = 2;
+            float scaling = 1;
             wav_data[i] = scaling*samples[index];
         }
         index++;
-        //samples[index] = rightOsc2.sampleSineWaveForm(sampleRate);
+#ifdef USE_WAV_READER
         samples[index] = wavTicker.lastFrame_[1];
+#else
+        samples[index] = rightOsc2.sampleSineWaveForm(sampleRate);
+#endif
+        
         index++;
 
         //double data = env * m_data->m_oscillators[osc].m_amplitude * m_data->m_wavFilePtr->tick(frame, &m_data->m_oscillators[osc].m_wavTicker);
@@ -456,13 +463,13 @@ int main(int argc, char* argv[]) {
 #ifdef USE_WAV_WRITER
     wavWriter.setWavFile("d:/mywav.wav", sampleRate, 2, true);
 #endif
-
+#ifdef USE_WAV_READER
     const char* wavFileName = "D:/ForestAmbience.wav";
     wavReader.getWavInfo(wavFileName);
     wavReader.resize();
     wavReader.read(0, true);
     wavTicker = wavReader.createWavTicker(sampleRate);
-
+#endif
     RtAudio dac;
     int i;
 
