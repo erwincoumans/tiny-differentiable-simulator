@@ -67,6 +67,9 @@ ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 
 
 SUBDIRS(third_party/cpp_base64)
+SUBDIRS(third_party/cloud_seed)
+SUBDIRS(third_party/tiny_audio)
+#SUBDIRS(third_party/dear_imgui)
 
 SUBDIRS(examples)
 
