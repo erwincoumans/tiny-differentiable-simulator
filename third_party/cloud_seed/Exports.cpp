@@ -5,7 +5,32 @@
 #include "AudioLib/ValueTables.h"
 
 using namespace CloudSeed;
+
 bool isInitialized = false;
+
+#include <vector>
+
+std::vector<char> custom_pool;
+
+size_t pool_index = 0;
+int allocation_count = 0;
+
+void* custom_pool_allocate(size_t size)
+{
+	printf("================\n");
+	printf("allocation %d\n", allocation_count++);
+	printf("current usage: %d\n", pool_index);
+	printf("allocation: %d\n", size);
+
+	if (pool_index + size >= custom_pool.size())
+	{
+		printf("Running out of memory!\n");
+	}
+	assert(pool_index + size < custom_pool.size());
+	void* ptr = &custom_pool[pool_index];
+	pool_index += size;
+	return ptr;
+}
 
 extern "C"
 {

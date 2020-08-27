@@ -24,6 +24,18 @@ IF(WIN32)
 ELSE()
 IF(APPLE)
 	
+	find_library(COCOA NAMES Cocoa)
+  MESSAGE(${COCOA})
+	find_library(COREAUDIO NAMES CoreAudio)
+	find_library(COREMIDI NAMES CoreMIDI)
+	find_library(DOUNDATION Foundation)
+
+	target_compile_definitions(TinyAudio 
+	    PUBLIC __STK_REALTIME__ __OS_MACOSX__ __MACOSX_CORE__
+	    PRIVATE __STK_REALTIME__ __OS_MACOSX__ __MACOSX_CORE__
+	    )
+	    target_link_libraries(TinyAudio PUBLIC  ${COCOA} ${COREAUDIO}  ${COREMIDI} ${DOUNDATION}  PRIVATE  ${COCOA} ${COREAUDIO}  ${COREMIDI} ${DOUNDATION})
+	    	
 ELSE()
   #linux
 	#links {"asound","pthread"}
