@@ -33,6 +33,9 @@ namespace TINY
         TinyMatrix3x3 m_topLeftMat, m_topRightMat, m_bottomLeftMat, m_bottomRightMat;
 
         TinyVector3 m_center_of_mass;
+        TinyScalar m_mass;
+        TinyMatrix3x3 m_inertia;
+
         //
         TinySymmetricSpatialDyad() { setIdentity(); }
         TinySymmetricSpatialDyad(const TinyMatrix3x3& topLeftMat,
@@ -128,6 +131,8 @@ namespace TINY
             }
 
             result.m_center_of_mass = com;
+            result.m_mass = mass;
+            result.m_inertia = inertia_C;
 
             return result;
         }
@@ -182,16 +187,32 @@ namespace TINY
             return m_bottomRightMat(0, 0);
         }
 
-        void print(const char* txt) const {
+        void print_org(const char* txt) const {
             printf("%s\n", txt);
             for (int r = 0; r < 6; r++) {
                 for (int c = 0; c < 6; c++) {
                     TinyScalar val = (*this)(r, c);
                     double v = TinyConstants::getDouble(val);
-                    printf("%f, ", v);
+                    printf("%.8f, ", v);
                 }
                 printf("\n");
             }
+        }
+
+        void print(const char* name) const {
+            printf("%s\n", name);
+            printf("  mass:    %.8f\n", TinyConstants::getDouble(m_mass));
+            printf("  com:     %.8f\t%.8f\t%.8f\n", TinyConstants::getDouble(m_center_of_mass[0]),
+                TinyConstants::getDouble(m_center_of_mass[1]), TinyConstants::getDouble(m_center_of_mass[2]));
+            printf("  inertia: %.8f\t%.8f\t%.8f\n", TinyConstants::getDouble(m_inertia(0, 0)),
+                TinyConstants::getDouble(m_inertia(0, 1)),
+                TinyConstants::getDouble(m_inertia(0, 2)));
+            printf("           %.8f\t%.8f\t%.8f\n", TinyConstants::getDouble(m_inertia(1, 0)),
+                TinyConstants::getDouble(m_inertia(1, 1)),
+                TinyConstants::getDouble(m_inertia(1, 2)));
+            printf("           %.8f\t%.8f\t%.8f\n", TinyConstants::getDouble(m_inertia(2, 0)),
+                TinyConstants::getDouble(m_inertia(2, 1)),
+                TinyConstants::getDouble(m_inertia(2, 2)));
         }
 
         TinySpatialMotionVector mul_org(const TinySpatialMotionVector& vec) const {
