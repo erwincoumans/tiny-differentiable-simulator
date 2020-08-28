@@ -110,10 +110,10 @@ inline std::string correct_non_utf_8(const std::string &str) {
 
 template <typename TinyScalar, typename TinyConstants>
 struct MeshcatUrdfVisualizer {
-  typedef ::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
-  typedef ::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
+  typedef ::TINY::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
+  typedef ::TINY::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
 
   struct TinyVisualLinkInfo {
     std::string vis_name;

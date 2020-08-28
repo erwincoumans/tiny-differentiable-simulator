@@ -7,6 +7,8 @@
 #include "tiny_mesh_utils.h"
 #include "stb_image/stb_image.h"
 
+using namespace TINY;
+
 int main(int argc, char* argv[]) {
   TinyChromeUtilsStartTimings();
 

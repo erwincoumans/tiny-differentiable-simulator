@@ -16,7 +16,10 @@
 
 #include "tiny_float_utils.h"
 
+using namespace TINY;
+
 struct TinyCameraInternalData {
+  
   TinyCameraInternalData()
       : m_cameraTargetPosition(TinyVector3f(0, 0, 0)),
         m_cameraDistance(20),

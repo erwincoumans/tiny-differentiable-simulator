@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef FIX64_SIN_LOOKUP_TABLE_H
-#define FIX64_SIN_LOOKUP_TABLE_H
+#ifndef _FIX64_SIN_LOOKUP_TABLE_H
+#define _FIX64_SIN_LOOKUP_TABLE_H
 
 #include "fix64_types.h"
 
+namespace TINY
+{
 static smUint64_t Fix64SinLookupTable[] = {
     0x0L,        0x8000L,      0x10000L,    0x18000L,    0x20000L,
     0x28001L,    0x30001L,     0x38001L,    0x40001L,    0x48002L,
@@ -41199,5 +41201,5 @@ static smUint64_t Fix64SinLookupTable[] = {
     0xFFFFFFFBL, 0xFFFFFFFCL,  0xFFFFFFFDL, 0xFFFFFFFEL, 0xFFFFFFFFL,
     0xFFFFFFFFL, 0x100000000L,
 };
-
+};
 #endif

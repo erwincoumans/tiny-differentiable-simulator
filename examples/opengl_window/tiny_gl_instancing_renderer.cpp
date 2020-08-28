@@ -29,6 +29,8 @@ bool useShadowMap = true;
 #include "tiny_opengl_include.h"
 #include "tiny_window_interface.h"
 
+
+
 struct caster2 {
   void setInt(int v) { i = v; }
   float getFloat() {
@@ -98,6 +100,8 @@ struct caster2 {
 
 #include "stb_image/stb_image_write.h"
 #include "tiny_gl_render_to_texture.h"
+
+using namespace TINY;
 
 static const char* triangleVertexShaderText =
     "#version 330\n"

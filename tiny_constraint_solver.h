@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-#ifndef TINY_CONSTRAINT_SOLVER_H
-#define TINY_CONSTRAINT_SOLVER_H
+#ifndef _TINY_CONSTRAINT_SOLVER_H
+#define _TINY_CONSTRAINT_SOLVER_H
 
 #include "tiny_rigid_body.h"
 
+namespace TINY
+{
 template <typename TinyScalar, typename TinyConstants>
 struct TinyContactPointRigidBody
     : public TinyContactPoint<TinyScalar, TinyConstants> {
-  typedef ::TinyRigidBody<TinyScalar, TinyConstants> TinyRigidBody;
+  typedef ::TINY::TinyRigidBody<TinyScalar, TinyConstants> TinyRigidBody;
   TinyRigidBody* m_rigid_body_a{nullptr};
   TinyRigidBody* m_rigid_body_b{nullptr};
   TinyScalar m_restitution;
@@ -44,7 +46,7 @@ struct TinyConstraintSolver {
   virtual void resolveCollision(
       TinyContactPointRigidBody<TinyScalar, TinyConstants>& cp,
       TinyScalar dt) const {
-    typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+    typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
     TinyScalar erp =
         TinyConstants::fraction(1, 10);  // BAUMGARTE_ERROR_REDUCTION_PARAMETER
     const TinyVector3& world_point_a = cp.m_world_point_on_a;
@@ -108,5 +110,5 @@ struct TinyConstraintSolver {
     }
   }
 };
-
-#endif  // TINY_CONSTRAINT_SOLVER_H
+};
+#endif  // _TINY_CONSTRAINT_SOLVER_H

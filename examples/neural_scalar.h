@@ -17,7 +17,7 @@
 template <typename Scalar, typename Utils>
 class NeuralScalar {
  public:
-  typedef ::TinyNeuralNetwork<Scalar, Utils> NeuralNetworkType;
+  typedef ::TINY::TinyNeuralNetwork<Scalar, Utils> NeuralNetworkType;
   typedef Scalar InnerScalarType;
   typedef Utils InnerUtilsType;
 
@@ -101,7 +101,7 @@ class NeuralScalar {
       : inputs_(inputs),
         net_(static_cast<int>(inputs.size()), use_input_bias) {}
   NeuralScalar(const std::vector<NeuralScalar*>& inputs,
-               const TinyNeuralNetworkSpecification& spec)
+               const ::TINY::TinyNeuralNetworkSpecification& spec)
       : inputs_(inputs), net_(spec) {}
 
   // implement custom assignment operator to prevent internal data get wiped
@@ -124,7 +124,7 @@ class NeuralScalar {
    * Add input connection to this neural network.
    */
   void connect(NeuralScalar* scalar,
-               TinyNeuralNetworkActivation activation = NN_ACT_IDENTITY) {
+      ::TINY::TinyNeuralNetworkActivation activation = NN_ACT_IDENTITY) {
     inputs_.push_back(scalar);
     net_.set_input_dim(net_.input_dim() + 1);
     // add output layer (if none has been created yet)
@@ -136,7 +136,7 @@ class NeuralScalar {
   }
 
   void initialize(
-      TinyNeuralNetworkInitialization init_method = NN_INIT_XAVIER) {
+      ::TINY::TinyNeuralNetworkInitialization init_method = NN_INIT_XAVIER) {
     net_.initialize(init_method);
   }
 

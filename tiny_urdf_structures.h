@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TINY_URDF_STRUCTURES_H
-#define TINY_URDF_STRUCTURES_H
+#ifndef _TINY_URDF_STRUCTURES_H
+#define _TINY_URDF_STRUCTURES_H
 
 #include <assert.h>
 
@@ -28,9 +28,12 @@
 #include "tiny_symmetric_spatial_dyad.h"
 #include "tiny_world.h"
 
+namespace TINY
+{
+  
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfInertial {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
 
   TinyUrdfInertial()
       : mass(TinyConstants::zero()),
@@ -71,7 +74,7 @@ struct TinyUrdfCollisionSphere {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfCollisionPlane {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   TinyUrdfCollisionPlane()
       : m_normal(TinyVector3(TinyConstants::zero(), TinyConstants::zero(),
                              TinyConstants::one())),
@@ -90,7 +93,7 @@ struct TinyUrdfCollisionCapsule {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfCollisionBox {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   TinyUrdfCollisionBox()
       : m_extents(TinyVector3(TinyConstants::one(), TinyConstants::one(),
                               TinyConstants::one())) {}
@@ -99,7 +102,7 @@ struct TinyUrdfCollisionBox {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfCollisionMesh {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
 
   TinyUrdfCollisionMesh()
       : m_scale(TinyVector3(TinyConstants::one(), TinyConstants::one(),
@@ -110,7 +113,7 @@ struct TinyUrdfCollisionMesh {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfGeometry {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   TinyUrdfGeometry() : geom_type(TINY_MAX_GEOM_TYPE) {}
 
   // pybind11 doesn't like enum TinyGeometryTypes
@@ -125,9 +128,9 @@ struct TinyUrdfGeometry {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfVisual {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyUrdfGeometry<TinyScalar, TinyConstants> TinyUrdfGeometry;
-  typedef ::TinyVisualMaterial<TinyScalar, TinyConstants> TinyVisualMaterial;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyUrdfGeometry<TinyScalar, TinyConstants> TinyUrdfGeometry;
+  typedef ::TINY::TinyVisualMaterial<TinyScalar, TinyConstants> TinyVisualMaterial;
   TinyUrdfVisual()
       : origin_xyz(TinyVector3::zero()),
         origin_rpy(TinyVector3::zero()),
@@ -149,8 +152,8 @@ struct TinyUrdfVisual {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfCollision {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyUrdfGeometry<TinyScalar, TinyConstants> TinyUrdfGeometry;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyUrdfGeometry<TinyScalar, TinyConstants> TinyUrdfGeometry;
 
   TinyUrdfCollision()
       : origin_xyz(TinyVector3::zero()),
@@ -170,9 +173,9 @@ struct TinyUrdfCollision {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfLink {
-  typedef ::TinyUrdfCollision<TinyScalar, TinyConstants> TinyUrdfCollision;
-  typedef ::TinyUrdfVisual<TinyScalar, TinyConstants> TinyUrdfVisual;
-  typedef ::TinyUrdfContact<TinyScalar, TinyConstants> TinyUrdfContact;
+  typedef ::TINY::TinyUrdfCollision<TinyScalar, TinyConstants> TinyUrdfCollision;
+  typedef ::TINY::TinyUrdfVisual<TinyScalar, TinyConstants> TinyUrdfVisual;
+  typedef ::TINY::TinyUrdfContact<TinyScalar, TinyConstants> TinyUrdfContact;
 
   TinyUrdfLink() : m_parent_index(-2) {}
   std::string link_name;
@@ -186,8 +189,8 @@ struct TinyUrdfLink {
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfJoint {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
 
   TinyUrdfJoint()
       : joint_type(JOINT_INVALID),
@@ -228,5 +231,5 @@ struct TinyUrdfStructures {
   std::map<std::string, TinyVisualMaterial<TinyScalar, TinyConstants> >
       m_materials;
 };
-
-#endif  // TINY_URDF_STRUCTURES_H
+};
+#endif  // _TINY_URDF_STRUCTURES_H

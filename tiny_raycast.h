@@ -1,9 +1,11 @@
-#ifndef TINY_RAYCAST_H
-#define TINY_RAYCAST_H
+#ifndef _TINY_RAYCAST_H
+#define _TINY_RAYCAST_H
 
 #include <vector>
 #include "tiny_geometry.h"
 
+namespace TINY
+{
 // batch ray-sphere against TinyUrdfCollision objects
 template <typename TinyScalar, typename TinyConstants>
 struct TinyRaycastResult {
@@ -20,9 +22,9 @@ bool TinyRaycastResultComparison(
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyRaycast {
-  typedef ::TinyRaycastResult<TinyScalar, TinyConstants> TinyRaycastResult;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyUrdfCollision<TinyScalar, TinyConstants> TinyUrdfCollision;
+  typedef ::TINY::TinyRaycastResult<TinyScalar, TinyConstants> TinyRaycastResult;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyUrdfCollision<TinyScalar, TinyConstants> TinyUrdfCollision;
 
   bool ray_box(const TinyVector3 &ray_from_local,
                const TinyVector3 &ray_to_local, const TinyUrdfCollision &box,
@@ -260,5 +262,5 @@ struct TinyRaycast {
     return intersection_volume;
   }
 };
-
-#endif  // TINY_RAYCAST_H
+};
+#endif  // _TINY_RAYCAST_H

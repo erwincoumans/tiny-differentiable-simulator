@@ -24,10 +24,10 @@
 #include "tiny_spatial_transform.h"
 
 template <typename TinyScalar, typename TinyConstants>
-void init_xarm6(TinyMultiBody<TinyScalar, TinyConstants>& mb) {
-  typedef TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
-  typedef TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
+void init_xarm6(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb) {
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
+  typedef ::TINY::TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
       TinySymmetricSpatialDyad;
 
   {

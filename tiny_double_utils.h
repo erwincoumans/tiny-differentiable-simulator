@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef DOUBLE_UTILS_H
-#define DOUBLE_UTILS_H
+#ifndef _TINY_DOUBLE_UTILS_H
+#define _TINY_DOUBLE_UTILS_H
 
 #define _USE_MATH_DEFINES 1
 #include <assert.h>
@@ -26,6 +26,8 @@
 
 #include "math.h"
 
+namespace TINY
+{
 struct DoubleUtils {
   static double zero() { return 0.; }
   static double one() { return 1.; }
@@ -85,5 +87,5 @@ struct DoubleUtils {
     }
   }
 };
-
-#endif  // DOUBLE_UTILS_H
+};
+#endif  // _TINY_DOUBLE_UTILS_H

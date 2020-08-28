@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TINY_WORLD_H
-#define TINY_WORLD_H
+#ifndef _TINY_WORLD_H
+#define _TINY_WORLD_H
 
 #include <string>
 #include <vector>
@@ -26,18 +26,20 @@
 #include "tiny_multi_body.h"
 #include "tiny_rigid_body.h"
 
+namespace TINY
+{
 template <typename TinyScalar, typename TinyConstants>
 class TinyWorld {
-  typedef ::TinyRigidBody<TinyScalar, TinyConstants> TinyRigidBody;
-  typedef ::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyGeometry<TinyScalar, TinyConstants> TinyGeometry;
-  typedef ::TinySpatialTransform<TinyScalar, TinyConstants>
+  typedef ::TINY::TinyRigidBody<TinyScalar, TinyConstants> TinyRigidBody;
+  typedef ::TINY::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyGeometry<TinyScalar, TinyConstants> TinyGeometry;
+  typedef ::TINY::TinySpatialTransform<TinyScalar, TinyConstants>
       TinySpatialTransform;
 
-  typedef ::TinyCapsule<TinyScalar, TinyConstants> TinyCapsule;
-  typedef ::TinySphere<TinyScalar, TinyConstants> TinySphere;
-  typedef ::TinyPlane<TinyScalar, TinyConstants> TinyPlane;
+  typedef ::TINY::TinyCapsule<TinyScalar, TinyConstants> TinyCapsule;
+  typedef ::TINY::TinySphere<TinyScalar, TinyConstants> TinySphere;
+  typedef ::TINY::TinyPlane<TinyScalar, TinyConstants> TinyPlane;
   std::vector<TinyRigidBody*> m_bodies;
 
   std::vector<TinyMultiBody*> m_multi_bodies;
@@ -353,5 +355,5 @@ class TinyWorld {
     }
   }
 };
-
-#endif  // TINY_WORLD_H
+};
+#endif  // _TINY_WORLD_H

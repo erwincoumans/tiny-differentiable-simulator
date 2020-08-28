@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TINY_MB_CONSTRAINT_SOLVER_SPRING_H
-#define TINY_MB_CONSTRAINT_SOLVER_SPRING_H
+#ifndef _TINY_MB_CONSTRAINT_SOLVER_SPRING_H
+#define _TINY_MB_CONSTRAINT_SOLVER_SPRING_H
 
 #include "examples/neural_scalar.h"
 #include "tiny_constraint_solver.h"
@@ -24,6 +24,8 @@
 
 //#define DEBUG
 
+namespace TINY
+{
 enum TinyVelocitySmoothingMethod {
   SMOOTH_VEL_NONE = 0,
   SMOOTH_VEL_SIGMOID,
@@ -50,12 +52,12 @@ enum TinyFrictionForceModel {
 template <typename TinyScalar, typename TinyConstants>
 struct TinyMultiBodyConstraintSolverSpring
     : public TinyMultiBodyConstraintSolver<TinyScalar, TinyConstants> {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyVectorX<TinyScalar, TinyConstants> TinyVectorX;
-  typedef ::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
-  typedef ::TinyMatrix3xX<TinyScalar, TinyConstants> TinyMatrix3xX;
-  typedef ::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
-  typedef ::TinyContactPointMultiBody<TinyScalar, TinyConstants>
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVectorX<TinyScalar, TinyConstants> TinyVectorX;
+  typedef ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
+  typedef ::TINY::TinyMatrix3xX<TinyScalar, TinyConstants> TinyMatrix3xX;
+  typedef ::TINY::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
+  typedef ::TINY::TinyContactPointMultiBody<TinyScalar, TinyConstants>
       TinyContactPoint;
 
   /**
@@ -374,5 +376,5 @@ struct TinyMultiBodyConstraintSolverSpring
     }
   }
 };
-
-#endif  // TINY_MB_CONSTRAINT_SOLVER_SPRING_H
+};
+#endif  // _TINY_MB_CONSTRAINT_SOLVER_SPRING_H

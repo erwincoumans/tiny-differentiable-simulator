@@ -16,10 +16,11 @@
 
 typedef double TinyDualScalar;
 typedef double MyScalar;
-typedef DoubleUtils MyTinyConstants;
+typedef ::TINY::DoubleUtils MyTinyConstants;
 
 #include "pytinydiffsim_includes.h"
 
+using namespace TINY;
 namespace py = pybind11;
 
 PYBIND11_MODULE(pytinydiffsim, m) {

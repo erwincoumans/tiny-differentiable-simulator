@@ -25,8 +25,10 @@
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
 
+using namespace TINY;
+
 template <typename TinyScalar, typename TinyConstants>
-void xarm6_fk_fd(TinyMultiBody<TinyScalar, TinyConstants>& mb,
+void xarm6_fk_fd(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb,
                  std::vector<TinyScalar>& qdd) {
   std::vector<TinyScalar> q;
   std::vector<TinyScalar> qd;

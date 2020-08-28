@@ -26,12 +26,12 @@
 
 template <typename TinyScalar, typename TinyConstants>
 struct UrdfToMultiBody2 {
-    typedef ::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
+    typedef ::TINY::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
 
     void convert(TinyUrdfStructures* urdf_structures,
-        TinyWorld<TinyScalar, TinyConstants>* world,
-        TinyMultiBody<MyScalar, MyTinyConstants>* mb) {
-        TinyUrdfToMultiBody<MyScalar, MyTinyConstants>::convert_to_multi_body(
+        ::TINY::TinyWorld<TinyScalar, TinyConstants>* world,
+        ::TINY::TinyMultiBody<MyScalar, MyTinyConstants>* mb) {
+        ::TINY::TinyUrdfToMultiBody<MyScalar, MyTinyConstants>::convert_to_multi_body(
             *urdf_structures, *world, *mb);
 
         mb->initialize();

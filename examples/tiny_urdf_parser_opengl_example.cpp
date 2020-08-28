@@ -26,6 +26,7 @@
 #include "tiny_file_utils.h"
 #include "tiny_urdf_parser.h"
 #include "tiny_urdf_to_multi_body.h"
+using namespace TINY;
 
 double knee_angle = -0.5;
 double abduction_angle = 0.2;
@@ -48,9 +49,9 @@ int main(int argc, char* argv[]) {
 
   std::string plane_file_name;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_file_name);
-  char plane_search_path[TINY_MAX_EXE_PATH_LEN];
+  char plane_search_path[_TINY_MAX_EXE_PATH_LEN];
   TinyFileUtils::extract_path(plane_file_name.c_str(), plane_search_path,
-                              TINY_MAX_EXE_PATH_LEN);
+                              _TINY_MAX_EXE_PATH_LEN);
   TinyMultiBody<double, DoubleUtils>& plane_mb = *world.create_multi_body();
   plane_mb.m_isFloating = false;
   {
@@ -63,11 +64,11 @@ int main(int argc, char* argv[]) {
     visualizer.convert_visuals(plane_urdf_structures, texture_path);
   }
 
-  char search_path[TINY_MAX_EXE_PATH_LEN];
+  char search_path[_TINY_MAX_EXE_PATH_LEN];
   std::string file_name;
   TinyFileUtils::find_file("laikago/laikago_toes_zup.urdf", file_name);
   TinyFileUtils::extract_path(file_name.c_str(), search_path,
-                              TINY_MAX_EXE_PATH_LEN);
+                              _TINY_MAX_EXE_PATH_LEN);
 
   std::ifstream ifs(file_name);
   std::string urdf_string;

@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef _TINYDUAL_H_
-#define _TINYDUAL_H_
+#ifndef __TINYDUAL_H_
+#define __TINYDUAL_H_
 
 #include <math.h>
 
+namespace TINY
+{
 template <typename Scalar>
 class TinyDual {
  public:
@@ -108,5 +110,5 @@ template <typename Scalar>
 inline TinyDual<Scalar> cos(const TinyDual<Scalar>& z) {
   return TinyDual<Scalar>(::cos(z.real()), -z.dual() * ::sin(z.real()));
 }
-
-#endif  // _TINYDUAL_H_
+};
+#endif  // __TINYDUAL_H_
