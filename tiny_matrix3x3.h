@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef TINY_MATRIX3x3_H
-#define TINY_MATRIX3x3_H
+#ifndef _TINY_MATRIX3x3_H
+#define _TINY_MATRIX3x3_H
 
 #include <stdio.h>
 
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
 
+namespace TINY
+{
 template <typename TinyScalar, typename TinyConstants>
 class TinyMatrix3x3 {
-  typedef ::TinyQuaternion<TinyScalar, TinyConstants> TinyQuaternion;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyQuaternion<TinyScalar, TinyConstants> TinyQuaternion;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   /// Data storage for the matrix, each vector is a row of the matrix
   TinyVector3 m_el[3];
 
@@ -1037,4 +1039,5 @@ inline bool operator==(const TinyMatrix3x3& m1, const TinyMatrix3x3& m2)
 #endif
 }
 #endif
-#endif  // TINY_MATRIX3x3_H
+};
+#endif  // _TINY_MATRIX3x3_H

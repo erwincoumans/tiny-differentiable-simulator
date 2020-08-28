@@ -71,10 +71,10 @@ class TinyGLInstancingRenderer {
   int m_planeReflectionShapeIndex;
 
   int register_graphics_instance_internal(int shapeIndex,
-                                          const TinyVector3f& position,
-                                          const TinyQuaternionf& quaternion,
-                                          const TinyVector3f& color,
-                                          const TinyVector3f& scaling,
+                                          const ::TINY::TinyVector3f& position,
+                                          const ::TINY::TinyQuaternionf& quaternion,
+                                          const ::TINY::TinyVector3f& color,
+                                          const ::TINY::TinyVector3f& scaling,
                                           float opacity = 1.f);
   void rebuild_graphics_instances();
 
@@ -124,10 +124,10 @@ class TinyGLInstancingRenderer {
 
   /// position x,y,z, quaternion x,y,z,w, color r,g,b,a, scaling x,y,z
   virtual int register_graphics_instance(int shapeIndex,
-                                         const TinyVector3f& position,
-                                         const TinyQuaternionf& quaternion,
-                                         const TinyVector3f& color,
-                                         const TinyVector3f& scaling,
+                                         const ::TINY::TinyVector3f& position,
+                                         const ::TINY::TinyQuaternionf& quaternion,
+                                         const ::TINY::TinyVector3f& color,
+                                         const ::TINY::TinyVector3f& scaling,
                                          float opacity = 1.f);
 
   void write_transforms();
@@ -136,8 +136,8 @@ class TinyGLInstancingRenderer {
                                                      float* orientation,
                                                      int srcIndex);
 
-  virtual void write_single_instance_transform_to_cpu(const TinyVector3f& position,
-                                                      const TinyQuaternionf& orientation,
+  virtual void write_single_instance_transform_to_cpu(const ::TINY::TinyVector3f& position,
+                                                      const ::TINY::TinyQuaternionf& orientation,
                                                       int srcIndex);
 
   virtual void read_single_instance_transform_from_cpu(int srcIndex,
@@ -166,18 +166,18 @@ class TinyGLInstancingRenderer {
 
   virtual struct GLInstanceRendererInternalData* get_internal_data();
 
-  virtual void draw_line(const TinyVector3f& from, const TinyVector3f& to,
-                         const TinyVector3f& color, float lineWidth = 1);
+  virtual void draw_line(const ::TINY::TinyVector3f& from, const ::TINY::TinyVector3f& to,
+                         const ::TINY::TinyVector3f& color, float lineWidth = 1);
 
-  virtual void draw_lines(const TinyVector3f* positions,
-                          const TinyVector3f& color, int numPoints,
+  virtual void draw_lines(const ::TINY::TinyVector3f* positions,
+                          const ::TINY::TinyVector3f& color, int numPoints,
                           int pointStrideInBytes, const unsigned int* indices,
                           int numIndices, float pointDrawSize);
-  virtual void draw_points(const TinyVector3f* positions,
-                           const TinyVector3f& color, int numPoints,
+  virtual void draw_points(const ::TINY::TinyVector3f* positions,
+                           const ::TINY::TinyVector3f& color, int numPoints,
                            int pointStrideInBytes, float pointDrawSize);
-  virtual void draw_point(const TinyVector3f& position,
-                          const TinyVector3f& color, float pointSize = 1);
+  virtual void draw_point(const ::TINY::TinyVector3f& position,
+                          const ::TINY::TinyVector3f& color, float pointSize = 1);
   virtual void draw_textured_triangle_mesh(
       float worldPosition[3], float worldOrientation[4], const float* vertices,
       int numvertices, const unsigned int* indices, int numIndices,

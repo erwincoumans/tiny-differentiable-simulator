@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef TINY_MB_CONSTRAINT_SOLVER_H
-#define TINY_MB_CONSTRAINT_SOLVER_H
+#ifndef _TINY_MB_CONSTRAINT_SOLVER_H
+#define _TINY_MB_CONSTRAINT_SOLVER_H
 
 #include "tiny_constraint_solver.h"
 #include "tiny_multi_body.h"
 
+namespace TINY
+{
+  
 template <typename TinyScalar, typename TinyConstants>
 struct TinyContactPointMultiBody
     : public TinyContactPoint<TinyScalar, TinyConstants> {
-  typedef ::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
+  typedef ::TINY::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
   TinyMultiBody* m_multi_body_a;
   TinyMultiBody* m_multi_body_b;
   TinyScalar m_restitution;
@@ -34,12 +37,12 @@ struct TinyContactPointMultiBody
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyMultiBodyConstraintSolver {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyVectorX<TinyScalar, TinyConstants> TinyVectorX;
-  typedef ::TinyMatrix3xX<TinyScalar, TinyConstants> TinyMatrix3xX;
-  typedef ::TinyMatrixXxX<TinyScalar, TinyConstants> TinyMatrixXxX;
-  typedef ::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
-  typedef ::TinyContactPointMultiBody<TinyScalar, TinyConstants>
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVectorX<TinyScalar, TinyConstants> TinyVectorX;
+  typedef ::TINY::TinyMatrix3xX<TinyScalar, TinyConstants> TinyMatrix3xX;
+  typedef ::TINY::TinyMatrixXxX<TinyScalar, TinyConstants> TinyMatrixXxX;
+  typedef ::TINY::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
+  typedef ::TINY::TinyContactPointMultiBody<TinyScalar, TinyConstants>
       TinyContactPoint;
 
   /**
@@ -394,5 +397,5 @@ struct TinyMultiBodyConstraintSolver {
     }
   }
 };
-
-#endif  // TINY_MB_CONSTRAINT_SOLVER_H
+};
+#endif  // _TINY_MB_CONSTRAINT_SOLVER_H

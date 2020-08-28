@@ -57,6 +57,8 @@
 #define pclose _pclose
 #endif  // _WIN32
 
+using namespace TINY;
+
 struct TinyOpenGL3AppInternalData {
   GLuint m_fontTextureId;
   GLuint m_largeFontTextureId;

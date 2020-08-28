@@ -3,6 +3,7 @@
 #include "ReverbController.h"
 #include "FastSin.h"
 #include "AudioLib/ValueTables.h"
+#include <assert.h>
 
 using namespace CloudSeed;
 

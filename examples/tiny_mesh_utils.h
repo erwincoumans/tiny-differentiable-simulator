@@ -21,7 +21,7 @@ public:
 
 			for (int f = 0; f < faceCount; f += 3)
 			{
-				TinyVector3f normal(0, 1, 0);
+				::TINY::TinyVector3f normal(0, 1, 0);
 				int vtxBaseIndex = vertices.size();
 
 				if (f < 0 && f >= int(shape.mesh.indices.size()))
@@ -116,9 +116,9 @@ public:
 					vtx2.v = 0.5;
 				}
 
-				TinyVector3f v0(vtx0.x, vtx0.y, vtx0.z);
-				TinyVector3f v1(vtx1.x, vtx1.y, vtx1.z);
-				TinyVector3f v2(vtx2.x, vtx2.y, vtx2.z);
+				::TINY::TinyVector3f v0(vtx0.x, vtx0.y, vtx0.z);
+				::TINY::TinyVector3f v1(vtx1.x, vtx1.y, vtx1.z);
+				::TINY::TinyVector3f v2(vtx2.x, vtx2.y, vtx2.z);
 
 				unsigned int maxIndex = 0;
 				unsigned n0Index = shape.mesh.indices[f].normal_index;

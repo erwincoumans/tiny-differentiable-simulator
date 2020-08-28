@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TINY_MULTIBODY_H
-#define TINY_MULTIBODY_H
+#ifndef _TINY_MULTIBODY_H
+#define _TINY_MULTIBODY_H
 
 /// TinyMultiBody follows the notation from the Featherstone Book,
 /// Rigid Body Dynamics Algorithms, 2008. This Forward Dynamics implementation
@@ -31,6 +31,9 @@
 #include "tiny_spatial_motion_vector.h"
 #include "tiny_spatial_transform.h"
 #include "tiny_symmetric_spatial_dyad.h"
+
+namespace TINY
+{
 
 enum TinyJointType {
   JOINT_FIXED = -1,
@@ -50,13 +53,13 @@ enum TinyIntegrationType { INT_EULER, INT_EULER_SYMPLECTIC };
 
 template <typename TinyScalar, typename TinyConstants>
 class TinyLink {
-  typedef ::TinySpatialTransform<TinyScalar, TinyConstants>
+  typedef ::TINY::TinySpatialTransform<TinyScalar, TinyConstants>
       TinySpatialTransform;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
-  typedef ::TinySpatialMotionVector<TinyScalar, TinyConstants>
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
+  typedef ::TINY::TinySpatialMotionVector<TinyScalar, TinyConstants>
       TinySpatialMotionVector;
-  typedef ::TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
+  typedef ::TINY::TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
       TinySymmetricSpatialDyad;
 
  public:
@@ -251,21 +254,21 @@ class TinyLink {
 
 template <typename TinyScalar, typename TinyConstants>
 class TinyMultiBody {
-  typedef ::TinyLink<TinyScalar, TinyConstants> TinyLink;
-  typedef ::TinySpatialMotionVector<TinyScalar, TinyConstants>
+  typedef ::TINY::TinyLink<TinyScalar, TinyConstants> TinyLink;
+  typedef ::TINY::TinySpatialMotionVector<TinyScalar, TinyConstants>
       TinySpatialMotionVector;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyVectorX<TinyScalar, TinyConstants> TinyVectorX;
-  typedef ::TinyQuaternion<TinyScalar, TinyConstants> TinyQuaternion;
-  typedef ::TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyVectorX<TinyScalar, TinyConstants> TinyVectorX;
+  typedef ::TINY::TinyQuaternion<TinyScalar, TinyConstants> TinyQuaternion;
+  typedef ::TINY::TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
       TinySymmetricSpatialDyad;
-  typedef ::TinySpatialTransform<TinyScalar, TinyConstants>
+  typedef ::TINY::TinySpatialTransform<TinyScalar, TinyConstants>
       TinySpatialTransform;
-  typedef ::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
-  typedef ::TinyMatrix3xX<TinyScalar, TinyConstants> TinyMatrix3xX;
-  typedef ::TinyMatrix6xX<TinyScalar, TinyConstants> TinyMatrix6xX;
-  typedef ::TinyMatrixXxX<TinyScalar, TinyConstants> TinyMatrixXxX;
-  typedef ::TinyActuator<TinyScalar, TinyConstants> TinyActuator;
+  typedef ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
+  typedef ::TINY::TinyMatrix3xX<TinyScalar, TinyConstants> TinyMatrix3xX;
+  typedef ::TINY::TinyMatrix6xX<TinyScalar, TinyConstants> TinyMatrix6xX;
+  typedef ::TINY::TinyMatrixXxX<TinyScalar, TinyConstants> TinyMatrixXxX;
+  typedef ::TINY::TinyActuator<TinyScalar, TinyConstants> TinyActuator;
 
  public:
   std::vector<TinyLink> m_links;
@@ -1466,4 +1469,5 @@ class TinyMultiBody {
   }
 };
 
-#endif  // TINY_MULTIBODY_H
+};
+#endif  // _TINY_MULTIBODY_H

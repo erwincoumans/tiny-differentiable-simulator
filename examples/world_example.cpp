@@ -14,6 +14,7 @@
 
 #include "tiny_double_utils.h"
 #include "tiny_world.h"
+using namespace TINY;
 
 int main(int argc, char* argv[]) {
   typedef ::TinyRigidBody<double, DoubleUtils> TinyRigidBodyDouble;

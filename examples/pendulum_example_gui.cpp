@@ -28,6 +28,8 @@
 #include "tiny_rigid_body.h"
 #include "tiny_world.h"
 
+using namespace TINY;
+
 int main(int argc, char* argv[]) {
 
   TinyOpenGL3App app("pendulum_example_gui", 1024, 768);

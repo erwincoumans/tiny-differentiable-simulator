@@ -32,10 +32,10 @@
 
 template <typename TinyScalar, typename TinyConstants>
 struct OpenGLUrdfVisualizer {
-  typedef ::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
-  typedef ::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
+  typedef ::TINY::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
+  typedef ::TINY::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
 
   struct TinyVisualLinkInfo {
     std::string vis_name;
@@ -74,7 +74,7 @@ struct OpenGLUrdfVisualizer {
     //todo
   }
 
-  void load_obj(const std::string& obj_filename, const TinyVector3f& pos, const TinyQuaternionf& orn, const TinyVector3f& scaling, std::vector<int>& instance_ids)
+  void load_obj(const std::string& obj_filename, const ::TINY::TinyVector3f& pos, const ::TINY::TinyQuaternionf& orn, const ::TINY::TinyVector3f& scaling, std::vector<int>& instance_ids)
   {
       tinyobj::attrib_t attrib;
       std::vector<tinyobj::shape_t> shapes;

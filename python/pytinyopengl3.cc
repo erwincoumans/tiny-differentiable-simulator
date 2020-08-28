@@ -22,6 +22,7 @@
 #include "examples/opengl_window/tiny_opengl3_app.h"
 #include "examples/opengl_window/tiny_camera.h"
 #include <string>
+using namespace TINY;
 
 std::string file_open_dialog(TinyWindowInterface* window)
 {

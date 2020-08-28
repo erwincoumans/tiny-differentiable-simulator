@@ -19,6 +19,8 @@
 #include "b3ReadWavFile.h"
 #include "b3WriteWavFile.h"
 
+
+
 #ifdef USE_WAV_READER
 b3ReadWavFile wavReader;
 b3WavTicker wavTicker;
@@ -161,6 +163,7 @@ static void finish(int ignore)
 //#include "imfilebrowser.h"
 #include "imnodes.h"
 
+using namespace TINY;
 
 bool releasedA = false;
 TinyKeyboardCallback default_keyboard_callback = 0;

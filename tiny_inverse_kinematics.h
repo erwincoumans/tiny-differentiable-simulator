@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef TINY_INVERSE_KINEMATICS_H
-#define TINY_INVERSE_KINEMATICS_H
+#ifndef _TINY_INVERSE_KINEMATICS_H
+#define _TINY_INVERSE_KINEMATICS_H
 
 #include "tiny_multi_body.h"
 #ifdef USE_EIGEN
 #include "tiny_eigen_helper.h"
 #endif
 
+namespace TINY
+{
 template <typename Scalar, typename Utils>
 struct TinyIKTarget {
-  typedef ::TinyVector3<Scalar, Utils> TinyVector3;
+  typedef ::TINY::TinyVector3<Scalar, Utils> TinyVector3;
 
   /**
    * Index of the link that should reach a given target.
@@ -77,12 +79,12 @@ struct TinyInverseKinematics {
 #endif
 
   static const TinyIKMethod kMethod = Method;
-  typedef ::TinyIKTarget<Scalar, Utils> Target;
-  typedef ::TinyMultiBody<Scalar, Utils> MultiBody;
-  typedef ::TinyVector3<Scalar, Utils> Vector3;
-  typedef ::TinyVectorX<Scalar, Utils> VectorX;
-  typedef ::TinyMatrixXxX<Scalar, Utils> MatrixXxX;
-  typedef ::TinySpatialTransform<Scalar, Utils> SpatialTransform;
+  typedef ::TINY::TinyIKTarget<Scalar, Utils> Target;
+  typedef ::TINY::TinyMultiBody<Scalar, Utils> MultiBody;
+  typedef ::TINY::TinyVector3<Scalar, Utils> Vector3;
+  typedef ::TINY::TinyVectorX<Scalar, Utils> VectorX;
+  typedef ::TINY::TinyMatrixXxX<Scalar, Utils> MatrixXxX;
+  typedef ::TINY::TinySpatialTransform<Scalar, Utils> SpatialTransform;
 
   std::vector<Target> targets;
 
@@ -203,5 +205,5 @@ struct TinyInverseKinematics {
     return compute(mb, mb.m_q, q);
   }
 };
-
-#endif  // TINY_INVERSE_KINEMATICS_H
+};
+#endif  // _TINY_INVERSE_KINEMATICS_H

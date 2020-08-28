@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef TINY_URDF_TO_MULTI_BODY_H
-#define TINY_URDF_TO_MULTI_BODY_H
+#ifndef _TINY_URDF_TO_MULTI_BODY_H
+#define _TINY_URDF_TO_MULTI_BODY_H
 
 #include <stdio.h>
 
 #include "tiny_urdf_structures.h"
 
+namespace TINY
+{
 template <typename TinyScalar, typename TinyConstants>
 struct TinyUrdfToMultiBody {
-  typedef ::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
+  typedef ::TINY::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
   static int convert_to_multi_body(
       const TinyUrdfStructures& urdf_structures,
       TinyWorld<TinyScalar, TinyConstants>& world,
       TinyMultiBody<TinyScalar, TinyConstants>& mb) {
-    typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+    typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
     int return_code = kCONVERSION_OK;
 
     // start with base properties
@@ -214,7 +216,7 @@ struct TinyUrdfToMultiBody {
       TinyWorld<TinyScalar, TinyConstants>& world,
       const TinyUrdfLink<TinyScalar, TinyConstants>& link,
       TinyLink<TinyScalar, TinyConstants>& l) {
-    typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+    typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
     for (int c = 0; c < link.urdf_collision_shapes.size(); c++) {
       const TinyUrdfCollision<TinyScalar, TinyConstants>& col =
           link.urdf_collision_shapes[c];
@@ -266,5 +268,5 @@ struct TinyUrdfToMultiBody {
     }
   }
 };
-
-#endif  // TINY_URDF_TO_MULTI_BODY_H
+};
+#endif  // _TINY_URDF_TO_MULTI_BODY_H

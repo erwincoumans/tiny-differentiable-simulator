@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef TINY_RIGIDBODY_H
-#define TINY_RIGIDBODY_H
+#ifndef _TINY_RIGIDBODY_H
+#define _TINY_RIGIDBODY_H
 
 #include "tiny_geometry.h"
 #include "tiny_matrix3x3.h"
 #include "tiny_pose.h"
 
+namespace TINY
+{
 template <typename TinyScalar, typename TinyConstants>
 struct TinyRigidBody {
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyGeometry<TinyScalar, TinyConstants> TinyGeometry;
-  typedef ::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyGeometry<TinyScalar, TinyConstants> TinyGeometry;
+  typedef ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
 
   TinyPose<TinyScalar, TinyConstants> m_world_pose;
   TinyVector3 m_linear_velocity;
@@ -97,5 +99,5 @@ struct TinyRigidBody {
     m_world_pose.m_orientation.normalize();
   }
 };
-
-#endif  // TINY_RIGIDBODY_H
+};
+#endif  // _TINY_RIGIDBODY_H

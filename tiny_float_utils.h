@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TINY_FLOAT_UTILS_H
-#define TINY_FLOAT_UTILS_H
+#ifndef _TINY_FLOAT_UTILS_H
+#define _TINY_FLOAT_UTILS_H
 
 #define _USE_MATH_DEFINES 1
 #include <assert.h>
@@ -24,6 +24,14 @@
 #include <string>
 #include "math.h"
 
+#include "tiny_matrix3x3.h"
+#include "tiny_pose.h"
+#include "tiny_quaternion.h"
+#include "tiny_vector3.h"
+
+
+namespace TINY
+{
 struct FloatUtils {
   static float zero() { return 0.f; }
   static float one() { return 1.f; }
@@ -76,15 +84,11 @@ struct FloatUtils {
   }
 };
 
-#include "tiny_matrix3x3.h"
-#include "tiny_pose.h"
-#include "tiny_quaternion.h"
-#include "tiny_vector3.h"
 
-typedef ::TinyVector3<float, FloatUtils> TinyVector3f;
-typedef ::TinyQuaternion<float, FloatUtils> TinyQuaternionf;
-typedef ::TinyMatrix3x3<float, FloatUtils> TinyMatrix3x3f;
-typedef ::TinyPose<float, FloatUtils> TinyPosef;
+typedef ::TINY::TinyVector3<float, FloatUtils> TinyVector3f;
+typedef ::TINY::TinyQuaternion<float, FloatUtils> TinyQuaternionf;
+typedef ::TINY::TinyMatrix3x3<float, FloatUtils> TinyMatrix3x3f;
+typedef ::TINY::TinyPose<float, FloatUtils> TinyPosef;
 
 inline void setFromOpenGLMatrix(TinyPosef& tr, const float* m) {
   TinyMatrix3x3f mat;
@@ -112,5 +116,5 @@ inline void getOpenGLMatrix(const TinyPosef& tr, float* m) {
   m[14] = tr.m_position.z();
   m[15] = 1.0f;
 }
-
-#endif  // TINY_FLOAT_UTILS_H
+};
+#endif  // _TINY_FLOAT_UTILS_H

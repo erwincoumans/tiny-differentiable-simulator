@@ -40,8 +40,8 @@
 // THE SOFTWARE.
 
 
-#ifndef TINY_DUAL_DOUBLE_UTILS_H
-#define TINY_DUAL_DOUBLE_UTILS_H
+#ifndef _TINY_DUAL_DOUBLE_UTILS_H
+#define _TINY_DUAL_DOUBLE_UTILS_H
 
 #ifdef _WIN32 
 //for M_PI
@@ -54,7 +54,10 @@
 #include <stdio.h>
 #include <string>
 
-typedef ::TinyDual<double> TinyDualDouble;
+namespace TINY
+{
+  
+typedef ::TINY::TinyDual<double> TinyDualDouble;
 
 struct TinyDualDoubleUtils {
   static TinyDualDouble cos1(TinyDualDouble v) {
@@ -180,5 +183,5 @@ struct TinyDualDoubleUtils {
     }
   }
 };
-
-#endif  // TINY_DUAL_DOUBLE_UTILS_H
+};
+#endif  // _TINY_DUAL_DOUBLE_UTILS_H

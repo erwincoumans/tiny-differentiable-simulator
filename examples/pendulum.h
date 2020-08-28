@@ -25,16 +25,16 @@
 #include "tiny_world.h"
 
 template <typename TinyScalar, typename TinyConstants>
-void init_compound_pendulum(TinyMultiBody<TinyScalar, TinyConstants> &mb,
-                            TinyWorld<TinyScalar, TinyConstants> &world,
+void init_compound_pendulum(::TINY::TinyMultiBody<TinyScalar, TinyConstants> &mb,
+                            ::TINY::TinyWorld<TinyScalar, TinyConstants> &world,
                             int num_links = 2,
                             std::vector<TinyScalar> link_lengths = {},
                             std::vector<TinyScalar> masses = {}) {
-  typedef TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
-  typedef TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
+  typedef ::TINY::TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
       TinySymmetricSpatialDyad;
-  typedef TinySpatialTransform<TinyScalar, TinyConstants> TinySpatialTransform;
+  typedef ::TINY::TinySpatialTransform<TinyScalar, TinyConstants> TinySpatialTransform;
 
   for (int i = 0; i < num_links; i++) {
     TinyLink<TinyScalar, TinyConstants> l;

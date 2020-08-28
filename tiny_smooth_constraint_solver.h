@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef TINY_SMOOTH_CONSTRAINT_SOLVER_H
-#define TINY_SMOOTH_CONSTRAINT_SOLVER_H
+#ifndef _TINY_SMOOTH_CONSTRAINT_SOLVER_H
+#define _TINY_SMOOTH_CONSTRAINT_SOLVER_H
 
 #include "tiny_constraint_solver.h"
 #include "tiny_rigid_body.h"
 
+namespace TINY
+{
 template <typename TinyScalar, typename TinyConstants>
 struct TinySmoothConstraintSolver
     : public TinyConstraintSolver<TinyScalar, TinyConstants> {
@@ -97,5 +99,5 @@ struct TinySmoothConstraintSolver
     //    }
   }
 };
-
-#endif  // TINY_SMOOTH_CONSTRAINT_SOLVER_H
+};
+#endif  // _TINY_SMOOTH_CONSTRAINT_SOLVER_H

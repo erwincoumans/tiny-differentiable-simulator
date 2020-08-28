@@ -19,6 +19,7 @@
 #include "meshcat_zmq.h"
 #include "tiny_double_utils.h"
 #include "tiny_matrix3x3.h"
+using namespace TINY;
 
 using nlohmann::json;
 
