@@ -29,11 +29,11 @@ void init_xarm6(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb) {
   typedef ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> TinyMatrix3x3;
   typedef ::TINY::TinySymmetricSpatialDyad<TinyScalar, TinyConstants>
       TinySymmetricSpatialDyad;
-
+  typedef ::TINY::TinyLink<TinyScalar, TinyConstants> TinyLink;
   {
     // link1, <origin rpy="0 0 0" xyz="0 0 0.267"/>
-    TinyLink<TinyScalar, TinyConstants> l;
-    l.set_joint_type(JOINT_REVOLUTE_Z);
+    TinyLink  l;
+    l.set_joint_type(::TINY::JOINT_REVOLUTE_Z);
     l.m_X_T.m_rotation.set_identity();
     l.m_X_T.m_translation.setValue(TinyConstants::zero(), TinyConstants::zero(),
                                    TinyConstants::fraction(267, 1000));
@@ -56,8 +56,8 @@ void init_xarm6(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb) {
   }
   {
     // link2, <origin rpy="-1.5708 0 0" xyz="0 0 0"/>
-    TinyLink<TinyScalar, TinyConstants> l;
-    l.set_joint_type(JOINT_REVOLUTE_Z);
+    TinyLink l;
+    l.set_joint_type(::TINY::JOINT_REVOLUTE_Z);
     // <origin rpy = "0 0 0" xyz = "0 0 0" / >
     // <mass value = "1.71" / >
     // <inertia ixx = "0.0248674" ixy = "0" ixz = "0" iyy = "0.00485548" iyz =
@@ -83,8 +83,8 @@ void init_xarm6(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb) {
   }
   {
     // link3, <origin rpy="0 0 0" xyz="0.0535 -0.2845 0"/>
-    TinyLink<TinyScalar, TinyConstants> l;
-    l.set_joint_type(JOINT_REVOLUTE_Z);
+    TinyLink l;
+    l.set_joint_type(::TINY::JOINT_REVOLUTE_Z);
     // <mass value = "1.384" / >
     // <inertia ixx="0.0053694" ixy = "0" ixz = "0" iyy = "0.0032423" iyz = "0"
     // izz = "0.00501731" / >
@@ -109,8 +109,8 @@ void init_xarm6(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb) {
   }
   {
     // link4, <origin rpy="-1.5708 0 0" xyz="0.0775 0.3425 0"/>
-    TinyLink<TinyScalar, TinyConstants> l;
-    l.set_joint_type(JOINT_REVOLUTE_Z);
+    TinyLink l;
+    l.set_joint_type(::TINY::JOINT_REVOLUTE_Z);
 
     //<mass value = "1.115" / >
     //<inertia ixx = "0.00439263" ixy = "5.028E-05" ixz = "1.374E-05" iyy =
@@ -144,8 +144,8 @@ void init_xarm6(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb) {
   }
   {
     // link5, <origin rpy="1.5708 0 0" xyz="0 0 0"/>
-    TinyLink<TinyScalar, TinyConstants> l;
-    l.set_joint_type(JOINT_REVOLUTE_Z);
+    TinyLink l;
+    l.set_joint_type(::TINY::JOINT_REVOLUTE_Z);
 
     //<mass value = "1.275" / >
     //<inertia ixx = "0.001202758" ixy = "0.000492428" ixz = "-0.00039147" iyy =
@@ -178,8 +178,8 @@ void init_xarm6(::TINY::TinyMultiBody<TinyScalar, TinyConstants>& mb) {
   }
   {
     // link6, <origin rpy="-1.5708 0 0" xyz="0.076 0.097 0"/>
-    TinyLink<TinyScalar, TinyConstants> l;
-    l.set_joint_type(JOINT_REVOLUTE_Z);
+    TinyLink l;
+    l.set_joint_type(::TINY::JOINT_REVOLUTE_Z);
 
     //<mass value = "0.1096" / >
     //<inertia ixx = "4.5293E-05" ixy = "0" ixz = "0" iyy = "4.8111E-05" iyz =

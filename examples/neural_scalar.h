@@ -124,7 +124,7 @@ class NeuralScalar {
    * Add input connection to this neural network.
    */
   void connect(NeuralScalar* scalar,
-      ::TINY::TinyNeuralNetworkActivation activation = NN_ACT_IDENTITY) {
+      ::TINY::TinyNeuralNetworkActivation activation = ::TINY::NN_ACT_IDENTITY) {
     inputs_.push_back(scalar);
     net_.set_input_dim(net_.input_dim() + 1);
     // add output layer (if none has been created yet)
@@ -136,7 +136,7 @@ class NeuralScalar {
   }
 
   void initialize(
-      ::TINY::TinyNeuralNetworkInitialization init_method = NN_INIT_XAVIER) {
+      ::TINY::TinyNeuralNetworkInitialization init_method = ::TINY::NN_INIT_XAVIER) {
     net_.initialize(init_method);
   }
 

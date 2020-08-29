@@ -167,7 +167,7 @@ struct MeshcatUrdfVisualizer {
                             bool useTextureUuid) {
     for (int vis_index = 0; vis_index < (int)link.urdf_visual_shapes.size();
          vis_index++) {
-      TinyUrdfVisual<TinyScalar, TinyConstants> &v =
+      ::TINY::TinyUrdfVisual<TinyScalar, TinyConstants> &v =
           link.urdf_visual_shapes[vis_index];
 
       printf("v.geom_type=%d", v.geometry.geom_type);
@@ -182,7 +182,7 @@ struct MeshcatUrdfVisualizer {
       b2v.inertia_rpy = link.urdf_inertial.origin_rpy;
       int color_rgb = 0xffffff;
       double world_pos[3] = {0, 0, 0};
-      if (v.geometry.geom_type == TINY_MESH_TYPE) {
+      if (v.geometry.geom_type == ::TINY::TINY_MESH_TYPE) {
         // printf("mesh filename=%s\n", v.geom_meshfilename.c_str());
         std::string obj_data;
 
@@ -255,11 +255,11 @@ struct MeshcatUrdfVisualizer {
     for (int v = 0; v < body->m_visual_uids2.size(); v++) {
       int visual_id = body->m_visual_uids2[v];
       if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-        TinyQuaternion<TinyScalar, TinyConstants> rot;
-        TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
+        ::TINY::TinyQuaternion<TinyScalar, TinyConstants> rot;
+        ::TINY::TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
             body->m_base_X_world * body->m_X_visuals[v];
 
-        const TinyMatrix3x3<TinyScalar, TinyConstants> &m =
+        const ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> &m =
             geom_X_world.m_rotation;
 
         const TinyVisualLinkInfo &viz = m_b2vis.at(visual_id);
@@ -280,11 +280,11 @@ struct MeshcatUrdfVisualizer {
       for (int v = 0; v < body->m_links[l].m_visual_uids2.size(); v++) {
         int visual_id = body->m_links[l].m_visual_uids2[v];
         if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-          TinyQuaternion<TinyScalar, TinyConstants> rot;
-          TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
+          ::TINY::TinyQuaternion<TinyScalar, TinyConstants> rot;
+          ::TINY::TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
               body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[v];
           ;
-          const TinyMatrix3x3<TinyScalar, TinyConstants> &m =
+          const ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants> &m =
               geom_X_world.m_rotation;
           const TinyVisualLinkInfo &viz = m_b2vis.at(visual_id);
           // printf("vis_name=%s\n", viz.vis_name.c_str());

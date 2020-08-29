@@ -37,8 +37,8 @@ void init_compound_pendulum(::TINY::TinyMultiBody<TinyScalar, TinyConstants> &mb
   typedef ::TINY::TinySpatialTransform<TinyScalar, TinyConstants> TinySpatialTransform;
 
   for (int i = 0; i < num_links; i++) {
-    TinyLink<TinyScalar, TinyConstants> l;
-    l.set_joint_type(JOINT_REVOLUTE_X);
+    ::TINY::TinyLink<TinyScalar, TinyConstants> l;
+    l.set_joint_type(::TINY::JOINT_REVOLUTE_X);
     l.m_X_T.m_rotation.set_identity();
     TinyScalar pos_y =
         i == 0 ? TinyConstants::zero()
@@ -56,7 +56,7 @@ void init_compound_pendulum(::TINY::TinyMultiBody<TinyScalar, TinyConstants> &mb
     com.setValue(TinyConstants::zero(), length, TinyConstants::zero());
 
     TinyScalar radius = TinyConstants::fraction(15, 100);
-    TinySphere<TinyScalar, TinyConstants> *sphere = world.create_sphere(radius);
+    ::TINY::TinySphere<TinyScalar, TinyConstants> *sphere = world.create_sphere(radius);
     TinyVector3 local_inertia = sphere->compute_local_inertia(mass);
     TinyMatrix3x3 inertia_C;
     inertia_C.set_identity();
