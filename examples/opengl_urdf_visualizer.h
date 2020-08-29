@@ -36,7 +36,6 @@ struct OpenGLUrdfVisualizer {
   typedef ::TINY::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
   typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   typedef ::TINY::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
-
   struct TinyVisualLinkInfo {
     std::string vis_name;
     int link_index;
@@ -86,7 +85,7 @@ struct OpenGLUrdfVisualizer {
       char basepath[1024];
       bool triangulate = true;
       
-      TinyFileUtils::extract_path(obj_filename.c_str(), basepath, 1024);
+      ::TINY::TinyFileUtils::extract_path(obj_filename.c_str(), basepath, 1024);
       bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, obj_filename.c_str(),
           basepath, triangulate);
 
@@ -98,7 +97,7 @@ struct OpenGLUrdfVisualizer {
           int textureIndex = -1;
           TinyMeshUtils::extract_shape(attrib, shapes[i], materials, indices, vertices, textureIndex);
           textureIndex = -1;
-          TinyVector3f color(1, 1, 1);
+          ::TINY::TinyVector3f color(1, 1, 1);
           if (shapes[i].mesh.material_ids.size())
           {
               const tinyobj::material_t& mat = materials[shapes[i].mesh.material_ids[0]];
@@ -126,7 +125,7 @@ struct OpenGLUrdfVisualizer {
                             bool useTextureUuid) {
     for (int vis_index = 0; vis_index < (int)link.urdf_visual_shapes.size();
          vis_index++) {
-      TinyUrdfVisual<TinyScalar, TinyConstants> &v =
+      ::TINY::TinyUrdfVisual<TinyScalar, TinyConstants> &v =
           link.urdf_visual_shapes[vis_index];
 
       printf("v.geom_type=%d", v.geometry.geom_type);
@@ -141,15 +140,15 @@ struct OpenGLUrdfVisualizer {
       b2v.inertia_rpy = link.urdf_inertial.origin_rpy;
       int color_rgb = 0xffffff;
       double world_pos[3] = {0, 0, 0};
-      if (v.geometry.geom_type == TINY_MESH_TYPE) {
+      if (v.geometry.geom_type == ::TINY::TINY_MESH_TYPE) {
         // printf("mesh filename=%s\n", v.geom_meshfilename.c_str());
         std::string obj_filename;
         std::string org_obj_filename = m_path_prefix + v.geometry.m_mesh.m_file_name;
-        if (TinyFileUtils::find_file(org_obj_filename, obj_filename))
+        if (::TINY::TinyFileUtils::find_file(org_obj_filename, obj_filename))
         {
-            TinyVector3f pos(0, 0, 0);
-            TinyVector3f scaling(1, 1, 1);
-            TinyQuaternionf orn(0, 0, 0, 1);
+            ::TINY::TinyVector3f pos(0, 0, 0);
+            ::TINY::TinyVector3f scaling(1, 1, 1);
+            ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
             load_obj(obj_filename, pos, orn, scaling, b2v.instance_ids);
         }
       }
@@ -181,19 +180,19 @@ struct OpenGLUrdfVisualizer {
       for (int v = 0; v < body->m_visual_uids2.size(); v++) {
           int visual_id = body->m_visual_uids2[v];
           if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-              TinyQuaternion<TinyScalar, TinyConstants> rot;
-              TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
+              ::TINY::TinyQuaternion<TinyScalar, TinyConstants> rot;
+              ::TINY::TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
                   body->m_base_X_world * body->m_X_visuals[v];
 
-              const TinyMatrix3x3<TinyScalar, TinyConstants>& m =
+              const ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants>& m =
                   geom_X_world.m_rotation;
               m.getRotation(rot);
               const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
               for (int i = 0; i < viz.instance_ids.size(); i++)
               {
                   int instance_id = viz.instance_ids[i];
-                  TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
-                  TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+                  ::TINY::TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
+                  ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
                   m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
               }
           }
@@ -203,19 +202,19 @@ struct OpenGLUrdfVisualizer {
           for (int v = 0; v < body->m_links[l].m_visual_uids2.size(); v++) {
               int visual_id = body->m_links[l].m_visual_uids2[v];
               if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-                  TinyQuaternion<TinyScalar, TinyConstants> rot;
-                  TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
+                  ::TINY::TinyQuaternion<TinyScalar, TinyConstants> rot;
+                  ::TINY::TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
                       body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[v];
                   ;
-                  const TinyMatrix3x3<TinyScalar, TinyConstants>& m =
+                  const ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants>& m =
                       geom_X_world.m_rotation;
                   const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
                   m.getRotation(rot);
                   for (int i = 0; i < viz.instance_ids.size(); i++)
                   {
                       int instance_id = viz.instance_ids[i];
-                      TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
-                      TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+                      ::TINY::TinyVector3f pos(geom_X_world.m_translation[0], geom_X_world.m_translation[1], geom_X_world.m_translation[2]);
+                      ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
                       m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
                   }
 
