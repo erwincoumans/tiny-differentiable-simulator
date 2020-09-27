@@ -21,12 +21,25 @@ set(DL ${CMAKE_DL_LIBS})
 find_package(ct_core)
 find_package(ct_optcon)
 find_package(Ceres)
+add_definitions(-DCERES_USE_CXX11)
 find_package(PkgConfig)
 
 find_package(Torch)
 
 add_definitions(-DBT_USE_DOUBLE_PRECISION)
-find_package(Bullet)
+
+find_package(blasfeo)
+if (blasfeo_FOUND)
+    include_directories(${blasfeo_INCLUDE_DIRS})
+endif (blasfeo_FOUND)
+
+find_package(hpipm)
+if (hpipm_FOUND)
+    include_directories(${hpipm_INCLUDE_DIRS})
+else (hpipm_FOUND)
+    message("hpipm not found")
+endif (hpipm_FOUND)
+
 
 #find_package(tinyxml2)
 if (tinyxml2_FOUND)
@@ -92,9 +105,12 @@ ENDIF()
 set(HAS_MESHCAT TRUE)
 
 
+find_package(Bullet)
 if (Bullet_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
     include_directories(${BULLET_INCLUDE_DIRS})
+    message("Bullet found in ${BULLET_INCLUDE_DIRS}")
+    message("Bullet libs in ${BULLET_LIBRARIES}")
     add_library(pybullet_visualizer_api STATIC pybullet_visualizer_api.cpp)
     target_link_libraries(pybullet_visualizer_api BulletRoboticsGUI BulletExampleBrowserLib
             BulletRobotics BulletFileLoader BulletWorldImporter BulletSoftBody BulletDynamics
