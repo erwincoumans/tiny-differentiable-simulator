@@ -53,6 +53,15 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
     )pbdoc";
 
+
+  py::class_<DrawGridData>(m, "DrawGridData")
+     .def(py::init<>())
+    .def_readwrite("upAxis", &DrawGridData::upAxis)
+    .def_readwrite("drawAxis", &DrawGridData::drawAxis)
+    .def_readwrite("upOffset", &DrawGridData::upOffset)
+    .def_readwrite("gridSize", &DrawGridData::gridSize);
+         
+
   py::class_<TinyOpenGL3App>(m,"TinyOpenGL3App")
     .def(py::init<const char*,int,int, bool, int, int, int, int>(),
       py::arg("title")="pytinyopengl3",
@@ -67,6 +76,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("register_cube_shape", &TinyOpenGL3App::register_cube_shape)
       .def("register_graphics_unit_sphere_shape", &TinyOpenGL3App::register_graphics_unit_sphere_shape)
       .def("draw_grid", (void (TinyOpenGL3App::*)())&TinyOpenGL3App::draw_grid)
+      .def("draw_grid", (void (TinyOpenGL3App::*)(DrawGridData)) & TinyOpenGL3App::draw_grid)
       .def("draw_text_3d", (void (TinyOpenGL3App::*)(const char*, float [3], float[4], float[4], float, int)) &TinyOpenGL3App::draw_text_3d)
       .def("draw_text_3d", (void (TinyOpenGL3App::*)(const char*, float, float, float, float)) &TinyOpenGL3App::draw_text_3d)
       .def_readwrite("renderer",&TinyOpenGL3App::m_renderer)
@@ -145,6 +155,17 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("__setitem__", [](TinyVector3<float, FloatUtils> &a, int i,
                              double v) { a[i] = v; });
 
+    py::class_<TinyMatrix3x3<float, FloatUtils>>(m, "TinyMatrix3x3f")
+        .def(py::init<float, float, float,
+            float, float, float,
+            float, float, float>())
+        .def(py::init<TinyQuaternion<float, FloatUtils>>())
+        .def("get_at", &TinyMatrix3x3<float, FloatUtils>::get_at)
+        .def("get_row", &TinyMatrix3x3<float, FloatUtils>::getRow)
+        .def("set_identity", &TinyMatrix3x3<float, FloatUtils>::set_identity)
+        .def("setRotation", &TinyMatrix3x3<float, FloatUtils>::setRotation)
+        .def("getRotation", &TinyMatrix3x3<float, FloatUtils>::getRotation2);
+
   py::class_<TinyQuaternion<float, FloatUtils>>(m, "TinyQuaternionf")
       .def(py::init<float, float, float, float>())
       .def("set_identity", &TinyQuaternion<float, FloatUtils>::set_identity)
@@ -167,7 +188,13 @@ PYBIND11_MODULE(pytinyopengl3, m) {
                              int i) { return a[i]; })
       .def("__setitem__", [](TinyQuaternion<float, FloatUtils> &a, int i,
                              float v) { a[i] = v; });
-
+    py::enum_<EnumSphereLevelOfDetail>(m, "EnumSphereLevelOfDetail")
+        .value("SPHERE_LOD_POINT_SPRITE", SPHERE_LOD_POINT_SPRITE, "SPHERE_LOD_POINT_SPRITE")
+        .value("SPHERE_LOD_LOW", SPHERE_LOD_LOW, "SPHERE_LOD_LOW")
+        .value("SPHERE_LOD_MEDIUM", SPHERE_LOD_MEDIUM, "SPHERE_LOD_MEDIUM")
+        .value("SPHERE_LOD_HIGH", SPHERE_LOD_HIGH, "SPHERE_LOD_HIGH") 
+        .export_values();
+        ;
 
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;

@@ -24,13 +24,21 @@ struct DrawGridData {
   int gridSize;
   float upOffset;
   int upAxis;
+  bool drawAxis;
   float gridColor[4];
 
-  DrawGridData(int upAx = 1) : gridSize(10), upOffset(0.001f), upAxis(upAx) {
+  DrawGridData(int upAx = 2) : gridSize(10), upOffset(0.001f), drawAxis(false), upAxis(upAx) {
     gridColor[0] = 0.6f;
     gridColor[1] = 0.6f;
     gridColor[2] = 0.6f;
     gridColor[3] = 1.f;
+  }
+  void set_color(float red, float green, float blue, float alpha)
+  {
+      gridColor[0] = red;
+      gridColor[1] = green;
+      gridColor[2] = blue;
+      gridColor[3] = alpha;
   }
 };
 
@@ -39,7 +47,6 @@ enum EnumSphereLevelOfDetail {
   SPHERE_LOD_LOW,
   SPHERE_LOD_MEDIUM,
   SPHERE_LOD_HIGH,
-
 };
 struct TinyCommonGraphicsApp {
   enum drawText3DOption {

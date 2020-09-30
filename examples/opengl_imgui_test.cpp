@@ -20,10 +20,11 @@
 #include "b3WriteWavFile.h"
 
 
-
+#define USE_WAV_READER
 #ifdef USE_WAV_READER
 b3ReadWavFile wavReader;
 b3WavTicker wavTicker;
+FileDataSource dataSource;
 #endif//USE_WAV_READER
 
 #ifdef USE_WAV_WRITER
@@ -108,7 +109,8 @@ int tick(void* outputBuffer, void* inputBuffer1, unsigned int nBufferFrames,
         leftOsc.m_frequency = 420 + 220 * lfoMod;
         rightOsc.m_frequency = 420 + 120 * lfoMod;
 #ifdef USE_WAV_READER
-        wavReader.tick(0, &wavTicker);
+        double speed = 1.f;
+        wavReader.tick(0, &wavTicker, dataSource, speed);
         if (wavTicker.finished_)
         {
             wavTicker.time_ = 0;
@@ -467,10 +469,11 @@ int main(int argc, char* argv[]) {
     wavWriter.setWavFile("d:/mywav.wav", sampleRate, 2, true);
 #endif
 #ifdef USE_WAV_READER
-    const char* wavFileName = "D:/ForestAmbience.wav";
-    wavReader.getWavInfo(wavFileName);
+    const char* wavFileName = "d:/Porcelain Breaking.wav";// D: / xylophone.rosewood.ff.C5B5_1.wav";// Porcelain Breaking.wav";// ForestAmbience.wav";
+    dataSource.open(wavFileName);
+    wavReader.getWavInfo(dataSource);
     wavReader.resize();
-    wavReader.read(0, true);
+    //wavReader.read(dataSource,0, true);
     wavTicker = wavReader.createWavTicker(sampleRate);
 #endif
     RtAudio dac;

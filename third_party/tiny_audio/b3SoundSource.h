@@ -20,7 +20,7 @@ public:
 	void setOscillatorPhase(int oscillatorIndex, double phase);
 	void setADSR(double attackRate, double decayRate, double sustainLevel, double releaseRate);
 
-	bool setWavFile(int oscillatorIndex, class b3ReadWavFile* wavFilePtr, int sampleRate);
+	bool setWavFile(int oscillatorIndex, class b3ReadWavFile* wavFilePtr, struct b3DataSource* dataSource, int sampleRate);
 
 	void startSound(bool autoKeyOff);
 	void stopSound();
