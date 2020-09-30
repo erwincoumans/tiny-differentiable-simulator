@@ -105,10 +105,16 @@
 
   py::class_<TinyMatrix3x3<MyScalar, MyTinyConstants>>(m, "TinyMatrix3x3")
       .def(py::init<>())
+      .def(py::init<MyScalar, MyScalar, MyScalar, 
+          MyScalar, MyScalar, MyScalar, 
+          MyScalar, MyScalar, MyScalar>())
       .def(py::init<TinyQuaternion<MyScalar, MyTinyConstants>>())
       .def("get_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::get_at)
       .def("get_row",&TinyMatrix3x3<MyScalar, MyTinyConstants>::getRow)
-      .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity);
+      .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity)
+      .def("setRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::setRotation)
+      .def("getRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::getRotation2)
+      ;
 
   py::class_<TinyMatrix3xX<MyScalar, MyTinyConstants>>(m, "TinyMatrix3xX")
       .def(py::init<>())

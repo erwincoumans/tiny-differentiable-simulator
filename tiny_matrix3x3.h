@@ -238,6 +238,13 @@ class TinyMatrix3x3 {
              TinyConstants::one() - (xx + yy));
   }
 
+  TinyQuaternion getRotation2() const {
+	  TinyQuaternion tmp;
+	  getRotation(tmp);
+	  return tmp;
+  }
+  
+
   /**@brief Get the matrix represented as a quaternion
    * @param q The quaternion which will be set */
   void getRotation(TinyQuaternion& q) const {
