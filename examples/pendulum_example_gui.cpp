@@ -49,8 +49,6 @@ int main(int argc, char* argv[]) {
 
   typedef TinyRigidBody<double, DoubleUtils> TinyRigidBodyDouble;
 
-  std::vector<TinyRigidBody<double, DoubleUtils>*> bodies;
-  std::vector<int> visuals;
 
   std::vector<TinyMultiBody<double, DoubleUtils>*> mbbodies;
   std::vector<int> mbvisuals;
@@ -74,17 +72,6 @@ int main(int argc, char* argv[]) {
       mbvisuals.push_back(instance);
   }
   
-
-#if 0
-  if (visualizer->canSubmitCommand()) {
-    for (int i = 0; i < mb->m_links.size(); i++) {
-      int sphereId = visualizer->loadURDF("sphere_small.urdf");
-      mbvisuals.push_back(sphereId);
-      // apply some linear joint damping
-      mb->m_links[i].m_damping = 5.;
-    }
-  }
-#endif
   std::vector<double> q(mb->dof(), DoubleUtils::zero());
   std::vector<double> qd(mb->dof_qd(), DoubleUtils::zero());
   std::vector<double> tau(mb->dof_qd(), DoubleUtils::zero());

@@ -47,7 +47,9 @@
              std::unique_ptr<TinySphere<MyScalar, MyTinyConstants>>>(m, "TinySphere",
                                                                geom)
       .def(py::init<MyScalar>())
-      .def("get_radius", &TinySphere<MyScalar, MyTinyConstants>::get_radius);
+      .def("get_radius", &TinySphere<MyScalar, MyTinyConstants>::get_radius)
+      .def("compute_local_inertia", &TinySphere<MyScalar, MyTinyConstants>::compute_local_inertia)
+      ;
 
   py::class_<TinyPlane<MyScalar, MyTinyConstants>,
              std::unique_ptr<TinyPlane<MyScalar, MyTinyConstants>>>(m, "TinyPlane",
@@ -110,6 +112,7 @@
           MyScalar, MyScalar, MyScalar>())
       .def(py::init<TinyQuaternion<MyScalar, MyTinyConstants>>())
       .def("get_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::get_at)
+      .def("set_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_at)
       .def("get_row",&TinyMatrix3x3<MyScalar, MyTinyConstants>::getRow)
       .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity)
       .def("setRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::setRotation)
@@ -178,13 +181,18 @@
           "bottomVec",
           &TinySpatialMotionVector<MyScalar, MyTinyConstants>::m_bottomVec);
 
+  m.def("fraction", &MyTinyConstants::fraction);
+  m.def("get_debug_double", &MyTinyConstants::getDouble<MyScalar>);
+    
+  m.def("compute_inertia_dyad",
+      &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::computeInertiaDyad);
+
   py::class_<TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>>(
       m, "TinySymmetricSpatialDyad")
       .def(py::init<>())
       .def("set_identity",
            &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::setIdentity)
-      .def("compute_inertia_dyad",
-           &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::computeInertiaDyad)
+
       .def("mul", &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::mul)
       .def("shift", &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::shift)
       .def("inverse", &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::inverse)
@@ -219,9 +227,17 @@
       .value("JOINT_INVALID", JOINT_INVALID, "JOINT_INVALID")
       .export_values();
 
+  py::enum_<TinyGeometryTypes>(m, "TinyGeometryTypes")
+      .value("SPHERE_TYPE", TINY_SPHERE_TYPE, "SPHERE_TYPE")
+      .value("BOX_TYPE", TINY_PLANE_TYPE, "BOX_TYPE")
+      .value("PLANE_TYPE", TINY_PLANE_TYPE, "PLANE_TYPE")
+      .value("CAPSULE_TYPE", TINY_CAPSULE_TYPE, "CAPSULE_TYPE")
+      .value("MESH_TYPE", TINY_MESH_TYPE, "MESH_TYPE")
+      .export_values();
+  
   py::class_<TinyLink<MyScalar, MyTinyConstants>,
              std::unique_ptr<TinyLink<MyScalar, MyTinyConstants>>>(m, "TinyLink")
-      .def(py::init<TinyJointType, TinySpatialTransform<MyScalar, MyTinyConstants> &,
+      .def(py::init<TinyJointType, const TinySpatialTransform<MyScalar, MyTinyConstants> &,
                     const TinySymmetricSpatialDyad<MyScalar, MyTinyConstants> &>())
       .def("jcalc", &TinyLink<MyScalar, MyTinyConstants>::jcalc1)
       .def("set_joint_type", &TinyLink<MyScalar, MyTinyConstants>::set_joint_type)
@@ -548,22 +564,9 @@
 #else
   m.attr("__version__") = "dev";
 #endif
-  m.attr("SPHERE_TYPE") = py::int_(int(TINY_SPHERE_TYPE));
-  m.attr("BOX_TYPE") = py::int_(int(TINY_BOX_TYPE));
-  m.attr("PLANE_TYPE") = py::int_(int(TINY_PLANE_TYPE));
-  m.attr("CAPSULE_TYPE") = py::int_(int(TINY_CAPSULE_TYPE));
-  m.attr("MESH_TYPE") = py::int_(int(TINY_MESH_TYPE));
 
-  m.attr("JOINT_FIXED") = py::int_(int(JOINT_FIXED));
-  m.attr("JOINT_PRISMATIC_X") = py::int_(int(JOINT_PRISMATIC_X));
-  m.attr("JOINT_PRISMATIC_Y") = py::int_(int(JOINT_PRISMATIC_Y));
-  m.attr("JOINT_PRISMATIC_Z") = py::int_(int(JOINT_PRISMATIC_Z));
-  m.attr("JOINT_PRISMATIC_AXIS") = py::int_(int(JOINT_PRISMATIC_AXIS));
-  m.attr("JOINT_REVOLUTE_X") = py::int_(int(JOINT_REVOLUTE_X));
-  m.attr("JOINT_REVOLUTE_Y") = py::int_(int(JOINT_REVOLUTE_Y));
-  m.attr("JOINT_REVOLUTE_Z") = py::int_(int(JOINT_REVOLUTE_Z));
-  m.attr("JOINT_REVOLUTE_AXIS") = py::int_(int(JOINT_REVOLUTE_AXIS));
 
+  
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;
 #else

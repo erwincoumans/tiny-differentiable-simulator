@@ -64,7 +64,7 @@ class TinyLink {
 
  public:
   TinyLink() = default;
-  TinyLink(TinyJointType joint_type, TinySpatialTransform& parent_link_to_joint,
+  TinyLink(TinyJointType joint_type, const TinySpatialTransform& parent_link_to_joint,
            const TinySymmetricSpatialDyad& inertia)
       : m_joint_type(joint_type), m_X_T(parent_link_to_joint), m_I(inertia) {}
 
