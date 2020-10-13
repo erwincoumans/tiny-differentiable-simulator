@@ -181,7 +181,7 @@
           "bottomVec",
           &TinySpatialMotionVector<MyScalar, MyTinyConstants>::m_bottomVec);
 
-  m.def("fraction", &MyTinyConstants::fraction);
+  m.def("fraction",&fraction);
   m.def("get_debug_double", &MyTinyConstants::getDouble<MyScalar>);
     
   m.def("compute_inertia_dyad",

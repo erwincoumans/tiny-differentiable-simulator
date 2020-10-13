@@ -1454,6 +1454,10 @@ void TinyGLInstancingRenderer::set_active_camera(TinyCamera* cam) {
   m_data->m_activeCamera = cam;
 }
 
+void TinyGLInstancingRenderer::set_camera(const TinyCamera& cam) {
+    *m_data->m_activeCamera = cam;
+}
+
 void TinyGLInstancingRenderer::set_light_specular_intensity(
     const float lightSpecularIntensity[3]) {
   m_data->m_lightSpecularIntensity[0] = lightSpecularIntensity[0];

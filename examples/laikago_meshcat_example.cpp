@@ -25,7 +25,7 @@
 #include "pybullet_visualizer_api.h"
 #include "tiny_file_utils.h"
 #include "tiny_urdf_to_multi_body.h"
-
+using namespace tiny;
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
 bool useLaikago = true;

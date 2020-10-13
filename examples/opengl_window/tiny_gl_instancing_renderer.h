@@ -187,6 +187,8 @@ class TinyGLInstancingRenderer {
 
   virtual const TinyCamera* get_active_camera() const;
   virtual TinyCamera* get_active_camera();
+  void set_camera(const TinyCamera& cam);
+
   virtual void set_active_camera(TinyCamera* cam);
 
   virtual void set_light_position(const float lightPos[3]);

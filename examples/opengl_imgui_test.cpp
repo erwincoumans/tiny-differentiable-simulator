@@ -20,7 +20,7 @@
 #include "b3WriteWavFile.h"
 
 
-#define USE_WAV_READER
+//#define USE_WAV_READER
 #ifdef USE_WAV_READER
 b3ReadWavFile wavReader;
 b3WavTicker wavTicker;
