@@ -14,13 +14,13 @@ template <typename TinyScalar, typename TinyConstants>
 struct TinyAlgebra {
   using Index = int;
   using Scalar = TinyScalar;
-  using Vector3 = TinyVector3<TinyScalar, TinyConstants>;
-  using VectorX = TinyVectorX<TinyScalar, TinyConstants>;
-  using Matrix3 = TinyMatrix3x3<TinyScalar, TinyConstants>;
-  using Matrix6 = TinyMatrix6x6<TinyScalar, TinyConstants>;
-  using Matrix3X = TinyMatrix3xX<TinyScalar, TinyConstants>;
-  using MatrixX = TinyMatrixXxX<TinyScalar, TinyConstants>;
-  using Quaternion = TinyQuaternion<TinyScalar, TinyConstants>;
+  using Vector3 = ::TINY::TinyVector3<TinyScalar, TinyConstants>;
+  using VectorX = ::TINY::TinyVectorX<TinyScalar, TinyConstants>;
+  using Matrix3 = ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants>;
+  using Matrix6 = ::TINY::TinyMatrix6x6<TinyScalar, TinyConstants>;
+  using Matrix3X = ::TINY::TinyMatrix3xX<TinyScalar, TinyConstants>;
+  using MatrixX = ::TINY::TinyMatrixXxX<TinyScalar, TinyConstants>;
+  using Quaternion = ::TINY::TinyQuaternion<TinyScalar, TinyConstants>;
   using SpatialVector = tds::SpatialVector<TinyAlgebra>;
   using MotionVector = tds::MotionVector<TinyAlgebra>;
   using ForceVector = tds::ForceVector<TinyAlgebra>;
@@ -126,7 +126,7 @@ struct TinyAlgebra {
 
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static VectorX mul_transpose(
-      const TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &mat,
+      const ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &mat,
       const ColumnType<TinyScalar, TinyConstants> &vec) {
     return mat.mul_transpose(vec);
   }
@@ -278,7 +278,7 @@ struct TinyAlgebra {
 
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_block(
-      TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
+      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
       const Matrix3 &input, Index i, Index j, Index m = 3, Index n = 3,
       Index input_i = 0, Index input_j = 0) {
     for (int ii = 0; ii < m; ++ii) {
@@ -290,8 +290,8 @@ struct TinyAlgebra {
 
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_block(
-      TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
-      const TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &input,
+      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
+      const ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &input,
       Index i, Index j, Index m, Index n, Index input_i = 0,
       Index input_j = 0) {
     for (int ii = 0; ii < m; ++ii) {
@@ -303,8 +303,8 @@ struct TinyAlgebra {
 
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_block(
-      TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
-      const TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &input,
+      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
+      const ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &input,
       Index i, Index j) {
     for (int ii = 0; ii < input.m_rows; ++ii) {
       for (int jj = 0; jj < input.m_cols; ++jj) {
@@ -324,7 +324,7 @@ struct TinyAlgebra {
   }
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_column(
-      TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &m, Index i,
+      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &m, Index i,
       const SpatialVector &v) {
     for (int j = 0; j < 6; ++j) {
       m(j, i) = v[j];
@@ -332,7 +332,7 @@ struct TinyAlgebra {
   }
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_column(
-      TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &m, Index i,
+      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &m, Index i,
       const ColumnType<TinyScalar, TinyConstants> &v) {
     for (int j = 0; j < num_rows(v); ++j) {
       m(j, i) = v[j];
@@ -352,7 +352,7 @@ struct TinyAlgebra {
   }
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_row(
-      TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &m, Index i,
+      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &m, Index i,
       const SpatialVector &v) {
     for (int j = 0; j < 6; ++j) {
       m(i, j) = v[j];
@@ -447,7 +447,7 @@ struct TinyAlgebra {
   TINY_INLINE static void set_zero(Matrix3 &m) { m.set_zero(); }
   template <typename S, typename U,
             template <typename, typename> typename ColumnType>
-  TINY_INLINE static void set_zero(TinyMatrixXxX_<S, U, ColumnType> &m) {
+  TINY_INLINE static void set_zero(::TINY::TinyMatrixXxX_<S, U, ColumnType> &m) {
     m.set_zero();
   }
 
@@ -564,11 +564,11 @@ struct TinyAlgebra {
     return TinyConstants::tanh(s);
   }
 
-  TINY_INLINE static Scalar min(const Scalar &a, const Scalar &b) {
+  TINY_INLINE static Scalar min1(const Scalar &a, const Scalar &b) {
     return TinyConstants::min1(a, b);
   }
 
-  TINY_INLINE static Scalar max(const Scalar &a, const Scalar &b) {
+  TINY_INLINE static Scalar max1(const Scalar &a, const Scalar &b) {
     return TinyConstants::max1(a, b);
   }
 

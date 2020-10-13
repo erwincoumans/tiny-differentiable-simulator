@@ -140,6 +140,8 @@ struct Link {
     }
   }
 
+  inline void jcalc1(Scalar q) { jcalc(q, &X_J, &X_parent); }
+
   void jcalc(const Scalar &q, Transform *X_J, Transform *X_parent) const {
     X_J->set_identity();
     X_parent->set_identity();

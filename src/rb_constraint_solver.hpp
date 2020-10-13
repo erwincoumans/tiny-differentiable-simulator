@@ -53,8 +53,8 @@ class RigidBodyConstraintSolver {
                                  const Scalar& dt) const {
     const Vector3& world_point_a = cp.world_point_on_a;
     const Vector3& world_point_b = cp.world_point_on_b;
-    Vector3 rel_pos_a = world_point_a - cp.rigid_body_a->world_pose().position;
-    Vector3 rel_pos_b = world_point_b - cp.rigid_body_b->world_pose().position;
+    Vector3 rel_pos_a = world_point_a - cp.rigid_body_a->world_pose().position_;
+    Vector3 rel_pos_b = world_point_b - cp.rigid_body_b->world_pose().position_;
     Scalar baumgarte_rel_vel = Algebra::zero();
 
     if (Algebra::less_than_zero(cp.distance)) {

@@ -58,6 +58,16 @@ int getSpecialKeyFromVirtualKeycode(int virtualKeyCode) {
   if (virtualKeyCode >= '0' && virtualKeyCode <= '9') {
     return virtualKeyCode;
   }
+  unsigned char supported_chars[] = { VK_OEM_PERIOD,VK_OEM_COMMA, VK_OEM_PLUS, VK_OEM_MINUS};
+  unsigned char converted_chars[] = { '.',',', '+', '-'};
+  for (int i=0;i<sizeof(supported_chars)/sizeof(char);i++)
+  {
+      unsigned char code = supported_chars[i];
+      if (virtualKeyCode == code)
+      {
+          return converted_chars[i];
+      }
+  }
 
   switch (virtualKeyCode) {
     case VK_SPACE: {
@@ -135,6 +145,12 @@ int getSpecialKeyFromVirtualKeycode(int virtualKeyCode) {
     case VK_DELETE: {
       keycode = TINY_KEY_DELETE;
       break;
+    }
+
+    case VK_TAB:
+    {
+        keycode = TINY_KEY_TAB;
+        break;
     }
 
     case VK_END: {

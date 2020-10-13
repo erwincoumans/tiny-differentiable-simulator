@@ -57,6 +57,8 @@
 #define pclose _pclose
 #endif  // _WIN32
 
+using namespace TINY;
+
 struct TinyOpenGL3AppInternalData {
   GLuint m_fontTextureId;
   GLuint m_largeFontTextureId;
@@ -292,6 +294,7 @@ static void printGLString(const char* name, GLenum s) {
 }
 
 bool sOpenGLVerbose = true;
+
 
 TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
                                bool allowRetina, int windowType,
@@ -753,6 +756,8 @@ void TinyOpenGL3App::draw_textured_tect(float x0, float y0, float x1, float y1,
   glDisable(GL_BLEND);
 }
 
+
+
 int TinyOpenGL3App::register_cube_shape(float halfExtentsX, float halfExtentsY,
                                         float halfExtentsZ, int textureIndex,
                                         float textureScaling) {
@@ -971,27 +976,23 @@ void TinyOpenGL3App::draw_grid(DrawGridData data) {
                                    sizeof(TinyVector3f), &indices[0],
                                    indices.size(), 1);
 
-  m_instancingRenderer->draw_line(TinyVector3f(0, 0, 0), TinyVector3f(1, 0, 0),
-                                  TinyVector3f(1, 0, 0), 3);
-  m_instancingRenderer->draw_line(TinyVector3f(0, 0, 0), TinyVector3f(0, 1, 0),
-                                  TinyVector3f(0, 1, 0), 3);
-  m_instancingRenderer->draw_line(TinyVector3f(0, 0, 0), TinyVector3f(0, 0, 1),
-                                  TinyVector3f(0, 0, 1), 3);
+  if (data.drawAxis)
+  {
+      m_instancingRenderer->draw_line(TinyVector3f(0, 0, 0), TinyVector3f(1, 0, 0),
+          TinyVector3f(1, 0, 0), 3);
+      m_instancingRenderer->draw_line(TinyVector3f(0, 0, 0), TinyVector3f(0, 1, 0),
+          TinyVector3f(0, 1, 0), 3);
+      m_instancingRenderer->draw_line(TinyVector3f(0, 0, 0), TinyVector3f(0, 0, 1),
+          TinyVector3f(0, 0, 1), 3);
 
-  //	void TinyGLInstancingRenderer::draw_points(const float* positions, const
-  // float color[4], int numPoints, int pointStrideInBytes, float pointDrawSize)
+      m_instancingRenderer->draw_point(TinyVector3f(1, 0, 0), TinyVector3f(1, 0, 0),
+                                       6);
+      m_instancingRenderer->draw_point(TinyVector3f(0, 1, 0), TinyVector3f(0, 1, 0),
+                                       6);
+      m_instancingRenderer->draw_point(TinyVector3f(0, 0, 1), TinyVector3f(0, 0, 1),
+                                       6);
+  }
 
-  // we don't use draw_points because all points would have the same color
-  //	TinyVector3f points[3] = { TinyVector3f(1, 0, 0), TinyVector3f(0, 1, 0),
-  // TinyVector3f(0, 0, 1) }; 	m_instancingRenderer->draw_points(&points[0].x,
-  // TinyVector3f(1, 0, 0), 3, sizeof(TinyVector3f), 6);
-
-  m_instancingRenderer->draw_point(TinyVector3f(1, 0, 0), TinyVector3f(1, 0, 0),
-                                   6);
-  m_instancingRenderer->draw_point(TinyVector3f(0, 1, 0), TinyVector3f(0, 1, 0),
-                                   6);
-  m_instancingRenderer->draw_point(TinyVector3f(0, 0, 1), TinyVector3f(0, 0, 1),
-                                   6);
 }
 
 void TinyOpenGL3App::set_background_color(float red, float green, float blue) {

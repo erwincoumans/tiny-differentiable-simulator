@@ -42,8 +42,8 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                                   float textureScaling = 1);
   virtual int register_graphics_unit_sphere_shape(EnumSphereLevelOfDetail lod,
                                                   int textureId = -1);
-  virtual void register_grid(int xres, int yres, const TinyVector3f& color0,
-                             const TinyVector3f& color1);
+  virtual void register_grid(int xres, int yres, const ::TINY::TinyVector3f& color0,
+                             const ::TINY::TinyVector3f& color1);
   void dump_next_frame_to_png(const char* pngFilename);
   void dump_frames_to_video(const char* mp4Filename);
   virtual void get_screen_pixels(unsigned char* rgbaBuffer,
@@ -51,7 +51,12 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                                  int depthBufferSizeInBytes);
   virtual void set_viewport(int width, int height);
 
-  void draw_grid(DrawGridData data = DrawGridData());
+  void draw_grid(DrawGridData data);
+  void draw_grid()
+  {
+      DrawGridData data = DrawGridData();
+      draw_grid(data);
+  }
   virtual void set_up_axis(int axis);
   virtual int get_up_axis() const;
 

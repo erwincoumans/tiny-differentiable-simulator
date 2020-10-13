@@ -59,7 +59,7 @@ struct UrdfToMultiBody {
     for (std::size_t i = 0; i < base_link.urdf_visual_shapes.size(); i++) {
       const UrdfVisual<Algebra>& visual_shape = base_link.urdf_visual_shapes[i];
 
-      mb.visual_ids_.push_back(visual_shape.sync_visual_body_id);
+      mb.visual_ids_.push_back(visual_shape.sync_visual_body_uid1);
       Transform<Algebra> visual_offset;
       visual_offset.translation =
           Vector3(visual_shape.origin_xyz[0], visual_shape.origin_xyz[1],
@@ -174,7 +174,7 @@ struct UrdfToMultiBody {
         for (std::size_t i = 0; i < link.urdf_visual_shapes.size(); i++) {
           const UrdfVisual<Algebra>& visual_shape = link.urdf_visual_shapes[i];
 
-          l.visual_ids.push_back(visual_shape.sync_visual_body_id);
+          l.visual_ids.push_back(visual_shape.sync_visual_body_uid1);
           Transform<Algebra> visual_offset;
           visual_offset.translation =
               Vector3(visual_shape.origin_xyz[0], visual_shape.origin_xyz[1],

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TINY_HELPER_H
-#define TINY_HELPER_H
+#ifndef _TINY_HELPER_H
+#define _TINY_HELPER_H
 
 #include <Eigen/Core>
 #include <Eigen/LU>
@@ -23,7 +23,7 @@
 
 #include "tiny_matrix_x.h"
 
-namespace helper {
+namespace TINY_helper {
 
 template <typename TinyScalar, typename TinyConstants,
           template <typename, typename> typename ColumnType>
@@ -119,6 +119,6 @@ ColumnType<TinyScalar, TinyConstants> solve_triangular(
   for (int i = 0; i < m.m_rows; ++i) result[i] = ev(i);
   return result;
 }
-};  // namespace helper
+};  // namespace TINY_helper
 
-#endif  // TINY_HELPER_H
+#endif  // _TINY_HELPER_H
