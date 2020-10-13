@@ -33,7 +33,7 @@ SET(MSVC_INCREMENTAL_DEFAULT ON)
 PROJECT(DIFF_PHYSICS)
 
 #The core library consists of those headers
-FILE(GLOB TDS_HDRS "*.h" )
+FILE(GLOB_RECURSE TDS_HDRS "src/*.h" )
 
 set(CMAKE_CXX_STANDARD 17)
 
