@@ -16,7 +16,7 @@
 #define TINY_COMMON_GRAPHICS_APP_INTERFACE_H
 
 #include "tiny_camera.h"
-#include "../../src/math/tiny/tiny_float_utils.h"
+#include "math/tiny/tiny_float_utils.h"
 #include "tiny_gl_instancing_renderer.h"
 #include "tiny_window_interface.h"
 
@@ -24,13 +24,21 @@ struct DrawGridData {
   int gridSize;
   float upOffset;
   int upAxis;
+  bool drawAxis;
   float gridColor[4];
 
-  DrawGridData(int upAx = 1) : gridSize(10), upOffset(0.001f), upAxis(upAx) {
+  DrawGridData(int upAx = 2) : gridSize(10), upOffset(0.001f), drawAxis(false), upAxis(upAx) {
     gridColor[0] = 0.6f;
     gridColor[1] = 0.6f;
     gridColor[2] = 0.6f;
     gridColor[3] = 1.f;
+  }
+  void set_color(float red, float green, float blue, float alpha)
+  {
+      gridColor[0] = red;
+      gridColor[1] = green;
+      gridColor[2] = blue;
+      gridColor[3] = alpha;
   }
 };
 
@@ -39,7 +47,6 @@ enum EnumSphereLevelOfDetail {
   SPHERE_LOD_LOW,
   SPHERE_LOD_MEDIUM,
   SPHERE_LOD_HIGH,
-
 };
 struct TinyCommonGraphicsApp {
   enum drawText3DOption {
@@ -140,8 +147,8 @@ struct TinyCommonGraphicsApp {
   virtual int register_graphics_unit_sphere_shape(EnumSphereLevelOfDetail lod,
                                                   int textureId = -1) = 0;
 
-  virtual void register_grid(int xres, int yres, const TinyVector3f& color0,
-                             const TinyVector3f& color1) = 0;
+  virtual void register_grid(int xres, int yres, const ::TINY::TinyVector3f& color0,
+                             const ::TINY::TinyVector3f& color1) = 0;
 
   void defaultMouseButtonCallback(int button, int state, float x, float y) {
     if (button == 0) m_leftMouseButton = (state == 1);
@@ -168,17 +175,17 @@ struct TinyCommonGraphicsApp {
         float pitch = camera->get_camera_pitch();
         float yaw = camera->get_camera_yaw();
 
-        TinyVector3f targPos;
-        TinyVector3f camPos;
+        ::TINY::TinyVector3f targPos;
+        ::TINY::TinyVector3f camPos;
 
         camera->get_camera_target_position(targPos);
         camera->get_camera_position(camPos);
 
-        TinyVector3f cameraPosition = camPos;
+        ::TINY::TinyVector3f cameraPosition = camPos;
 
-        TinyVector3f cameraTargetPosition = targPos;
+        ::TINY::TinyVector3f cameraTargetPosition = targPos;
 
-        TinyVector3f cameraUp = TinyVector3f(0, 0, 0);
+        ::TINY::TinyVector3f cameraUp = ::TINY::TinyVector3f(0, 0, 0);
         cameraUp[camera->get_camera_up_axis()] = 1.f;
 
         if (m_leftMouseButton) {
@@ -195,8 +202,8 @@ struct TinyCommonGraphicsApp {
           cameraTargetPosition +=
               cameraUp * yDelta * m_mouseMoveMultiplier * 0.01f;
 
-          TinyVector3f fwd = cameraTargetPosition - cameraPosition;
-          TinyVector3f side = cameraUp.cross(fwd);
+          ::TINY::TinyVector3f fwd = cameraTargetPosition - cameraPosition;
+          ::TINY::TinyVector3f side = cameraUp.cross(fwd);
           side.normalize();
           cameraTargetPosition += side * xDelta * m_mouseMoveMultiplier * 0.01f;
         }
@@ -225,8 +232,8 @@ struct TinyCommonGraphicsApp {
   //	}
   void defaultWheelCallback(float deltax, float deltay) {
     if (m_renderer) {
-      TinyVector3f cameraTargetPosition, cameraPosition,
-          cameraUp = TinyVector3f(0, 0, 0);
+      ::TINY::TinyVector3f cameraTargetPosition, cameraPosition,
+          cameraUp = ::TINY::TinyVector3f(0, 0, 0);
       cameraUp[get_up_axis()] = 1;
       TinyCamera* camera = m_renderer->get_active_camera();
 
@@ -240,15 +247,15 @@ struct TinyCommonGraphicsApp {
           if (cameraDistance < 1) cameraDistance = 1;
           camera->set_camera_distance(cameraDistance);
         } else {
-          TinyVector3f fwd = cameraTargetPosition - cameraPosition;
+          ::TINY::TinyVector3f fwd = cameraTargetPosition - cameraPosition;
           fwd.normalize();
           cameraTargetPosition +=
               fwd * deltay * m_wheelMultiplier;  // todo: expose it in the GUI?
         }
       } else {
-        if (FloatUtils::abs(deltax) > FloatUtils::abs(deltay)) {
-          TinyVector3f fwd = cameraTargetPosition - cameraPosition;
-          TinyVector3f side = cameraUp.cross(fwd);
+        if (::TINY::FloatUtils::abs(deltax) > ::TINY::FloatUtils::abs(deltay)) {
+          ::TINY::TinyVector3f fwd = cameraTargetPosition - cameraPosition;
+          ::TINY::TinyVector3f side = cameraUp.cross(fwd);
           side.normalize();
           cameraTargetPosition += side * deltax * m_wheelMultiplier;
         } else {

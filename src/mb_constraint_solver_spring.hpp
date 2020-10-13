@@ -255,7 +255,7 @@ class MultiBodyConstraintSolverSpring
                              Algebra::abs(v) / andersson_vs_, andersson_p_))) *
                Algebra::tanh(andersson_ktanh_ * v);
       case FRICTION_HOLLARS:
-        return fn * Algebra::min(vvt, one) *
+        return fn * Algebra::min1(vvt, one) *
                (mu + (two * (mu_static_ - mu)) / (one + vvt * vvt));
       case FRICTION_BROWN: {
         // Simplified three-parameter model (Eq. (4.5))
@@ -288,8 +288,8 @@ class MultiBodyConstraintSolverSpring
 
     const ContactPoint& cp0 = cps[0];
 
-    MultiBody<Algebra>* mb_a = cp0.multi_body_a;
-    MultiBody<Algebra>* mb_b = cp0.multi_body_b;
+    tds::MultiBody<Algebra>* mb_a = cp0.multi_body_a;
+    tds::MultiBody<Algebra>* mb_b = cp0.multi_body_b;
 
     const int n_a = mb_a->dof_qd();
     const int n_b = mb_b->dof_qd();

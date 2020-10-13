@@ -17,6 +17,8 @@
 
 #include "math/tiny/tiny_float_utils.h"
 
+
+
 struct TinyCamera {
   struct TinyCameraInternalData* m_data;
 
@@ -27,8 +29,8 @@ struct TinyCamera {
   virtual void get_camera_projection_matrix(float m[16]) const;
   virtual void get_camera_view_matrix(float m[16]) const;
 
-  virtual void get_camera_target_position(TinyVector3f& pos) const;
-  virtual void get_camera_position(TinyVector3f& pos) const;
+  virtual void get_camera_target_position(::TINY::TinyVector3f& pos) const;
+  virtual void get_camera_position(::TINY::TinyVector3f& pos) const;
 
   virtual void get_camera_target_position(double pos[3]) const;
 

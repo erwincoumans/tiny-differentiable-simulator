@@ -13,17 +13,22 @@
 // limitations under the License.
 
 
-#include "tiny_dual.h"
-#include "tiny_dual_double_utils.h"
+#include "math/tiny/tiny_dual.h"
+#include "math/tiny/tiny_dual_double_utils.h"
+#include "math/tiny/tiny_algebra.hpp"
+#include "dynamics/mass_matrix.hpp"
 
 
 typedef double TinyDualScalar;
 typedef ::TINY::TinyDualDouble MyScalar;
 typedef ::TINY::TinyDualDoubleUtils MyTinyConstants;
 
+typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra;
+
 #include "pytinydiffsim_includes.h"
 
 using namespace TINY;
+using namespace tds;
 
 namespace py = pybind11;
 MyScalar fraction(int a, int b)
@@ -31,8 +36,13 @@ MyScalar fraction(int a, int b)
 return MyTinyConstants::fraction(a,b);
 }
 
+void MyMassMatrix(MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
+    MyAlgebra::MatrixX* M)
+{
+    mass_matrix(mb, q, M);
+}
 
-PYBIND11_MODULE(pytinydiffsim_dual, m) {
+PYBIND11_MODULE(pytinydiffsim2_dual, m) {
  
     py::class_<TinyDualDouble>(m, "TinyDualDouble")
         .def(py::init<TinyDualScalar, TinyDualScalar>())

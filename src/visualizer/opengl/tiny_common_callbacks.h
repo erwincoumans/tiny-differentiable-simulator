@@ -26,7 +26,7 @@ typedef void (*TinyRenderCallback)();
 enum {
   TINY_KEY_ESCAPE = 27,
   TINY_KEY_SPACE = 32,
-  TINY_KEY_F1 = 0xff00,
+  TINY_KEY_F1 = 128,
   TINY_KEY_F2,
   TINY_KEY_F3,
   TINY_KEY_F4,
@@ -56,6 +56,7 @@ enum {
   TINY_KEY_CONTROL,
   TINY_KEY_ALT,
   TINY_KEY_RETURN,
+  TINY_KEY_TAB,
 
 };
 

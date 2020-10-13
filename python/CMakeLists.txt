@@ -16,7 +16,7 @@
 
 
 
-SET(PYTHON_VERSION_DIFF_PHYSICS "" CACHE STRING "Python version pytinydiffsim will use.")
+SET(PYTHON_VERSION_DIFF_PHYSICS "" CACHE STRING "Python version pytinydiffsim22 will use.")
 SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.7.12 2.7.10 2.7.3 )
 SET_PROPERTY(CACHE PYTHON_VERSION_DIFF_PHYSICS PROPERTY STRINGS ${Python_ADDITIONAL_VERSIONS})
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build3/cmake ${CMAKE_MODULE_PATH})
@@ -61,6 +61,7 @@ INCLUDE_DIRECTORIES(
         ${DIFF_PHYSICS_SOURCE_DIR}/third_party/pybind11/include
 		${PYTHON_INCLUDE_DIRS}
     ${PYTHON_NUMPY_INCLUDE_DIR}
+	../src
 )
 
 
@@ -69,46 +70,46 @@ ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 
 
 
-ADD_LIBRARY(pytinydiffsim SHARED pytinydiffsim.cc ${TDS_HDRS})
+ADD_LIBRARY(pytinydiffsim2 SHARED pytinydiffsim.cc ${TDS_HDRS})
 
 
-ADD_LIBRARY(pytinydiffsim_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
+ADD_LIBRARY(pytinydiffsim2_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
 
 
 
-#SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES PREFIX "")
-#SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES POSTFIX "")
+#SET_TARGET_PROPERTIES(pytinydiffsim2 PROPERTIES PREFIX "")
+#SET_TARGET_PROPERTIES(pytinydiffsim2 PROPERTIES POSTFIX "")
 
-#SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES VERSION ${DIFFPHYS_VERSION})
-#SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES SOVERSION ${DIFFPHYS_VERSION})
-#SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES DEBUG_POSTFIX "_d")
+#SET_TARGET_PROPERTIES(pytinydiffsim2 PROPERTIES VERSION ${DIFFPHYS_VERSION})
+#SET_TARGET_PROPERTIES(pytinydiffsim2 PROPERTIES SOVERSION ${DIFFPHYS_VERSION})
+#SET_TARGET_PROPERTIES(pytinydiffsim2 PROPERTIES DEBUG_POSTFIX "_d")
 
 
-TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2)
-TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2)
+TARGET_LINK_LIBRARIES(pytinydiffsim2 tinyxml2)
+TARGET_LINK_LIBRARIES(pytinydiffsim2_dual tinyxml2)
 
 IF (WIN32)
-  TARGET_COMPILE_OPTIONS(pytinydiffsim PUBLIC -bigobj)
+  TARGET_COMPILE_OPTIONS(pytinydiffsim2 PUBLIC -bigobj)
   MESSAGE("PYTHON_LIBRARIES")
   MESSAGE(${PYTHON_LIBRARIES})
   GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
   MESSAGE("PYTHON_LIBRARY_DIR ")
   MESSAGE(${PYTHON_LIBRARY_DIR})
-  target_link_directories (pytinydiffsim PUBLIC "${PYTHON_LIBRARY_DIR}")
-  TARGET_LINK_LIBRARIES(pytinydiffsim ${PYTHON_LIBRARIES})
+  target_link_directories (pytinydiffsim2 PUBLIC "${PYTHON_LIBRARY_DIR}")
+  TARGET_LINK_LIBRARIES(pytinydiffsim2 ${PYTHON_LIBRARIES})
 ELSEIF (APPLE)
-  SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  SET_TARGET_PROPERTIES(pytinydiffsim2 PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 ENDIF ()
 
 IF (WIN32)
-  TARGET_COMPILE_OPTIONS(pytinydiffsim_dual PUBLIC -bigobj)
+  TARGET_COMPILE_OPTIONS(pytinydiffsim2_dual PUBLIC -bigobj)
   
   GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
   
-  target_link_directories (pytinydiffsim_dual PUBLIC "${PYTHON_LIBRARY_DIR}")
-  TARGET_LINK_LIBRARIES(pytinydiffsim_dual ${PYTHON_LIBRARIES})
+  target_link_directories (pytinydiffsim2_dual PUBLIC "${PYTHON_LIBRARY_DIR}")
+  TARGET_LINK_LIBRARIES(pytinydiffsim2_dual ${PYTHON_LIBRARIES})
 ELSEIF (APPLE)
-  SET_TARGET_PROPERTIES(pytinydiffsim_dual PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  SET_TARGET_PROPERTIES(pytinydiffsim2_dual PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 ENDIF ()
 
 
@@ -117,6 +118,7 @@ INCLUDE_DIRECTORIES(
 		${DIFF_PHYSICS_SOURCE_DIR}/python
 		${PYTHON_INCLUDE_DIRS}
     ${PYTHON_NUMPY_INCLUDE_DIR}
+	../src
 )
 
 ##################################################################

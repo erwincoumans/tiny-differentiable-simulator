@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef TINY_VECTOR_X_H
-#define TINY_VECTOR_X_H
+#ifndef _TINY_VECTOR_X_H
+#define _TINY_VECTOR_X_H
 
-#include <assert.h>
 #include <stdio.h>
 
 #include <vector>
 
+namespace TINY
+{
 /**
  * Represents a vector with arbitrary number of dimensions.
  */
@@ -193,5 +194,5 @@ class TinyVectorX {
     return v;
   }
 };
-
-#endif  // TINY_VECTOR_X_H
+};
+#endif  // _TINY_VECTOR_X_H

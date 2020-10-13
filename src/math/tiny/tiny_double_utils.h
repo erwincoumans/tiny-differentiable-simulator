@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef DOUBLE_UTILS_H
-#define DOUBLE_UTILS_H
+#ifndef _TINY_DOUBLE_UTILS_H
+#define _TINY_DOUBLE_UTILS_H
 
 #define _USE_MATH_DEFINES 1
 #include <assert.h>
@@ -25,8 +25,9 @@
 #include <string>
 
 #include "math.h"
-#include "math/tiny/tiny_algebra.hpp"
 
+namespace TINY
+{
 struct DoubleUtils {
   static double zero() { return 0.; }
   static double one() { return 1.; }
@@ -64,8 +65,8 @@ struct DoubleUtils {
 
   static double convert(int value) { return double(value); }
 
-  // template <class T>
-  // static double fraction(T, T) = delete;  // C++11
+  template <class T>
+  static double fraction(T, T) = delete;  // C++11
 
   static double fraction(int num, int denom) {
     return double(num) / double(denom);
@@ -86,9 +87,5 @@ struct DoubleUtils {
     }
   }
 };
-
-namespace tds {
-using DoubleAlgebra = TinyAlgebra<double, DoubleUtils>;
-}  // namespace tds
-
-#endif  // DOUBLE_UTILS_H
+};
+#endif  // _TINY_DOUBLE_UTILS_H

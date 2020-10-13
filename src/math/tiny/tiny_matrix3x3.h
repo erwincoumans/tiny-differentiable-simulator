@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef TINY_MATRIX3x3_H
-#define TINY_MATRIX3x3_H
+#ifndef _TINY_MATRIX3x3_H
+#define _TINY_MATRIX3x3_H
 
 #include <stdio.h>
 
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
 
+namespace TINY
+{
 template <typename TinyScalar, typename TinyConstants>
 class TinyMatrix3x3 {
-  typedef ::TinyQuaternion<TinyScalar, TinyConstants> TinyQuaternion;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef ::TINY::TinyQuaternion<TinyScalar, TinyConstants> TinyQuaternion;
+  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
   /// Data storage for the matrix, each vector is a column of the matrix
   TinyVector3 m_el[3];
 
@@ -98,6 +100,24 @@ class TinyMatrix3x3 {
     m_el[0].setValue(xx, yx, zx);
     m_el[1].setValue(xy, yy, zy);
     m_el[2].setValue(xz, yz, zz);
+  }
+
+  inline const TinyScalar& get_at(int row, int col) const {
+	  TinyConstants::FullAssert(0 <= row && row < 3);
+	  TinyConstants::FullAssert(0 <= col && col < 3);
+	  return m_el[col][row];
+  }
+
+  inline void set_at(int row, int col, const TinyScalar& value) {
+	  TinyConstants::FullAssert(0 <= row && row < 3);
+	  TinyConstants::FullAssert(0 <= col && col < 3);
+	  m_el[col][row] = value;
+  }
+
+  TinyQuaternion getRotation2() const {
+	  TinyQuaternion tmp;
+	  getRotation(tmp);
+	  return tmp;
   }
 
   /** @brief Get a mutable reference to a column of the matrix as a vector
@@ -291,6 +311,7 @@ class TinyMatrix3x3 {
     return TinyVector3(m_el[0][i], m_el[1][i], m_el[2][i]);
   }
 
+#if 0
   void print(const char* txt) const {
     printf("%s\n", txt);
     for (int r = 0; r < 3; r++) {
@@ -302,6 +323,7 @@ class TinyMatrix3x3 {
       printf("\n");
     }
   }
+#endif
 
   /**@brief Return the inverse of the matrix */
   TinyMatrix3x3 inverse() const {
@@ -1020,4 +1042,5 @@ inline bool operator==(const TinyMatrix3x3& m1, const TinyMatrix3x3& m2)
 #endif
 }
 #endif
-#endif  // TINY_MATRIX3x3_H
+};
+#endif  // _TINY_MATRIX3x3_H

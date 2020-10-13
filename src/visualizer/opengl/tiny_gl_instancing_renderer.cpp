@@ -29,6 +29,8 @@ bool useShadowMap = true;
 #include "tiny_opengl_include.h"
 #include "tiny_window_interface.h"
 
+
+
 struct caster2 {
   void setInt(int v) { i = v; }
   float getFloat() {
@@ -98,6 +100,8 @@ struct caster2 {
 
 #include "stb_image/stb_image_write.h"
 #include "tiny_gl_render_to_texture.h"
+
+using namespace TINY;
 
 static const char* triangleVertexShaderText =
     "#version 330\n"
@@ -1450,6 +1454,10 @@ void TinyGLInstancingRenderer::set_active_camera(TinyCamera* cam) {
   m_data->m_activeCamera = cam;
 }
 
+void TinyGLInstancingRenderer::set_camera(const TinyCamera& cam) {
+    *m_data->m_activeCamera = cam;
+}
+
 void TinyGLInstancingRenderer::set_light_specular_intensity(
     const float lightSpecularIntensity[3]) {
   m_data->m_lightSpecularIntensity[0] = lightSpecularIntensity[0];
@@ -1510,7 +1518,7 @@ void TinyGLInstancingRenderer::update_camera(int upAxis) {
   for (int i = 0; i < 16; i++) {
     viewMat[i] = m_data->m_viewMatrix[i];
   }
-  tds::Posef tr;
+  TinyPosef tr;
   setFromOpenGLMatrix(tr, viewMat);
   tr.inverse();
   getOpenGLMatrix(tr, viewMatInverse);
@@ -1758,7 +1766,7 @@ void TinyGLInstancingRenderer::draw_textured_triangle_mesh(
   TinyVector3f pos =
       TinyVector3f(worldPosition[0], worldPosition[1], worldPosition[2]);
 
-  tds::Posef worldTrans(pos, orn);
+  TinyPosef worldTrans(pos, orn);
   float worldMatUnk[16];
   getOpenGLMatrix(worldTrans, worldMatUnk);
   float modelMat[16];

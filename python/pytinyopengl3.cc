@@ -17,10 +17,10 @@
 #include <pybind11/stl.h>
 #include <stdio.h>
 
-#include "tiny_float_utils.h"
-#include "tiny_vector3.h"
-#include "examples/opengl_window/tiny_opengl3_app.h"
-#include "examples/opengl_window/tiny_camera.h"
+#include "math/tiny/tiny_float_utils.h"
+#include "math/tiny/tiny_vector3.h"
+#include "visualizer/opengl/tiny_opengl3_app.h"
+#include "visualizer/opengl/tiny_camera.h"
 #include <string>
 using namespace TINY;
 

@@ -86,6 +86,7 @@ ENDIF()
 
 
 target_include_directories(opengl_window PUBLIC
+  ../../../src/
   ../../../third_party
   ../../../third_party/glad
   ../../../third_party/tinyobjloader

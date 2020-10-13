@@ -17,7 +17,7 @@
 
 #include <chrono>  // std::chrono::seconds
 #include <thread>  // std::this_thread::sleep_for
-#include "visualizer/opengl/tiny_opengl3_app.h"
+
 
 #include "math/tiny/fix64_scalar.h"
 #include "dynamics/kinematics.hpp"
@@ -25,10 +25,17 @@
 #include "dynamics/integrator.hpp"
 #include "utils/pendulum.hpp"
 
+
 #include "math/tiny/tiny_double_utils.h"
 #include "utils/file_utils.hpp"
 #include "multi_body.hpp"
 #include "world.hpp"
+
+using namespace TINY;
+using namespace tds;
+#include "visualizer/opengl/tiny_opengl3_app.h"
+#include "math/tiny/tiny_algebra.hpp"
+
 
 int main(int argc, char* argv[]) {
 
