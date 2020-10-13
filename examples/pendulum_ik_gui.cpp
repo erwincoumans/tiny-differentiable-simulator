@@ -31,6 +31,7 @@
 #include "tiny_vector3.h"
 #include "tiny_world.h"
 
+using namesspace tiny
 int main(int argc, char* argv[]) {
   std::string plane_filename;
   TinyFileUtils::find_file("plane_implicit.urdf", plane_filename);

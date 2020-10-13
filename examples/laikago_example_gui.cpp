@@ -30,7 +30,7 @@ bool floating_base = true;
 
 #include "pybullet_visualizer_api.h"
 #include "tiny_file_utils.h"
-
+using namespace TINY;
 typedef PyBulletVisualizerAPI VisualizerAPI;
 
 double knee_angle = -0.5;

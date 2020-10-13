@@ -22,6 +22,12 @@ typedef ::TINY::DoubleUtils MyTinyConstants;
 
 using namespace TINY;
 namespace py = pybind11;
+MyScalar fraction(int a, int b)
+{
+return MyTinyConstants::fraction(a,b);
+}
+
+
 
 PYBIND11_MODULE(pytinydiffsim, m) {
 

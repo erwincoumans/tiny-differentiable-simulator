@@ -18,12 +18,12 @@ include_directories(. ..)
 
 set(DL ${CMAKE_DL_LIBS})
 
-find_package(ct_core)
-find_package(ct_optcon)
-find_package(Ceres)
+#find_package(ct_core)
+#find_package(ct_optcon)
+#find_package(Ceres)
 find_package(PkgConfig)
 
-find_package(Torch)
+#find_package(Torch)
 
 add_definitions(-DBT_USE_DOUBLE_PRECISION)
 find_package(Bullet)
@@ -160,27 +160,27 @@ if (Bullet_FOUND)
                 -lpthread hpipm blasfeo)
     endif (ct_core_FOUND AND ct_optcon_FOUND AND Eigen3_FOUND)
 
-    add_executable(laikago_example_gui laikago_example_gui.cpp ${TDS_HDRS})
-    target_link_libraries(laikago_example_gui pybullet_visualizer_api)
+    #add_executable(laikago_example_gui laikago_example_gui.cpp ${TDS_HDRS})
+    #target_link_libraries(laikago_example_gui pybullet_visualizer_api)
 
     if (Eigen3_FOUND)
-      add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
-      target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
+      #add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
+      #target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
 
-      add_executable(pendulum_ik_gui pendulum_ik_gui.cpp)
-      target_link_libraries(pendulum_ik_gui pybullet_visualizer_api)
+      #add_executable(pendulum_ik_gui pendulum_ik_gui.cpp)
+      #target_link_libraries(pendulum_ik_gui pybullet_visualizer_api)
     endif()
 
     
-    add_executable(generic_urdf_collision generic_urdf_collision.cpp ${TDS_HDRS})
-    target_link_libraries(generic_urdf_collision pybullet_visualizer_api)
+    #add_executable(generic_urdf_collision generic_urdf_collision.cpp ${TDS_HDRS})
+    #target_link_libraries(generic_urdf_collision pybullet_visualizer_api)
 
-    add_executable(gravity_compensation gravity_compensation.cpp ${TDS_HDRS})
-    target_link_libraries(gravity_compensation pybullet_visualizer_api)
+    #add_executable(gravity_compensation gravity_compensation.cpp ${TDS_HDRS})
+    #target_link_libraries(gravity_compensation pybullet_visualizer_api)
 
 if (HAS_MESHCAT)
-    add_executable(laikago_meshcat_example laikago_meshcat_example.cpp ${TDS_HDRS})
-    target_link_libraries(laikago_meshcat_example pybullet_visualizer_api ${MESHCAT_LIBRARIES})
+    #add_executable(laikago_meshcat_example laikago_meshcat_example.cpp ${TDS_HDRS})
+    #target_link_libraries(laikago_meshcat_example pybullet_visualizer_api ${MESHCAT_LIBRARIES})
 endif (HAS_MESHCAT)
 
 if (Torch_FOUND)

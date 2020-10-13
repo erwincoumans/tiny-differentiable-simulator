@@ -85,12 +85,13 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       
   
   py::class_<TinyCamera>(m, "TinyCamera")
-    //.def(py::init<>())
+    .def(py::init<>())
     .def("update", &TinyCamera::update)
     .def("set_camera_distance", &TinyCamera::set_camera_distance)
     .def("set_camera_pitch", &TinyCamera::set_camera_pitch)
     .def("set_camera_yaw", &TinyCamera::set_camera_yaw)
     .def("set_camera_up_vector",&TinyCamera::set_camera_up_vector)
+    .def("set_camera_up_axis", &TinyCamera::set_camera_up_axis)
     .def("set_camera_target_position", &TinyCamera::set_camera_target_position)
       ;
       
@@ -114,8 +115,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("remove_all_instances", &TinyGLInstancingRenderer::remove_all_instances)
     .def("remove_graphics_instance", &TinyGLInstancingRenderer::remove_graphics_instance)
       
-    .def("get_active_camera", (TinyCamera* (TinyGLInstancingRenderer::*)()) &TinyGLInstancingRenderer::get_active_camera)
-    //.def("set_active_camera", &TinyGLInstancingRenderer::set_active_camera)
+    //.def("get_active_camera", (TinyCamera* (TinyGLInstancingRenderer::*)()) &TinyGLInstancingRenderer::get_active_camera)
+    .def("set_camera", &TinyGLInstancingRenderer::set_active_camera)
       
     .def("draw_line", &TinyGLInstancingRenderer::draw_line)
     .def("draw_lines", &TinyGLInstancingRenderer::draw_lines)
