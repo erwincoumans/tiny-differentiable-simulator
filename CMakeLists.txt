@@ -33,7 +33,7 @@ SET(MSVC_INCREMENTAL_DEFAULT ON)
 PROJECT(DIFF_PHYSICS)
 
 #The core library consists of those headers
-FILE(GLOB TDS_HDRS "*.h" )
+FILE(GLOB_RECURSE TDS_HDRS "src/*.h" )
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -41,13 +41,13 @@ find_package(Eigen3)
 if (Eigen3_FOUND)
     message("FOUND EIGEN")
     add_definitions(-DUSE_EIGEN)
-    include_directories("third_party/eigen3")
+    #include_directories("third_party/eigen3")
 else(Eigen3_FOUND)
     set(Eigen3_FOUND TRUE)
     message("Using third_party/eigen3")
     add_definitions(-DUSE_EIGEN)
     set(EIGEN3_INCLUDE_DIRS  third_party/eigen3)
-    include_directories(${EIGEN3_INCLUDE_DIRS})
+    #include_directories(${EIGEN3_INCLUDE_DIRS})
 endif (Eigen3_FOUND)
 
 
@@ -65,8 +65,13 @@ ENDIF(WIN32)
 ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 
 
+SUBDIRS(src/visualizer/opengl)
 
 SUBDIRS(third_party/cpp_base64)
+SUBDIRS(third_party/cloud_seed)
+SUBDIRS(third_party/tiny_audio)
+SUBDIRS(third_party/tinyxml2)
+#SUBDIRS(third_party/dear_imgui)
 
 SUBDIRS(examples)
 

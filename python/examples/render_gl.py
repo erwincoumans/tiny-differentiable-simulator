@@ -1,9 +1,12 @@
 import pytinyopengl3 as p
+import math, time
+
 app = p.TinyOpenGL3App("title")
 app.renderer.init()
-#cam = app.renderer.get_active_camera()
-#cam.set_camera_distance(2.)
-
+cam = p.TinyCamera()
+cam.set_camera_distance(2.)
+cam.set_camera_pitch(-20)
+app.renderer.set_camera(cam)
 width = 256
 height = 256
 pixels = [255] * width * height * 3
@@ -17,7 +20,7 @@ for i in range(width):
      b = j < width / 2
      if (a == b):
         pixels[(i + j * width) * 3 + 0] = 0
-        pixels[(i + j * width) * 3 + 1] = 0
+        pixels[(i + j * width) * 3 + 1] = 255
         pixels[(i + j * width) * 3 + 2] = 255
      else:
       pixels[(i + j * width) * 3 + 0] = colorR
@@ -34,17 +37,28 @@ color = p.TinyVector3f(1.,1.,1.)
 scaling = p.TinyVector3f(1.,1.,1.)
 opacity = 1
 app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+
+pos = p.TinyVector3f(0.,0.,1.)
+scaling = p.TinyVector3f(0.1,0.1,0.1)
+shape = app.register_graphics_unit_sphere_shape(p.EnumSphereLevelOfDetail.SPHERE_LOD_HIGH, textureIndex)
+sphere = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+
 app.renderer.write_transforms()
 
 
 while not app.window.requested_exit():
-  app.renderer.update_camera(1)
-  app.draw_grid()
+  app.renderer.update_camera(2)
+  dg = p.DrawGridData()
+ 
+  app.draw_grid(dg)
   from_line=p.TinyVector3f(0,0,0)
   to_line=p.TinyVector3f(1,1,1)
   color=p.TinyVector3f(1,0,0)
   width=2
   app.renderer.draw_line(from_line,to_line,color,width)
+  pos = p.TinyVector3f(0,0,math.sin(time.time())+1)
+  app.renderer.write_single_instance_transform_to_cpu(pos, orn,sphere)
+  app.renderer.write_transforms()  
   app.renderer.render_scene()
   app.draw_text_3d("hi",1,1,1,1)
   app.swap_buffer()

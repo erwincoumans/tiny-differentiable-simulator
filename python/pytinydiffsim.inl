@@ -12,6 +12,26 @@
 
     )pbdoc";
 
+  py::class_<TinyVectorX<MyScalar, MyTinyConstants>>(m, "TinyVectorX")
+      .def(py::init<int>())
+      .def("set_zero", &TinyVectorX<MyScalar, MyTinyConstants>::set_zero)
+      .def("size", &TinyVectorX<MyScalar, MyTinyConstants>::size)
+      .def("std", &TinyVectorX<MyScalar, MyTinyConstants>::std)
+      .def("__getitem__", [](const TinyVectorX<MyScalar, MyTinyConstants>& a,
+          int i) { return a[i]; })
+      .def("__setitem__", [](TinyVectorX<MyScalar, MyTinyConstants>& a, int i,
+          MyScalar v) { a[i] = v; })
+      .def("__repr__",
+      [](const TinyVectorX<MyScalar, MyTinyConstants>& a) {
+          std::string values;
+          for (int i = 0; i < a.size(); i++)
+          {
+              values += std::to_string(MyTinyConstants::getDouble(a[i])) + ",";
+          }
+          return "[" + values + "]";
+      })
+      ;
+
   
 
   py::class_<TinyVector3<MyScalar, MyTinyConstants>>(m, "TinyVector3")
@@ -36,58 +56,59 @@
           MyScalar v) { a[i] = v; });
 
 
-  py::class_<TinyGeometry<MyScalar, MyTinyConstants>,
-             std::unique_ptr<TinyGeometry<MyScalar, MyTinyConstants>>>
+  py::class_<Geometry<MyAlgebra>,
+             std::unique_ptr<Geometry<MyAlgebra>>>
       geom(m, "TinyGeometry");
 
   geom.def(py::init<int>())
-      .def("get_type", &TinyGeometry<MyScalar, MyTinyConstants>::get_type);
+      .def("get_type", &Geometry<MyAlgebra>::get_type);
 
-  py::class_<TinySphere<MyScalar, MyTinyConstants>,
-             std::unique_ptr<TinySphere<MyScalar, MyTinyConstants>>>(m, "TinySphere",
+  py::class_<Sphere<MyAlgebra>,
+             std::unique_ptr<Sphere<MyAlgebra>>>(m, "TinySphere",
                                                                geom)
       .def(py::init<MyScalar>())
-      .def("get_radius", &TinySphere<MyScalar, MyTinyConstants>::get_radius);
+      .def("get_radius", &Sphere<MyAlgebra>::get_radius)
+      .def("compute_local_inertia", &Sphere<MyAlgebra>::compute_local_inertia)
+      ;
 
-  py::class_<TinyPlane<MyScalar, MyTinyConstants>,
-             std::unique_ptr<TinyPlane<MyScalar, MyTinyConstants>>>(m, "TinyPlane",
+  py::class_<Plane<MyAlgebra>,
+             std::unique_ptr<Plane<MyAlgebra>>>(m, "TinyPlane",
                                                               geom)
       .def(py::init<>())
-      .def("get_normal", &TinyPlane<MyScalar, MyTinyConstants>::get_normal);
+      .def("get_normal", &Plane<MyAlgebra>::get_normal);
 
 
-  py::class_<TinyRigidBody<MyScalar, MyTinyConstants>,
-             std::unique_ptr<TinyRigidBody<MyScalar, MyTinyConstants>>>(
+  py::class_<RigidBody<MyAlgebra>,
+             std::unique_ptr<RigidBody<MyAlgebra>>>(
       m, "TinyRigidBody")
-      .def(py::init<MyScalar, TinyGeometry<MyScalar, MyTinyConstants> *>(),
+      .def(py::init<MyScalar, Geometry<MyAlgebra> *>(),
            py::return_value_policy::reference_internal)
       .def_readwrite("world_pose",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_world_pose)
+                     &RigidBody<MyAlgebra>::world_pose_)
       .def_readwrite("collision_geometry",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_geometry)
+                     &RigidBody<MyAlgebra>::geometry_)
       .def_readwrite("linear_velocity",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_linear_velocity)
+                     &RigidBody<MyAlgebra>::linear_velocity_)
       .def_readwrite("angular_velocity",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_angular_velocity)
+                     &RigidBody<MyAlgebra>::angular_velocity_)
       .def_readwrite("local_inertia",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_local_inertia)
+                     &RigidBody<MyAlgebra>::local_inertia_)
       .def_readwrite("total_force",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_total_force)
+                     &RigidBody<MyAlgebra>::total_force_)
       .def_readwrite("total_torque",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_total_torque)
+                     &RigidBody<MyAlgebra>::total_torque_)
       .def_readwrite("user_index",
-                     &TinyRigidBody<MyScalar, MyTinyConstants>::m_user_index)
+                     &RigidBody<MyAlgebra>::user_index_)
 
-      .def("apply_gravity", &TinyRigidBody<MyScalar, MyTinyConstants>::apply_gravity)
+      .def("apply_gravity", &RigidBody<MyAlgebra>::apply_gravity)
       .def("apply_force_impulse",
-           &TinyRigidBody<MyScalar, MyTinyConstants>::apply_force_impulse)
+           &RigidBody<MyAlgebra>::apply_force_impulse)
 
       .def("apply_central_force",
-           &TinyRigidBody<MyScalar, MyTinyConstants>::apply_central_force)
-      .def("apply_impulse", &TinyRigidBody<MyScalar, MyTinyConstants>::apply_impulse)
-      .def("clear_forces", &TinyRigidBody<MyScalar, MyTinyConstants>::clear_forces)
-      .def("integrate", &TinyRigidBody<MyScalar, MyTinyConstants>::integrate);
-
+           &RigidBody<MyAlgebra>::apply_central_force)
+      .def("apply_impulse", &RigidBody<MyAlgebra>::apply_impulse)
+      .def("clear_forces", &RigidBody<MyAlgebra>::clear_forces)
+      .def("integrate", &RigidBody<MyAlgebra>::integrate);
 
 
   py::class_<TinyMatrixXxX<MyScalar, MyTinyConstants>>(m, "TinyMatrixXxX")
@@ -103,12 +124,20 @@
       
       ;
 
+
   py::class_<TinyMatrix3x3<MyScalar, MyTinyConstants>>(m, "TinyMatrix3x3")
       .def(py::init<>())
+      .def(py::init<MyScalar, MyScalar, MyScalar, 
+          MyScalar, MyScalar, MyScalar, 
+          MyScalar, MyScalar, MyScalar>())
       .def(py::init<TinyQuaternion<MyScalar, MyTinyConstants>>())
       .def("get_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::get_at)
+      .def("set_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_at)
       .def("get_row",&TinyMatrix3x3<MyScalar, MyTinyConstants>::getRow)
-      .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity);
+      .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity)
+      .def("setRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::setRotation)
+      .def("getRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::getRotation2)
+      ;
 
   py::class_<TinyMatrix3xX<MyScalar, MyTinyConstants>>(m, "TinyMatrix3xX")
       .def(py::init<>())
@@ -141,44 +170,50 @@
       .def("__setitem__", [](TinyQuaternion<MyScalar, MyTinyConstants> &a, int i,
                              MyScalar v) { a[i] = v; });
 
-  py::class_<TinyPose<MyScalar, MyTinyConstants>>(m, "TinyPose")
+  py::class_<Pose<MyAlgebra>>(m, "TinyPose")
       .def(py::init<TinyVector3<MyScalar, MyTinyConstants>,
                     TinyQuaternion<MyScalar, MyTinyConstants>>())
-      .def_readwrite("position", &TinyPose<MyScalar, MyTinyConstants>::m_position)
+      .def_readwrite("position", &Pose<MyAlgebra>::position_)
       .def_readwrite("orientation",
-                     &TinyPose<MyScalar, MyTinyConstants>::m_orientation)
+                     &Pose<MyAlgebra>::orientation_)
       .def("inverse_transform",
-           &TinyPose<MyScalar, MyTinyConstants>::inverse_transform);
+           &Pose<MyAlgebra>::inverse_transform);
 
-  py::class_<TinySpatialTransform<MyScalar, MyTinyConstants>>(m,
+  py::class_<Transform<MyAlgebra>>(m,
                                                         "TinySpatialTransform")
       .def(py::init<>())
       .def("set_identity",
-           &TinySpatialTransform<MyScalar, MyTinyConstants>::set_identity)
+           &Transform<MyAlgebra>::set_identity)
       .def_readwrite("translation",
-                     &TinySpatialTransform<MyScalar, MyTinyConstants>::m_translation)
+                     &Transform<MyAlgebra>::translation)
       .def_readwrite("rotation",
-                     &TinySpatialTransform<MyScalar, MyTinyConstants>::m_rotation)
+                     &Transform<MyAlgebra>::rotation)
       .def(py::self * py::self)
       .def("get_inverse",
-           &TinySpatialTransform<MyScalar, MyTinyConstants>::get_inverse);
+           &Transform<MyAlgebra>::inverse);
 
-  py::class_<TinySpatialMotionVector<MyScalar, MyTinyConstants>>(
+  py::class_<MotionVector<MyAlgebra>>(
       m, "TinySpatialMotionVector")
-      .def(py::init<int>())
+      //.def(py::init<int>())
       .def_readwrite("topVec",
-                     &TinySpatialMotionVector<MyScalar, MyTinyConstants>::m_topVec)
+                     &MotionVector<MyAlgebra>::top)
       .def_readwrite(
           "bottomVec",
-          &TinySpatialMotionVector<MyScalar, MyTinyConstants>::m_bottomVec);
+          &MotionVector<MyAlgebra>::bottom);
+
+  
+
+  m.def("get_debug_double", &MyTinyConstants::getDouble<MyScalar>);
+#if 0    
+  m.def("compute_inertia_dyad",
+      &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::computeInertiaDyad);
 
   py::class_<TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>>(
       m, "TinySymmetricSpatialDyad")
       .def(py::init<>())
       .def("set_identity",
            &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::setIdentity)
-      .def("compute_inertia_dyad",
-           &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::computeInertiaDyad)
+
       .def("mul", &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::mul)
       .def("shift", &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::shift)
       .def("inverse", &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::inverse)
@@ -198,8 +233,9 @@
           "center_of_mass",
           &TinySymmetricSpatialDyad<MyScalar, MyTinyConstants>::m_center_of_mass)
       .def(py::self -= py::self);
+#endif
 
-  py::enum_<TinyJointType>(m, "TinyJointType")
+  py::enum_<JointType>(m, "TinyJointType")
       .value("JOINT_FIXED", JOINT_FIXED, "JOINT_FIXED")
       .value("JOINT_PRISMATIC_X", JOINT_PRISMATIC_X, "JOINT_PRISMATIC_X")
       .value("JOINT_PRISMATIC_Y", JOINT_PRISMATIC_Y, "JOINT_PRISMATIC_Y")
@@ -213,120 +249,133 @@
       .value("JOINT_INVALID", JOINT_INVALID, "JOINT_INVALID")
       .export_values();
 
-  py::class_<TinyLink<MyScalar, MyTinyConstants>,
-             std::unique_ptr<TinyLink<MyScalar, MyTinyConstants>>>(m, "TinyLink")
-      .def(py::init<TinyJointType, TinySpatialTransform<MyScalar, MyTinyConstants> &,
-                    const TinySymmetricSpatialDyad<MyScalar, MyTinyConstants> &>())
-      .def("jcalc", &TinyLink<MyScalar, MyTinyConstants>::jcalc1)
-      .def("set_joint_type", &TinyLink<MyScalar, MyTinyConstants>::set_joint_type)
-      .def_readwrite("stiffness", &TinyLink<MyScalar, MyTinyConstants>::m_stiffness)
-      .def_readwrite("joint_type", &TinyLink<MyScalar, MyTinyConstants>::m_joint_type)
-      .def_readwrite("damping", &TinyLink<MyScalar, MyTinyConstants>::m_damping);
+  py::enum_<GeometryTypes>(m, "TinyGeometryTypes")
+      .value("SPHERE_TYPE", TINY_SPHERE_TYPE, "SPHERE_TYPE")
+      .value("BOX_TYPE", TINY_PLANE_TYPE, "BOX_TYPE")
+      .value("PLANE_TYPE", TINY_PLANE_TYPE, "PLANE_TYPE")
+      .value("CAPSULE_TYPE", TINY_CAPSULE_TYPE, "CAPSULE_TYPE")
+      .value("MESH_TYPE", TINY_MESH_TYPE, "MESH_TYPE")
+      .export_values();
 
-  py::class_<TinyMultiBody<MyScalar, MyTinyConstants>,
-             std::unique_ptr<TinyMultiBody<MyScalar, MyTinyConstants>>>(
+  py::class_<Link<MyAlgebra>,
+             std::unique_ptr<Link<MyAlgebra>>>(m, "TinyLink")
+      .def(py::init<JointType, const Transform<MyAlgebra> &,
+                    const RigidBodyInertia<MyAlgebra> &>())
+      .def("jcalc", &Link<MyAlgebra>::jcalc1)
+      .def("set_joint_type", &Link<MyAlgebra>::set_joint_type)
+      .def_readwrite("stiffness", &Link<MyAlgebra>::stiffness)
+      .def_readwrite("joint_type", &Link<MyAlgebra>::joint_type)
+      .def_readwrite("damping", &Link<MyAlgebra>::damping);
+
+  py::class_<MultiBody<MyAlgebra>,
+             std::unique_ptr<MultiBody<MyAlgebra>>>(
       m, "TinyMultiBody")
       .def(py::init<bool>())
-      .def("initialize", &TinyMultiBody<MyScalar, MyTinyConstants>::initialize)
+      .def("initialize", &MultiBody<MyAlgebra>::initialize)
       .def("set_base_position",
-           &TinyMultiBody<MyScalar, MyTinyConstants>::set_position)
+           &MultiBody<MyAlgebra>::set_position)
       .def("get_world_transform",
-           &TinyMultiBody<MyScalar, MyTinyConstants>::get_world_transform)
-      .def("mass_matrix", &TinyMultiBody<MyScalar, MyTinyConstants>::mass_matrix1)
-      .def("attach_link", &TinyMultiBody<MyScalar, MyTinyConstants>::attach_link)
+           &MultiBody<MyAlgebra>::get_world_transform)
+#if 0
+      .def("attach_link", &MultiBody<MyAlgebra>::attach_link)
       .def("forward_kinematics",
-           &TinyMultiBody<MyScalar, MyTinyConstants>::forward_kinematics1)
+           &MultiBody<MyAlgebra>::forward_kinematics1)
       .def("forward_dynamics",
            py::overload_cast<const TinyVector3<MyScalar, MyTinyConstants> &>(
-               &TinyMultiBody<MyScalar, MyTinyConstants>::forward_dynamics))
+               &MultiBody<MyAlgebra>::forward_dynamics))
       .def("integrate", py::overload_cast<MyScalar>(
-                            &TinyMultiBody<MyScalar, MyTinyConstants>::integrate))
-      .def("integrate_q", &TinyMultiBody<MyScalar, MyTinyConstants>::integrate_q)
-      .def("body_to_world", &TinyMultiBody<MyScalar, MyTinyConstants>::body_to_world)
-      .def("world_to_body", &TinyMultiBody<MyScalar, MyTinyConstants>::world_to_body)
+                            &MultiBody<MyAlgebra>::integrate))
+      .def("integrate_q", &MultiBody<MyAlgebra>::integrate_q)
+      .def("body_to_world", &MultiBody<MyAlgebra>::body_to_world)
+      .def("world_to_body", &MultiBody<MyAlgebra>::world_to_body)
       .def("point_jacobian",
-           &TinyMultiBody<MyScalar, MyTinyConstants>::point_jacobian1)
-      .def("bias_forces", &TinyMultiBody<MyScalar, MyTinyConstants>::bias_forces)
-      .def_property_readonly("num_dofs", &TinyMultiBody<MyScalar, MyTinyConstants>::dof)
-      .def_property_readonly("num_dofs_qd", &TinyMultiBody<MyScalar, MyTinyConstants>::dof_qd)
-      .def_readwrite("q", &TinyMultiBody<MyScalar, MyTinyConstants>::m_q)
-      .def_readwrite("links", &TinyMultiBody<MyScalar, MyTinyConstants>::m_links)
-      .def_readwrite("qd", &TinyMultiBody<MyScalar, MyTinyConstants>::m_qd)
-      .def_readwrite("qdd", &TinyMultiBody<MyScalar, MyTinyConstants>::m_qdd)
-      .def_readwrite("tau", &TinyMultiBody<MyScalar, MyTinyConstants>::m_tau);
+           &MultiBody<MyAlgebra>::point_jacobian1)
+      .def("bias_forces", &MultiBody<MyAlgebra>::bias_forces)
+#endif
+      //.def_property_readonly("num_dofs", &MultiBody<MyAlgebra>::dof)
+      //.def_property_readonly("num_dofs_qd", &MultiBody<MyAlgebra>::dof_qd)
+      .def_readwrite("q", &MultiBody<MyAlgebra>::q_)
+      //.def_readwrite("links", &MultiBody<MyAlgebra>::links)
+      //.def_readwrite("qd", &MultiBody<MyAlgebra>::qd)
+      //.def_readwrite("qdd", &MultiBody<MyAlgebra>::qdd)
+      //.def_readwrite("tau", &MultiBody<MyAlgebra>::tau)
+      ;
 
-  py::class_<TinyCollisionDispatcher<MyScalar, MyTinyConstants>>(
+  m.def("fraction", &fraction);
+  m.def("mass_matrix", &MyMassMatrix);
+  m.def("forward_kinematics", &MyForwardKinematics);
+  m.def("forward_dynamics", &MyForwardDynamics);
+  m.def("integrate_euler", &MyIntegrateEuler);
+  
+  
+  py::class_<CollisionDispatcher<MyAlgebra>>(
       m, "TinyCollisionDispatcher")
       .def(py::init<>())
-      .def("compute_contacts",
-           &TinyCollisionDispatcher<MyScalar, MyTinyConstants>::compute_contacts);
+      .def("compute_contacts", &CollisionDispatcher<MyAlgebra>::compute_contacts2);
 
-  py::class_<TinyContactPoint<MyScalar, MyTinyConstants>> contact(m,
+
+  py::class_<ContactPoint<MyAlgebra>> contact(m,
                                                             "TinyContactPoint");
   contact.def(py::init<>())
       .def_readwrite(
           "world_normal_on_b",
-          &TinyContactPoint<MyScalar, MyTinyConstants>::m_world_normal_on_b)
+          &ContactPoint<MyAlgebra>::world_normal_on_b)
       .def_readwrite("world_point_on_a",
-                     &TinyContactPoint<MyScalar, MyTinyConstants>::m_world_point_on_a)
+                     &ContactPoint<MyAlgebra>::world_point_on_a)
       .def_readwrite("world_point_on_b",
-                     &TinyContactPoint<MyScalar, MyTinyConstants>::m_world_point_on_b)
+                     &ContactPoint<MyAlgebra>::world_point_on_b)
       .def_readwrite("distance",
-                     &TinyContactPoint<MyScalar, MyTinyConstants>::m_distance);
+                     &ContactPoint<MyAlgebra>::distance);
 
-  py::class_<TinyContactPointRigidBody<MyScalar, MyTinyConstants>>(
+  py::class_<RigidBodyContactPoint<MyAlgebra>>(
       m, "TinyContactPointRigidBody", contact)
       .def(py::init<>())
       .def_readwrite(
           "rigid_body_a",
-          &TinyContactPointRigidBody<MyScalar, MyTinyConstants>::m_rigid_body_a)
+          &RigidBodyContactPoint<MyAlgebra>::rigid_body_a)
       .def_readwrite(
           "rigid_body_b",
-          &TinyContactPointRigidBody<MyScalar, MyTinyConstants>::m_rigid_body_b)
+          &RigidBodyContactPoint<MyAlgebra>::rigid_body_b)
       .def_readwrite(
           "restitution",
-          &TinyContactPointRigidBody<MyScalar, MyTinyConstants>::m_restitution)
+          &RigidBodyContactPoint<MyAlgebra>::restitution)
       .def_readwrite(
           "friction",
-          &TinyContactPointRigidBody<MyScalar, MyTinyConstants>::m_friction);
+          &RigidBodyContactPoint<MyAlgebra>::friction);
 
-  py::class_<TinyContactPointMultiBody<MyScalar, MyTinyConstants>>(
+  py::class_<MultiBodyContactPoint<MyAlgebra>>(
       m, "TinyContactPointMultiBody", contact)
       .def(py::init<>())
       .def_readwrite(
           "multi_body_a",
-          &TinyContactPointMultiBody<MyScalar, MyTinyConstants>::m_multi_body_a)
+          &MultiBodyContactPoint<MyAlgebra>::multi_body_a)
       .def_readwrite(
           "multi_body_b",
-          &TinyContactPointMultiBody<MyScalar, MyTinyConstants>::m_multi_body_b)
+          &MultiBodyContactPoint<MyAlgebra>::multi_body_b)
       .def_readwrite(
           "restitution",
-          &TinyContactPointMultiBody<MyScalar, MyTinyConstants>::m_restitution)
+          &MultiBodyContactPoint<MyAlgebra>::restitution)
       .def_readwrite(
           "friction",
-          &TinyContactPointMultiBody<MyScalar, MyTinyConstants>::m_friction)
+          &MultiBodyContactPoint<MyAlgebra>::friction)
       .def_readwrite("link_a",
-                     &TinyContactPointMultiBody<MyScalar, MyTinyConstants>::m_link_a)
+                     &MultiBodyContactPoint<MyAlgebra>::link_a)
       .def_readwrite("link_b",
-                     &TinyContactPointMultiBody<MyScalar, MyTinyConstants>::m_link_b);
+                     &MultiBodyContactPoint<MyAlgebra>::link_b);
 
-  py::class_<TinyConstraintSolver<MyScalar, MyTinyConstants>>(m,
+  py::class_<RigidBodyConstraintSolver<MyAlgebra>>(m,
                                                         "TinyConstraintSolver")
       .def(py::init<>())
       .def("resolve_collision",
-           &TinyConstraintSolver<MyScalar, MyTinyConstants>::resolveCollision);
+           &RigidBodyConstraintSolver<MyAlgebra>::resolve_collision);
 
-  py::class_<TinyMultiBodyConstraintSolver<MyScalar, MyTinyConstants>>(
+  py::class_<MultiBodyConstraintSolver<MyAlgebra>>(
       m, "TinyMultiBodyConstraintSolver")
       .def(py::init<>())
       .def("resolve_collision",
-           &TinyMultiBodyConstraintSolver<MyScalar,
-                                          MyTinyConstants>::resolveCollision);
-  py::class_<TinyUrdfParser<MyScalar, MyTinyConstants>>(m, "TinyUrdfParser")
-      .def(py::init<>())
-      .def("load_urdf", &TinyUrdfParser<MyScalar, MyTinyConstants>::load_urdf);
+           &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision);
 
-  py::enum_<TinyVelocitySmoothingMethod>(m, "TinyVelocitySmoothingMethod",
+  py::enum_<VelocitySmoothingMethod>(m, "TinyVelocitySmoothingMethod",
                                          py::arithmetic())
       .value("SMOOTH_VEL_NONE", SMOOTH_VEL_NONE)
       .value("SMOOTH_VEL_SIGMOID", SMOOTH_VEL_SIGMOID)
@@ -334,43 +383,43 @@
       .value("SMOOTH_VEL_ABS", SMOOTH_VEL_ABS)
       .export_values();
 
-  typedef TinyMultiBodyConstraintSolverSpring<MyScalar, MyTinyConstants> TMBCSS;
+  typedef MultiBodyConstraintSolverSpring<MyAlgebra> TMBCSS;
   py::class_<TMBCSS>(m, "TinyMultiBodyConstraintSolverSpring")
       .def(py::init<>())
-      .def("resolve_collision", &TMBCSS::resolveCollision)
-      .def_readwrite("spring_k", &TMBCSS::spring_k)
-      .def_readwrite("damper_d", &TMBCSS::damper_d)
-      .def_readwrite("hard_contact_condition", &TMBCSS::hard_contact_condition)
-      .def_readwrite("exponent_n", &TMBCSS::exponent_n)
-      .def_readwrite("exponent_n_air", &TMBCSS::exponent_n_air)
-      .def_readwrite("exponent_vel_air", &TMBCSS::exponent_vel_air)
-      .def_readwrite("smoothing_method", &TMBCSS::smoothing_method)
-      .def_readwrite("smooth_alpha_vel", &TMBCSS::smooth_alpha_vel)
-      .def_readwrite("smooth_alpha_normal", &TMBCSS::smooth_alpha_normal)
-      .def_readwrite("mu_static", &TMBCSS::mu_static)
-      .def_readwrite("andersson_vs", &TMBCSS::andersson_vs)
-      .def_readwrite("andersson_p", &TMBCSS::andersson_p)
-      .def_readwrite("andersson_ktanh", &TMBCSS::andersson_ktanh)
-      .def_readwrite("v_transition", &TMBCSS::v_transition)
-      .def_readwrite("friction_model", &TMBCSS::friction_model)
+      .def("resolve_collision", &TMBCSS::resolve_collision)
+      .def_readwrite("spring_k", &TMBCSS::spring_k_)
+      .def_readwrite("damper_d", &TMBCSS::damper_d_)
+      .def_readwrite("hard_contact_condition", &TMBCSS::hard_contact_condition_)
+      .def_readwrite("exponent_n", &TMBCSS::exponent_n_)
+      .def_readwrite("exponent_n_air", &TMBCSS::exponent_n_air_)
+      .def_readwrite("exponent_vel_air", &TMBCSS::exponent_vel_air_)
+      .def_readwrite("smoothing_method", &TMBCSS::smoothing_method_)
+      .def_readwrite("smooth_alpha_vel", &TMBCSS::smooth_alpha_vel_)
+      .def_readwrite("smooth_alpha_normal", &TMBCSS::smooth_alpha_normal_)
+      .def_readwrite("mu_static", &TMBCSS::mu_static_)
+      .def_readwrite("andersson_vs", &TMBCSS::andersson_vs_)
+      .def_readwrite("andersson_p", &TMBCSS::andersson_p_)
+      .def_readwrite("andersson_ktanh", &TMBCSS::andersson_ktanh_)
+      .def_readwrite("v_transition", &TMBCSS::v_transition_)
+      .def_readwrite("friction_model", &TMBCSS::friction_model_)
       .def("compute_contact_force", &TMBCSS::compute_contact_force)
       .def("compute_friction_force", &TMBCSS::compute_friction_force);
 
-  py::class_<TinyWorld<MyScalar, MyTinyConstants>>(m, "TinyWorld")
+  py::class_<World<MyAlgebra>>(m, "TinyWorld")
       .def(py::init<>())
-      .def("step", &TinyWorld<MyScalar, MyTinyConstants>::step)
-      .def_property("gravity", &TinyWorld<MyScalar, MyTinyConstants>::get_gravity,
-                    &TinyWorld<MyScalar, MyTinyConstants>::set_gravity)
+      .def("step", &World<MyAlgebra>::step)
+      .def_property("gravity", &World<MyAlgebra>::get_gravity,
+                    &World<MyAlgebra>::set_gravity)
       .def("compute_contacts_rigid_body",
-           &TinyWorld<MyScalar, MyTinyConstants>::compute_contacts_rigid_body)
+           &World<MyAlgebra>::compute_contacts_rigid_body)
       .def("compute_contacts_multi_body",
-           &TinyWorld<MyScalar, MyTinyConstants>::compute_contacts_multi_body)
+           &World<MyAlgebra>::compute_contacts_multi_body)
       .def("get_collision_dispatcher",
-           &TinyWorld<MyScalar, MyTinyConstants>::get_collision_dispatcher)
+           &World<MyAlgebra>::get_collision_dispatcher)
       .def_readwrite("friction",
-                     &TinyWorld<MyScalar, MyTinyConstants>::default_friction)
+                     &World<MyAlgebra>::default_friction)
       .def_readwrite("restitution",
-                     &TinyWorld<MyScalar, MyTinyConstants>::default_restitution);
+                     &World<MyAlgebra>::default_restitution);
 
   py::class_<TinyRaycastResult<MyScalar, MyTinyConstants>>(m, "TinyRaycastResult")
       .def(py::init<>())
@@ -389,148 +438,145 @@
   ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-  py::class_<TinyUrdfInertial<MyScalar, MyTinyConstants>>(m, "TinyUrdfInertial")
+  py::class_<UrdfInertial<MyAlgebra>>(m, "TinyUrdfInertial")
       .def(py::init<>())
-      .def_readwrite("mass", &TinyUrdfInertial<MyScalar, MyTinyConstants>::mass)
+      .def_readwrite("mass", &UrdfInertial<MyAlgebra>::mass)
       .def_readwrite("inertia_xxyyzz",
-                     &TinyUrdfInertial<MyScalar, MyTinyConstants>::inertia_xxyyzz)
+                     &UrdfInertial<MyAlgebra>::inertia_xxyyzz)
       .def_readwrite("origin_xyz",
-                     &TinyUrdfInertial<MyScalar, MyTinyConstants>::origin_xyz)
+                     &UrdfInertial<MyAlgebra>::origin_xyz)
       .def_readwrite("origin_rpy",
-                     &TinyUrdfInertial<MyScalar, MyTinyConstants>::origin_rpy);
+                     &UrdfInertial<MyAlgebra>::origin_rpy);
 
-  py::class_<TinyUrdfCollisionSphere<MyScalar, MyTinyConstants>>(
+
+  py::class_<UrdfCollisionSphere<MyAlgebra>>(
       m, "TinyUrdfCollisionSphere")
       .def(py::init<>())
       .def_readwrite("radius",
-                     &TinyUrdfCollisionSphere<MyScalar, MyTinyConstants>::m_radius);
+                     &UrdfCollisionSphere<MyAlgebra>::radius);
 
-  py::class_<TinyUrdfCollisionBox<MyScalar, MyTinyConstants>>(m,
+  py::class_<UrdfCollisionBox<MyAlgebra>>(m,
                                                         "TinyUrdfCollisionBox")
       .def(py::init<>())
       .def_readwrite("extents",
-                     &TinyUrdfCollisionBox<MyScalar, MyTinyConstants>::m_extents);
+                     &UrdfCollisionBox < MyAlgebra>::extents);
 
-  py::class_<TinyUrdfCollisionCapsule<MyScalar, MyTinyConstants>>(
+  py::class_<UrdfCollisionCapsule<MyAlgebra>>(
       m, "TinyUrdfCollisionCapsule")
       .def(py::init<>())
       .def_readwrite("radius",
-                     &TinyUrdfCollisionCapsule<MyScalar, MyTinyConstants>::m_radius)
+                     &UrdfCollisionCapsule<MyAlgebra>::radius)
       .def_readwrite("length",
-                     &TinyUrdfCollisionCapsule<MyScalar, MyTinyConstants>::m_length);
+                     &UrdfCollisionCapsule<MyAlgebra>::length);
 
-  py::class_<TinyUrdfCollisionPlane<MyScalar, MyTinyConstants>>(
+  py::class_<UrdfCollisionPlane<MyAlgebra>>(
       m, "TinyUrdfCollisionPlane")
       .def(py::init<>())
       .def_readwrite("constant",
-                     &TinyUrdfCollisionPlane<MyScalar, MyTinyConstants>::m_constant)
+                     &UrdfCollisionPlane<MyAlgebra>::constant)
       .def_readwrite("normal",
-                     &TinyUrdfCollisionPlane<MyScalar, MyTinyConstants>::m_normal);
+                     &UrdfCollisionPlane<MyAlgebra>::normal);
 
-  py::class_<TinyUrdfCollisionMesh<MyScalar, MyTinyConstants>>(
+  py::class_<UrdfCollisionMesh<MyAlgebra>>(
       m, "TinyUrdfCollisionMesh")
       .def(py::init<>())
       .def_readwrite("file_name",
-                     &TinyUrdfCollisionMesh<MyScalar, MyTinyConstants>::m_file_name)
+                     &UrdfCollisionMesh<MyAlgebra>::file_name)
       .def_readwrite("scale",
-                     &TinyUrdfCollisionMesh<MyScalar, MyTinyConstants>::m_scale);
+                     &UrdfCollisionMesh<MyAlgebra>::scale);
 
-  py::class_<TinyUrdfGeometry<MyScalar, MyTinyConstants>>(m, "TinyUrdfGeometry")
+  py::class_<UrdfGeometry<MyAlgebra>>(m, "TinyUrdfGeometry")
       .def(py::init<>())
       .def_readwrite("geom_type",
-                     &TinyUrdfGeometry<MyScalar, MyTinyConstants>::geom_type)
-      .def_readwrite("sphere", &TinyUrdfGeometry<MyScalar, MyTinyConstants>::m_sphere)
-      .def_readwrite("box", &TinyUrdfGeometry<MyScalar, MyTinyConstants>::m_box)
-      .def_readwrite("plane", &TinyUrdfGeometry<MyScalar, MyTinyConstants>::m_plane)
+                     &UrdfGeometry<MyAlgebra>::geom_type)
+      .def_readwrite("sphere", &UrdfGeometry<MyAlgebra>::sphere)
+      .def_readwrite("box", &UrdfGeometry<MyAlgebra>::box)
+      .def_readwrite("plane", &UrdfGeometry<MyAlgebra>::plane)
       .def_readwrite("capsule",
-                     &TinyUrdfGeometry<MyScalar, MyTinyConstants>::m_capsule)
-      .def_readwrite("mesh", &TinyUrdfGeometry<MyScalar, MyTinyConstants>::m_mesh);
+                     &UrdfGeometry<MyAlgebra>::capsule)
+      .def_readwrite("mesh", &UrdfGeometry<MyAlgebra>::mesh);
 
-  py::class_<TinyUrdfCollision<MyScalar, MyTinyConstants>>(m, "TinyUrdfCollision")
+  py::class_<UrdfCollision<MyAlgebra>>(m, "TinyUrdfCollision")
       .def(py::init<>())
 
       .def_readwrite("origin_xyz",
-                     &TinyUrdfCollision<MyScalar, MyTinyConstants>::origin_xyz)
+                     &UrdfCollision<MyAlgebra>::origin_xyz)
       .def_readwrite("origin_rpy",
-                     &TinyUrdfCollision<MyScalar, MyTinyConstants>::origin_rpy)
+                     &UrdfCollision<MyAlgebra>::origin_rpy)
       .def_readwrite("geometry",
-                     &TinyUrdfCollision<MyScalar, MyTinyConstants>::geometry);
+                     &UrdfCollision<MyAlgebra>::geometry);
 
-  py::class_<TinyUrdfVisual<MyScalar, MyTinyConstants>>(m, "TinyUrdfVisual")
+  py::class_<UrdfVisual<MyAlgebra>>(m, "TinyUrdfVisual")
       .def(py::init<>())
       .def_readwrite("origin_xyz",
-                     &TinyUrdfVisual<MyScalar, MyTinyConstants>::origin_xyz)
+                     &UrdfVisual<MyAlgebra>::origin_xyz)
       .def_readwrite("origin_rpy",
-                     &TinyUrdfVisual<MyScalar, MyTinyConstants>::origin_rpy)
-      .def_readwrite("geometry", &TinyUrdfVisual<MyScalar, MyTinyConstants>::geometry)
+                     &UrdfVisual<MyAlgebra>::origin_rpy)
+      .def_readwrite("geometry", &UrdfVisual<MyAlgebra>::geometry)
       .def_readwrite(
           "sync_visual_body_uid1",
-          &TinyUrdfVisual<MyScalar, MyTinyConstants>::sync_visual_body_uid1)
+          &UrdfVisual<MyAlgebra>::sync_visual_body_uid1)
       .def_readwrite(
           "sync_visual_body_uid2",
-          &TinyUrdfVisual<MyScalar, MyTinyConstants>::sync_visual_body_uid2);
+          &UrdfVisual<MyAlgebra>::sync_visual_body_uid2);
 
-  py::class_<TinyUrdfJoint<MyScalar, MyTinyConstants>>(m, "TinyUrdfJoint")
+  py::class_<UrdfJoint<MyAlgebra>>(m, "TinyUrdfJoint")
       .def(py::init<>())
 
       .def_readwrite("joint_name",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::joint_name)
+                     &UrdfJoint<MyAlgebra>::joint_name)
       .def_readwrite("joint_type",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::joint_type)
+                     &UrdfJoint<MyAlgebra>::joint_type)
       .def_readwrite("joint_lower_limit",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::joint_lower_limit)
+                     &UrdfJoint<MyAlgebra>::joint_lower_limit)
       .def_readwrite("joint_upper_limit",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::joint_upper_limit)
+                     &UrdfJoint<MyAlgebra>::joint_upper_limit)
       .def_readwrite("parent_name",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::parent_name)
+                     &UrdfJoint<MyAlgebra>::parent_name)
       .def_readwrite("child_name",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::child_name)
+                     &UrdfJoint<MyAlgebra>::child_name)
       .def_readwrite("joint_origin_xyz",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::joint_origin_xyz)
+                     &UrdfJoint<MyAlgebra>::joint_origin_xyz)
       .def_readwrite("joint_origin_rpy",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::joint_origin_rpy)
+                     &UrdfJoint<MyAlgebra>::joint_origin_rpy)
       .def_readwrite("joint_axis_xyz",
-                     &TinyUrdfJoint<MyScalar, MyTinyConstants>::joint_axis_xyz);
+                     &UrdfJoint<MyAlgebra>::joint_axis_xyz);
 
-  py::class_<TinyUrdfLink<MyScalar, MyTinyConstants>>(m, "TinyUrdfLink")
+
+  py::class_<UrdfLink<MyAlgebra>>(m, "TinyUrdfLink")
       .def(py::init<>())
-      .def_readwrite("link_name", &TinyUrdfLink<MyScalar, MyTinyConstants>::link_name)
+      .def_readwrite("link_name", &UrdfLink<MyAlgebra>::link_name)
       .def_readwrite("urdf_inertial",
-                     &TinyUrdfLink<MyScalar, MyTinyConstants>::urdf_inertial)
+                     &UrdfLink<MyAlgebra>::urdf_inertial)
       .def_readwrite("urdf_visual_shapes",
-                     &TinyUrdfLink<MyScalar, MyTinyConstants>::urdf_visual_shapes)
+                     &UrdfLink<MyAlgebra>::urdf_visual_shapes)
       .def_readwrite("urdf_collision_shapes",
-                     &TinyUrdfLink<MyScalar, MyTinyConstants>::urdf_collision_shapes)
+                     &UrdfLink<MyAlgebra>::urdf_collision_shapes)
       .def_readwrite("parent_index",
-                     &TinyUrdfLink<MyScalar, MyTinyConstants>::m_parent_index);
+                     &UrdfLink<MyAlgebra>::parent_index);
 
-  py::class_<TinyUrdfStructures<MyScalar, MyTinyConstants>>(m, "TinyUrdfStructures")
+  py::class_<UrdfParser<MyAlgebra> >(m, "TinyUrdfParser")
+      .def(py::init<>())
+      .def("load_urdf", &UrdfParser<MyAlgebra>::load_urdf);
+
+  py::class_<UrdfStructures<MyAlgebra>>(m, "TinyUrdfStructures")
       .def(py::init<>())
       .def_readwrite("robot_name",
-                     &TinyUrdfStructures<MyScalar, MyTinyConstants>::m_robot_name)
+                     &UrdfStructures<MyAlgebra>::robot_name)
       .def_readwrite("base_links",
-                     &TinyUrdfStructures<MyScalar, MyTinyConstants>::m_base_links)
-      .def_readwrite("links", &TinyUrdfStructures<MyScalar, MyTinyConstants>::m_links)
+                     &UrdfStructures<MyAlgebra>::base_links)
+      .def_readwrite("links", &UrdfStructures<MyAlgebra>::links)
       .def_readwrite("joints",
-                     &TinyUrdfStructures<MyScalar, MyTinyConstants>::m_joints)
+                     &UrdfStructures<MyAlgebra>::joints)
       .def_readwrite(
           "name_to_link_index",
-          &TinyUrdfStructures<MyScalar, MyTinyConstants>::m_name_to_link_index);
+          &UrdfStructures<MyAlgebra>::name_to_link_index);
 
-  py::class_<UrdfToMultiBody2<MyScalar, MyTinyConstants>>(m, "UrdfToMultiBody2")
+  py::class_<UrdfToMultiBody2<MyAlgebra>>(m, "UrdfToMultiBody2")
       .def(py::init<>())
-      .def("convert2", &UrdfToMultiBody2<MyScalar, MyTinyConstants>::convert);
+      .def("convert2", &UrdfToMultiBody2<MyAlgebra>::convert);
 
-  py::class_<Motion>(m, "Motion")
-      .def(py::init([](const std::string &filename) {
-        Motion motion;
-        Motion::load_from_file(filename, &motion);
-        return motion;
-      }))
-      .def_readwrite("frames", &Motion::frames)
-      .def_readonly("frame_duration", &Motion::frame_duration)
-      .def_property_readonly("total_duration", &Motion::total_duration)
-      .def("calculate_frame", &Motion::calculate_frame);
+  
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
@@ -542,22 +588,9 @@
 #else
   m.attr("__version__") = "dev";
 #endif
-  m.attr("SPHERE_TYPE") = py::int_(int(TINY_SPHERE_TYPE));
-  m.attr("BOX_TYPE") = py::int_(int(TINY_BOX_TYPE));
-  m.attr("PLANE_TYPE") = py::int_(int(TINY_PLANE_TYPE));
-  m.attr("CAPSULE_TYPE") = py::int_(int(TINY_CAPSULE_TYPE));
-  m.attr("MESH_TYPE") = py::int_(int(TINY_MESH_TYPE));
 
-  m.attr("JOINT_FIXED") = py::int_(int(JOINT_FIXED));
-  m.attr("JOINT_PRISMATIC_X") = py::int_(int(JOINT_PRISMATIC_X));
-  m.attr("JOINT_PRISMATIC_Y") = py::int_(int(JOINT_PRISMATIC_Y));
-  m.attr("JOINT_PRISMATIC_Z") = py::int_(int(JOINT_PRISMATIC_Z));
-  m.attr("JOINT_PRISMATIC_AXIS") = py::int_(int(JOINT_PRISMATIC_AXIS));
-  m.attr("JOINT_REVOLUTE_X") = py::int_(int(JOINT_REVOLUTE_X));
-  m.attr("JOINT_REVOLUTE_Y") = py::int_(int(JOINT_REVOLUTE_Y));
-  m.attr("JOINT_REVOLUTE_Z") = py::int_(int(JOINT_REVOLUTE_Z));
-  m.attr("JOINT_REVOLUTE_AXIS") = py::int_(int(JOINT_REVOLUTE_AXIS));
 
+  
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;
 #else
