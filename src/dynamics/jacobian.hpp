@@ -24,7 +24,7 @@ typename Algebra::Matrix3X point_jacobian(
 
   assert(Algebra::size(q) == mb.dof());
   assert(link_index < static_cast<int>(mb.size()));
-  Matrix3X jac(3, mb.dof_qd());
+  Matrix3X jac( 3, mb.dof_qd());
   Algebra::set_zero(jac);
   std::vector<Transform> links_X_world;
   std::vector<Transform> links_X_base;
@@ -36,18 +36,19 @@ typename Algebra::Matrix3X point_jacobian(
   point_tf.translation = world_point;
   if (mb.is_floating()) {
     // convert start point in world coordinates to base frame
-    const Vector3 base_point =  // world_point - base_X_world.translation;
-                                // base_X_world.translation - world_point;
-        mb.empty() ? base_X_world.apply_inverse(world_point)
-                   : links_X_world[link_index].apply_inverse(world_point);
+    const Vector3 base_point =  world_point - base_X_world.translation;
+    //const Vector3 base_point =  // world_point - base_X_world.translation;
+    //                            // base_X_world.translation - world_point;
+    //    mb.empty() ? base_X_world.apply_inverse(world_point)
+    //               : links_X_world[link_index].apply_inverse(world_point);
     // see (Eq. 2.238) in
     // https://ethz.ch/content/dam/ethz/special-interest/mavt/robotics-n-intelligent-systems/rsl-dam/documents/RobotDynamics2016/FloatingBaseKinematics.pdf
     Matrix3 cr = Algebra::cross_matrix(base_point);
     // Matrix3 cr = Algebra::transpose(Algebra::cross_matrix(base_point));
     Algebra::assign_block(jac, cr, 0, 0);
-    jac(3, 0) = Algebra::one();
-    jac(4, 1) = Algebra::one();
-    jac(5, 2) = Algebra::one();
+    jac(0, 3) = Algebra::one();
+    jac(1, 4) = Algebra::one();
+    jac(2, 5) = Algebra::one();
   } else {
     point_tf.translation = world_point;
   }
@@ -65,6 +66,7 @@ typename Algebra::Matrix3X point_jacobian(
       body = &mb[body->parent_index];
     }
   }
+  jac.print("jac");
   return jac;
 }
 
