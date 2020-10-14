@@ -12,6 +12,26 @@
 
     )pbdoc";
 
+  py::class_<TinyVectorX<MyScalar, MyTinyConstants>>(m, "TinyVectorX")
+      .def(py::init<int>())
+      .def("set_zero", &TinyVectorX<MyScalar, MyTinyConstants>::set_zero)
+      .def("size", &TinyVectorX<MyScalar, MyTinyConstants>::size)
+      .def("std", &TinyVectorX<MyScalar, MyTinyConstants>::std)
+      .def("__getitem__", [](const TinyVectorX<MyScalar, MyTinyConstants>& a,
+          int i) { return a[i]; })
+      .def("__setitem__", [](TinyVectorX<MyScalar, MyTinyConstants>& a, int i,
+          MyScalar v) { a[i] = v; })
+      .def("__repr__",
+      [](const TinyVectorX<MyScalar, MyTinyConstants>& a) {
+          std::string values;
+          for (int i = 0; i < a.size(); i++)
+          {
+              values += std::to_string(MyTinyConstants::getDouble(a[i])) + ",";
+          }
+          return "[" + values + "]";
+      })
+      ;
+
   
 
   py::class_<TinyVector3<MyScalar, MyTinyConstants>>(m, "TinyVector3")
@@ -181,7 +201,7 @@
           "bottomVec",
           &MotionVector<MyAlgebra>::bottom);
 
-  m.def("fraction",&fraction);
+  
 
   m.def("get_debug_double", &MyTinyConstants::getDouble<MyScalar>);
 #if 0    
@@ -256,7 +276,6 @@
            &MultiBody<MyAlgebra>::set_position)
       .def("get_world_transform",
            &MultiBody<MyAlgebra>::get_world_transform)
-      .def("mass_matrix", &MyMassMatrix)
 #if 0
       .def("attach_link", &MultiBody<MyAlgebra>::attach_link)
       .def("forward_kinematics",
@@ -275,14 +294,20 @@
 #endif
       //.def_property_readonly("num_dofs", &MultiBody<MyAlgebra>::dof)
       //.def_property_readonly("num_dofs_qd", &MultiBody<MyAlgebra>::dof_qd)
-      //.def_readwrite("q", &MultiBody<MyAlgebra>::q)
+      .def_readwrite("q", &MultiBody<MyAlgebra>::q_)
       //.def_readwrite("links", &MultiBody<MyAlgebra>::links)
       //.def_readwrite("qd", &MultiBody<MyAlgebra>::qd)
       //.def_readwrite("qdd", &MultiBody<MyAlgebra>::qdd)
       //.def_readwrite("tau", &MultiBody<MyAlgebra>::tau)
       ;
 
-
+  m.def("fraction", &fraction);
+  m.def("mass_matrix", &MyMassMatrix);
+  m.def("forward_kinematics", &MyForwardKinematics);
+  m.def("forward_dynamics", &MyForwardDynamics);
+  m.def("integrate_euler", &MyIntegrateEuler);
+  
+  
   py::class_<CollisionDispatcher<MyAlgebra>>(
       m, "TinyCollisionDispatcher")
       .def(py::init<>())
@@ -389,8 +414,8 @@
            &World<MyAlgebra>::compute_contacts_rigid_body)
       .def("compute_contacts_multi_body",
            &World<MyAlgebra>::compute_contacts_multi_body)
-      //.def("get_collision_dispatcher",
-      //     &World<MyAlgebra>::get_collision_dispatcher)
+      .def("get_collision_dispatcher",
+           &World<MyAlgebra>::get_collision_dispatcher)
       .def_readwrite("friction",
                      &World<MyAlgebra>::default_friction)
       .def_readwrite("restitution",
@@ -409,20 +434,20 @@
       .def("volume", &TinyRaycast<MyScalar, MyTinyConstants>::volume)
       .def("intersection_volume",
            &TinyRaycast<MyScalar, MyTinyConstants>::intersection_volume);
-#if 0
+
   ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-  py::class_<TinyUrdfInertial<MyScalar, MyTinyConstants>>(m, "TinyUrdfInertial")
+  py::class_<UrdfInertial<MyAlgebra>>(m, "TinyUrdfInertial")
       .def(py::init<>())
-      .def_readwrite("mass", &TinyUrdfInertial<MyScalar, MyTinyConstants>::mass)
+      .def_readwrite("mass", &UrdfInertial<MyAlgebra>::mass)
       .def_readwrite("inertia_xxyyzz",
-                     &TinyUrdfInertial<MyScalar, MyTinyConstants>::inertia_xxyyzz)
+                     &UrdfInertial<MyAlgebra>::inertia_xxyyzz)
       .def_readwrite("origin_xyz",
-                     &TinyUrdfInertial<MyScalar, MyTinyConstants>::origin_xyz)
+                     &UrdfInertial<MyAlgebra>::origin_xyz)
       .def_readwrite("origin_rpy",
-                     &TinyUrdfInertial<MyScalar, MyTinyConstants>::origin_rpy);
-#endif
+                     &UrdfInertial<MyAlgebra>::origin_rpy);
+
 
   py::class_<UrdfCollisionSphere<MyAlgebra>>(
       m, "TinyUrdfCollisionSphere")

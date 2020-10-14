@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytinydiffsim as pd
+import pytinydiffsim2 as pd
 import time
 
 def create_multi_body(mass, collision_shapes, is_floating, world):
@@ -50,13 +50,13 @@ dt = 1./240.
 mb_solver = pd.TinyMultiBodyConstraintSolver()
 
 while 1:
-  sphere_mb.forward_kinematics()
+    
+  pd.forward_kinematics(sphere_mb, sphere_mb.q)
   print("sphere_mb.q=",sphere_mb.q)
   
-  sphere_mb.forward_dynamics(pd.TinyVector3(0.,0.,-10.))
-  sphere_mb.integrate_q(dt)
-  
-   #collision detection
+  pd.forward_dynamics(sphere_mb, pd.TinyVector3(0.,0.,-10.))
+    
+  #collision detection
   multi_bodies = [plane_mb, sphere_mb]
   dispatcher = world.get_collision_dispatcher()
   contacts = world.compute_contacts_multi_body(multi_bodies,dispatcher)
@@ -65,9 +65,8 @@ while 1:
   #collision solver
   for cps in contacts:
     mb_solver.resolve_collision(cps, dt)
-    
-  sphere_mb.integrate(dt)
   
+  pd.integrate_euler(sphere_mb, dt)
   
   
   time.sleep(dt)
