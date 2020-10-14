@@ -71,7 +71,7 @@ for res in results:
         print("hit_fraction=", hits.hit_fraction, "hit object=", hits.collider_index)
         
         
-vol = caster.volume(results)
+vol = caster.volume(results,len(colliders))
 print("vol=",vol)
 intersect_vol = caster.intersection_volume(results,results)
 print("intersect_vol=",intersect_vol)
