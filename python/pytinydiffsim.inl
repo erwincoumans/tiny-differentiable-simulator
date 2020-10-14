@@ -114,6 +114,7 @@
       .def("get_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::get_at)
       .def("set_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_at)
       .def("get_row",&TinyMatrix3x3<MyScalar, MyTinyConstants>::getRow)
+      .def("transposed", &TinyMatrix3x3<MyScalar, MyTinyConstants>::transpose)
       .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity)
       .def("setRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::setRotation)
       .def("getRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::getRotation2)
@@ -182,6 +183,11 @@
           &TinySpatialMotionVector<MyScalar, MyTinyConstants>::m_bottomVec);
 
   m.def("fraction",&fraction);
+  m.def("mass_matrix", &MyMassMatrix);
+  m.def("forward_kinematics", &MyForwardKinematics);
+  m.def("forward_dynamics", &MyForwardDynamics);
+  m.def("integrate_euler", &MyIntegrateEuler);
+
   m.def("get_debug_double", &MyTinyConstants::getDouble<MyScalar>);
     
   m.def("compute_inertia_dyad",

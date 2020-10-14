@@ -29,6 +29,28 @@ return MyTinyConstants::fraction(a,b);
 
 
 
+void MyMassMatrix(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const std::vector<MyScalar>& q,
+    TinyMatrixXxX< MyScalar, MyTinyConstants>* M)
+{
+    mb.mass_matrix( q, M);
+}
+
+
+void MyForwardKinematics(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const std::vector<MyScalar>& q)
+{
+    mb.forward_kinematics(q);
+}
+
+void MyForwardDynamics(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const TinyVector3<MyScalar, MyTinyConstants>& gravity)
+{
+    mb.forward_dynamics(gravity);
+}
+void MyIntegrateEuler(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const MyScalar& dt)
+{
+    mb.integrate(dt);
+}
+
+
 PYBIND11_MODULE(pytinydiffsim, m) {
 
 
