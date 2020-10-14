@@ -17,7 +17,9 @@
 #include "math/tiny/tiny_dual_double_utils.h"
 #include "math/tiny/tiny_algebra.hpp"
 #include "dynamics/mass_matrix.hpp"
-
+#include "dynamics/kinematics.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
 
 typedef double TinyDualScalar;
 typedef ::TINY::TinyDualDouble MyScalar;
@@ -41,6 +43,21 @@ void MyMassMatrix(MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
 {
     mass_matrix(mb, q, M);
 }
+
+void MyForwardKinematics(MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q)
+{
+    forward_kinematics(mb, q);
+}
+
+void MyForwardDynamics(MultiBody<MyAlgebra>& mb, const MyAlgebra::Vector3& gravity)
+{
+    forward_dynamics(mb, gravity);
+}
+void MyIntegrateEuler(MultiBody<MyAlgebra>& mb, const MyScalar& dt)
+{
+    integrate_euler(mb, dt);
+}
+
 
 PYBIND11_MODULE(pytinydiffsim2_dual, m) {
  
