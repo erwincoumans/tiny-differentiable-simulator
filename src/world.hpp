@@ -132,10 +132,10 @@ class World {
     return sphere;
   }
 
-  // CollisionDispatcher<Algebra>
-  // get_collision_dispatcher() {
-  //   return dispatcher;
-  // }
+   CollisionDispatcher<Algebra>
+   get_collision_dispatcher() {
+     return dispatcher_;
+   }
 
   RigidBody* create_rigid_body(const Scalar& mass, const Geometry* geom) {
     RigidBody* body = new RigidBody(mass, geom);

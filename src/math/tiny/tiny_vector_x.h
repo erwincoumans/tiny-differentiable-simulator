@@ -193,6 +193,10 @@ class TinyVectorX {
     }
     return v;
   }
+  int size() const
+  {
+      return m_size;
+  }
 };
 };
 #endif  // _TINY_VECTOR_X_H

@@ -64,9 +64,12 @@ class MultiBody {
   // offset of collision geometries (relative to this link frame)
   std::vector<Transform> X_collisions_;
 
-  VectorX q_, qd_, qdd_, tau_;
+  
 
  public:
+
+  VectorX q_, qd_, qdd_, tau_;
+
   explicit MultiBody(bool isFloating = false) : is_floating_(isFloating) {}
 
   TINY_INLINE const LinkCollection &links() const { return links_; }
