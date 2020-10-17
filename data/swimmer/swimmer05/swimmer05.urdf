@@ -1,0 +1,142 @@
+<?xml version="1.0" ?>
+<robot name="swimmer05">
+  <link name="world"/>
+  <link name="xslide">
+    <inertial>
+      <mass value="0.0033333333333333335"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="yslide">
+    <inertial>
+      <mass value="0.0033333333333333335"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <joint name="world_xslide" type="prismatic">
+    <axis xyz="1 0 0"/>
+    <limit lower="-1000" upper="1000"/>
+    <origin xyz="0 0 0"/>
+    <parent link="world"/>
+    <child link="xslide"/>
+  </joint>
+  <joint name="xslide_yslide" type="prismatic">
+    <axis xyz="0 1 0"/>
+    <limit lower="-1000" upper="1000"/>
+    <origin xyz="0 0 0"/>
+    <parent link="xslide"/>
+    <child link="yslide"/>
+  </joint>
+  <link name="link00">
+    <visual>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0 0"/>
+      <geometry>
+        <capsule length="0.1" radius=".01"/>
+      </geometry>
+      <material name="link00_material">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.0033333333333333335"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="8.66666667e-06" ixy="0" ixz="0" iyy="8.33666667e-06" iyz="0" izz="3.36666667e-07"/>
+    </inertial>
+  </link>
+  <joint name="yslide_link00" type="continuous">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0 0"/>
+    <parent link="yslide"/>
+    <child link="link00"/>
+  </joint>
+  <link name="link01">
+    <visual>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0.05 0"/>
+      <geometry>
+        <capsule length="0.1" radius=".01"/>
+      </geometry>
+      <material name="link01_material">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <origin rpy="0 0 0" xyz="0 0.05 0"/>
+      <inertia ixx="8.66666667e-06" ixy="0" ixz="0" iyy="8.33666667e-06" iyz="0" izz="3.36666667e-07"/>
+    </inertial>
+  </link>
+  <joint name="link00_link01" type="continuous">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0.05 0"/>
+    <parent link="link00"/>
+    <child link="link01"/>
+  </joint>
+  <link name="link02">
+    <visual>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0.05 0"/>
+      <geometry>
+        <capsule length="0.1" radius=".01"/>
+      </geometry>
+      <material name="link02_material">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <origin rpy="0 0 0" xyz="0 0.05 0"/>
+      <inertia ixx="8.66666667e-06" ixy="0" ixz="0" iyy="8.33666667e-06" iyz="0" izz="3.36666667e-07"/>
+    </inertial>
+  </link>
+  <joint name="link01_link02" type="continuous">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0.1 0"/>
+    <parent link="link01"/>
+    <child link="link02"/>
+  </joint>
+  <link name="link03">
+    <visual>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0.05 0"/>
+      <geometry>
+        <capsule length="0.1" radius=".01"/>
+      </geometry>
+      <material name="link03_material">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <origin rpy="0 0 0" xyz="0 0.05 0"/>
+      <inertia ixx="8.66666667e-06" ixy="0" ixz="0" iyy="8.33666667e-06" iyz="0" izz="3.36666667e-07"/>
+    </inertial>
+  </link>
+  <joint name="link02_link03" type="continuous">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0.1 0"/>
+    <parent link="link02"/>
+    <child link="link03"/>
+  </joint>
+  <link name="link04">
+    <visual>
+      <origin rpy="1.5707963267948966 0 0" xyz="0 0.05 0"/>
+      <geometry>
+        <capsule length="0.1" radius=".01"/>
+      </geometry>
+      <material name="link04_material">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <origin rpy="0 0 0" xyz="0 0.05 0"/>
+      <inertia ixx="8.66666667e-06" ixy="0" ixz="0" iyy="8.33666667e-06" iyz="0" izz="3.36666667e-07"/>
+    </inertial>
+  </link>
+  <joint name="link03_link04" type="continuous">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0.1 0"/>
+    <parent link="link03"/>
+    <child link="link04"/>
+  </joint>
+</robot>
