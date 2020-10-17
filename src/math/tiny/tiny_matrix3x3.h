@@ -458,7 +458,7 @@ class TinyMatrix3x3 {
   }
 #else
   inline TinyScalar
-  TinyMatrix3x3::determinant() const
+  determinant() const
   {
   	return btTriple((*this)[0], (*this)[1], (*this)[2]);
   }
