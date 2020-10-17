@@ -192,10 +192,10 @@ struct Link {
 #else
     
 
-    X_T.print("X_T");
-    X_J->print("X_J");
+    //X_T.print("X_T");
+    //X_J->print("X_J");
     *X_parent = X_T * (*X_J);
-    X_parent->print("X_parent");
+    //X_parent->print("X_parent");
 
 #endif
   }
