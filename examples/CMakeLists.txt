@@ -1,4 +1,6 @@
-#first the examples that have no dependencies
+# first the examples that have no dependencies 
+# then examples with only included third_party dependencies
+# at the end, optional complex examples with complicated dependencies (PyTorch, STAN, BOOST etc)
 
 add_executable(pendulum_example_gui pendulum_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_gui opengl_window ${CMAKE_DL_LIBS})
@@ -17,6 +19,10 @@ add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.c
 target_include_directories(opengl_test PRIVATE ../third_party/tinyobjloader)
 target_include_directories(opengl_test PRIVATE ../third_party ../src)
 target_link_libraries(opengl_test opengl_window ${CMAKE_DL_LIBS})
+
+add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
+target_link_libraries(tiny_urdf_parser_example tinyxml2)
+target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../src)
 
 IF(WIN32)
     target_link_libraries(pendulum_example_gui Opengl32)
