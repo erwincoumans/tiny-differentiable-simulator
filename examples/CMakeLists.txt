@@ -1,5 +1,5 @@
 add_executable(pendulum_example_gui pendulum_example_gui.cpp  ${TDS_HDRS})
-target_link_libraries(pendulum_example_gui opengl_window)
+target_link_libraries(pendulum_example_gui opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_gui PRIVATE ../src)
 IF(WIN32)
     target_link_libraries(pendulum_example_gui Opengl32)
