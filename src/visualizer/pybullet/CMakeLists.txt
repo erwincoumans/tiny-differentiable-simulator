@@ -10,7 +10,7 @@ if(Bullet_FOUND)
     BulletCollision BulletInverseDynamicsUtils BulletInverseDynamics LinearMath
     OpenGLWindow gwen BussIK Bullet3Common 
   )
-  target_include_directories(pybullet_visualizer_api PUBLIC ${BULLET_INCLUDE_DIR})
+  target_include_directories(pybullet_visualizer_api PUBLIC ${DIFF_PHYSICS_SOURCE_DIR}/src ${BULLET_INCLUDE_DIR})
   target_compile_definitions(pybullet_visualizer_api PUBLIC ${BULLET_DEFINITIONS})
   target_link_directories(pybullet_visualizer_api PUBLIC ${Bullet_DIR}/${BULLET_ROOT_DIR}/${BULLET_LIBRARY_DIRS})
 
