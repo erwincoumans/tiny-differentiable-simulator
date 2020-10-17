@@ -166,6 +166,16 @@ IF(Bullet_FOUND)
 
 ENDIF(Bullet_FOUND)
 
+find_package(tinyxml2)
+if (tinyxml2_FOUND)
+    message("USING system tinyxml2")
+    include_directories(${tinyxml2_INCLUDE_DIRS})
+else (tinyxml2_FOUND)
+    message ("USING third_party/tinyxml2")
+    set(tinyxml2_FOUND TRUE)
+    set(tinyxml2_INCLUDE_DIRS ../third_party/tinyxml2/include)
+    SUBDIRS(../third_party/tinyxml2)
+endif (tinyxml2_FOUND)
 
 IF(WIN32)
 	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "Shared Libs" FORCE)
@@ -185,8 +195,11 @@ SUBDIRS(src/visualizer/opengl)
 SUBDIRS(third_party/cpp_base64)
 SUBDIRS(third_party/cloud_seed)
 SUBDIRS(third_party/tiny_audio)
-SUBDIRS(third_party/tinyxml2)
-#SUBDIRS(third_party/dear_imgui)
+SUBDIRS(third_party/dear_imgui)
+SUBDIRS(third_party/crossguid)
+SUBDIRS(third_party/zeromq)
+#SUBDIRS(third_party/nlohmann)
+
 
 SUBDIRS(examples)
 

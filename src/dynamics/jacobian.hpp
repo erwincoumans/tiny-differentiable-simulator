@@ -44,13 +44,18 @@ typename Algebra::Matrix3X point_jacobian(
     // https://ethz.ch/content/dam/ethz/special-interest/mavt/robotics-n-intelligent-systems/rsl-dam/documents/RobotDynamics2016/FloatingBaseKinematics.pdf
 #ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Matrix3 cr = Algebra::cross_matrix(base_point);
+    Algebra::assign_block(jac, cr, 0, 0);
+    jac(3, 0) = Algebra::one();
+    jac(4, 1) = Algebra::one();
+    jac(5, 2) = Algebra::one();
 #else
     Matrix3 cr = Algebra::transpose(Algebra::cross_matrix(base_point));
-#endif //TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Algebra::assign_block(jac, cr, 0, 0);
     jac(0, 3) = Algebra::one();
     jac(1, 4) = Algebra::one();
     jac(2, 5) = Algebra::one();
+#endif //TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    
   } else {
     point_tf.translation = world_point;
   }
