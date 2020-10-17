@@ -63,6 +63,7 @@ struct Link {
   std::vector<Transform> X_collisions;  // offset of collision geometries
   // (relative to this link frame)
   std::vector<int> visual_ids;
+  std::vector<int> visual_ids2;
   std::vector<Transform>
       X_visuals;  // offset of geometry (relative to this link frame)
 
