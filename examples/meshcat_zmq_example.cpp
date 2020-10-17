@@ -16,7 +16,7 @@
 #include <thread>
 
 #include "visualizer/meshcat/meshcat_cube_data.h"
-#include "meshcat_zmq.h"
+#include "visualizer/meshcat/meshcat_zmq.h"
 #include "math/tiny/tiny_double_utils.h"
 #include "math/tiny/tiny_matrix3x3.h"
 using namespace TINY;
