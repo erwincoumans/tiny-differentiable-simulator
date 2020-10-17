@@ -51,11 +51,8 @@ mb_solver = pd.TinyMultiBodyConstraintSolver()
 
 while 1:
     
-  pd.forward_kinematics(sphere_mb, sphere_mb.q)
-  print("sphere_mb.q=",sphere_mb.q)
+  pd.forward_dynamics(sphere_mb, pd.TinyVector3(0., 0., -10.))
   
-  pd.forward_dynamics(sphere_mb, pd.TinyVector3(0.,0.,-10.))
-    
   #collision detection
   multi_bodies = [plane_mb, sphere_mb]
   dispatcher = world.get_collision_dispatcher()
