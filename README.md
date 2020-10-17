@@ -32,7 +32,7 @@ make -j
 
 For visualization, two options are supported:
 
-### MeshCat Visualization
+### OpenGL 3+ Visualization
 
 * tiny_opengl3_app, an OpenGL3 visualizer
 
