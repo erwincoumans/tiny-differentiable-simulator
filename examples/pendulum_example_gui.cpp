@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
       // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
       tds::mass_matrix(*mb, &M);
       
-      M.print("M");
+      //M.print("M");
       if (mb->qd()[0] < -1e4) {
         assert(0);
       }
@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
                                 rot.getW());
         if (l>=0)
         {
-          printf("b=%d\n",b);
+          //printf("b=%d\n",b);
           app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
         }
         else

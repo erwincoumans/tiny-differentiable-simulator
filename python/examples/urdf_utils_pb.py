@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import pybullet_utils.urdfEditor as ued
-import pytinydiffsim as dp
+import pytinydiffsim2 as dp
 import pybullet
 
 

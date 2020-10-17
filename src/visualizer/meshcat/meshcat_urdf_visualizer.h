@@ -25,8 +25,8 @@
 
 #include "meshcat_cube_data.h"
 #include "meshcat_zmq.h"
-#include "multi_body.hpp
-#include "tiny_urdf_structures.h"
+#include "multi_body.hpp"
+#include "urdf/urdf_structures.hpp"
 
 inline std::string correct_non_utf_8(const std::string &str) {
   int i, f_size = str.size();
@@ -108,20 +108,26 @@ inline std::string correct_non_utf_8(const std::string &str) {
   return to;
 }
 
-template <typename TinyScalar, typename TinyConstants>
+template <typename Algebra>
 struct MeshcatUrdfVisualizer {
-  typedef ::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
-  typedef ::TinyUrdfLink<TinyScalar, TinyConstants> TinyUrdfLink;
-  typedef ::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
-  typedef ::TinyMultiBody<TinyScalar, TinyConstants> TinyMultiBody;
+    
+  typedef ::tds::UrdfStructures<Algebra> TinyUrdfStructures;
+  typedef ::tds::UrdfLink<Algebra> TinyUrdfLink;
+  typedef ::tds::UrdfVisual<Algebra> UrdfVisual;
+  
+  using Vector3 = typename Algebra::Vector3;
+  using Quaternion = typename Algebra::Quaternion;
+  using Matrix3x3 = typename Algebra::Matrix3;
+  typedef tds::Transform<Algebra> Transform;
+  typedef ::tds::MultiBody<Algebra> TinyMultiBody;
 
   struct TinyVisualLinkInfo {
     std::string vis_name;
     int link_index;
-    TinyVector3 origin_rpy;
-    TinyVector3 origin_xyz;
-    TinyVector3 inertia_xyz;
-    TinyVector3 inertia_rpy;
+    Vector3 origin_rpy;
+    Vector3 origin_xyz;
+    Vector3 inertia_xyz;
+    Vector3 inertia_rpy;
   };
 
   std::map<std::string, int> m_link_name_to_index;
@@ -167,7 +173,7 @@ struct MeshcatUrdfVisualizer {
                             bool useTextureUuid) {
     for (int vis_index = 0; vis_index < (int)link.urdf_visual_shapes.size();
          vis_index++) {
-      TinyUrdfVisual<TinyScalar, TinyConstants> &v =
+      UrdfVisual &v =
           link.urdf_visual_shapes[vis_index];
 
       printf("v.geom_type=%d", v.geometry.geom_type);
@@ -187,7 +193,7 @@ struct MeshcatUrdfVisualizer {
         std::string obj_data;
 
         FILE *fp =
-            fopen((m_path_prefix + v.geometry.m_mesh.m_file_name).c_str(), "r");
+            fopen((m_path_prefix + v.geometry.mesh.file_name).c_str(), "r");
         if (fp) {
           fseek(fp, 0, SEEK_END);
           int datasize = (int)ftell(fp);
@@ -225,7 +231,7 @@ struct MeshcatUrdfVisualizer {
           }
         }
       }
-      v.sync_visual_body_uid2 = m_uid;
+      v.sync_visual_body_uid1 = m_uid;
       m_b2vis[m_uid++] = b2v;
     }
   }
@@ -237,36 +243,36 @@ struct MeshcatUrdfVisualizer {
     m_link_name_to_index.clear();
     {
       int link_index = -1;
-      std::string link_name = urdf.m_base_links[0].link_name;
+      std::string link_name = urdf.base_links[0].link_name;
       m_link_name_to_index[link_name] = link_index;
-      convert_link_visuals(urdf.m_base_links[0], link_index, false);
+      convert_link_visuals(urdf.base_links[0], link_index, false);
     }
 
-    for (int link_index = 0; link_index < (int)urdf.m_links.size();
+    for (int link_index = 0; link_index < (int)urdf.links.size();
          link_index++) {
-      std::string link_name = urdf.m_links[link_index].link_name;
+      std::string link_name = urdf.links[link_index].link_name;
       m_link_name_to_index[link_name] = link_index;
-      convert_link_visuals(urdf.m_links[link_index], link_index, false);
+      convert_link_visuals(urdf.links[link_index], link_index, false);
     }
   }
 
   void sync_visual_transforms(const TinyMultiBody *body) {
     // sync base transform
-    for (int v = 0; v < body->m_visual_uids2.size(); v++) {
-      int visual_id = body->m_visual_uids2[v];
+    for (int v = 0; v < body->visual_ids().size(); v++) {
+      int visual_id = body->visual_ids()[v];
       if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-        TinyQuaternion<TinyScalar, TinyConstants> rot;
-        TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
-            body->m_base_X_world * body->m_X_visuals[v];
+        Quaternion rot;
+        Transform geom_X_world =
+            body->base_X_world() * body->X_visuals()[v];
 
-        const TinyMatrix3x3<TinyScalar, TinyConstants> &m =
-            geom_X_world.m_rotation;
+        const Matrix3x3 &m =
+            geom_X_world.rotation;
 
         const TinyVisualLinkInfo &viz = m_b2vis.at(visual_id);
         // printf("vis_name=%s\n", viz.vis_name.c_str());
-        double world_pos[3] = {geom_X_world.m_translation.getX(),
-                               geom_X_world.m_translation.getY(),
-                               geom_X_world.m_translation.getZ()};
+        double world_pos[3] = {geom_X_world.translation.getX(),
+                               geom_X_world.translation.getY(),
+                               geom_X_world.translation.getZ()};
         double world_mat[9] = {m.getRow(0)[0], m.getRow(1)[0], m.getRow(2)[0],
                                m.getRow(0)[1], m.getRow(1)[1], m.getRow(2)[1],
                                m.getRow(0)[2], m.getRow(1)[2], m.getRow(2)[2]};
@@ -276,25 +282,25 @@ struct MeshcatUrdfVisualizer {
       }
     }
 
-    for (int l = 0; l < body->m_links.size(); l++) {
-      for (int v = 0; v < body->m_links[l].m_visual_uids2.size(); v++) {
-        int visual_id = body->m_links[l].m_visual_uids2[v];
+    for (int l = 0; l < body->links().size(); l++) {
+      for (int v = 0; v < body->links()[l].visual_ids.size(); v++) {
+        int visual_id = body->links()[l].visual_ids[v];
         if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-          TinyQuaternion<TinyScalar, TinyConstants> rot;
-          TinySpatialTransform<TinyScalar, TinyConstants> geom_X_world =
-              body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[v];
-          ;
-          const TinyMatrix3x3<TinyScalar, TinyConstants> &m =
-              geom_X_world.m_rotation;
+          Quaternion rot;
+          Transform geom_X_world =
+              body->links()[l].X_world * body->links()[l].X_visuals[v];
+          
+          const Matrix3x3 &m =
+              geom_X_world.rotation;
           const TinyVisualLinkInfo &viz = m_b2vis.at(visual_id);
           // printf("vis_name=%s\n", viz.vis_name.c_str());
           double world_mat[9] = {
               m.getRow(0)[0], m.getRow(1)[0], m.getRow(2)[0],
               m.getRow(0)[1], m.getRow(1)[1], m.getRow(2)[1],
               m.getRow(0)[2], m.getRow(1)[2], m.getRow(2)[2]};
-          double world_pos[3] = {geom_X_world.m_translation.getX(),
-                                 geom_X_world.m_translation.getY(),
-                                 geom_X_world.m_translation.getZ()};
+          double world_pos[3] = {geom_X_world.translation.getX(),
+                                 geom_X_world.translation.getY(),
+                                 geom_X_world.translation.getZ()};
           nlohmann::json tr_cmd =
               create_transform_cmd(world_pos, world_mat, viz.vis_name.c_str());
           send_zmq(m_sock, tr_cmd);
