@@ -32,7 +32,7 @@ class MultiBody {
    */
   int dof_{0};
 
-  LinkCollection links_;
+ 
 
   /**
    * Whether this system is floating or fixed to the world frame.
@@ -69,6 +69,7 @@ class MultiBody {
  public:
 
   VectorX q_, qd_, qdd_, tau_;
+  LinkCollection links_;
 
   explicit MultiBody(bool isFloating = false) : is_floating_(isFloating) {}
 
@@ -164,8 +165,12 @@ class MultiBody {
   TINY_INLINE const ArticulatedBodyInertia &base_abi() const {
     return base_abi_;
   }
-  TINY_INLINE Transform &base_X_world() { return base_X_world_; }
-  TINY_INLINE const Transform &base_X_world() const { return base_X_world_; }
+  TINY_INLINE Transform &base_X_world() { 
+      return base_X_world_; 
+  }
+  TINY_INLINE const Transform &base_X_world() const { 
+      return base_X_world_; 
+  }
 
   TINY_INLINE std::vector<int> &visual_ids() { return visual_ids_; }
   TINY_INLINE const std::vector<int> &visual_ids() const { return visual_ids_; }
@@ -218,6 +223,16 @@ class MultiBody {
     }
   }
 
+  void set_orientation(const Quaternion& initial_orientation) {
+      base_X_world_.rotation = Algebra::quat_to_matrix(initial_orientation);
+      if (is_floating_) {
+          q_[0] = initial_orientation[0];
+          q_[1] = initial_orientation[1];
+          q_[2] = initial_orientation[2];
+          q_[3] = initial_orientation[3];
+      }
+  }
+
   /**
    * Ensures that the joint coordinates q, qd, qdd, tau are initialized
    * properly in the MultiBody member variables.
@@ -250,6 +265,7 @@ class MultiBody {
     }
 
     base_abi_ = base_rbi_;
+#if 0
     if (is_floating_ && !base_abi_.is_invertible()) {
       fprintf(stderr,
               "Error: floating-base inertia matrix (ABI) is not invertible. "
@@ -257,6 +273,7 @@ class MultiBody {
       Algebra::print("Floating-base ABI", base_abi_);
       exit(1);
     }
+#endif
   }
 
   /**
@@ -314,6 +331,23 @@ class MultiBody {
     }
   }
 
+
+  /**
+   * Transforms a point in body coordinates to world coordinates.
+   */
+  inline Vector3 body_to_world(int link_index,
+      const Vector3& point) const {
+      return get_world_transform(link_index).apply(point);
+  }
+  /**
+   * Transforms a point in world coordinates to bodyt coordinates.
+   */
+  inline Vector3 world_to_body(int link_index,
+      const Vector3& point) const {
+      return get_world_transform(link_index).apply_inverse(point);
+  }
+
+
   /**
    * Compute center of mass of link in world coordinates.
    * @param link Index of link in `links`.
@@ -326,6 +360,12 @@ class MultiBody {
     } else {
       return tf.apply(links_[link].I.com);
     }
+  }
+
+
+  TINY_INLINE void set_q(const VectorX& q)
+  {
+      q_ = q;
   }
 
   TINY_INLINE Scalar get_q_for_link(const VectorX &q, int link_index) const {
@@ -394,7 +434,10 @@ class MultiBody {
     if (!links_.empty()) parent_index = static_cast<int>(links_.size()) - 1;
     attach(link, parent_index, is_controllable);
   }
-
+  void attach_link(Link& link, int parent_index,
+      bool is_controllable = true) {
+      attach(link, parent_index, is_controllable);
+  }
   void attach(Link &link, int parent_index, bool is_controllable = true) {
     int sz = static_cast<int>(links_.size());
     assert(parent_index < sz);
