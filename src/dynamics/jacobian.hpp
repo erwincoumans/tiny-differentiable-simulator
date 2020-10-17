@@ -37,14 +37,16 @@ typename Algebra::Matrix3X point_jacobian(
   if (mb.is_floating()) {
     // convert start point in world coordinates to base frame
     const Vector3 base_point =  world_point - base_X_world.translation;
-    //const Vector3 base_point =  // world_point - base_X_world.translation;
     //                            // base_X_world.translation - world_point;
-    //    mb.empty() ? base_X_world.apply_inverse(world_point)
-    //               : links_X_world[link_index].apply_inverse(world_point);
+        //mb.empty() ? base_X_world.apply_inverse(world_point)
+        //           : links_X_world[link_index].apply_inverse(world_point);
     // see (Eq. 2.238) in
     // https://ethz.ch/content/dam/ethz/special-interest/mavt/robotics-n-intelligent-systems/rsl-dam/documents/RobotDynamics2016/FloatingBaseKinematics.pdf
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Matrix3 cr = Algebra::cross_matrix(base_point);
-    // Matrix3 cr = Algebra::transpose(Algebra::cross_matrix(base_point));
+#else
+    Matrix3 cr = Algebra::transpose(Algebra::cross_matrix(base_point));
+#endif //TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Algebra::assign_block(jac, cr, 0, 0);
     jac(0, 3) = Algebra::one();
     jac(1, 4) = Algebra::one();
@@ -66,7 +68,7 @@ typename Algebra::Matrix3X point_jacobian(
       body = &mb[body->parent_index];
     }
   }
-  jac.print("jac");
+  //jac.print("jac");
   return jac;
 }
 
@@ -110,11 +112,11 @@ typename Algebra::Matrix3X point_jacobian_fd(
   // }
   // convert start point in world coordinates to base frame
   const Vector3
-      base_point =  // start_point - base_X_world.translation;
+      base_point =   start_point - base_X_world.translation;
                     // start_point - (mb.empty() ? base_X_world.translation
                     //                 : links_X_world[link_index].translation);
-      mb.empty() ? base_X_world.apply_inverse(start_point)
-                 : links_X_world[link_index].apply_inverse(start_point);
+      //mb.empty() ? base_X_world.apply_inverse(start_point)
+      //           : links_X_world[link_index].apply_inverse(start_point);
   Vector3 world_point;
 
   VectorX q_x;

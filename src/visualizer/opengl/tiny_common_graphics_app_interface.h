@@ -55,7 +55,7 @@ struct TinyCommonGraphicsApp {
     eDrawText3D_TrackObject = 4,
   };
   class TinyWindowInterface* m_window;
-  struct TinyGLInstancingRenderer* m_renderer;
+  class TinyGLInstancingRenderer* m_renderer;
   struct CommonParameterInterface* m_parameterInterface;
   struct Common2dCanvasInterface* m_2dCanvasInterface;
 

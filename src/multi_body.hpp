@@ -265,7 +265,7 @@ class MultiBody {
     }
 
     base_abi_ = base_rbi_;
-#if 0
+
     if (is_floating_ && !base_abi_.is_invertible()) {
       fprintf(stderr,
               "Error: floating-base inertia matrix (ABI) is not invertible. "
@@ -273,7 +273,7 @@ class MultiBody {
       Algebra::print("Floating-base ABI", base_abi_);
       exit(1);
     }
-#endif
+
   }
 
   /**

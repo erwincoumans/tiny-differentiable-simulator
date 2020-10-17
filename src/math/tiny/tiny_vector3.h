@@ -260,6 +260,13 @@ namespace TINY
             }
             printf("\n");
         }
+        
+        inline TinyScalar triple(const TinyVector3& v1, const TinyVector3& v2) const
+        {
+            return m_x * (v1.m_y * v2.m_z - v1.m_z * v2.m_y) +
+                m_y * (v1.m_z * v2.m_x - v1.m_x * v2.m_z) +
+                m_z * (v1.m_x * v2.m_y - v1.m_y * v2.m_x);
+        }
     };
 
     template <typename TinyScalar, typename TinyConstants>
@@ -337,6 +344,14 @@ namespace TINY
         const TinyVector3<TinyScalar, TinyConstants>& vec) {
         return TinyVector3<TinyScalar, TinyConstants>::create(
             Fix64Abs(vec.getX()), Fix64Abs(vec.getY()), Fix64Abs(vec.getZ()));
+    }
+ 
+    template <typename TinyScalar, typename TinyConstants>
+    inline TinyScalar btTriple(const TinyVector3<TinyScalar, TinyConstants>& v1,
+        const TinyVector3<TinyScalar, TinyConstants>& v2, 
+        const TinyVector3<TinyScalar, TinyConstants>& v3)
+    {
+        return v1.triple(v2, v3);
     }
 };
 #endif  // _TINY_VECTOR3_H
