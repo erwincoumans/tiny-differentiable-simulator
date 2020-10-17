@@ -22,7 +22,9 @@ void TestOnURDF(std::string filename)
 
   std::string urdf_filename;
   bool is_floating = false;
-  FileUtils::find_file(filename, urdf_filename);
+  bool result = FileUtils::find_file(filename, urdf_filename);
+  ASSERT_TRUE(result);
+  printf("urdf_filename=%s\n", urdf_filename.c_str());
   mb = cache.construct(urdf_filename, world, false, is_floating);
 
   std::string fail_message = "Failure at iteration ";
