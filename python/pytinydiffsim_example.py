@@ -25,7 +25,7 @@ Will also expose stan_math forward mode differentiation, dual and fixed point.
 from absl import app
 from absl import flags
 
-import pydiffphys
+import pytinydiffsim2 as pydiffphys
 
 FLAGS = flags.FLAGS
 
