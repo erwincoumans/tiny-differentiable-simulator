@@ -39,4 +39,3 @@ add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
 target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
-ENDIF(WIN32)
