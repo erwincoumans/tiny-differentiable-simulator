@@ -134,6 +134,7 @@
       .def("get_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::get_at)
       .def("set_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_at)
       .def("get_row",&TinyMatrix3x3<MyScalar, MyTinyConstants>::getRow)
+      .def("transposed", &TinyMatrix3x3<MyScalar, MyTinyConstants>::transpose)
       .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity)
       .def("setRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::setRotation)
       .def("getRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::getRotation2)
@@ -179,8 +180,7 @@
       .def("inverse_transform",
            &Pose<MyAlgebra>::inverse_transform);
 
-  py::class_<Transform<MyAlgebra>>(m,
-                                                        "TinySpatialTransform")
+  py::class_<Transform<MyAlgebra>>(m,"TinySpatialTransform")
       .def(py::init<>())
       .def("set_identity",
            &Transform<MyAlgebra>::set_identity)
@@ -267,6 +267,13 @@
       .def_readwrite("joint_type", &Link<MyAlgebra>::joint_type)
       .def_readwrite("damping", &Link<MyAlgebra>::damping);
 
+  
+  py::class_<RigidBodyInertia<MyAlgebra>,
+      std::unique_ptr<RigidBodyInertia<MyAlgebra>>>(m, "RigidBodyInertia")
+      .def(py::init<const MyAlgebra::Scalar&, const MyAlgebra::Vector3&,
+          const MyAlgebra::Matrix3&>())
+      .def("set_zero", &RigidBodyInertia<MyAlgebra>::set_zero);
+
   py::class_<MultiBody<MyAlgebra>,
              std::unique_ptr<MultiBody<MyAlgebra>>>(
       m, "TinyMultiBody")
@@ -274,10 +281,15 @@
       .def("initialize", &MultiBody<MyAlgebra>::initialize)
       .def("set_base_position",
            &MultiBody<MyAlgebra>::set_position)
+      .def("set_base_orientation",
+          &MultiBody<MyAlgebra>::set_orientation)
       .def("get_world_transform",
            &MultiBody<MyAlgebra>::get_world_transform)
-#if 0
+
       .def("attach_link", &MultiBody<MyAlgebra>::attach_link)
+      .def("set_q", &MultiBody<MyAlgebra>::set_q)
+      
+#if 0
       .def("forward_kinematics",
            &MultiBody<MyAlgebra>::forward_kinematics1)
       .def("forward_dynamics",
@@ -286,19 +298,21 @@
       .def("integrate", py::overload_cast<MyScalar>(
                             &MultiBody<MyAlgebra>::integrate))
       .def("integrate_q", &MultiBody<MyAlgebra>::integrate_q)
-      .def("body_to_world", &MultiBody<MyAlgebra>::body_to_world)
-      .def("world_to_body", &MultiBody<MyAlgebra>::world_to_body)
+      
+      
       .def("point_jacobian",
            &MultiBody<MyAlgebra>::point_jacobian1)
       .def("bias_forces", &MultiBody<MyAlgebra>::bias_forces)
 #endif
-      //.def_property_readonly("num_dofs", &MultiBody<MyAlgebra>::dof)
+      .def("world_to_body", &MultiBody<MyAlgebra>::world_to_body)
+      .def("body_to_world", &MultiBody<MyAlgebra>::body_to_world)
+      .def_property_readonly("num_dofs", &MultiBody<MyAlgebra>::dof)
       //.def_property_readonly("num_dofs_qd", &MultiBody<MyAlgebra>::dof_qd)
       .def_readwrite("q", &MultiBody<MyAlgebra>::q_)
-      //.def_readwrite("links", &MultiBody<MyAlgebra>::links)
-      //.def_readwrite("qd", &MultiBody<MyAlgebra>::qd)
-      //.def_readwrite("qdd", &MultiBody<MyAlgebra>::qdd)
-      //.def_readwrite("tau", &MultiBody<MyAlgebra>::tau)
+      .def_readwrite("links", &MultiBody<MyAlgebra>::links_)
+      .def_readwrite("qd", &MultiBody<MyAlgebra>::qd_)
+      .def_readwrite("qdd", &MultiBody<MyAlgebra>::qdd_)
+      .def_readwrite("tau", &MultiBody<MyAlgebra>::tau_)
       ;
 
   m.def("fraction", &fraction);
@@ -306,8 +320,8 @@
   m.def("forward_kinematics", &MyForwardKinematics);
   m.def("forward_dynamics", &MyForwardDynamics);
   m.def("integrate_euler", &MyIntegrateEuler);
-  
-  
+  m.def("compute_inertia_dyad", &MyComputeInertia);
+
   py::class_<CollisionDispatcher<MyAlgebra>>(
       m, "TinyCollisionDispatcher")
       .def(py::init<>())
