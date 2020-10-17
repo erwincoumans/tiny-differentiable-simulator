@@ -188,7 +188,7 @@ struct MeshcatUrdfVisualizer {
       b2v.inertia_rpy = link.urdf_inertial.origin_rpy;
       int color_rgb = 0xffffff;
       double world_pos[3] = {0, 0, 0};
-      if (v.geometry.geom_type == TINY_MESH_TYPE) {
+      if (v.geometry.geom_type == tds::TINY_MESH_TYPE) {
         // printf("mesh filename=%s\n", v.geom_meshfilename.c_str());
         std::string obj_data;
 
