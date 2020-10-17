@@ -102,7 +102,7 @@ struct TinyRaycast {
         const TinyUrdfCollision &collider = collision_objects[col];
         // perform a collision check, and add hit results(s)
         switch (collider.geometry.geom_type) {
-          case TINY_SPHERE_TYPE: {
+          case ::tds::TINY_SPHERE_TYPE: {
             TinyScalar radius = collider.geometry.sphere.radius;
             TinyVector3 rs = ray_from - collider.origin_xyz;
             TinyVector3 ray_dir = ray_to - ray_from;
@@ -128,11 +128,11 @@ struct TinyRaycast {
             }
             break;
           }
-          case TINY_BOX_TYPE: {
+          case ::tds::TINY_BOX_TYPE: {
             // transform ray to local coordinates
             TinyQuaternion<TinyScalar, TinyConstants> orn;
             orn.set_euler_rpy(collider.origin_rpy);
-            Pose< TinyAlgebra<TinyScalar, TinyConstants>> pose(collider.origin_xyz, orn);
+            tds::Pose< TinyAlgebra<TinyScalar, TinyConstants>> pose(collider.origin_xyz, orn);
             TinyVector3 ray_from_local = pose.inverse_transform(ray_from);
             TinyVector3 ray_to_local = pose.inverse_transform(ray_to);
             TinyRaycastResult hit0, hit1;
