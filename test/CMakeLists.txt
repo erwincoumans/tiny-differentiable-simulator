@@ -1,5 +1,5 @@
 
-IF(USE_RBDL AND Bullet_FOUND)
+IF(USE_RBDL)
 
   if (Bullet_FOUND)
     add_executable(test_rbdl_bt test_rbdl.cpp)
@@ -11,7 +11,7 @@ IF(USE_RBDL AND Bullet_FOUND)
     target_compile_definitions(test_rbdl_bt PUBLIC ${BULLET_DEFINITIONS} -D_VARIADIC_MAX=10, -DGTEST_LANG_CXX11 -DUSE_RBDL -DUSE_BULLET_URDF_PARSER)
     target_link_directories(test_rbdl_bt PUBLIC ${Bullet_DIR}/${BULLET_ROOT_DIR}/${BULLET_LIBRARY_DIRS})
     target_link_libraries(test_rbdl_bt PUBLIC BulletDynamics BulletCollision LinearMath)
-  endif()
+  endif(Bullet_FOUND)
   
   add_executable(test_rbdl_tds test_rbdl.cpp)
   set_target_properties(test_rbdl_tds PROPERTIES FOLDER autodiff)
@@ -20,11 +20,4 @@ IF(USE_RBDL AND Bullet_FOUND)
   target_include_directories(test_rbdl_tds PUBLIC  ../src . ../third_party/gtest/include ../third_party/eigen3)
   target_compile_definitions(test_rbdl_tds PUBLIC -D_VARIADIC_MAX=10, -DGTEST_LANG_CXX11 -DUSE_RBDL )
   
-ENDIF()
-
-
-IF(USE_RBDL)
-  
-  
-ENDIF()
-
+ENDIF(USE_RBDL)
