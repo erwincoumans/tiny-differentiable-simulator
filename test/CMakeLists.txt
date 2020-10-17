@@ -1,0 +1,13 @@
+
+IF(USE_RBDL)
+  add_executable(test_rbdl test_rbdl.cpp)
+  ADD_DEFINITIONS(-D_VARIADIC_MAX=10, -DGTEST_LANG_CXX11 -DUSE_RBDL )
+  set_target_properties(test_rbdl PROPERTIES FOLDER autodiff)
+  target_link_libraries(test_rbdl PUBLIC pybullet_visualizer_api)
+  target_link_libraries(test_rbdl PRIVATE tinyxml2 ${PYTHON_LIBRARIES})
+  target_link_libraries(test_rbdl PRIVATE gtest rbdl-static)
+  target_include_directories(test_rbdl PUBLIC ${BULLET_INCLUDE_DIR} ../src . ../third_party/gtest/include ../third_party/eigen3)
+  target_compile_definitions(test_rbdl PUBLIC ${BULLET_DEFINITIONS})
+  target_link_directories(test_rbdl PUBLIC ${Bullet_DIR}/${BULLET_ROOT_DIR}/${BULLET_LIBRARY_DIRS})
+  target_link_libraries(test_rbdl PUBLIC BulletDynamics BulletCollision LinearMath)
+ENDIF(USE_RBDL)
