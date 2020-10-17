@@ -7,6 +7,10 @@ ELSE()
 IF(APPLE)
 	target_compile_definitions(crossguid PUBLIC GUID_LIBUUID PRIVATE GUID_LIBUUID)
 	target_link_libraries(crossguid PUBLIC uuid PRIVATE uuid)
+ELSE()
+        target_compile_definitions(crossguid PUBLIC GUID_LIBUUID PRIVATE GUID_LIBUUID)
+        target_link_libraries(crossguid PUBLIC uuid PRIVATE uuid)
+
 ENDIF()
 ENDIF()
 

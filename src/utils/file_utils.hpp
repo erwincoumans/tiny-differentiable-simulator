@@ -12,7 +12,7 @@
 #include <unistd.h>
 #endif
 #endif
-
+#include <vector>
 #define TINY_MAX_EXE_PATH_LEN 4096
 
 #include <stddef.h>  //ptrdiff_h

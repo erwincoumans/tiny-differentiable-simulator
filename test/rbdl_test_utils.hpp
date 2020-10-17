@@ -16,7 +16,12 @@
 #include "math/tiny/tiny_algebra.hpp"
 #include "math/tiny/tiny_double_utils.h"
 #include "multi_body.hpp"
+#ifdef USE_BULLET_URDF_PARSER
 #include "urdf/urdf_cache.hpp"
+#else
+#include "urdf/urdf_parser.hpp"
+#include "urdf/urdf_to_multi_body.hpp"
+#endif //USE_BULLET_URDF_PARSER
 #include "utils/file_utils.hpp"
 #include "world.hpp"
 
