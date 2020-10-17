@@ -56,6 +56,8 @@ class TinyVectorX {
   inline const TinyScalar* data() const { return m_data; }
 
   TinyVectorX& operator=(const TinyVectorX& v) {
+    if (m_data == v.m_data)
+        return *this;
     delete[] m_data;
     m_size = v.m_size;
     m_data = new TinyScalar[m_size];

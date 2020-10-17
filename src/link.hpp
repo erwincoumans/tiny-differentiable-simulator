@@ -63,6 +63,7 @@ struct Link {
   std::vector<Transform> X_collisions;  // offset of collision geometries
   // (relative to this link frame)
   std::vector<int> visual_ids;
+  std::vector<int> visual_ids2;
   std::vector<Transform>
       X_visuals;  // offset of geometry (relative to this link frame)
 
@@ -131,12 +132,15 @@ struct Link {
                 "Error: unknown joint type encountered in " __FILE__ ":%i\n",
                 __LINE__);
     }
-    if (Algebra::norm(S) == Algebra::zero()) {
-      fprintf(stderr,
-              "Error: subspace matrix S is zero after setting joint type on "
-              "link.\n");
-      assert(0);
-      exit(1);
+    if (joint_type != JOINT_FIXED)
+    {
+        if (Algebra::norm(S) == Algebra::zero()) {
+            fprintf(stderr,
+                "Error: subspace matrix S is zero after setting joint type on "
+                "link.\n");
+            assert(0);
+            exit(1);
+        }
     }
   }
 
@@ -187,7 +191,13 @@ struct Link {
 #if SWAP_TRANSFORM_ASSOCIATIVITY
     *X_parent = (*X_J) * X_T;
 #else
+    
+
+    //X_T.print("X_T");
+    //X_J->print("X_J");
     *X_parent = X_T * (*X_J);
+    //X_parent->print("X_parent");
+
 #endif
   }
 
