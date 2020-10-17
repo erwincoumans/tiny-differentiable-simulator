@@ -57,7 +57,12 @@ void MyIntegrateEuler(MultiBody<MyAlgebra>& mb, const MyScalar& dt)
 {
     integrate_euler(mb, dt);
 }
-
+RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
+    const MyAlgebra::Vector3& com, const MyAlgebra::Matrix3& inertia)
+{
+    RigidBodyInertia< MyAlgebra> rb_inertia(mass, com, inertia);
+    return rb_inertia;
+}
 
 PYBIND11_MODULE(pytinydiffsim2_dual, m) {
  
