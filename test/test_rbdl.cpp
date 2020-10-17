@@ -16,7 +16,7 @@ void TestOnURDF(std::string filename)
 {
   Vector3 gravity(0., 0., -9.81);
 
-  UrdfCache<Algebra> cache;
+  
   World<Algebra> world;
   MultiBody<Algebra> *mb = nullptr;
 
@@ -25,7 +25,21 @@ void TestOnURDF(std::string filename)
   bool result = FileUtils::find_file(filename, urdf_filename);
   ASSERT_TRUE(result);
   printf("urdf_filename=%s\n", urdf_filename.c_str());
+#ifdef USE_BULLET_URDF_PARSER
+  UrdfCache<Algebra> cache;
   mb = cache.construct(urdf_filename, world, false, is_floating);
+#else //USE_BULLET_URDF_PARSER
+ UrdfParser<Algebra> parser;
+  MultiBody<Algebra> mb1;
+  mb = &mb1;
+  std::string full_path;
+  FileUtils::find_file(filename, full_path);
+  UrdfStructures<Algebra> urdf_structures =
+      parser.load_urdf(full_path);
+  UrdfToMultiBody<Algebra>::convert_to_multi_body(
+      urdf_structures, world, mb1);
+  mb1.initialize();
+#endif//USE_BULLET_URDF_PARSER
 
   std::string fail_message = "Failure at iteration ";
 

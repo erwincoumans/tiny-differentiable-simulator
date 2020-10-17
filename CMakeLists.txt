@@ -158,13 +158,13 @@ IF(Bullet_FOUND)
   
   SUBDIRS(src/visualizer/pybullet)
 
-  OPTION (USE_RBDL "Compare against RBDL" ON)
-  if(USE_RBDL)
-    add_definitions(-DUSE_RBDL)
-    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/rbdl)
-  endif(USE_RBDL)
-
 ENDIF(Bullet_FOUND)
+
+OPTION (USE_RBDL "Compare against RBDL" ON)
+if(USE_RBDL)
+  add_definitions(-DUSE_RBDL)
+  SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/rbdl)
+endif(USE_RBDL)
 
 message ("USING third_party/tinyxml2")
 set(tinyxml2_FOUND TRUE)
