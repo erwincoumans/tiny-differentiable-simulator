@@ -90,11 +90,20 @@ void forward_dynamics(MultiBody<Algebra> &mb,
 #ifdef DEBUG
     printf("invD[%d]=%f\n", i, Algebra::to_double(invD));
 #endif
+    auto tmp = link.U * invD;
     auto u_dinv_ut =
-        ArticulatedBodyInertia::mul_transpose(link.U * invD, link.U);
+        ArticulatedBodyInertia::mul_transpose(link.U, link.U * invD);
+
+    //u_dinv_ut.print("u_dinv_ut\n");
+    //link.abi.print("link.abi\n");
     ArticulatedBodyInertia Ia = link.abi - u_dinv_ut;
+    //Ia.print("Ia\n");
+    //ForceVector Ia_c = Ia.mul_inv(link.c);
     ForceVector Ia_c = Ia * link.c;
-    ForceVector pa = link.pA + Ia_c + link.U * (link.u * invD);
+    //Ia_c.print("Ia_c\n");
+    ForceVector UuD = link.U * (link.u * invD);
+    //UuD.print("UuD\n");
+    ForceVector pa = link.pA + Ia_c + UuD;
 #ifdef DEBUG
     Algebra::print("u_dinv_ut", u_dinv_ut);
     Algebra::print("Ia", Ia);
