@@ -46,9 +46,9 @@ void MyMassMatrix(MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
     mass_matrix(mb, q, M);
 }
 
-void MyForwardKinematics(MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q)
+void MyForwardKinematics(MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q, const MyAlgebra::VectorX& qd)
 {
-    forward_kinematics(mb, q);
+    forward_kinematics(mb, q, qd);
 }
 
 void MyForwardDynamics(MultiBody<MyAlgebra>& mb, const MyAlgebra::Vector3& gravity)
@@ -59,7 +59,12 @@ void MyIntegrateEuler(MultiBody<MyAlgebra>& mb, const MyScalar& dt)
 {
     integrate_euler(mb, dt);
 }
-
+RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
+    const MyAlgebra::Vector3& com, const MyAlgebra::Matrix3& inertia)
+{
+    RigidBodyInertia< MyAlgebra> rb_inertia(mass, com, inertia);
+    return rb_inertia;
+}
 
 PYBIND11_MODULE(pytinydiffsim2, m) {
 
