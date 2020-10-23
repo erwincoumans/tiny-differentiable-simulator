@@ -16,7 +16,7 @@
 
 import pybullet_utils.bullet_client as bc
 import pybullet
-import pytinydiffsim as dp
+import pytinydiffsim2 as dp
 #import meshcat_utils_pb
 import meshcat_utils_dp
 import pybullet_data as pd
@@ -58,8 +58,12 @@ multi_bodies = [plane_mb]
 
 res = urdf2mb.convert2(med1.urdf_structs, world, plane_mb)
 
-start_pos = [0, 0, 0.6]
-laikago = p0.loadURDF("laikago/laikago_toes_zup.urdf", start_pos, flags=flags)
+start_pos = [0, 0, 1.6]
+#laikago = p0.loadURDF("laikago/laikago_toes_zup_one_leg.urdf", start_pos, flags=flags)
+laikago = p0.loadURDF("sphere8cube.urdf", start_pos, flags=flags)
+#laikago = p0.loadURDF("sphere2.urdf", start_pos, flags=flags)
+
+#laikago = p0.loadURDF("laikago/laikago_toes_zup.urdf", start_pos, flags=flags)
 
 #laikago = p0.loadURDF("r2d2.urdf", start_pos, flags=flags)
 p0.configureDebugVisualizer(p0.COV_ENABLE_RENDERING, 1)
@@ -83,26 +87,43 @@ is_floating = True
 laikago_mb = dp.TinyMultiBody(is_floating)
 
 res = urdf2mb.convert2(med0.urdf_structs, world, laikago_mb)
-laikago_mb.set_base_position(dp.TinyVector3(0., 0., 2.))
+laikago_mb.set_base_position(dp.TinyVector3(3., 2., 0.7))
+laikago_mb.set_base_orientation(dp.TinyQuaternion(0.8042817254804792, 0.08692563458095628, -0.12155529396079404, 0.5751514153863713))#0.2474039592545229, 0.0, 0.0, 0.9689124217106448))
 mb_solver = dp.TinyMultiBodyConstraintSolver()
+
+q = dp.TinyVectorX(2)
+q[0] = -0.53167
+q[1] = 0.30707
+qd = dp.TinyVectorX(2)
+qd[0] = -1
+qd[1] = 0
+
+qd_new = laikago_mb.qd
+#qd_new[2] = 1
+#laikago_mb.qd= qd_new
+
+print("laikago_mb.q=",laikago_mb.q)
+print("laikago_mb.qd=",laikago_mb.qd)
+
 
 dt = 1. / 1000.
 #p0.setGravity(0,0,-10)
 
 while p0.isConnected():
-  laikago_mb.forward_kinematics()
-  laikago_mb.forward_dynamics(dp.TinyVector3(0., 0., -10.))
-  laikago_mb.integrate_q(dt)
+  #dp.forward_kinematics(laikago_mb, laikago_mb.q, laikago_mb.qd)
+  dp.forward_dynamics(laikago_mb, dp.TinyVector3(0., 0., -10.))
+  #dp.forward_dynamics(laikago_mb, dp.TinyVector3(0., 0., 0.))
+  
+  if 1:
+    multi_bodies = [plane_mb, laikago_mb]
 
-  multi_bodies = [plane_mb, laikago_mb]
+    contacts = world.compute_contacts_multi_body(multi_bodies, dispatcher)
 
-  contacts = world.compute_contacts_multi_body(multi_bodies, dispatcher)
+    #collision solver
+    for cps in contacts:
+      mb_solver.resolve_collision(cps, dt)
 
-  #collision solver
-  for cps in contacts:
-    mb_solver.resolve_collision(cps, dt)
-
-  laikago_mb.integrate(dt)
+  dp.integrate_euler(laikago_mb,dt)
 
   meshcat_utils_dp.sync_visual_transforms(laikago_mb, laikago_vis, vis)
   time.sleep(1. / 240.)

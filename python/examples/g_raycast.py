@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytinydiffsim as dp
+import pytinydiffsim2 as dp
 #import meshcat_utils_dp
 #import meshcat
 import time
@@ -71,9 +71,10 @@ for res in results:
         print("hit_fraction=", hits.hit_fraction, "hit object=", hits.collider_index)
         
         
-vol = caster.volume(results)
+
+vol = caster.volume(results,len(colliders))
 print("vol=",vol)
-intersect_vol = caster.intersection_volume(results,results)
+intersect_vol = caster.intersection_volume(results,results, len(colliders))
 print("intersect_vol=",intersect_vol)
 dt = 1./1000.
 skip_sync = 0

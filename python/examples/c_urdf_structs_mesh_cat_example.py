@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytinydiffsim as pd
+import pytinydiffsim2 as pd
 import time
 import os
 import meshcat
@@ -79,11 +79,9 @@ mb_solver = pd.TinyMultiBodyConstraintSolver()
 
           
 while 1:
-  sphere_mb.forward_kinematics()
-  #print("sphere_mb.q=",sphere_mb.q)
   
-  sphere_mb.forward_dynamics(pd.TinyVector3(0.,0.,-10.))
-  sphere_mb.integrate_q(dt)
+  pd.forward_dynamics(sphere_mb, pd.TinyVector3(0.,0.,-10.))
+  #pd.integrate_q(sphere_mb, dt)
   
    #collision detection
   multi_bodies = [plane_mb, sphere_mb]
@@ -95,7 +93,7 @@ while 1:
   for cps in contacts:
     mb_solver.resolve_collision(cps, dt)
     
-  sphere_mb.integrate(dt)
+  pd.integrate_euler(sphere_mb, dt)
   meshcat_utils_dp.sync_visual_transforms(sphere_mb, sphere2vis, vis)
   
   

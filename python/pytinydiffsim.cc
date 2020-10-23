@@ -12,17 +12,61 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tiny_double_utils.h"
+#include "math/tiny/tiny_double_utils.h"
+
 
 typedef double TinyDualScalar;
 typedef double MyScalar;
-typedef DoubleUtils MyTinyConstants;
+typedef ::TINY::DoubleUtils MyTinyConstants;
+
+#include "math/tiny/tiny_algebra.hpp"
+#include "dynamics/mass_matrix.hpp"
+#include "dynamics/kinematics.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
+
+typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
 #include "pytinydiffsim_includes.h"
 
-namespace py = pybind11;
+using namespace TINY;
+using namespace tds;
 
-PYBIND11_MODULE(pytinydiffsim, m) {
+namespace py = pybind11;
+MyScalar fraction(int a, int b)
+{
+return MyTinyConstants::fraction(a,b);
+}
+
+
+
+void MyMassMatrix(MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
+    MyAlgebra::MatrixX* M)
+{
+    mass_matrix(mb, q, M);
+}
+
+void MyForwardKinematics(MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q, const MyAlgebra::VectorX& qd)
+{
+    forward_kinematics(mb, q, qd);
+}
+
+void MyForwardDynamics(MultiBody<MyAlgebra>& mb, const MyAlgebra::Vector3& gravity)
+{
+    forward_dynamics(mb, gravity);
+}
+void MyIntegrateEuler(MultiBody<MyAlgebra>& mb, const MyScalar& dt)
+{
+    integrate_euler(mb, dt);
+}
+RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
+    const MyAlgebra::Vector3& com, const MyAlgebra::Matrix3& inertia)
+{
+    RigidBodyInertia< MyAlgebra> rb_inertia(mass, com, inertia);
+    return rb_inertia;
+}
+
+PYBIND11_MODULE(pytinydiffsim2, m) {
 
 
 #include "pytinydiffsim.inl"
