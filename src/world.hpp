@@ -63,7 +63,7 @@ class World {
   int num_solver_iterations{50};
 
   // default contact settings
-  Scalar default_friction{Algebra::fraction(2, 10)};
+  Scalar default_friction{Algebra::fraction(5, 10)};
   Scalar default_restitution{Algebra::zero()};
 
   explicit World(Scalar gravity_z = Algebra::fraction(-981, 100))

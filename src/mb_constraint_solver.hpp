@@ -59,7 +59,7 @@ class MultiBodyConstraintSolver {
   std::vector<int> limit_dependency_;
 
   // Error reduction parameter in Baumgarte stabilization
-  Scalar erp_{Algebra::fraction(1, 100)};
+  Scalar erp_{Algebra::fraction(20, 100)};
   // Constraint Force Mixing
   Scalar cfm_{Algebra::fraction(1, 100000)};
 
