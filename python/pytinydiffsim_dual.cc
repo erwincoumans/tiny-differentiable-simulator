@@ -13,17 +13,24 @@
 // limitations under the License.
 
 
-#include "tiny_dual.h"
-#include "tiny_dual_double_utils.h"
-
+#include "math/tiny/tiny_dual.h"
+#include "math/tiny/tiny_dual_double_utils.h"
+#include "math/tiny/tiny_algebra.hpp"
+#include "dynamics/mass_matrix.hpp"
+#include "dynamics/kinematics.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
 
 typedef double TinyDualScalar;
 typedef ::TINY::TinyDualDouble MyScalar;
 typedef ::TINY::TinyDualDoubleUtils MyTinyConstants;
 
+typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra;
+
 #include "pytinydiffsim_includes.h"
 
 using namespace TINY;
+using namespace tds;
 
 namespace py = pybind11;
 MyScalar fraction(int a, int b)
@@ -31,30 +38,33 @@ MyScalar fraction(int a, int b)
 return MyTinyConstants::fraction(a,b);
 }
 
-
-void MyMassMatrix(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const std::vector<MyScalar>& q,
-    TinyMatrixXxX< MyScalar, MyTinyConstants>* M)
+void MyMassMatrix(MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
+    MyAlgebra::MatrixX* M)
 {
-    mb.mass_matrix( q, M);
+    mass_matrix(mb, q, M);
 }
 
-
-void MyForwardKinematics(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const std::vector<MyScalar>& q)
+void MyForwardKinematics(MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q)
 {
-    mb.forward_kinematics(q);
+    forward_kinematics(mb, q);
 }
 
-void MyForwardDynamics(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const TinyVector3<MyScalar, MyTinyConstants>& gravity)
+void MyForwardDynamics(MultiBody<MyAlgebra>& mb, const MyAlgebra::Vector3& gravity)
 {
-    mb.forward_dynamics(gravity);
+    forward_dynamics(mb, gravity);
 }
-void MyIntegrateEuler(TinyMultiBody<MyScalar, MyTinyConstants>& mb, const MyScalar& dt)
+void MyIntegrateEuler(MultiBody<MyAlgebra>& mb, const MyScalar& dt)
 {
-    mb.integrate(dt);
+    integrate_euler(mb, dt);
+}
+RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
+    const MyAlgebra::Vector3& com, const MyAlgebra::Matrix3& inertia)
+{
+    RigidBodyInertia< MyAlgebra> rb_inertia(mass, com, inertia);
+    return rb_inertia;
 }
 
-
-PYBIND11_MODULE(pytinydiffsim_dual, m) {
+PYBIND11_MODULE(pytinydiffsim2_dual, m) {
  
     py::class_<TinyDualDouble>(m, "TinyDualDouble")
         .def(py::init<TinyDualScalar, TinyDualScalar>())
@@ -76,4 +86,5 @@ PYBIND11_MODULE(pytinydiffsim_dual, m) {
 #include "pytinydiffsim.inl"
 
 }
+
 

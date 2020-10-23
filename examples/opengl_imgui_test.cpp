@@ -1,9 +1,6 @@
-#include "utils/tiny_clock.h"
+#include "visualizer/opengl/utils/tiny_clock.h"
 #include <fstream>
-
 #include <iostream>
-
-
 #include "RtAudio.h"
 //#include "Stk.h"
 
@@ -19,24 +16,64 @@
 #include "b3ReadWavFile.h"
 #include "b3WriteWavFile.h"
 
+//using namespace stk;
+double sampleRate = 48014.0;
+#define MAX_GRAINS 100//500
+int activeGrains = 0;
+float grain_spawn_position = 0.f;
+float grain_spawn_position_rand_range = 0.024f;
+float grain_pitch = 1.f;
+float grain_pitch_rand_range = 0.f;
+float grain_duration = .6f;
+float grain_duration_rand_range = 0.25f;
+float grain_spawn_interval = 0.03f;
+float grain_spawn_interval_rand_range = 0.07f;
+std::vector<float> grain_visualizer;
+
 
 //#define USE_WAV_READER
 #ifdef USE_WAV_READER
 b3ReadWavFile wavReader;
-b3WavTicker wavTicker;
-FileDataSource dataSource;
-#endif//USE_WAV_READER
 
-#ifdef USE_WAV_WRITER
+
+
+
+b3WavTicker grains[MAX_GRAINS];
+
+
+//b3WavTicker wavTicker;
+b3DataSource* dataSourcePtr = 0;
 b3WriteWavFile wavWriter;
+
+
+
+
+void spawnGrain()
+{
+    for (int i = 0; i < MAX_GRAINS; i++)
+    {
+        if (grains[i].finished_)
+        {
+
+            double r = ((double)rand() / (RAND_MAX));
+            double spawn_position = grain_spawn_position + grain_spawn_position_rand_range * r;
+            grains[i].time_ = spawn_position * wavReader.getNumFrames();
+            grains[i].starttime_ = grains[i].time_;
+            r = ((double)rand() / (RAND_MAX));
+            double duration = grain_duration+grain_duration_rand_range * r;
+            grains[i].endtime_ = grains[i].time_ + sampleRate * duration;
+            grains[i].finished_ = false;
+            r = ((double)rand() / (RAND_MAX));
+            grains[i].speed = grain_pitch*(r < 0.5 ? 1. : 2.);
+
+            break;
+        }
+    }
+}
+int doSpawnGrain = 0;
+
 #endif //USE_WAV_WRITER
-
-//using namespace stk;
-double sampleRate = 44100.0;
-
-
-#define MY_BUFFER_SIZE 512
-
+#define MY_BUFFER_SIZE 512//256
 static bool animate = true;
 
 struct b3SoundOscillator
@@ -46,10 +83,10 @@ struct b3SoundOscillator
     double m_amplitude;
     double m_phase;
 
-    
+
     double sampleSineWaveForm(double sampleRate)
     {
-        while (m_phase >= 2*M_PI)
+        while (m_phase >= 2 * M_PI)
             m_phase -= 2 * M_PI;
 
         double z = sinf(m_phase);
@@ -82,7 +119,7 @@ struct b3SoundOscillator
         m_amplitude(1),
         m_phase(0)
     {
-        
+
     }
 };
 
@@ -98,42 +135,77 @@ float wav_data[MY_BUFFER_SIZE];
 int tick(void* outputBuffer, void* inputBuffer1, unsigned int nBufferFrames,
     double streamTime, RtAudioStreamStatus status, void* dataPointer)
 {
-    
+
+  
 
     double* samples = (double*)outputBuffer;
     int index = 0;
-    for (int i = 0; i < nBufferFrames; i++)
+
+    for (int x = 0; x < nBufferFrames; x++)
     {
-        double lfoMod = lfo.sampleSineWaveForm(sampleRate);
+        samples[x*2] = 0;
+        samples[x*2+1] = 0;
+    }
+    {
         
-        leftOsc.m_frequency = 420 + 220 * lfoMod;
-        rightOsc.m_frequency = 420 + 120 * lfoMod;
 #ifdef USE_WAV_READER
-        double speed = 1.f;
-        wavReader.tick(0, &wavTicker, dataSource, speed);
-        if (wavTicker.finished_)
+            
+        int spawnnr = doSpawnGrain;
+        doSpawnGrain = 0;
+        for (int i = 0; i < spawnnr; i++)
         {
-            wavTicker.time_ = 0;
-            wavTicker.finished_ = false;
+            spawnGrain();
         }
-        samples[index] = wavTicker.lastFrame_[0];
+        double stereo_sample[2] = { 0 };
+        
+        double volume_gain = 10. / double(MAX_GRAINS);
+        int tmpActiveGrains = 0;
+        for (int g = 0; g < MAX_GRAINS; g++)
+        {
+            b3WavTicker& wavTicker = grains[g];
+            int size = nBufferFrames;
+            double* out0 = samples;
+            double* out1 = samples+1;
+            int stride = 2;
+            double volume = wavTicker.env_volume2() * volume_gain;
+            wavReader.tick(&wavTicker, *dataSourcePtr, wavTicker.speed, volume, size, out0, out1, stride);
+            if (wavTicker.finished_)
+            {
+                //wavTicker.time_ = 0;
+                //wavTicker.finished_ = false;
+            }
+            else
+            {
+                tmpActiveGrains++;
+            }
+            
+        }
+        activeGrains = tmpActiveGrains;
+#endif
+        
+        
+        for (int i = 0; i < nBufferFrames; i++)
+        {
+#ifdef USE_WAV_READER     
 #else
-        samples[index] = leftOsc.sampleSineWaveForm(sampleRate);// +leftOsc2.sampleSineWaveForm(sampleRate));
+            double lfoMod = lfo.sampleSineWaveForm(sampleRate);
+            leftOsc.m_frequency = 420 + 220 * lfoMod;
+            rightOsc.m_frequency = 420 + 120 * lfoMod;
+            samples[index] = leftOsc.sampleSineWaveForm(sampleRate);// +leftOsc2.sampleSineWaveForm(sampleRate));
+#endif
+            if (animate)
+            {
+                float scaling = 1;
+                wav_data[i] = scaling * samples[index];
+            }
+            index++;
+#ifdef USE_WAV_READER
+#else
+            samples[index] = rightOsc2.sampleSineWaveForm(sampleRate);
 #endif
 
-        if (animate)
-        {
-            float scaling = 1;
-            wav_data[i] = scaling*samples[index];
+            index++;
         }
-        index++;
-#ifdef USE_WAV_READER
-        samples[index] = wavTicker.lastFrame_[1];
-#else
-        samples[index] = rightOsc2.sampleSineWaveForm(sampleRate);
-#endif
-        
-        index++;
 
         //double data = env * m_data->m_oscillators[osc].m_amplitude * m_data->m_wavFilePtr->tick(frame, &m_data->m_oscillators[osc].m_wavTicker);
     }
@@ -154,9 +226,9 @@ static void finish(int ignore)
 
 
 
-#include "opengl_window/tiny_opengl3_app.h"
-#include "utils/tiny_chrome_trace_util.h"
-#include "utils/tiny_logging.h"
+#include "visualizer/opengl/tiny_opengl3_app.h"
+#include "visualizer/opengl/utils/tiny_chrome_trace_util.h"
+#include "visualizer/opengl/utils/tiny_logging.h"
 
 
 #include "imgui.h"
@@ -463,18 +535,31 @@ void MyKeyboardCallback(int keycode, int state)
 
 int main(int argc, char* argv[]) {
 
-    void* data = 0;
+    
 
-#ifdef USE_WAV_WRITER
-    wavWriter.setWavFile("d:/mywav.wav", sampleRate, 2, true);
-#endif
+    void* data1 = 0;
+
 #ifdef USE_WAV_READER
-    const char* wavFileName = "d:/Porcelain Breaking.wav";// D: / xylophone.rosewood.ff.C5B5_1.wav";// Porcelain Breaking.wav";// ForestAmbience.wav";
-    dataSource.open(wavFileName);
+    grain_visualizer.resize(100, 0);
+    wavWriter.setWavFile("d:/mywav.wav", sampleRate, 2, true);
+    const char* wavFileName = "d:/RhodesSoft.wav";// Porcelain Breaking.wav";// D: / xylophone.rosewood.ff.C5B5_1.wav";// Porcelain Breaking.wav";// ForestAmbience.wav";
+    //const char* wavFileName = "d:/piano.wav";// RhodesSoft.wav";// Tropical.wav";// Porcelain Breaking.wav";// D: / xylophone.rosewood.ff.C5B5_1.wav";// Porcelain Breaking.wav";// ForestAmbience.wav";
+    FileDataSource fd(wavFileName);
+    
+    int sz = fd.size();
+    char* wavData = new char[sz];
+    fd.fread(wavData, 1, sz);
+    MemoryDataSource dataSource(wavData, sz);
+    dataSourcePtr = &dataSource;
     wavReader.getWavInfo(dataSource);
     wavReader.resize();
     //wavReader.read(dataSource,0, true);
-    wavTicker = wavReader.createWavTicker(sampleRate);
+    for (int i = 0; i < MAX_GRAINS; i++)
+    {
+        grains[i] = wavReader.createWavTicker(sampleRate);
+        grains[i].finished_ = true;
+    }
+    
 #endif
     RtAudio dac;
     int i;
@@ -511,7 +596,7 @@ int main(int argc, char* argv[]) {
 
     unsigned int bufferFrames = MY_BUFFER_SIZE;
     try {
-        dac.openStream(&parameters, NULL, format, (unsigned int)sampleRate, &bufferFrames, &tick, (void*)&data);
+        dac.openStream(&parameters, NULL, format, (unsigned int)sampleRate, &bufferFrames, &tick, (void*)&data1);
     }
     catch (RtAudioError& error) {
         error.printMessage();
@@ -665,8 +750,9 @@ int main(int argc, char* argv[]) {
         //imnodes::StyleColorsClassic();
 
 
-
-
+        double timeSinceLastGrain = 0.;
+        double spawn_interval = grain_spawn_interval;
+        
         while (!app.m_window->requested_exit()) {
             B3_PROFILE("mainloop");
             int upAxis = 2;
@@ -748,9 +834,6 @@ int main(int argc, char* argv[]) {
                 
                 ImGui::Checkbox("Animate", &animate);
 
-                static float arr[] = { 0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f };
-                ImGui::PlotLines("Frame Times", arr, IM_ARRAYSIZE(arr));
-
                 // Plots can display overlay texts
                 // (in this example, we will display an average value)
                 {
@@ -762,10 +845,53 @@ int main(int argc, char* argv[]) {
                     sprintf(overlay, "avg %f", average);
                     ImGui::PlotLines("Lines", wav_data, IM_ARRAYSIZE(wav_data), 0, overlay, -1.0f, 1.0f, ImVec2(0, 80.0f));
                 }
+#ifdef USE_WAV_READER
+                if (ImGui::Button("manual grain!"))
+                {
+                    spawnGrain();
+                }
+
+                if (ImGui::Button("manual grain!"))
+                {
+                    spawnGrain();
+                }
                 
+                timeSinceLastGrain += dt;
+                
+                if (timeSinceLastGrain > spawn_interval)
+                {
+                    doSpawnGrain++;
+                    timeSinceLastGrain = 0;
+                    double r = ((double)rand() / (RAND_MAX));
+                    spawn_interval = grain_spawn_interval + r * grain_spawn_interval_rand_range;
+                }
+                grain_visualizer.resize(0);
+                grain_visualizer.resize(100, 0);
+                int pos_start = int(grain_spawn_position * 99.99);
+                int pos_end = pos_start + int(grain_spawn_position_rand_range * 100);
+                if (pos_end > 99)
+                    pos_end = 99;
+                for (int i = pos_start; i <= pos_end; i++)
+                {
+                    grain_visualizer[i] = 0.2;
+                }
+                
+                ImGui::PlotLines("Frame Times", &grain_visualizer[0], grain_visualizer.size(),0,"grains",0,1);
+
+                ImGui::Text("active grains = %d", activeGrains);
+                
+                ImGui::SliderFloat("grain_spawn_position", &grain_spawn_position, 0.0f, 1.0f, "grain_spawn_position: %.3f");
+                ImGui::SliderFloat("grain_spawn_position_rand_range", &grain_spawn_position_rand_range, 0.0f, .1f, "grain_spawn_position_rand_range:  %.3f");
+                ImGui::SliderFloat("grain_pitch", &grain_pitch, 0.0f, 2.0f, "grain_pitch: %.3f");
+                ImGui::SliderFloat("grain_pitch_rand_range", &grain_pitch_rand_range, 0.0f, 1.0f, "grain_pitch_rand_range: %.3f");
+                ImGui::SliderFloat("grain_duration", &grain_duration, 0.0f, 10.0f, "grain_duration: %.3f seconds");
+                ImGui::SliderFloat("grain_duration_rand_range", &grain_duration_rand_range, 0.0f, 1.0f, "grain_duration_rand_range: %.3f");
+                ImGui::SliderFloat("grain_spawn_interval", &grain_spawn_interval, 0.0f, 1.0f, "grain_spawn_interval: %.3f");
+                ImGui::SliderFloat("grain_spawn_interval_rand_range", &grain_spawn_interval_rand_range, 0.0f, 1.0f, "grain_spawn_interval_rand_range: %.3f");
+#endif //USE_WAV_READER
             }
             ImGui::End();
-            
+
             if (ImGui::Begin("play window"))
             {
                 static int clicked = 0;

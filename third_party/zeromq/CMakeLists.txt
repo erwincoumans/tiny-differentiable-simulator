@@ -29,12 +29,12 @@ ADD_DEFINITIONS( -D_THREAD_SAFE )
 
 
 ADD_LIBRARY(zmq ${ZMQ_src})
+target_include_directories( zmq PUBLIC include )
+target_compile_definitions( zmq PUBLIC -DZMQ_STATIC PRIVATE -DZMQ_STATIC)
+
 IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
 target_link_libraries(zmq pthread)
 ENDIF()
-
-
-ADD_DEFINITIONS(-DZMQ_STATIC)
 
 
 

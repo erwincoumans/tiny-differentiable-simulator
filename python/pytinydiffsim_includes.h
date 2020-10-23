@@ -5,33 +5,33 @@
 #include <stdio.h>
 
 
-#include "tiny_vector3.h"
-#include "tiny_geometry.h"
-#include "tiny_rigid_body.h"
-#include "examples/motion_import.h"
-#include "examples/tiny_urdf_parser.h"
+#include "math/tiny/tiny_vector3.h"
+#include "geometry.hpp"
+#include "rigid_body.hpp"
+//#include "examples/motion_import.h"
+#include "urdf/urdf_parser.hpp"
 
-#include "tiny_matrix3x3.h"
-#include "tiny_matrix_x.h"
-#include "tiny_mb_constraint_solver_spring.h"
-#include "tiny_multi_body.h"
-#include "tiny_pose.h"
-#include "tiny_quaternion.h"
-#include "tiny_raycast.h"
-#include "tiny_urdf_structures.h"
-#include "tiny_urdf_to_multi_body.h"
-#include "tiny_world.h"
+#include "math/tiny/tiny_matrix3x3.h"
+#include "math/tiny/tiny_matrix_x.h"
+#include "mb_constraint_solver_spring.hpp"
+#include "multi_body.hpp"
+#include "math/pose.hpp"
+#include "math/tiny/tiny_quaternion.h"
+#include "math/tiny/tiny_raycast.h"
+#include "urdf/urdf_structures.hpp"
+#include "urdf/urdf_to_multi_body.hpp"
+#include "world.hpp"
 
 
 
-template <typename TinyScalar, typename TinyConstants>
+template <typename Algebra>
 struct UrdfToMultiBody2 {
-    typedef ::TINY::TinyUrdfStructures<TinyScalar, TinyConstants> TinyUrdfStructures;
+    typedef ::tds::UrdfStructures<Algebra> TinyUrdfStructures;
 
     void convert(TinyUrdfStructures* urdf_structures,
-        ::TINY::TinyWorld<TinyScalar, TinyConstants>* world,
-        ::TINY::TinyMultiBody<MyScalar, MyTinyConstants>* mb) {
-        ::TINY::TinyUrdfToMultiBody<MyScalar, MyTinyConstants>::convert_to_multi_body(
+        ::tds::World<Algebra>* world,
+        ::tds::MultiBody<Algebra>* mb) {
+        ::tds::UrdfToMultiBody<Algebra>::convert_to_multi_body(
             *urdf_structures, *world, *mb);
 
         mb->initialize();

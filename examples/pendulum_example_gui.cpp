@@ -17,20 +17,40 @@
 
 #include <chrono>  // std::chrono::seconds
 #include <thread>  // std::this_thread::sleep_for
-#include "opengl_window/tiny_opengl3_app.h"
 
-#include "fix64_scalar.h"
-#include "pendulum.h"
 
-#include "tiny_double_utils.h"
-#include "tiny_file_utils.h"
-#include "tiny_multi_body.h"
-#include "tiny_rigid_body.h"
-#include "tiny_world.h"
+#include "math/tiny/fix64_scalar.h"
+#include "dynamics/kinematics.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
+#include "utils/pendulum.hpp"
+
+
+#include "math/tiny/tiny_double_utils.h"
+#include "utils/file_utils.hpp"
+#include "multi_body.hpp"
+#include "world.hpp"
 
 using namespace TINY;
+using namespace tds;
+#include "visualizer/opengl/tiny_opengl3_app.h"
+#include "math/tiny/tiny_algebra.hpp"
+
 
 int main(int argc, char* argv[]) {
+
+  typedef TinyAlgebra<double, DoubleUtils> Algebra;
+  typedef typename Algebra::Vector3 Vector3;
+  typedef typename Algebra::Quaternion Quarternion;
+  typedef typename Algebra::VectorX VectorX;
+  typedef typename Algebra::Matrix3 Matrix3;
+  typedef typename Algebra::Matrix3X Matrix3X;
+  typedef typename Algebra::MatrixX MatrixX;
+  typedef tds::RigidBody<Algebra> RigidBody;
+  typedef tds::RigidBodyContactPoint<Algebra> RigidBodyContactPoint;
+  typedef tds::MultiBody<Algebra> MultiBody;
+  typedef tds::MultiBodyContactPoint<Algebra> MultiBodyContactPoint;
+  typedef tds::Transform<Algebra> Transform;
 
   TinyOpenGL3App app("pendulum_example_gui", 1024, 768);
   app.m_renderer->init();
@@ -45,18 +65,19 @@ int main(int argc, char* argv[]) {
   // Set NaN trap
   //feenableexcept(FE_INVALID | FE_OVERFLOW);
   
-  TinyWorld<double, DoubleUtils> world;
+  tds::World<Algebra> world;
 
-  typedef TinyRigidBody<double, DoubleUtils> TinyRigidBodyDouble;
+  std::vector<RigidBody*> bodies;
+  std::vector<int> visuals;
 
-
-  std::vector<TinyMultiBody<double, DoubleUtils>*> mbbodies;
+  std::vector<MultiBody*> mbbodies;
   std::vector<int> mbvisuals;
 
   int num_spheres = 5;
 
-  TinyMultiBody<double, DoubleUtils>* mb = world.create_multi_body();
-  init_compound_pendulum<double, DoubleUtils>(*mb, world, num_spheres);
+  MultiBody* mb = world.create_multi_body();
+  init_compound_pendulum<Algebra>(*mb, world, num_spheres);
+
   mbbodies.push_back(mb);
 
   int sphere_shape = app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
@@ -72,14 +93,16 @@ int main(int argc, char* argv[]) {
       mbvisuals.push_back(instance);
   }
   
-  std::vector<double> q(mb->dof(), DoubleUtils::zero());
-  std::vector<double> qd(mb->dof_qd(), DoubleUtils::zero());
-  std::vector<double> tau(mb->dof_qd(), DoubleUtils::zero());
-  std::vector<double> qdd(mb->dof_qd(), DoubleUtils::zero());
 
-  TinyVector3<double, DoubleUtils> gravity(0., 0., -9.81);
+  mb->q() = std::vector<double>(mb->dof(), DoubleUtils::zero());
+  mb->qd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
+  mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
+  mb->qdd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
 
-  TinyMatrixXxX<double, DoubleUtils> M(mb->m_links.size(), mb->m_links.size());
+
+  Vector3 gravity(0., 0., -9.81);
+
+  MatrixX M(mb->links().size(), mb->links().size());
 
   double dt = 1. / 240.;
   app.set_mp4_fps(1./dt);
@@ -92,18 +115,21 @@ int main(int argc, char* argv[]) {
     app.draw_grid(data);
 
     // mb->clear_forces();
-    mb->forward_kinematics(q, qd);
+    tds::forward_kinematics(*mb);
 
     { world.step(dt); }
 
-    { mb->forward_dynamics(q, qd, tau, gravity, qdd); }
+    { tds::forward_dynamics(*mb, gravity); }
 
     {
-      mb->integrate(q, qd, qdd, dt);
+      tds::integrate_euler(*mb, mb->q(), mb->qd(), mb->qdd(), dt);
+    
+
       // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
-      mb->mass_matrix(q, &M);
-      M.print("M");
-      if (qd[0] < -1e4) {
+      tds::mass_matrix(*mb, &M);
+      
+      //M.print("M");
+      if (mb->qd()[0] < -1e4) {
         assert(0);
       }
     }
@@ -118,24 +144,25 @@ int main(int argc, char* argv[]) {
 
     if (!mbvisuals.empty()) {
     for (int b = 0; b < mbbodies.size(); b++) {
-        for (int l = 0; l<mbbodies[b]->m_links.size();l++) {
-        const TinyMultiBody<double, DoubleUtils>* body = mbbodies[b];
-        if (body->m_links[l].m_X_visuals.empty()) continue;
+        for (int l = 0; l<mbbodies[b]->links().size();l++) {
+        const MultiBody* body = mbbodies[b];
+        if (body->links()[l].X_visuals.empty()) continue;
 
         int sphereId = mbvisuals[visual_index++];
 
-        TinyQuaternion<double, DoubleUtils> rot;
-        const TinySpatialTransform<double, DoubleUtils>& geom_X_world =
-            body->m_links[l].m_X_world * body->m_links[l].m_X_visuals[0];
-        TinyVector3f base_pos(geom_X_world.m_translation.getX(),
-                            geom_X_world.m_translation.getY(),
-                            geom_X_world.m_translation.getZ());
-        geom_X_world.m_rotation.getRotation(rot);
+        Quarternion rot;
+        const Transform& geom_X_world = 
+               body->links()[l].X_world * body->links()[l].X_visuals[0];
+
+        TinyVector3f base_pos(geom_X_world.translation.getX(),
+                            geom_X_world.translation.getY(),
+                            geom_X_world.translation.getZ());
+        geom_X_world.rotation.getRotation(rot);
         TinyQuaternionf base_orn(rot.getX(), rot.getY(), rot.getZ(),
                                 rot.getW());
         if (l>=0)
         {
-          printf("b=%d\n",b);
+          //printf("b=%d\n",b);
           app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
         }
         else

@@ -3,10 +3,10 @@ import math, time
 
 app = p.TinyOpenGL3App("title")
 app.renderer.init()
-cam = app.renderer.get_active_camera()
+cam = p.TinyCamera()
 cam.set_camera_distance(2.)
 cam.set_camera_pitch(-20)
-
+app.renderer.set_camera(cam)
 width = 256
 height = 256
 pixels = [255] * width * height * 3

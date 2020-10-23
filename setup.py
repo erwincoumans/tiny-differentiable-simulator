@@ -91,10 +91,10 @@ CXX_FLAGS += '-fpermissive '
 # libraries += [current_python]
 
 libraries = []
-include_dirs = ['.','python', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
+include_dirs = ['src', '.','python', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
 
 pytinyopengl3_libraries = []
-pytinyopengl3_include_dirs = []
+pytinyopengl3_include_dirs = ['src']
 
 try:
     import numpy
@@ -112,17 +112,17 @@ else:
 sources = ["third_party/tinyxml2/tinyxml2.cpp"]
 
 pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
-"examples/opengl_window/tiny_camera.cpp",\
-"examples/opengl_window/tiny_font_stash.cpp",\
-"examples/opengl_window/tiny_fonts.cpp",\
-"examples/opengl_window/tiny_gl_instancing_renderer.cpp",\
-"examples/opengl_window/tiny_gl_primitive_renderer.cpp",\
-"examples/opengl_window/tiny_gl_render_to_texture.cpp",\
-"examples/opengl_window/tiny_glfw_opengl_window.cpp",\
-"examples/opengl_window/tiny_load_shader.cpp",\
-"examples/opengl_window/tiny_open_sans.cpp",\
-"examples/opengl_window/tiny_opengl_fontstashcallbacks.cpp",\
-"examples/opengl_window/tiny_opengl3_app.cpp",\
+"src/visualizer/opengl/tiny_camera.cpp",\
+"src/visualizer/opengl/tiny_font_stash.cpp",\
+"src/visualizer/opengl/tiny_fonts.cpp",\
+"src/visualizer/opengl/tiny_gl_instancing_renderer.cpp",\
+"src/visualizer/opengl/tiny_gl_primitive_renderer.cpp",\
+"src/visualizer/opengl/tiny_gl_render_to_texture.cpp",\
+"src/visualizer/opengl/tiny_glfw_opengl_window.cpp",\
+"src/visualizer/opengl/tiny_load_shader.cpp",\
+"src/visualizer/opengl/tiny_open_sans.cpp",\
+"src/visualizer/opengl/tiny_opengl_fontstashcallbacks.cpp",\
+"src/visualizer/opengl/tiny_opengl3_app.cpp",\
 "third_party/stb_image/stb_image_write.cpp",\
 "third_party/glad/gl.c",\
 ]
@@ -149,7 +149,7 @@ if _platform == "linux" or _platform == "linux2":
     CXX_FLAGS += '-Wno-unused-variable '
     CXX_FLAGS += '-Wno-unused-but-set-variable '
     pytinyopengl3_libraries += ['dl','pthread']
-    pytinyopengl3_sources += ["examples/opengl_window/tiny_x11_opengl_window.cpp",\
+    pytinyopengl3_sources += ["src/visualizer/opengl/tiny_x11_opengl_window.cpp",\
       "third_party/glad/glx.c"]
 
 
@@ -162,8 +162,8 @@ elif _platform == "win32":
     
     pytinyopengl3_libraries = ['Ws2_32', 'Winmm', 'User32', 'Opengl32', 'kernel32', 'glu32', 'Gdi32', 'Comdlg32']
  
-    pytinyopengl3_sources += ["examples/opengl_window/tiny_win32_opengl_window.cpp",\
-    "examples/opengl_window/tiny_win32_window.cpp"]
+    pytinyopengl3_sources += ["src/visualizer/opengl/tiny_win32_opengl_window.cpp",\
+    "src/visualizer/opengl/tiny_win32_window.cpp"]
     
 elif _platform == "darwin":
     print("darwin!")
@@ -209,7 +209,7 @@ print("-----")
 extensions = []
 
 pytinydiffsim_ext = Extension(
-    "pytinydiffsim",
+    "pytinydiffsim2",
     sources=sources+["python/pytinydiffsim.cc"],
     libraries=libraries,
     extra_compile_args=CXX_FLAGS.split(),
@@ -218,7 +218,7 @@ pytinydiffsim_ext = Extension(
 extensions.append(pytinydiffsim_ext)
 
 pytinydiffsim_dual_ext = Extension(
-    "pytinydiffsim_dual",
+    "pytinydiffsim2_dual",
     sources=sources+["python/pytinydiffsim_dual.cc"],
     libraries=libraries,
     extra_compile_args=CXX_FLAGS.split(),
@@ -241,8 +241,8 @@ extensions.append(pytinyopengl3_ext)
 
 
 setup(
-    name='pytinydiffsim',
-    version='0.0.2',
+    name='pytinydiffsim2',
+    version='0.0.3',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
     long_description=
