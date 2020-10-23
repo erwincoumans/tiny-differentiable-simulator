@@ -233,11 +233,15 @@ struct OpenGLUrdfVisualizer {
     int upAxis = 2;
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
+    double lightPos[3] = { -50, 30, 40 };
+    m_opengl_app.m_renderer->set_light_position(lightPos);
+    float specular[3] = { 1,1,1 };
+    m_opengl_app.m_renderer->set_light_specular_intensity(specular);
     DrawGridData data;
     data.upAxis = 2;
     m_opengl_app.draw_grid(data);
-    const char* bla = "3d label";
-    m_opengl_app.draw_text_3d(bla, 0, 0, 1, 1);
+    //const char* bla = "3d label";
+    //m_opengl_app.draw_text_3d(bla, 0, 0, 1, 1);
     m_opengl_app.m_renderer->render_scene();
     m_opengl_app.swap_buffer();
  

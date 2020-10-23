@@ -38,6 +38,8 @@ typedef ::TINY::DoubleUtils MyTinyConstants;
 #include "math/tiny/tiny_algebra.hpp"
 typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
+typedef TinyVector3<double, DoubleUtils> Vector3;
+typedef TinyQuaternion<double, DoubleUtils> Quaternion;
 
 double knee_angle = -0.5;
 double abduction_angle = 0.2;
@@ -49,6 +51,17 @@ double initial_poses[] = {
     abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
 };
 
+bool do_sim = false;
+
+TinyKeyboardCallback prev_keyboard_callback = 0;
+
+void my_keyboard_callback(int keycode, int state)
+{
+    if (keycode == 's')
+        do_sim = state;
+    prev_keyboard_callback(keycode, state);
+}
+
 int main(int argc, char* argv[]) {
   World<MyAlgebra> world;
   UrdfParser<MyAlgebra> parser;
@@ -56,8 +69,9 @@ int main(int argc, char* argv[]) {
   // create graphics
   OpenGLUrdfVisualizer<MyAlgebra> visualizer;
   
+  
   visualizer.delete_all();
-
+  
   std::string plane_file_name;
   FileUtils::find_file("plane_implicit.urdf", plane_file_name);
   char plane_search_path[TINY_MAX_EXE_PATH_LEN];
@@ -74,6 +88,8 @@ int main(int argc, char* argv[]) {
     visualizer.m_path_prefix = plane_search_path;
     visualizer.convert_visuals(plane_urdf_structures, texture_path);
   }
+  prev_keyboard_callback = visualizer.m_opengl_app.m_window->get_keyboard_callback();
+  visualizer.m_opengl_app.m_window->set_keyboard_callback(my_keyboard_callback);
 
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string file_name;
@@ -127,7 +143,8 @@ int main(int argc, char* argv[]) {
       mb.q_[start_index + cc] = initial_poses[cc];
     }
   }
-  mb.set_position(TinyVector3<double, DoubleUtils>(0., 0., 0.8));
+  mb.set_position(TinyVector3<double, DoubleUtils>(0., 0., 0.6));
+  world.default_friction = 1.0;
 
   TinyVector3<double, DoubleUtils> grav(DoubleUtils::zero(),
                                         DoubleUtils::zero(),
@@ -135,59 +152,66 @@ int main(int argc, char* argv[]) {
   double dt = 1. / 1000.;
   int sync_counter = 0;
 
-  while (1) {
+  while (!visualizer.m_opengl_app.m_window->requested_exit()) {
     
+      forward_kinematics(mb);
 
-    forward_kinematics(mb);
+      if (do_sim) {
+          
 
-    // pd control
-    if (1) {
-      // use PD controller to compute tau
-      int qd_offset = mb.is_floating() ? 6 : 0;
-      int q_offset = mb.is_floating() ? 7 : 0;
-      int num_targets = mb.tau_.size() - qd_offset;
-      std::vector<double> q_targets;
-      q_targets.resize(mb.tau_.size());
+          forward_dynamics(mb, grav);
 
-      double kp = 150;
-      double kd = 3;
-      double max_force = 550;
-      int param_index = 0;
 
-      for (int i = 0; i < mb.tau_.size(); i++) {
-        mb.tau_[i] = 0;
+          integrate_euler_qdd(mb, dt);
+
+          // pd control
+          if (1) {
+              // use PD controller to compute tau
+              int qd_offset = mb.is_floating() ? 6 : 0;
+              int q_offset = mb.is_floating() ? 7 : 0;
+              int num_targets = mb.tau_.size() - qd_offset;
+              std::vector<double> q_targets;
+              q_targets.resize(mb.tau_.size());
+
+              double kp = 150;
+              double kd = 3;
+              double max_force = 550;
+              int param_index = 0;
+
+              for (int i = 0; i < mb.tau_.size(); i++) {
+                  mb.tau_[i] = 0;
+              }
+              int tau_index = 0;
+              int pose_index = 0;
+              for (int i = 0; i < mb.links_.size(); i++) {
+                  if (mb.links_[i].joint_type != JOINT_FIXED) {
+                      double q_desired = initial_poses[pose_index++];
+                      double q_actual = mb.q_[q_offset];
+                      double qd_actual = mb.qd_[qd_offset];
+                      double position_error = (q_desired - q_actual);
+                      double desired_velocity = 0;
+                      double velocity_error = (desired_velocity - qd_actual);
+                      double force = kp * position_error + kd * velocity_error;
+
+                      if (force < -max_force) force = -max_force;
+                      if (force > max_force) force = max_force;
+                      mb.tau_[tau_index] = force;
+                      q_offset++;
+                      qd_offset++;
+                      param_index++;
+                      tau_index++;
+                  }
+              }
+          }
+
+
+
+          world.step(dt);
+
+          integrate_euler(mb, dt);
+
       }
-      int tau_index = 0;
-      int pose_index = 0;
-      for (int i = 0; i < mb.links_.size(); i++) {
-        if (mb.links_[i].joint_type != JOINT_FIXED) {
-          double q_desired = initial_poses[pose_index++];
-          double q_actual = mb.q_[q_offset];
-          double qd_actual = mb.qd_[qd_offset];
-          double position_error = (q_desired - q_actual);
-          double desired_velocity = 0;
-          double velocity_error = (desired_velocity - qd_actual);
-          double force = kp * position_error + kd * velocity_error;
-
-          if (force < -max_force) force = -max_force;
-          if (force > max_force) force = max_force;
-          mb.tau_[tau_index] = force;
-          q_offset++;
-          qd_offset++;
-          param_index++;
-          tau_index++;
-        }
-      }
-    }
-
-    forward_dynamics(mb, grav);
-
-    //integrate_q(mb, dt);
-
-    world.step(dt);
-
-    integrate_euler(mb, dt);
-
+      
     sync_counter++;
     if (sync_counter > frameskip_gfx_sync) {
       sync_counter = 0;
@@ -195,9 +219,10 @@ int main(int argc, char* argv[]) {
       visualizer.render();
       std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync*dt));
     }
-    
   }
 
   printf("finished\n");
   return EXIT_SUCCESS;
+
 }
+
