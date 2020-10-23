@@ -114,7 +114,7 @@ bool b3SoundSource::computeSamples(double* sampleBuffer, int numSamples, double 
 				{
 					int frame = 0;
 					double speed = 1.;
-					double data = env * m_data->m_oscillators[osc].m_amplitude * m_data->m_wavFilePtr->tick(frame, &m_data->m_oscillators[osc].m_wavTicker, *m_data->m_dataSource, speed);
+					double data = 0;// env* m_data->m_oscillators[osc].m_amplitude* m_data->m_wavFilePtr->tick(frame, &m_data->m_oscillators[osc].m_wavTicker, *m_data->m_dataSource, speed);
 					samples[osc] += data;
 					numActive++;
 				}

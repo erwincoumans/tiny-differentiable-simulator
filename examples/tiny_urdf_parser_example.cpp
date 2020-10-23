@@ -17,14 +17,19 @@
 #include <streambuf>
 #include <string>
 
-#include "tiny_double_utils.h"
-#include "tiny_file_utils.h"
-#include "tiny_urdf_parser.h"
+#include "math/tiny/tiny_double_utils.h"
+#include "utils/file_utils.hpp"
+#include "urdf/urdf_parser.hpp"
+#include "math/tiny/tiny_algebra.hpp"
+typedef TinyAlgebra<double, ::TINY::DoubleUtils> MyAlgebra;
+
 using namespace TINY;
+using namespace tds;
+
 
 int main(int argc, char *argv[]) {
   std::string file_name;
-  TinyFileUtils::find_file("laikago/laikago_toes_zup.urdf", file_name);
+  FileUtils::find_file("laikago/laikago_toes_zup.urdf", file_name);
 
   std::ifstream ifs(file_name);
   std::string urdf_string;
@@ -39,8 +44,8 @@ int main(int argc, char *argv[]) {
 
   StdLogger logger;
 
-  TinyUrdfParser<double, DoubleUtils> parser;
-  TinyUrdfStructures<double, DoubleUtils> urdf_structures;
+  UrdfParser<MyAlgebra> parser;
+  UrdfStructures<MyAlgebra> urdf_structures;
   int flags = 0;
   parser.load_urdf_from_string(urdf_string, flags, logger, urdf_structures);
   printf("finished\n");

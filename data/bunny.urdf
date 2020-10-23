@@ -1,0 +1,61 @@
+<?xml version="1.0" ?>
+  <robot name="data/bunny.obj">
+    <link name="base_link">
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <mass value="1"/>
+        <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      </inertial>
+      <visual>
+        <origin rpy="1.5707963267948966 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="bunny.obj" scale="1 1 1"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.31578922271728516 -0.15789461135864258" />
+          <geometry>
+            <sphere radius="0.522947371006012"/>
+          </geometry>
+      </collision>
+      <collision>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.6631579399108887 0.06315779685974121" />
+          <geometry>
+            <sphere radius="0.30484211444854736"/>
+          </geometry>
+      </collision>
+      <collision>
+        <origin rpy="0.8526315689086914 0.0 0.0" xyz="-0.2210526466369629 -0.12631583213806152 -0.3473684787750244" />
+          <geometry>
+            <box size="0.2357894778251648 0.7343157529830933 0.20000000298023224"/>
+          </geometry>
+      </collision>
+      <collision>
+        <origin rpy="0.8210527896881104 -0.09473681449890137 0.0" xyz="0.15789484977722168 -0.09473681449890137 -0.3473684787750244" />
+          <geometry>
+            <box size="0.20000000298023224 0.7654736638069153 0.20000000298023224"/>
+          </geometry>
+      </collision>
+      <collision>
+        <origin rpy="-0.4105262756347656 -0.37894725799560547 0.0" xyz="-0.12631583213806152 -0.5368421077728271 0.47368431091308594" />
+          <geometry>
+            <box size="0.20000000298023224 0.20000000298023224 0.703157901763916"/>
+          </geometry>
+      </collision>
+      <collision>
+        <origin rpy="-0.31578946113586426 0.25263166427612305 0.0" xyz="0.15789484977722168 -0.4421052932739258 0.4421052932739258" />
+          <geometry>
+            <box size="0.20463158190250397 0.1423157900571823 0.7343157529830933"/>
+          </geometry>
+      </collision>
+      <collision>
+        <origin rpy="0.0 0.0 0.0" xyz="0.009999990463256836 -0.25263166427612305 -0.06315803527832031" />
+          <geometry>
+            <sphere radius="0.36715787649154663"/>
+          </geometry>
+      </collision>
+   </link>
+</robot>

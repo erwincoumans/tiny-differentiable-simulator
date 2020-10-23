@@ -10,6 +10,8 @@
 #define B3_SEEK_END    12
 #define B3_SEEK_SET    10
 
+typedef double myscalar;
+
 struct b3DataSource
 {
 	virtual long  ftell() = 0;
@@ -17,18 +19,13 @@ struct b3DataSource
 	virtual size_t fread(void* _Buffer, size_t _ElementSize, size_t _ElementCount) = 0;
 
 	virtual int fseek(long  _Offset, int   _Origin) = 0;
+	
+	virtual int size() = 0;
 };
 
 struct FileDataSource : public b3DataSource
 {
-	FILE* m_fd;
-
-	FileDataSource()
-		:m_fd(0)
-	{
-
-	}
-	void open(const char* fileName)
+	FileDataSource(const char* fileName)
 	{
 		m_fd = fopen(fileName, "rb");
 	}
@@ -37,21 +34,19 @@ struct FileDataSource : public b3DataSource
 		if (m_fd)
 			fclose(m_fd);
 	}
+	FILE* m_fd;
 
 	virtual long  ftell()
 	{
-		assert(m_fd);
 		return ::ftell(m_fd);
 	}
 	virtual size_t fread(void* _Buffer, size_t _ElementSize, size_t _ElementCount)
 	{
-		assert(m_fd);
 		return ::fread(_Buffer, _ElementSize, _ElementCount, m_fd);
 	}
 
 	virtual int fseek(long  _Offset, int   _OriginOrg)
 	{
-		assert(m_fd);
 		int _Origin = 0;
 		switch (_OriginOrg)
 		{
@@ -70,6 +65,16 @@ struct FileDataSource : public b3DataSource
 		}
 		}
 		return ::fseek(m_fd, _Offset, _Origin);
+	}
+	virtual int size()
+	{
+		int size = 0;
+		if (::fseek(m_fd, 0, SEEK_END) || (size = ::ftell(m_fd)) == EOF || ::fseek(m_fd, 0, SEEK_SET))
+		{
+			assert(0);
+			size = -1;
+		}
+		return size;
 	}
 };
 
@@ -147,6 +152,10 @@ struct MemoryDataSource : public b3DataSource
 		return result;
 	}
 
+	virtual int size()
+	{
+		return m_numBytes;
+	}
 };
 
 
@@ -157,7 +166,24 @@ struct b3WavTicker
 	std::vector<double> lastFrame_;
 	bool finished_;
 	double time_;
+	double starttime_;
+	double endtime_;
 	double rate_;
+	double speed;
+	int wavindex;
+	double env_volume()
+	{
+		double frac = 1. - (time_ - starttime_) / (endtime_ - starttime_);
+		return frac;
+	}
+
+	double env_volume2()
+	{
+		double frac = (time_ - starttime_) / (endtime_ - starttime_);
+		if (frac > 0.5)
+			return 1. - frac;
+		return frac;
+	}
 };
 
 class b3ReadWavFile
@@ -182,9 +208,9 @@ public:
 
 	void normalize(double peak);
 
-	double interpolate(double frame, unsigned int channel, b3DataSource& dataSource) const;
-	double tick(unsigned int channel, b3WavTicker *ticker, b3DataSource& dataSource, double speed);
-
+	void interpolate(b3WavTicker *ticker, b3DataSource& dataSource, double speed, double volume, int size, myscalar* out0, myscalar* out1, int oIndex) const;
+	void tick(b3WavTicker *ticker, b3DataSource& dataSource, double speed, double volume, int size, myscalar* out0, myscalar* out1, int stride);
+	
 	void resize();
 
 	b3WavTicker createWavTicker(double sampleRate);
@@ -192,6 +218,11 @@ public:
 	int getNumFrames() const
 	{
 		return m_numFrames;
+	}
+	
+	double getFileDataRate()
+	{
+	  return fileDataRate_;
 	}
 };
 

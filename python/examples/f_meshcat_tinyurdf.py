@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytinydiffsim as dp
+import pytinydiffsim2 as dp
 import meshcat_utils_dp
 import meshcat
 import pd_control
@@ -49,20 +49,22 @@ initial_poses = [abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angl
                  abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle]
 
 qcopy = mb.q
+print("mb.q=",mb.q)
+print("qcopy=",qcopy)
 for q_index in range (12):
   qcopy[q_index+7]=initial_poses[q_index]
-mb.q = qcopy
-
+print("qcopy=",qcopy)
+mb.set_q(qcopy)
+print("2 mb.q=",mb.q)
 dt = 1./1000.
 skip_sync = 0
 while 1:
-  
-  mb.forward_kinematics()
+  dp.forward_kinematics(mb, mb.q, mb.qd)
   
   pd_control.apply(mb,initial_poses)
   
-  mb.forward_dynamics(dp.TinyVector3(0.,0.,-10.))
-  mb.integrate_q(dt)
+  dp.forward_dynamics(mb, dp.TinyVector3(0.,0.,-10.))
+  #mb.integrate_q(dt)
   multi_bodies = [plane_mb, mb]
   dispatcher = world.get_collision_dispatcher()
   contacts = world.compute_contacts_multi_body(multi_bodies,dispatcher)
@@ -71,7 +73,7 @@ while 1:
   for cps in contacts:
     mb_solver.resolve_collision(cps, dt)
     
-  mb.integrate(dt)
+  dp.integrate_euler(mb, dt)
 
   skip_sync-=1
   if skip_sync<=0:

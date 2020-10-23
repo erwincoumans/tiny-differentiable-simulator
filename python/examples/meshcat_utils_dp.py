@@ -18,7 +18,7 @@ import os
 
 import meshcat
 import meshcat.geometry as g
-import pytinydiffsim as dp
+import pytinydiffsim2 as dp
 import numpy as np
 
 
@@ -120,12 +120,30 @@ def sync_visual_transforms(mb, b2vis, vis):
     gfx_world_trans = link_world_trans * trv  #trvi
 
     rot = gfx_world_trans.rotation
-    #print("gfx_world_trans.translation=",gfx_world_trans.translation.z)
-    mat = [[
+    #print("gfx_world_trans.translation=",gfx_world_trans.translation)
+    transpose = False
+    if transpose:
+      mat = [[
+          rot.get_row(0).x,
+          rot.get_row(1).x,
+          rot.get_row(2).x, gfx_world_trans.translation.x
+      ],
+             [
+                 rot.get_row(0).y,
+                 rot.get_row(1).y,
+                 rot.get_row(2).y, gfx_world_trans.translation.y
+             ],
+             [
+                 rot.get_row(0).z,
+                 rot.get_row(1).z,
+                 rot.get_row(2).z, gfx_world_trans.translation.z
+             ], [0., 0., 0., 1.]]
+    else:
+         mat = [[
         rot.get_row(0).x,
         rot.get_row(0).y,
         rot.get_row(0).z, gfx_world_trans.translation.x
-    ],
+        ],
            [
                rot.get_row(1).x,
                rot.get_row(1).y,
@@ -136,5 +154,6 @@ def sync_visual_transforms(mb, b2vis, vis):
                rot.get_row(2).y,
                rot.get_row(2).z, gfx_world_trans.translation.z
            ], [0., 0., 0., 1.]]
+
 
     vis[v.vis_name].set_transform(np.array(mat))

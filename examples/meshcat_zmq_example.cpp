@@ -15,15 +15,16 @@
 #include <chrono>
 #include <thread>
 
-#include "meshcat_cube_data.h"
-#include "meshcat_zmq.h"
-#include "tiny_double_utils.h"
-#include "tiny_matrix3x3.h"
+#include "visualizer/meshcat/meshcat_cube_data.h"
+#include "visualizer/meshcat/meshcat_zmq.h"
+#include "math/tiny/tiny_double_utils.h"
+#include "math/tiny/tiny_matrix3x3.h"
 using namespace TINY;
 
 using nlohmann::json;
 
 int main(int argc, char* argv[]) {
+  printf("Waiting for meshcat-server...\n");
   std::string texture_data = texture_data_broken_robot;
 
   zmq::context_t context;
@@ -31,6 +32,7 @@ int main(int argc, char* argv[]) {
 
   sock.connect("tcp://127.0.0.1:6000");
 
+  printf("Connected, running commands.");
   json del_cmd = create_delete_cmd();
   send_zmq(sock, del_cmd);
   if (1) {
