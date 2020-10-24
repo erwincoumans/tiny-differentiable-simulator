@@ -1,4 +1,4 @@
-import pytinydiffsim2_dual as pd
+import pytinydiffsim_dual as pd
 
 def auto_diff(f, x):
     return f(pd.TinyDualDouble(x, 1.)).dual()
