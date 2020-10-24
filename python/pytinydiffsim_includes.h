@@ -38,3 +38,44 @@ struct UrdfToMultiBody2 {
     }
 };
 
+inline MyScalar fraction(int a, int b)
+{
+    return MyTinyConstants::fraction(a, b);
+}
+
+inline void MyMassMatrix(tds::MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
+    MyAlgebra::MatrixX* M)
+{
+    mass_matrix(mb, q, M);
+}
+
+inline void MyForwardKinematics(tds::MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q, const MyAlgebra::VectorX& qd)
+{
+    forward_kinematics(mb, q, qd);
+}
+
+inline void MyForwardDynamics(tds::MultiBody<MyAlgebra>& mb, const MyAlgebra::Vector3& gravity)
+{
+    forward_dynamics(mb, gravity);
+}
+inline void MyIntegrateEuler(tds::MultiBody<MyAlgebra>& mb, const MyScalar& dt)
+{
+    integrate_euler(mb, dt);
+}
+
+inline void MyIntegrateEulerQdd(tds::MultiBody<MyAlgebra>& mb, const MyScalar& dt)
+{
+    integrate_euler_qdd(mb, dt);
+}
+
+inline tds::RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
+    const MyAlgebra::Vector3& com, const MyAlgebra::Matrix3& inertia)
+{
+    tds::RigidBodyInertia< MyAlgebra> rb_inertia(mass, com, inertia);
+    return rb_inertia;
+}
+
+inline MyAlgebra::Matrix3X MyPointJacobian(tds::MultiBody<MyAlgebra>& mb, int link_index, const MyAlgebra::Vector3& world_point)
+{
+    return tds::point_jacobian(mb, link_index, world_point);
+}

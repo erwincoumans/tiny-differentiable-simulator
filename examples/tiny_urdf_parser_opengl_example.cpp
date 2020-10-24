@@ -51,7 +51,7 @@ double initial_poses[] = {
     abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
 };
 
-bool do_sim = false;
+bool do_sim = true;
 
 TinyKeyboardCallback prev_keyboard_callback = 0;
 
@@ -148,10 +148,10 @@ int main(int argc, char* argv[]) {
 
   TinyVector3<double, DoubleUtils> grav(DoubleUtils::zero(),
                                         DoubleUtils::zero(),
-                                        DoubleUtils::fraction(-981, 100));
+                                        DoubleUtils::fraction(-1000, 100));
   double dt = 1. / 1000.;
   int sync_counter = 0;
-
+  int frame = 0;
   while (!visualizer.m_opengl_app.m_window->requested_exit()) {
     
       forward_kinematics(mb);
@@ -213,7 +213,9 @@ int main(int argc, char* argv[]) {
       }
       
     sync_counter++;
+    frame += 1;
     if (sync_counter > frameskip_gfx_sync) {
+        #printf("frame=%d\n", frame);
       sync_counter = 0;
       visualizer.sync_visual_transforms(&mb);
       visualizer.render();
