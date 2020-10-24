@@ -1,4 +1,4 @@
-import pytinydiffsim2 as dp
+import pytinydiffsim as dp
 
 def apply(mb, desired_q):
     #use PD controller to compute tau
@@ -6,8 +6,8 @@ def apply(mb, desired_q):
     q_offset = 7
     num_targets = mb.tau.size()
     #print("num_targets=",num_targets)
-    kp = 150
-    kd = 3
+    kp = 220
+    kd = 2
     max_force = 550
     pose_index = 0
     tau=mb.tau

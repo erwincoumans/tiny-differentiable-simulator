@@ -24,6 +24,7 @@ typedef ::TINY::DoubleUtils MyTinyConstants;
 #include "dynamics/kinematics.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
+#include "dynamics/jacobian.hpp"
 
 typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
@@ -33,40 +34,10 @@ using namespace TINY;
 using namespace tds;
 
 namespace py = pybind11;
-MyScalar fraction(int a, int b)
-{
-return MyTinyConstants::fraction(a,b);
-}
 
 
 
-void MyMassMatrix(MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
-    MyAlgebra::MatrixX* M)
-{
-    mass_matrix(mb, q, M);
-}
-
-void MyForwardKinematics(MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q, const MyAlgebra::VectorX& qd)
-{
-    forward_kinematics(mb, q, qd);
-}
-
-void MyForwardDynamics(MultiBody<MyAlgebra>& mb, const MyAlgebra::Vector3& gravity)
-{
-    forward_dynamics(mb, gravity);
-}
-void MyIntegrateEuler(MultiBody<MyAlgebra>& mb, const MyScalar& dt)
-{
-    integrate_euler(mb, dt);
-}
-RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
-    const MyAlgebra::Vector3& com, const MyAlgebra::Matrix3& inertia)
-{
-    RigidBodyInertia< MyAlgebra> rb_inertia(mass, com, inertia);
-    return rb_inertia;
-}
-
-PYBIND11_MODULE(pytinydiffsim2, m) {
+PYBIND11_MODULE(pytinydiffsim, m) {
 
 
 #include "pytinydiffsim.inl"

@@ -16,7 +16,7 @@
 
 import pybullet_utils.bullet_client as bc
 import pybullet
-import pytinydiffsim2 as dp
+import pytinydiffsim as dp
 #import meshcat_utils_pb
 import meshcat_utils_dp
 import pybullet_data as pd
