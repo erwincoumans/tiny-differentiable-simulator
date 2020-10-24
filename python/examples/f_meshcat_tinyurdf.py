@@ -266,4 +266,5 @@ while 1:
   if skip_sync<=0:
     #print("frame=",frame)
     skip_sync=16
+    meshcat_utils_dp.sync_visual_transforms(mb, b2vis, vis)
     
