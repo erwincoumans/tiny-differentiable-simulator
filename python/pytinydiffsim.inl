@@ -265,7 +265,12 @@
       .def("set_joint_type", &Link<MyAlgebra>::set_joint_type)
       .def_readwrite("stiffness", &Link<MyAlgebra>::stiffness)
       .def_readwrite("joint_type", &Link<MyAlgebra>::joint_type)
-      .def_readwrite("damping", &Link<MyAlgebra>::damping);
+      .def_readwrite("damping", &Link<MyAlgebra>::damping)
+      .def_readwrite("link_name", &Link<MyAlgebra>::link_name)
+      .def_readwrite("joint_name", &Link<MyAlgebra>::joint_name)
+      .def_readwrite("q_index", &Link<MyAlgebra>::q_index)
+      .def_readwrite("qd_index", &Link<MyAlgebra>::qd_index)
+      ;
 
   
   py::class_<RigidBodyInertia<MyAlgebra>,
@@ -288,18 +293,7 @@
 
       .def("attach_link", &MultiBody<MyAlgebra>::attach_link)
       .def("set_q", &MultiBody<MyAlgebra>::set_q)
-      
 #if 0
-      .def("forward_kinematics",
-           &MultiBody<MyAlgebra>::forward_kinematics1)
-      .def("forward_dynamics",
-           py::overload_cast<const TinyVector3<MyScalar, MyTinyConstants> &>(
-               &MultiBody<MyAlgebra>::forward_dynamics))
-      .def("integrate", py::overload_cast<MyScalar>(
-                            &MultiBody<MyAlgebra>::integrate))
-      .def("integrate_q", &MultiBody<MyAlgebra>::integrate_q)
-      
-      
       .def("point_jacobian",
            &MultiBody<MyAlgebra>::point_jacobian1)
       .def("bias_forces", &MultiBody<MyAlgebra>::bias_forces)
@@ -320,8 +314,10 @@
   m.def("forward_kinematics", &MyForwardKinematics);
   m.def("forward_dynamics", &MyForwardDynamics);
   m.def("integrate_euler", &MyIntegrateEuler);
+  m.def("integrate_euler_qdd", &MyIntegrateEulerQdd);
   m.def("compute_inertia_dyad", &MyComputeInertia);
-
+  m.def("point_jacobian", &MyPointJacobian);
+  
   py::class_<CollisionDispatcher<MyAlgebra>>(
       m, "TinyCollisionDispatcher")
       .def(py::init<>())
