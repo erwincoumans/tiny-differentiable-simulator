@@ -64,7 +64,7 @@ class MultiBodyConstraintSolver {
   Scalar cfm_{Algebra::fraction(1, 100000)};
 
   // Number of friction force directions
-  int num_friction_dir_{1};
+  int num_friction_dir_{2};
 
   virtual ~MultiBodyConstraintSolver() = default;
 
@@ -106,7 +106,7 @@ class MultiBodyConstraintSolver {
         if (!limit_dependency_.empty() && limit_dependency_[i] >= 0) {
           s = x[limit_dependency_[i]];
           if (s < Algebra::zero()) {
-            s = Algebra::one();
+            s = Algebra::zero();
           }
         }
 
@@ -283,7 +283,9 @@ class MultiBodyConstraintSolver {
         // use the negative lateral velocity and its orthogonal as friction
         // directions
         fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
+        fr_direction1.normalize();
         fr_direction2 = Algebra::cross(fr_direction1, cp.world_normal_on_b);
+        fr_direction2.normalize();
       }
 
       Scalar l1 = Algebra::dot(fr_direction1, rel_vel);
@@ -414,7 +416,7 @@ class MultiBodyConstraintSolver {
         VectorX fr_qd =
             mass_matrix_b_inv * Algebra::mul_transpose(jac_con_b_fr, p_b_fr);
         //        fr_qd.print("Friction 2 contribution on q delta for b");
-        delta_qd_b -= fr_qd;
+        delta_qd_b += fr_qd;
       }
 
       for (int i = 0; i < n_b; ++i) {

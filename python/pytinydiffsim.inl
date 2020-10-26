@@ -291,6 +291,11 @@
            &MultiBody<MyAlgebra>::set_position)
       .def("set_base_orientation",
           &MultiBody<MyAlgebra>::set_orientation)
+      .def("get_base_position",
+          &MultiBody<MyAlgebra>::get_position)
+      .def("get_base_orientation",
+          &MultiBody<MyAlgebra>::get_orientation)
+
       .def("get_world_transform",
            &MultiBody<MyAlgebra>::get_world_transform)
 
