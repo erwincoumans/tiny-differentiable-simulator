@@ -44,7 +44,8 @@ void forward_kinematics(
     }
 
     mb.base_abi() = mb.base_rbi();
-    ForceVector I0_mul_v0 = mb.base_abi() * mb.base_velocity();
+    //ForceVector I0_mul_v0 = mb.base_abi() * mb.base_velocity();
+    ForceVector I0_mul_v0 = mb.base_abi().mul_org(mb.base_velocity());
     mb.base_bias_force() =
         Algebra::cross(mb.base_velocity(), I0_mul_v0) - mb.base_applied_force();
   }

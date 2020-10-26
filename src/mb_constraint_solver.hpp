@@ -219,14 +219,11 @@ class MultiBodyConstraintSolver {
       // all contact points are already assumed to have distance < 0
       if (cp.distance > Algebra::zero()) continue;
 
-      const Vector3& world_point_a = cp.world_point_on_a;
-      Matrix3X jac_a = point_jacobian(*mb_a, cp.link_a, world_point_a);
+      Matrix3X jac_a = point_jacobian2(*mb_a, cp.link_a, cp.world_point_on_a, false);
       VectorX jac_a_i = Algebra::mul_transpose(jac_a, cp.world_normal_on_b);
       Algebra::assign_horizontal(jac_con, jac_a_i, i, 0);
 
-      const Vector3& world_point_b = cp.world_point_on_b;
-
-      Matrix3X jac_b = point_jacobian(*mb_b, cp.link_b, world_point_b);
+      Matrix3X jac_b = point_jacobian2(*mb_b, cp.link_b, cp.world_point_on_b, false);
       // Matrix3X jac_b =
       //     point_jacobian_fd(*mb_b, mb_b->m_q, cp.link_b,
       //     world_point_b);
