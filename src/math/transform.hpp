@@ -131,6 +131,9 @@ struct Transform {
   TINY_INLINE Vector3 apply_inverse(const Vector3 &point) const {
     return Algebra::transpose(rotation) * (point - translation);
   }
+  TINY_INLINE Vector3 apply_inverse2(const Vector3& point) const {
+      return Algebra::transpose(rotation) * (point - translation);
+  }
 #else
 // Transform operator*(const Transform &t) const {
 //   Transform tr = *this;

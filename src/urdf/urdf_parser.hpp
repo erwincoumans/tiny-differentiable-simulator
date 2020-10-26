@@ -672,21 +672,23 @@ struct UrdfParser {
       std::map<std::string, UrdfJoint>& joints_by_name,
       std::map<std::string, std::string>& link_to_joint_name,
       std::map<std::string, std::string>& joint_to_parent_name,
+      std::vector<std::string>& joint_to_parent_name_insertion_order,
       std::map<std::string, int>& link_name_to_index, int level) {
     std::cout << std::string(level, '-') << link_name << "["
               << link_name_to_index[link_name] << "]" << std::endl;
     // Iterate through the map
-    for (auto it = joint_to_parent_name.begin();
-         it != joint_to_parent_name.end(); it++) {
+    for (auto at = joint_to_parent_name_insertion_order.begin();
+         at != joint_to_parent_name_insertion_order.end(); at++) {
+      auto el = joint_to_parent_name[*at];
       // Check if value of this entry matches with given value
-      if (it->second == link_name) {
-        std::string joint_name = it->first;
+      if (el == link_name) {
+        std::string joint_name = *at;
         UrdfJoint joint = joints_by_name[joint_name];
         int index = (int)link_name_to_index.size() -
                     1;  // compensate for parent link at -1
         link_name_to_index[joint.child_name] = index;
         assign_links(joint.child_name, joints_by_name, link_to_joint_name,
-                     joint_to_parent_name, link_name_to_index, level + 1);
+                     joint_to_parent_name, joint_to_parent_name_insertion_order, link_name_to_index, level + 1);
       }
     }
   }
@@ -760,6 +762,7 @@ struct UrdfParser {
     std::map<std::string, UrdfJoint> joints_by_name;
     std::map<std::string, std::string> link_to_joint_name;
     std::map<std::string, std::string> joint_to_parent_name;
+    std::vector<std::string> joint_to_parent_name_insertion_order;
     std::vector<UrdfJoint> tmp_joints;
 
     // Get all Joint elements
@@ -775,6 +778,7 @@ struct UrdfParser {
           return false;
         } else {
           joint_to_parent_name[joint.joint_name] = joint.parent_name;
+          joint_to_parent_name_insertion_order.push_back(joint.joint_name);
           link_to_joint_name[joint.child_name] = joint.joint_name;
           joints_by_name[joint.joint_name] = joint;
           tmp_joints.push_back(joint);
@@ -822,7 +826,7 @@ struct UrdfParser {
     // recursively assign links
 
     assign_links(parent_links[0], joints_by_name, link_to_joint_name,
-                 joint_to_parent_name, urdf_structures.name_to_link_index, 0);
+                 joint_to_parent_name, joint_to_parent_name_insertion_order,urdf_structures.name_to_link_index, 0);
 
     if (urdf_structures.name_to_link_index.size() !=
         (link_to_joint_name.size() + 1)) {
