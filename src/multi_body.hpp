@@ -239,6 +239,16 @@ class MultiBody {
       }
   }
 
+  Vector3 get_position() const
+  {
+      return get_world_transform(-1).translation;
+  }
+
+  Quaternion get_orientation() const
+  {
+      return Algebra::matrix_to_quat(get_world_transform(-1).rotation);
+  }
+
   /**
    * Ensures that the joint coordinates q, qd, qdd, tau are initialized
    * properly in the MultiBody member variables.
