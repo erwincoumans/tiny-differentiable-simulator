@@ -154,7 +154,7 @@ struct OpenGLUrdfVisualizer {
         if (::tds::FileUtils::find_file(org_obj_filename, obj_filename))
         {
             ::TINY::TinyVector3f pos(0, 0, 0);
-            ::TINY::TinyVector3f scaling(1, 1, 1);
+            ::TINY::TinyVector3f scaling(v.geometry.mesh.scale[0], v.geometry.mesh.scale[1], v.geometry.mesh.scale[2]);
             ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
             load_obj(obj_filename, pos, orn, scaling, b2v.instance_ids);
         }

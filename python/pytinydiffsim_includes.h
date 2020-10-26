@@ -75,7 +75,7 @@ inline tds::RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
     return rb_inertia;
 }
 
-inline MyAlgebra::Matrix3X MyPointJacobian(tds::MultiBody<MyAlgebra>& mb, int link_index, const MyAlgebra::Vector3& world_point)
+inline MyAlgebra::Matrix3X MyPointJacobian(tds::MultiBody<MyAlgebra>& mb, int link_index, const MyAlgebra::Vector3& point, bool is_local)
 {
-    return tds::point_jacobian(mb, link_index, world_point);
+    return tds::point_jacobian2(mb, link_index, point, is_local);
 }

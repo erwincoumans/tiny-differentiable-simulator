@@ -195,7 +195,7 @@ void TestOnURDF(std::string filename)
       tds::forward_kinematics(*mb);
       int jac_link_id = 2;
       Algebra::Vector3 world_point(1., 2., 3.);
-      auto tds_jac = tds::point_jacobian(*mb, jac_link_id, world_point);
+      auto tds_jac = tds::point_jacobian2(*mb, jac_link_id, world_point, false);
       RigidBodyDynamics::Math::MatrixNd rbdl_jac(Algebra::num_rows(tds_jac),
                                                  Algebra::num_cols(tds_jac));
       rbdl_jac.setZero();
