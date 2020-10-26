@@ -210,6 +210,8 @@ urdf2mb = dp.UrdfToMultiBody2()
 res = urdf2mb.convert2(urdf_data, world, mb)
 mb.set_base_position(dp.TinyVector3(0,0,0.6))
 
+mb.set_base_orientation(dp.TinyQuaternion(0.0, 0.0, 0.706825181105366, 0.7073882691671998))
+
 knee_angle = -0.5
 abduction_angle = 0.2
 

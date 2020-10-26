@@ -12,7 +12,7 @@ namespace tds {
 template <typename Algebra>
 typename Algebra::Matrix3X point_jacobian(
     MultiBody<Algebra> &mb, const typename Algebra::VectorX &q, int link_index,
-    const typename Algebra::Vector3 &world_point) {
+    const typename Algebra::Vector3 &point, bool is_local_point) {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
@@ -22,6 +22,7 @@ typename Algebra::Matrix3X point_jacobian(
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::Link<Algebra> Link;
 
+
   assert(Algebra::size(q) == mb.dof());
   assert(link_index < static_cast<int>(mb.size()));
   Matrix3X jac( 3, mb.dof_qd());
@@ -30,20 +31,17 @@ typename Algebra::Matrix3X point_jacobian(
   std::vector<Transform> links_X_base;
   Transform base_X_world;
   forward_kinematics_q(mb, q, &base_X_world, &links_X_world, &links_X_base);
-
   Transform point_tf;
   point_tf.set_identity();
-  point_tf.translation = world_point;
+  point_tf.translation = point;
+                         
   if (mb.is_floating()) {
-    // convert start point in world coordinates to base frame
-    const Vector3 base_point =  world_point - base_X_world.translation;
-    //                            // base_X_world.translation - world_point;
-        //mb.empty() ? base_X_world.apply_inverse(world_point)
-        //           : links_X_world[link_index].apply_inverse(world_point);
+      Vector3 base_point = is_local_point ? point : point - mb.base_X_world().translation;
+
     // see (Eq. 2.238) in
     // https://ethz.ch/content/dam/ethz/special-interest/mavt/robotics-n-intelligent-systems/rsl-dam/documents/RobotDynamics2016/FloatingBaseKinematics.pdf
 #ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    Matrix3 cr = Algebra::cross_matrix(base_point);
+    Matrix3 cr = Algebra::cross_matrix(point_tf.translation);
     Algebra::assign_block(jac, cr, 0, 0);
     jac(3, 0) = Algebra::one();
     jac(4, 1) = Algebra::one();
@@ -57,7 +55,7 @@ typename Algebra::Matrix3X point_jacobian(
 #endif //TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     
   } else {
-    point_tf.translation = world_point;
+    point_tf.translation = point;
   }
   // loop over all links that lie on the path from the given link to world
   if (link_index >= 0) {
@@ -65,7 +63,7 @@ typename Algebra::Matrix3X point_jacobian(
     while (true) {
       int i = body->index;
       if (body->joint_type != JOINT_FIXED) {
-        MotionVector st = links_X_world[i].apply_inverse(body->S);
+        MotionVector st = is_local_point ? links_X_base[i].apply_inverse(body->S) : links_X_world[i].apply_inverse(body->S);
         MotionVector xs = point_tf.apply(st);
         Algebra::assign_column(jac, body->qd_index, xs.bottom);
       }
@@ -78,10 +76,10 @@ typename Algebra::Matrix3X point_jacobian(
 }
 
 template <typename Algebra>
-typename Algebra::Matrix3X point_jacobian(
+typename Algebra::Matrix3X point_jacobian2(
     MultiBody<Algebra> &mb, int link_index,
-    const typename Algebra::Vector3 &world_point) {
-  return point_jacobian(mb, mb.q(), link_index, world_point);
+    const typename Algebra::Vector3 &point, bool is_local_point) {
+  return point_jacobian(mb, mb.q(), link_index, point, is_local_point);
 }
 
 /**

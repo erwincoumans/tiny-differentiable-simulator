@@ -108,7 +108,9 @@ class World {
 
   const Vector3& get_gravity() const { return gravity_acceleration_; }
 
-  void set_gravity(const Vector3& gravity) { gravity_acceleration_ = gravity; }
+  void set_gravity(const Vector3& gravity) { 
+      gravity_acceleration_ =       gravity; 
+  }
 
   // ConstraintSolver<Algebra>* get_constraint_solver() {
   //   return constraint_solver;

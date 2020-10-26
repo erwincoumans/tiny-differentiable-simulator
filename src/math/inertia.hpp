@@ -192,6 +192,17 @@ struct ArticulatedBodyInertia {
     return result;
   }
 
+  ForceVector mul_org(const MotionVector& v) const {
+      ForceVector result;
+      auto bottomleft = Algebra::transpose(H);
+      auto topleft_transpose = Algebra::transpose(I);
+      auto topleft = I;
+      auto top_right = H;
+      result.top = bottomleft  * v.top + topleft_transpose * v.bottom;
+      result.bottom = topleft * v.top + top_right * v.bottom;
+      return result;
+  }
+
   ArticulatedBodyInertia operator+(const ArticulatedBodyInertia &abi) const {
     return ArticulatedBodyInertia(I + abi.I, H + abi.H, M + abi.M);
   }

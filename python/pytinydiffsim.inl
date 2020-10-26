@@ -188,6 +188,8 @@
                      &Transform<MyAlgebra>::translation)
       .def_readwrite("rotation",
                      &Transform<MyAlgebra>::rotation)
+      .def("apply_inverse",
+          &Transform<MyAlgebra>::apply_inverse2)
       .def(py::self * py::self)
       .def("get_inverse",
            &Transform<MyAlgebra>::inverse);
@@ -270,6 +272,7 @@
       .def_readwrite("joint_name", &Link<MyAlgebra>::joint_name)
       .def_readwrite("q_index", &Link<MyAlgebra>::q_index)
       .def_readwrite("qd_index", &Link<MyAlgebra>::qd_index)
+      .def_readwrite("world_transform", &Link<MyAlgebra>::X_world)
       ;
 
   
