@@ -199,6 +199,10 @@ class TinyVectorX {
   {
       return m_size;
   }
+  bool empty() const
+  {
+      return m_size == 0;
+  }
 };
 };
 #endif  // _TINY_VECTOR_X_H

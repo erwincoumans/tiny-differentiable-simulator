@@ -23,7 +23,7 @@
 
 #include "tiny_matrix_x.h"
 
-namespace TINY_helper {
+namespace TINY {
 
 template <typename TinyScalar, typename TinyConstants,
           template <typename, typename> typename ColumnType>
@@ -119,6 +119,6 @@ ColumnType<TinyScalar, TinyConstants> solve_triangular(
   for (int i = 0; i < m.m_rows; ++i) result[i] = ev(i);
   return result;
 }
-};  // namespace TINY_helper
+};  // namespace TINY
 
 #endif  // _TINY_HELPER_H
