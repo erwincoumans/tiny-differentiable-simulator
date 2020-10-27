@@ -314,13 +314,13 @@ class MultiBodyConstraintSolverSpring
         Matrix3X jac_b =
             point_jacobian(*mb_b, mb_b->q(), cp.link_b, world_point_b, false);
 
-        Algebra::print("jac_b", jac_b);
-        mb_b->print_state();
+        //Algebra::print("jac_b", jac_b);
+        //mb_b->print_state();
         // Matrix3X jac_a =
         //     point_jacobian_fd(*mb_a, mb_a->q(), cp.link_a, world_point_a);
         Matrix3X jac_b_fd =
             point_jacobian_fd(*mb_b, mb_b->q(), cp.link_b, world_point_b);
-        Algebra::print("jac_b_fd", jac_b_fd);
+        //Algebra::print("jac_b_fd", jac_b_fd);
 
         // jac_b = jac_b_fd;
 
