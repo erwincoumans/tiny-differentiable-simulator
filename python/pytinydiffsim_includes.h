@@ -27,7 +27,7 @@
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
 #include "dynamics/jacobian.hpp"
-
+#include "math/neural_network.hpp"
 
 template <typename Algebra>
 struct UrdfToMultiBody2 {
@@ -88,10 +88,15 @@ inline MyAlgebra::Matrix3X MyPointJacobian(tds::MultiBody<MyAlgebra>& mb, int li
 inline MyAlgebra::VectorX MyInverseKinematics(tds::MultiBody<MyAlgebra>& mb, int target_link_index, const MyAlgebra::Vector3& target_point)
 {
     MyAlgebra::VectorX q_target;
+#ifdef USE_IK_JAC_TRANSPOSE
+    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_TRANSPOSE> inverse_kinematics;
+#else    
     TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_PINV> inverse_kinematics;
-    inverse_kinematics.weight_reference = 0.3;
+#endif
+
+    inverse_kinematics.weight_reference = MyTinyConstants::fraction(3,10);
     // step size
-    inverse_kinematics.alpha = 0.3;
+    inverse_kinematics.alpha = MyTinyConstants::fraction(3, 10);
     inverse_kinematics.targets.emplace_back(target_link_index, target_point);
     inverse_kinematics.q_reference = mb.q_;
     inverse_kinematics.compute(mb, inverse_kinematics.q_reference, q_target);

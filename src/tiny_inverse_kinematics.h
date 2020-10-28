@@ -114,7 +114,7 @@ namespace TINY {
          * Step sized used by the Jacobian Transpose and the Jacobian Pseudo Inverse
          * method.
          */
-        double alpha{ 5 };
+        Scalar alpha{ 5 };
 
         /**
          * If non-empty, keep joint angles close to the reference configuration,
@@ -182,11 +182,11 @@ namespace TINY {
                         helper::to_eigen(JJTe_lambda2_I)
                         .colPivHouseholderQr()
                         .solve(helper::to_eigen(e));
-                    VectorX z = helper::from_eigen_v<double, DoubleUtils>(eigen_mat);
+                    VectorX z = helper::from_eigen_v<double, Utils>(eigen_mat);
                     delta_theta = J.mul_transpose(z);
                 }
 
-                Scalar sq_length = 0;
+                Scalar sq_length = Utils::zero();
                 for (int i = 0; i < mb.dof_actuated(); ++i) {
                     Scalar delta = delta_theta[i + qd_offset];
                     Scalar& qi = q[i + q_offset];

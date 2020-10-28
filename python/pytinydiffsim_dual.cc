@@ -21,6 +21,8 @@
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
 
+#define USE_IK_JAC_TRANSPOSE
+
 typedef double TinyDualScalar;
 typedef ::TINY::TinyDualDouble MyScalar;
 typedef ::TINY::TinyDualDoubleUtils MyTinyConstants;
