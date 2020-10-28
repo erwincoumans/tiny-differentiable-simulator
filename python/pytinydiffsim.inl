@@ -325,6 +325,7 @@
   m.def("integrate_euler_qdd", &MyIntegrateEulerQdd);
   m.def("compute_inertia_dyad", &MyComputeInertia);
   m.def("point_jacobian", &MyPointJacobian);
+  m.def("inverse_kinematics", &MyInverseKinematics);
   
   py::class_<CollisionDispatcher<MyAlgebra>>(
       m, "TinyCollisionDispatcher")
