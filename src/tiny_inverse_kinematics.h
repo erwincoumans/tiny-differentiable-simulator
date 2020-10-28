@@ -20,9 +20,8 @@
 #include "multi_body.hpp"
 #include "math/tiny/tiny_algebra.hpp"
 
-#ifdef USE_EIGEN
 #include "math/tiny/tiny_eigen_helper.h"
-#endif
+
 
 namespace TINY {
     template <typename Scalar, typename Utils>
