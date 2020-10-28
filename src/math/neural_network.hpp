@@ -23,7 +23,8 @@
 #include <iostream>
 #include <random>
 #include <vector>
-
+#undef max
+#undef min
 namespace tds {
 
 enum NeuralNetworkActivation {
@@ -102,7 +103,7 @@ class NeuralNetworkSpecification {
   static void print_states(
       const std::vector<typename Algebra::Scalar>& numbers) {
     for (const auto& n : numbers) {
-      printf("%.2f ", Algebra::from_double(n));
+      printf("%.2f ", Algebra::to_double(n));
     }
     printf("\n");
   }
@@ -198,7 +199,7 @@ class NeuralNetworkSpecification {
             current[ci] = Algebra::sin(current[ci]);
             break;
           case NN_ACT_RELU:
-            current[ci] = Algebra::max(zero, current[ci]);
+            current[ci] = Algebra::max1(zero, current[ci]);
             break;
           case NN_ACT_SOFT_RELU:
             current[ci] = Algebra::log(one + Algebra::exp(current[ci]));
@@ -258,11 +259,11 @@ class NeuralNetworkSpecification {
       file << "n_" << i - 1 << "_0--n_" << i << "_0;\n\t";
     }
     file << "edge[style=solid, tailport=e, headport=w];\n\t";
-    double max_weight = 0;
+    Algebra::Scalar max_weight = Algebra::zero();
     if (!weights.empty()) {
-      max_weight = std::abs(Algebra::from_double(weights[0]));
+      max_weight = (Algebra::abs(weights[0]));
       for (const auto& w : weights) {
-        max_weight = std::max(max_weight, std::abs(Algebra::from_double(w)));
+        max_weight = Algebra::max1(max_weight, Algebra::abs(w));
       }
     }
     std::size_t weight_i = 0;
@@ -273,8 +274,8 @@ class NeuralNetworkSpecification {
           if (!weights.empty()) {
             file << "[penwidth="
                  << std::to_string(
-                        std::abs(Algebra::from_double(weights[weight_i])) /
-                        max_weight * 3.0)
+                        std::abs(Algebra::to_double(weights[weight_i])) /
+                     Algebra::to_double(max_weight) * 3.0)
                  << "]";
           }
           file << ";\n\t";
@@ -335,9 +336,9 @@ class NeuralNetwork : public NeuralNetworkSpecification {
   void save_graphviz(const std::string& filename,
                      const std::vector<std::string>& input_names = {},
                      const std::vector<std::string>& output_names = {}) const {
-    dynamic_cast<NeuralNetworkSpecification*>(this)
-        ->template save_graphviz<Algebra>(filename, input_names, output_names,
-                                          weights, biases);
+    //static_cast<const NeuralNetworkSpecification*>(this)
+      //  ->template save_graphviz<Algebra>(filename, input_names, output_names,weights, biases);
+      NeuralNetworkSpecification::save_graphviz<Algebra>(filename, input_names, output_names, weights, biases);
   }
 };
 
