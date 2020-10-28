@@ -91,7 +91,7 @@ CXX_FLAGS += '-fpermissive '
 # libraries += [current_python]
 
 libraries = []
-include_dirs = ['src', '.','python', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
+include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
 
 pytinyopengl3_libraries = []
 pytinyopengl3_include_dirs = ['src']
@@ -209,7 +209,7 @@ print("-----")
 extensions = []
 
 pytinydiffsim_ext = Extension(
-    "pytinydiffsim2",
+    "pytinydiffsim",
     sources=sources+["python/pytinydiffsim.cc"],
     libraries=libraries,
     extra_compile_args=CXX_FLAGS.split(),
@@ -218,7 +218,7 @@ pytinydiffsim_ext = Extension(
 extensions.append(pytinydiffsim_ext)
 
 pytinydiffsim_dual_ext = Extension(
-    "pytinydiffsim2_dual",
+    "pytinydiffsim_dual",
     sources=sources+["python/pytinydiffsim_dual.cc"],
     libraries=libraries,
     extra_compile_args=CXX_FLAGS.split(),
@@ -241,14 +241,14 @@ extensions.append(pytinyopengl3_ext)
 
 
 setup(
-    name='pytinydiffsim2',
+    name='pytinydiffsim',
     version='0.0.3',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
     long_description=
     'tbd',
     url='https://github.com/bulletphysics/bullet3',
-    author='Eric Heiden, Erwin Coumans',
+    author='Eric Heiden, David Millard, Erwin Coumans',
     author_email='erwincoumans@google.com',
     license='zlib',
     platforms='any',
