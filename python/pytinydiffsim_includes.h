@@ -21,7 +21,12 @@
 #include "urdf/urdf_structures.hpp"
 #include "urdf/urdf_to_multi_body.hpp"
 #include "world.hpp"
-
+#include "tiny_inverse_kinematics.h"
+#include "dynamics/mass_matrix.hpp"
+#include "dynamics/kinematics.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
+#include "dynamics/jacobian.hpp"
 
 
 template <typename Algebra>
@@ -79,3 +84,18 @@ inline MyAlgebra::Matrix3X MyPointJacobian(tds::MultiBody<MyAlgebra>& mb, int li
 {
     return tds::point_jacobian2(mb, link_index, point, is_local);
 }
+
+inline MyAlgebra::VectorX MyInverseKinematics(tds::MultiBody<MyAlgebra>& mb, int target_link_index, const MyAlgebra::Vector3& target_point)
+{
+    MyAlgebra::VectorX q_target;
+    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_PINV> inverse_kinematics;
+    inverse_kinematics.weight_reference = 0.3;
+    // step size
+    inverse_kinematics.alpha = 0.3;
+    inverse_kinematics.targets.emplace_back(target_link_index, target_point);
+    inverse_kinematics.q_reference = mb.q_;
+    inverse_kinematics.compute(mb, inverse_kinematics.q_reference, q_target);
+    return q_target;
+}
+
+
