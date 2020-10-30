@@ -94,12 +94,12 @@ inline MyAlgebra::VectorX MyInverseKinematics(tds::MultiBody<MyAlgebra>& mb, int
     TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_PINV> inverse_kinematics;
 #endif
 
-    inverse_kinematics.weight_reference = MyTinyConstants::fraction(3,10);
+    inverse_kinematics.weight_reference = MyTinyConstants::fraction(0,10);
     // step size
     inverse_kinematics.alpha = MyTinyConstants::fraction(3, 10);
     inverse_kinematics.targets.emplace_back(target_link_index, target_point);
     inverse_kinematics.q_reference = mb.q_;
-    inverse_kinematics.compute(mb, inverse_kinematics.q_reference, q_target);
+    inverse_kinematics.compute(mb, mb.q_, q_target);
     return q_target;
 }
 
