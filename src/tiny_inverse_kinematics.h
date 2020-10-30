@@ -53,11 +53,20 @@ namespace TINY {
         IK_DAMPED_LM,
     };
 
-    enum TinyIKResult {
+    enum TinyIKStatus {
         IK_RESULT_FAILED = 0,
         IK_RESULT_CONVERGED,
         IK_RESULT_REACHED
     };
+
+    template <typename Scalar, typename Utils>
+    struct TinyIKResult
+    {
+        int iter;
+        TinyIKStatus ik_status;
+        Scalar residual;
+    };
+    
 
     /**
      * Implements methods for inverse kinematics (IK).
@@ -83,12 +92,13 @@ namespace TINY {
         typedef ::tds::MultiBody<TinyAlgebra<Scalar, Utils> > MultiBody;
         typedef ::TINY::TinyVector3<Scalar, Utils> Vector3;
         typedef ::TINY::TinyVectorX<Scalar, Utils> VectorX;
+        typedef ::TINY::TinyMatrix3x3<Scalar, Utils> Matrix3;
         typedef ::TINY::TinyMatrixXxX<Scalar, Utils > MatrixXxX;
         typedef ::tds::Transform<TinyAlgebra<Scalar, Utils> > SpatialTransform;
 
         std::vector<Target> targets;
 
-        int max_iterations{ 10 };
+        int max_iterations{ 20 };
 
         /**
          * Damping factor for the Levenberg-Marquardt method. This parameter has to
@@ -101,7 +111,7 @@ namespace TINY {
         /**
          * Acceptable Euclidean distance between the source and target points.
          */
-        Scalar target_tolerance{ 0.01 };
+        Scalar target_tolerance{ 0.001 };
 
         /**
          * Minimum possible change in joint coordinates until the algorithm
@@ -121,9 +131,13 @@ namespace TINY {
          */
         VectorX q_reference;
         Scalar weight_reference{ 0.2 };
-
-        TinyIKResult compute(const MultiBody& mb, const VectorX& q_init,
+        
+        TinyIKResult<Scalar, Utils> compute(const MultiBody& mb, const VectorX& q_init,
             VectorX& q) const {
+
+            TinyIKResult<Scalar, Utils> result;
+            result.residual = -1;
+
             assert(q_init.size() == mb.dof());
             assert(q_reference.empty() || q_reference.size() == q_init.size());
             q = q_init;
@@ -136,29 +150,45 @@ namespace TINY {
 
             SpatialTransform base_X_world;
             std::vector<SpatialTransform> links_X_world;
+            std::vector<SpatialTransform> links_X_base;
+            
 
-            for (int iter = 0; iter < max_iterations; iter++) {
-                ::tds::forward_kinematics_q< TinyAlgebra < Scalar, Utils> >(mb, q, &base_X_world, &links_X_world);
+            for (result.iter = 0; result.iter < max_iterations; result.iter++) {
+                ::tds::forward_kinematics_q< TinyAlgebra < Scalar, Utils> >(mb, q, &base_X_world, &links_X_world, &links_X_base);
                 for (int k = 0; k < static_cast<int>(targets.size()); ++k) {
                     const Target& target = targets[k];
-                    bool is_local_point = false;
-                    auto G = ::tds::point_jacobian<TinyAlgebra<Scalar, Utils> >(mb, q, target.link_index, target.body_point, is_local_point);
+                    bool is_local_point = true;
+                    Vector3 local_point_in_base_frame = links_X_base[target.link_index].apply(target.body_point);
+                    auto G = ::tds::point_jacobian<TinyAlgebra<Scalar, Utils> >(mb, q, target.link_index, local_point_in_base_frame, is_local_point);
 
-                    Vector3 actual =
-                        links_X_world[target.link_index].apply(target.body_point);
+                    if (mb.is_floating())
+                    {
+                        Matrix3 cr;
+                        cr.set_zero();
+                        TinyAlgebra<Scalar, Utils>::assign_block(G, cr, 0, 0);
+                        G(0, 3) = TinyAlgebra<Scalar, Utils>::zero();
+                        G(1, 4) = TinyAlgebra<Scalar, Utils>::zero();
+                        G(2, 5) = TinyAlgebra<Scalar, Utils>::zero();
+                    }
+                    Vector3 local_actual_pos = links_X_base[target.link_index].apply(target.body_point);
+                    Vector3 local_target_pos = base_X_world.apply_inverse(target.position);
+                    
                     for (unsigned int i = 0; i < 3; i++) {
                         for (unsigned int j = 0; j < mb.dof_qd(); j++) {
                             unsigned int row = k * 3 + i;
                             J(row, j) = G(i, j);
                         }
-                        e[k * 3 + i] = target.position[i] - actual[i];
+                        
+                        Scalar diff = local_target_pos[i] - local_actual_pos[i];
+                        e[k * 3 + i] = diff;
                     }
                 }
 
+                result.residual = e.length();
                 // abort if we are getting "close"
-                if (e.length() < target_tolerance) {
-                    printf("Reached target close enough after %i steps.\n", iter);
-                    return IK_RESULT_REACHED;
+                if (result.residual < target_tolerance) {
+                    result.ik_status = IK_RESULT_REACHED;
+                    return result;
                 }
 
                 VectorX delta_theta;
@@ -197,11 +227,12 @@ namespace TINY {
                 }
 
                 if (sq_length < step_tolerance * step_tolerance) {
-                    printf("Reached convergence after %i steps.\n", iter);
-                    return IK_RESULT_CONVERGED;
+                    result.ik_status = IK_RESULT_CONVERGED;
+                    return result;
                 }
             }
-            return IK_RESULT_FAILED;
+            result.ik_status = IK_RESULT_FAILED;
+            return result;
         }
         bool compute(const MultiBody& mb, VectorX& q) const {
             return compute(mb, mb.m_q, q);

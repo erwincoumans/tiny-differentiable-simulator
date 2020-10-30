@@ -29,6 +29,7 @@
 #include "dynamics/integrator.hpp"
 
 #include "mb_constraint_solver_spring.hpp"
+#include "mb_constraint_solver.hpp"
 
 #include "tiny_pd_control.h"
 
@@ -65,7 +66,7 @@ void print(const std::vector<double>& v) {
 void update_position(VisualizerAPI* sim, int object_id, double x, double y,
                      double z) {
   btVector3 pos(x, y, z);
-  btQuaternion orn;
+  btQuaternion orn(0, 0, 0, 1);
   sim->resetBasePositionAndOrientation(object_id, pos, orn);
 }
 
@@ -129,7 +130,7 @@ struct GaitGenerator {
 
     double z, dx;
     if (rel_step <= lift_ratio) {
-      dx = step_length / (lift_ratio * period_length) * dt;
+        dx = 0;// step_length / (lift_ratio * period_length) * dt;
       z = step_height * std::max(0., std::sin(rel_step * M_PI / lift_ratio));
     } else {
       dx = 0;
@@ -155,12 +156,12 @@ int main(int argc, char* argv[]) {
   double dt = 1. / 1000;
 
   // btVector3 laikago_initial_pos(0, 0.2, 1.65);
-  btVector3 laikago_initial_pos = btVector3(0, 0, .55);
+  btVector3 laikago_initial_pos = btVector3(2, -1, 0.45);// 1, 2, .39);
   // btVector3 laikago_initial_pos(-3, 2, .65);
   // btVector3 laikago_initial_pos(2, 0, .65);
   btQuaternion laikago_initial_orn(0, 0, 0, 1);
-  // laikago_initial_orn.setEulerZYX(-0.1, 0.1, 0);
-  // laikago_initial_orn.setEulerZYX(0.7, 0, 0);
+   //laikago_initial_orn.setEulerZYX(-0.1, 0.1, 0);
+   laikago_initial_orn.setEulerZYX(1.4, 0, 0);
   double initialXvel = 0;
   btVector3 initialAngVel(0, 0, 0);
   double knee_angle = -0.5;
@@ -225,7 +226,8 @@ int main(int argc, char* argv[]) {
   std::vector<MultiBody<TinyAlgebra<double, DoubleUtils> >*> mbbodies;
   std::vector<int> paramUids;
 
-  int grav_id = sim->addUserDebugParameter("gravity", -10, 0, 0);// -9.8);
+  int gravY_id = sim->addUserDebugParameter("gravityY", -10, 10, 0);// -9.8);
+  int gravZ_id = sim->addUserDebugParameter("gravityZ", -100, 0, -10);// -9.8);
   int kp_id = sim->addUserDebugParameter("kp", 0, 200, 150);
   int kd_id = sim->addUserDebugParameter("kd", 0, 13, 3.);
   int force_id = sim->addUserDebugParameter("max force", 0, 1500, 550);
@@ -241,12 +243,13 @@ int main(int argc, char* argv[]) {
     mb->initialize();
     sim->removeBody(robotId);
   }
-
+  int start_index = 0;
   MultiBody< TinyAlgebra<double, DoubleUtils> >* mb = world.create_multi_body();
   {
-    b3RobotSimulatorLoadUrdfFileArgs args;
-    args.m_flags |= URDF_MERGE_FIXED_LINKS;
-    int robotId = sim->loadURDF(laikago_filename, args);
+	//don't merge fixed links, we like to have the feet indices
+    //b3RobotSimulatorLoadUrdfFileArgs args;
+    //args.m_flags |= URDF_MERGE_FIXED_LINKS;
+    int robotId = sim->loadURDF(laikago_filename);
 
     UrdfStructures< TinyAlgebra<double, DoubleUtils> > urdf_data;
     PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils> >::extract_urdf_structs(
@@ -255,57 +258,55 @@ int main(int argc, char* argv[]) {
                                                                     world, *mb);
 
     mbbodies.push_back(mb);
-    mb->set_floating_base(true);
+    mb->set_floating_base(false);
     mb->initialize();
     sim->removeBody(robotId);
-    // mb->m_q[5] = 3;
-    int start_index = 0;
-    start_index = 7;
-    mb->q_[0] = laikago_initial_orn[0];
-    mb->q_[1] = laikago_initial_orn[1];
-    mb->q_[2] = laikago_initial_orn[2];
-    mb->q_[3] = laikago_initial_orn[3];
-
-    mb->q_[4] = laikago_initial_pos[0];
-    mb->q_[5] = laikago_initial_pos[1];
-    mb->q_[6] = laikago_initial_pos[2];
-
+    
+    
+    start_index = mb->is_floating() ? 7 : 0;
+    
     mb->qd_[0] = initialAngVel[0];
     mb->qd_[1] = initialAngVel[1];
     mb->qd_[2] = initialAngVel[2];
     mb->qd_[3] = initialXvel;
+    mb->set_position(TinyVector3(laikago_initial_pos[0], laikago_initial_pos[1], laikago_initial_pos[2]));
+    mb->set_orientation(TinyQuaternion<double, DoubleUtils>(laikago_initial_orn[0], laikago_initial_orn[1], laikago_initial_orn[2], laikago_initial_orn[3]));
+
+
     if (mb->q_.size() >= 12) {
       for (int cc = 0; cc < 12; cc++) {
         mb->q_[start_index + cc] = initial_poses[cc];
       }
     }
   }
-  world.default_friction = 1.;
+  world.default_friction = 0.1;
   world.set_mb_constraint_solver(
-      new MultiBodyConstraintSolverSpring<TinyAlgebra<double, DoubleUtils> >);
+      //new MultiBodyConstraintSolverSpring<TinyAlgebra<double, DoubleUtils> >);
+        new MultiBodyConstraintSolver<TinyAlgebra<double, DoubleUtils> >);
       
   printf("Initial state:\n");
   mb->print_state();
+  auto q_ref = mb->q_;
 
   //std::vector<double> q_target;
   TinyVectorX q_target = mb->q_;
   // body indices of feet
-  const int foot_fr = 2;
-  const int foot_fl = 5;
-  const int foot_br = 8;
-  const int foot_bl = 11;
-  const TinyVector3 foot_offset(0, -0.24, -0.02);
+  const int foot_fr = 3;// 2;
+  const int foot_fl = 7;// 5;
+  const int foot_br = 11;// 8;
+  const int foot_bl = 15;// 11;
+  const TinyVector3 foot_offset(0, 0, 0);// -0.24, -0.02);
 
   TinyInverseKinematics<double, DoubleUtils, IK_JAC_PINV> inverse_kinematics;
   // controls by how much the joint angles should be close to the initial q
-  inverse_kinematics.weight_reference = 0.3;
+  inverse_kinematics.weight_reference = 0;
   // step size
   inverse_kinematics.alpha = 0.3;
   inverse_kinematics.targets.emplace_back(foot_fr, TinyVector3::zero());
   inverse_kinematics.targets.emplace_back(foot_fl, TinyVector3::zero());
   inverse_kinematics.targets.emplace_back(foot_br, TinyVector3::zero());
   inverse_kinematics.targets.emplace_back(foot_bl, TinyVector3::zero());
-  inverse_kinematics.q_reference = mb->q_;
+  inverse_kinematics.q_reference = q_ref;// mb->q_;
   for (auto& target : inverse_kinematics.targets) {
     target.body_point = foot_offset;
   }
@@ -335,19 +336,31 @@ int main(int argc, char* argv[]) {
 
   sim->setTimeStep(dt);
   double time = 0;
+  double zrot = 0;
+  ::tds::forward_kinematics<TinyAlgebra<double, DoubleUtils> >(*mb);
+  
+  sim->resetDebugVisualizerCamera(1, -10, 54, laikago_initial_pos);
+
   for (int step = 0; sim->isConnected(); ++step) {
+
+      if (0)
+      {
+          btQuaternion laikago_initial_orn(0, 0, 0, 1);
+          laikago_initial_orn.setEulerZYX(zrot, 0, 0);
+          //zrot += 0.001;
+          mb->set_orientation(TinyQuaternion<double, DoubleUtils>(laikago_initial_orn[0], laikago_initial_orn[1], laikago_initial_orn[2], laikago_initial_orn[3]));
+      }
     sim->submitProfileTiming("loop");
     {
       sim->submitProfileTiming("sleep_for");
       std::this_thread::sleep_for(std::chrono::duration<double>(dt));
       sim->submitProfileTiming("");
     }
-    double gravZ = sim->readUserDebugParameter(grav_id);
-    sim->setGravity(btVector3(0, 0, gravZ));
-
+    
     {
-      double gravZ = sim->readUserDebugParameter(grav_id);
-      world.set_gravity(TinyVector3(0, 0, gravZ));
+      double gravY = sim->readUserDebugParameter(gravY_id);
+      double gravZ = sim->readUserDebugParameter(gravZ_id);
+      world.set_gravity(TinyVector3(0, gravY, gravZ));
       {
         sim->submitProfileTiming("forward_kinematics");
         ::tds::forward_kinematics<TinyAlgebra<double, DoubleUtils> >(*mb);
@@ -359,8 +372,9 @@ int main(int argc, char* argv[]) {
         std::vector<TinySpatialTransform> links_X_world;
         ::tds::forward_kinematics_q<TinyAlgebra<double, DoubleUtils >>(*mb, mb->q_, &base_X_world, &links_X_world);
 
+        TinyVector3 foot_pos = links_X_world[foot_fr].apply(foot_offset);
         update_position(sim, sphere_fr,
-                        links_X_world[foot_fr].apply(foot_offset));
+                        foot_pos);
         update_position(sim, sphere_fl,
                         links_X_world[foot_fl].apply(foot_offset));
         update_position(sim, sphere_br,
@@ -377,29 +391,25 @@ int main(int argc, char* argv[]) {
         update_position(sim, sphere_target_bl,
                         inverse_kinematics.targets[3].position);
 
-        if (step == walking_start) {
+        if (step == walking_start) 
+        {
           for (int i = 0; i < inverse_kinematics.targets.size(); ++i) {
             auto& target = inverse_kinematics.targets[i];
             auto pos = links_X_world[target.link_index].apply(foot_offset);
             target.position = pos;
-            printf("Initial position of foot %i:\t %.3f\t %.3f\t %.3f\n", i,
-                   pos.m_x, pos.m_y, pos.m_z);
+            // printf("Initial position of foot %i:\t %.3f\t %.3f\t %.3f\n", i,pos.m_x, pos.m_y, pos.m_z);
             target.position.m_z = 0;
           }
-        } else if (step > walking_start) {
+        } 
+        else if (step > walking_start) 
+        {
           gait.compute(time - walking_start * dt,
                        inverse_kinematics.targets[0].position,
                        inverse_kinematics.targets[1].position,
                        inverse_kinematics.targets[2].position,
                        inverse_kinematics.targets[3].position);
 
-          TinyVectorX start_q = q_target;
-          // set true x coordinate of base
-          //  start_q[4] = mb->m_q[4];
-          //  for (int i = 0; i < 7; ++i) {
-          //    start_q[i] = mb->m_q[i];
-          //  }
-          //  std::vector<double> start_q = mb->m_q;
+          TinyVectorX start_q = mb->q_;
           inverse_kinematics.compute(*mb, start_q, q_target);
         }
       }
@@ -410,82 +420,90 @@ int main(int argc, char* argv[]) {
         double min_force = -max_force;
         std::vector<double> control(mb->dof_actuated());
         for (int i = 0; i < mb->dof_actuated(); ++i) {
-          control[i] = q_target[i + 7];
+          control[i] = q_target[i + start_index];
         }
          // pd control
-          if (1) {
-              // use PD controller to compute tau
-              int qd_offset = mb->is_floating() ? 6 : 0;
-              int q_offset = mb->is_floating() ? 7 : 0;
-              int num_targets = mb->tau_.size() - qd_offset;
-              std::vector<double> q_targets;
-              q_targets.resize(mb->tau_.size());
+        if (0) {
+            // use PD controller to compute tau
+            int qd_offset = mb->is_floating() ? 6 : 0;
+            int q_offset = mb->is_floating() ? 7 : 0;
+            int num_targets = mb->tau_.size() - qd_offset;
+            std::vector<double> q_targets;
+            q_targets.resize(mb->tau_.size());
 
-              double kp = 150;
-              double kd = 3;
-              double max_force = 550;
-              int param_index = 0;
+            int param_index = 0;
 
-              for (int i = 0; i < mb->tau_.size(); i++) {
-                  mb->tau_[i] = 0;
-              }
-              int tau_index = 0;
-              int pose_index = 0;
-              for (int i = 0; i < mb->links_.size(); i++) {
-                  if (mb->links_[i].joint_type != JOINT_FIXED) {
-                      double q_desired = control[pose_index++];//initial_poses
-                      double q_actual = mb->q_[q_offset];
-                      double qd_actual = mb->qd_[qd_offset];
-                      double position_error = (q_desired - q_actual);
-                      double desired_velocity = 0;
-                      double velocity_error = (desired_velocity - qd_actual);
-                      double force = kp * position_error + kd * velocity_error;
+            for (int i = 0; i < mb->tau_.size(); i++) {
+                mb->tau_[i] = 0;
+            }
+            int tau_index = 0;
+            int pose_index = 0;
+            for (int i = 0; i < mb->links_.size(); i++) {
+                if (mb->links_[i].joint_type != JOINT_FIXED) {
+                    double q_desired = control[pose_index++];//initial_poses[pose_index++];// 
+                    double q_actual = mb->q_[q_offset];
+                    double qd_actual = mb->qd_[qd_offset];
+                    double position_error = (q_desired - q_actual);
+                    double desired_velocity = 0;
+                    double velocity_error = (desired_velocity - qd_actual);
+                    double force = kp * position_error + kd * velocity_error;
 
-                      if (force < -max_force) force = -max_force;
-                      if (force > max_force) force = max_force;
-                      mb->tau_[tau_index] = force;
-                      q_offset++;
-                      qd_offset++;
-                      param_index++;
-                      tau_index++;
-                  }
-              }
+                    if (force < -max_force) force = -max_force;
+                    if (force > max_force) force = max_force;
+                    mb->tau_[tau_index] = force;
+                    q_offset++;
+                    qd_offset++;
+                    param_index++;
+                    tau_index++;
+                }
+            }
+        }
+        else
+        {
+            mb->q_ = q_target;
+            mb->qd_.set_zero();
+        }
+
+
+
+
+
+
+      }
+
+      if (1)
+      {
+          {
+              sim->submitProfileTiming("forwardDynamics");
+              ::tds::forward_dynamics<TinyAlgebra<double, DoubleUtils> >(*mb, world.get_gravity());
+              sim->submitProfileTiming("");
+              mb->clear_forces();
           }
 
+          {
+              sim->submitProfileTiming("integrate_q");
+              ::tds::integrate_euler_qdd<TinyAlgebra<double, DoubleUtils> >(*mb, dt);
+              sim->submitProfileTiming("");
+          }
 
-
-
-
-
+          {
+              if (step % 1000 == 0) {
+                  printf("Step %06d \t Time: %.3f\n", step, time);
+              }
+              sim->submitProfileTiming("world_step");
+              world.step(dt);
+              sim->submitProfileTiming("");
+              
+          }
+          {
+              sim->submitProfileTiming("integrate");
+              ::tds::integrate_euler(*mb, dt);
+              sim->submitProfileTiming("");
+          }
       }
 
-      {
-        sim->submitProfileTiming("forwardDynamics");
-        ::tds::forward_dynamics<TinyAlgebra<double, DoubleUtils> >(*mb, world.get_gravity());
-        sim->submitProfileTiming("");
-        mb->clear_forces();
-      }
+      time += dt;
 
-      {
-        sim->submitProfileTiming("integrate_q");
-        ::tds::integrate_euler_qdd<TinyAlgebra<double, DoubleUtils> >(*mb, dt);
-        sim->submitProfileTiming("");
-      }
-
-      {
-        if (step % 1000 == 0) {
-          printf("Step %06d \t Time: %.3f\n", step, time);
-        }
-        sim->submitProfileTiming("world_step");
-        world.step(dt);
-        sim->submitProfileTiming("");
-        time += dt;
-      }
-      {
-        sim->submitProfileTiming("integrate");
-        ::tds::integrate_euler(*mb, dt);
-        sim->submitProfileTiming("");
-      }
       if (1) {
         sim->submitProfileTiming("sync graphics");
 
