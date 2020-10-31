@@ -11,7 +11,7 @@ namespace tds {
  */
 template <typename Algebra>
 typename Algebra::Matrix3X point_jacobian(
-    MultiBody<Algebra> &mb, const typename Algebra::VectorX &q, int link_index,
+    const MultiBody<Algebra> &mb, const typename Algebra::VectorX &q, int link_index,
     const typename Algebra::Vector3 &point, bool is_local_point) {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
@@ -59,7 +59,7 @@ typename Algebra::Matrix3X point_jacobian(
   }
   // loop over all links that lie on the path from the given link to world
   if (link_index >= 0) {
-    Link *body = &mb[link_index];
+    const Link *body = &mb[link_index];
     while (true) {
       int i = body->index;
       if (body->joint_type != JOINT_FIXED) {
