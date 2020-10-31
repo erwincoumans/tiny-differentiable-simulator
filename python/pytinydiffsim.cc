@@ -20,11 +20,7 @@ typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
 
 #include "math/tiny/tiny_algebra.hpp"
-#include "dynamics/mass_matrix.hpp"
-#include "dynamics/kinematics.hpp"
-#include "dynamics/forward_dynamics.hpp"
-#include "dynamics/integrator.hpp"
-#include "dynamics/jacobian.hpp"
+
 
 typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 

@@ -119,6 +119,7 @@ INCLUDE_DIRECTORIES(
 		${PYTHON_INCLUDE_DIRS}
     ${PYTHON_NUMPY_INCLUDE_DIR}
 	../src
+	${EIGEN3_INCLUDE_DIRS}
 )
 
 ##################################################################

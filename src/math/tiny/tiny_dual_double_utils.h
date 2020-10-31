@@ -124,10 +124,21 @@ struct TinyDualDoubleUtils {
       return TinyDualDouble(::abs(a.real()), a.dual()  * signa);
   }
 
-  //todo: check if this is ok
   static TinyDualDouble min1(const TinyDualDouble& a, const TinyDualDouble& b)
   {
       if (a.real() <= b.real())
+      {
+          return a;
+      }
+      else
+      {
+          return b;
+      }
+  }
+
+  static TinyDualDouble max1(const TinyDualDouble& a, const TinyDualDouble& b)
+  {
+      if (a.real() >= b.real())
       {
           return a;
       }
@@ -169,6 +180,12 @@ struct TinyDualDoubleUtils {
   static double getDouble(T v) {
     return (double)v.real();
   }
+
+  
+  static TinyDualDouble scalar_from_double(double d) {
+      return TinyDualDouble(d);
+  }
+  
 
   template <class T>
   static TinyDualDouble convert(T) = delete;  // C++11

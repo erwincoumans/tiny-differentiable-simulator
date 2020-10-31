@@ -15,6 +15,12 @@ add_executable(opengl_imgui_test opengl_imgui_test.cpp ../third_party/dear_imgui
 target_link_libraries(opengl_imgui_test opengl_window dear_imgui TinyAudio ${CMAKE_DL_LIBS})
 target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../third_party/dear_imgui ../src)
 
+IF(Bullet_FOUND)
+  add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
+  target_include_directories(laikago_footstep_ik PRIVATE ../src ${EIGEN3_INCLUDE_DIRS})
+  target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
+ENDIF()
+
 add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
 target_include_directories(opengl_test PRIVATE ../third_party/tinyobjloader)
 target_include_directories(opengl_test PRIVATE ../third_party ../src)

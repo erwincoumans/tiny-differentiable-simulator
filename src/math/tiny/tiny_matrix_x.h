@@ -107,7 +107,7 @@ namespace TINY
                     const TinyScalar& val = (*this)(r, c);
 
                     double v = TinyConstants::getDouble(val);
-                    printf("%f, ", v);
+                    printf("%2.3f, ", v);
                 }
                 printf("\n");
             }

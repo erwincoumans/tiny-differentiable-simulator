@@ -325,7 +325,64 @@
   m.def("integrate_euler_qdd", &MyIntegrateEulerQdd);
   m.def("compute_inertia_dyad", &MyComputeInertia);
   m.def("point_jacobian", &MyPointJacobian);
+  m.def("inverse_kinematics", &MyInverseKinematics);
   
+  py::class_<NeuralNetwork<MyAlgebra>>(      m, "NeuralNetwork")
+      .def(py::init<int, bool>())
+      .def(py::init<int, const std::vector<int>&,NeuralNetworkActivation, bool >())
+      .def("initialize", &NeuralNetwork<MyAlgebra>::initialize)
+      .def("compute", &NeuralNetwork<MyAlgebra>::compute)
+      .def("set_parameters", &NeuralNetwork<MyAlgebra>::set_parameters)
+      .def("print_params", &NeuralNetwork<MyAlgebra>::print_params)
+      .def("save_graphviz", &NeuralNetwork<MyAlgebra>::save_graphviz)
+      ;
+      //.def("compute_contacts", &CollisionDispatcher<MyAlgebra>::compute_contacts2);
+
+  py::class_<NeuralNetworkSpecification>(
+      m, "NeuralNetworkSpecification")
+      .def(py::init<int, bool>())
+      .def(py::init<int, const std::vector<int>&, NeuralNetworkActivation, bool>())
+      .def("set_input_dim", &NeuralNetworkSpecification::set_input_dim)
+      .def("add_linear_layer", &NeuralNetworkSpecification::add_linear_layer)
+      .def("empty", &NeuralNetworkSpecification::empty)
+      .def("input_dim", &NeuralNetworkSpecification::input_dim)
+      .def("output_dim", &NeuralNetworkSpecification::output_dim)
+      .def("num_weights", &NeuralNetworkSpecification::num_weights)
+      .def("num_units", &NeuralNetworkSpecification::num_units)
+      .def("num_biases", &NeuralNetworkSpecification::num_biases)
+      .def("num_parameters", &NeuralNetworkSpecification::num_parameters)
+      .def("num_layers", &NeuralNetworkSpecification::num_layers)
+      .def("print_states", &NeuralNetworkSpecification::print_states< TinyAlgebra< MyScalar, MyTinyConstants>>)
+
+
+      ;
+
+      py::enum_<NeuralNetworkActivation>(m, "NeuralNetworkActivation",
+          py::arithmetic())
+      .value("NN_ACT_IDENTITY", NN_ACT_IDENTITY)
+      .value("NN_ACT_TANH", NN_ACT_TANH)
+      .value("NN_ACT_SIN", NN_ACT_SIN)
+      .value("NN_ACT_RELU", NN_ACT_RELU)
+      .value("NN_ACT_ELU", NN_ACT_ELU)
+      .value("NN_ACT_SIGMOID", NN_ACT_SIGMOID)
+      .value("NN_ACT_SOFTSIGN", NN_ACT_SOFTSIGN)
+      .export_values();
+
+      enum NeuralNetworkInitialization {
+          NN_INIT_ZERO = -1,
+          NN_INIT_XAVIER = 0,  // good for tanh activations
+          NN_INIT_HE,          // good for sigmoid activations
+      };
+
+      py::enum_<NeuralNetworkInitialization>(m, "NeuralNetworkInitialization",
+          py::arithmetic())
+          .value("NN_INIT_ZERO", NN_INIT_ZERO)
+          .value("NN_INIT_XAVIER", NN_INIT_XAVIER)
+          .value("NN_INIT_HE", NN_INIT_HE)
+          .export_values();
+
+  
+
   py::class_<CollisionDispatcher<MyAlgebra>>(
       m, "TinyCollisionDispatcher")
       .def(py::init<>())
