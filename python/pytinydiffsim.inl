@@ -326,6 +326,8 @@
   m.def("compute_inertia_dyad", &MyComputeInertia);
   m.def("point_jacobian", &MyPointJacobian);
   m.def("inverse_kinematics", &MyInverseKinematics);
+  m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
+  
   
   py::class_<NeuralNetwork<MyAlgebra>>(      m, "NeuralNetwork")
       .def(py::init<int, bool>())

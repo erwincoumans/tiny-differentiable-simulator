@@ -9,6 +9,7 @@
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
 #include "tiny_vector_x.h"
+#include "../transform.hpp"
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyAlgebra {
@@ -22,6 +23,7 @@ struct TinyAlgebra {
   using MatrixX = ::TINY::TinyMatrixXxX<TinyScalar, TinyConstants>;
   using Quaternion = ::TINY::TinyQuaternion<TinyScalar, TinyConstants>;
   using SpatialVector = tds::SpatialVector<TinyAlgebra>;
+  using Transform = tds::Transform<TinyAlgebra>;
   using MotionVector = tds::MotionVector<TinyAlgebra>;
   using ForceVector = tds::ForceVector<TinyAlgebra>;
 
