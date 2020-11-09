@@ -59,6 +59,19 @@ inline void MyForwardKinematics(tds::MultiBody<MyAlgebra>& mb, const MyAlgebra::
     forward_kinematics(mb, q, qd);
 }
 
+inline tds::Transform<MyAlgebra> MyGetLinkTransformInBase(tds::MultiBody<MyAlgebra>& mb, const MyAlgebra::VectorX& q, int link_index)
+{
+    tds::Transform<MyAlgebra> base_X_world;
+    std::vector<tds::Transform<MyAlgebra> > links_X_world;
+    std::vector<tds::Transform<MyAlgebra> > links_X_base;
+
+    forward_kinematics_q(mb, q, &base_X_world, &links_X_world, &links_X_base);
+    //forward_kinematics_q< TinyAlgebra < Scalar, Utils> >(mb, q, &base_X_world, &links_X_world, &links_X_base);
+    return links_X_base[link_index];
+}
+
+
+
 inline void MyForwardDynamics(tds::MultiBody<MyAlgebra>& mb, const MyAlgebra::Vector3& gravity)
 {
     forward_dynamics(mb, gravity);
