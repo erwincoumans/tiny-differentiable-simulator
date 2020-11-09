@@ -136,7 +136,7 @@ namespace TINY {
             VectorX& q) const {
 
             TinyIKResult<Scalar, Utils> result;
-            result.residual = -1;
+            result.residual = Utils::fraction(-1,1);
 
             assert(q_init.size() == mb.dof());
             assert(q_reference.empty() || q_reference.size() == q_init.size());

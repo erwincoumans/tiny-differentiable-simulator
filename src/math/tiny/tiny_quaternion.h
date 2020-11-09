@@ -182,59 +182,62 @@ namespace TINY
                 TinyConstants::cos1(_angle * TinyConstants::half()));
         }
 
-        /**@brief Set the quaternion using euler angles
+        /**@brief Set the quaternion using euler angles, compatible with PyBullet/ROS/Gazebo
          * @param yaw Angle around Z
          * @param pitch Angle around Y
          * @param roll Angle around X */
         void set_euler_rpy(const TinyVector3& rpy) {
-            const TinyScalar& yaw_z = rpy[0];
-            const TinyScalar& pitch_y = rpy[1];
-            const TinyScalar& roll_x = rpy[2];
-            TinyScalar halfYaw = TinyScalar(yaw_z) * TinyConstants::half();
-            TinyScalar halfPitch = TinyScalar(pitch_y) * TinyConstants::half();
-            TinyScalar halfRoll = TinyScalar(roll_x) * TinyConstants::half();
-            TinyScalar cy = TinyConstants::cos1(halfYaw);
-            TinyScalar sy = TinyConstants::sin1(halfYaw);
-            TinyScalar cp = TinyConstants::cos1(halfPitch);
-            TinyScalar sp = TinyConstants::sin1(halfPitch);
-            TinyScalar cr = TinyConstants::cos1(halfRoll);
-            TinyScalar sr = TinyConstants::sin1(halfRoll);
-            setValue(sr * cp * cy - cr * sp * sy,   // x
-                cr * sp * cy + sr * cp * sy,   // y
-                cr * cp * sy - sr * sp * cy,   // z
-                cr * cp * cy + sr * sp * sy);  // formerly yzx
+            TinyScalar phi, the, psi;
+            TinyScalar roll = rpy[0];
+            TinyScalar pitch = rpy[1];
+            TinyScalar yaw = rpy[2];
+            phi = roll * TinyConstants::half();
+            the = pitch * TinyConstants::half();
+            psi = yaw * TinyConstants::half();
+            setValue(   sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi),
+                        cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi),
+                        cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi),
+                        cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi));
+            normalize();
         }
 
+        /**@brief Receive the euler angles from a quaternion, compatible with PyBullet/ROS/Gazebo
+        */
         TinyVector3 get_euler_rpy() const {
-            // Adapted from
-            // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+
             TinyVector3 rpy;
+            TinyScalar sarg;
+            TinyScalar sqx = m_x * m_x;
+            TinyScalar sqy = m_y * m_y;
+            TinyScalar sqz = m_z * m_z;
+            TinyScalar squ = m_w * m_w;
+            sarg = -TinyConstants::two() * (m_x * m_z - m_w * m_y);
 
-            // roll (x-axis rotation)
-            TinyScalar sinr_cosp = TinyConstants::two() * (m_w * m_x + m_y * m_z);
-            TinyScalar cosr_cosp =
-                TinyConstants::one() - TinyConstants::two() * (m_x * m_x + m_y * m_y);
-            rpy[2] = TinyConstants::atan2(sinr_cosp, cosr_cosp);
+            // If the pitch angle is PI/2 or -PI/2, we can only compute
+            // the sum roll + yaw.  However, any combination that gives
+            // the right sum will produce the correct orientation, so we
+            // set rollX = 0 and compute yawZ.
 
-            // pitch (y-axis rotation)
-            TinyScalar sinp = TinyConstants::two() * (m_w * m_y - m_z * m_x);
-            if (TinyConstants::abs(sinp) >= TinyConstants::one()) {
-                // use 90 degrees if out of range
-                rpy[1] = TinyConstants::copysign(TinyConstants::half_pi(), sinp);
+            if (sarg <= TinyConstants::fraction(-99999, 100000))
+            {
+                rpy[0] = TinyConstants::zero();
+                rpy[1] = -TinyConstants::half_pi();
+                rpy[2] = TinyConstants::two() * TinyConstants::atan2(m_x, -m_y);
             }
-            else {
-                rpy[1] = TinyConstants::asin(sinp);
+            else if (sarg >= TinyConstants::fraction(99999, 100000))
+            {
+                rpy[0] = TinyConstants::zero();
+                rpy[1] = TinyConstants::half_pi();
+                rpy[2] = TinyConstants::two() * TinyConstants::atan2(-m_x, m_y);
             }
-
-            // yaw (z-axis rotation)
-            TinyScalar siny_cosp = TinyConstants::two() * (m_w * m_z + m_x * m_y);
-            TinyScalar cosy_cosp =
-                TinyConstants::one() - TinyConstants::two() * (m_y * m_y + m_z * m_z);
-            rpy[0] = TinyConstants::atan2(siny_cosp, cosy_cosp);
-
+            else
+            {
+                rpy[0] = TinyConstants::atan2(TinyConstants::two() * (m_y * m_z + m_w * m_x), squ - sqx - sqy + sqz);
+                rpy[1] = TinyConstants::asin(sarg);
+                rpy[2] = TinyConstants::atan2(TinyConstants::two() * (m_x * m_y + m_w * m_z), squ + sqx - sqy - sqz);
+            }
             return rpy;
         }
-
 
 
         TinyVector3 get_euler_rpy2() const {
