@@ -190,6 +190,7 @@
                      &Transform<MyAlgebra>::rotation)
       .def("apply_inverse",
           &Transform<MyAlgebra>::apply_inverse2)
+      .def("print", &Transform<MyAlgebra>::print)
       .def(py::self * py::self)
       .def("get_inverse",
            &Transform<MyAlgebra>::inverse);
