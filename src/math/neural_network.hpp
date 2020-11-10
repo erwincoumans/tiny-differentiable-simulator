@@ -259,7 +259,7 @@ class NeuralNetworkSpecification {
       file << "n_" << i - 1 << "_0--n_" << i << "_0;\n\t";
     }
     file << "edge[style=solid, tailport=e, headport=w];\n\t";
-    Algebra::Scalar max_weight = Algebra::zero();
+    typename Algebra::Scalar max_weight = Algebra::zero();
     if (!weights.empty()) {
       max_weight = (Algebra::abs(weights[0]));
       for (const auto& w : weights) {
