@@ -55,13 +55,13 @@ except:  #pylint: disable=W0702
   print("or use pip3 install motion_imitation --user")
   sys.exit()
 
-try:
-  import mpc_osqp as convex_mpc  # pytype: disable=import-error
-except:  #pylint: disable=W0702
-  print("You need to install motion_imitation")
-  print("Either run python3 setup.py install --user in this repo")
-  print("or use pip3 install motion_imitation --user")
-  sys.exit()
+#try:
+#  import mpc_osqp as convex_mpc  # pytype: disable=import-error
+#except:  #pylint: disable=W0702
+#  print("You need to install motion_imitation")
+#  print("Either run python3 setup.py install --user in this repo")
+#  print("or use pip3 install motion_imitation --user")
+#  sys.exit()
 
 _FORCE_DIMENSION = 3
 # The QP weights in the convex MPC formulation. See the MIT paper for details:
@@ -130,14 +130,14 @@ class TorqueStanceLegController(leg_controller.LegController):
     self._friction_coeffs = np.array(friction_coeffs)
     body_inertia_list = list(body_inertia)
     weights_list = list(_MPC_WEIGHTS)
-    self._cpp_mpc = convex_mpc.ConvexMpc(
-        body_mass,
-        body_inertia_list,
-        self._num_legs,
-        _PLANNING_HORIZON_STEPS,
-        _PLANNING_TIMESTEP,
-        weights_list,
-    )
+    #self._cpp_mpc = convex_mpc.ConvexMpc(
+    #    body_mass,
+    #    body_inertia_list,
+    #    self._num_legs,
+    #    _PLANNING_HORIZON_STEPS,
+    #    _PLANNING_TIMESTEP,
+    #    weights_list,
+    #)
 
   def reset(self, current_time):
     del current_time

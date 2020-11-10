@@ -208,10 +208,10 @@ namespace TINY {
                         JJTe_lambda2_I(i, i) += lambda * lambda;
                     }
                     Eigen::Matrix<double, Eigen::Dynamic, 1> eigen_mat =
-                        helper::to_eigen(JJTe_lambda2_I)
+                        TINY::to_eigen(JJTe_lambda2_I)
                         .colPivHouseholderQr()
-                        .solve(helper::to_eigen(e));
-                    VectorX z = helper::from_eigen_v<double, Utils>(eigen_mat);
+                        .solve(TINY::to_eigen(e));
+                    VectorX z = TINY::from_eigen_v<double, Utils>(eigen_mat);
                     delta_theta = J.mul_transpose(z);
                 }
 
