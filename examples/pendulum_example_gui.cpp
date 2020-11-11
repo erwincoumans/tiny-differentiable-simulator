@@ -111,6 +111,7 @@ int main(int argc, char* argv[]) {
   {
     app.m_renderer->update_camera(upAxis);
     DrawGridData data;
+    data.drawAxis = true;
     data.upAxis = upAxis;
     app.draw_grid(data);
 
