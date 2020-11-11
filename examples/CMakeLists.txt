@@ -6,6 +6,11 @@ add_executable(pendulum_example_gui pendulum_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_gui opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_gui PRIVATE ../src)
 
+add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
+target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
+target_include_directories(billiard_opt_example_gui PRIVATE ../src)
+
+
 add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS}) 
 target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window ${CMAKE_DL_LIBS}) 
 target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party/tinyobjloader)
@@ -32,6 +37,7 @@ target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../sr
 
 IF(WIN32)
     target_link_libraries(pendulum_example_gui Opengl32)
+    target_link_libraries(billiard_opt_example_gui Opengl32)
     target_link_libraries(tiny_urdf_parser_opengl_example Opengl32)
     target_link_libraries(opengl_test  Opengl32)
     target_link_libraries(opengl_imgui_test Opengl32)
