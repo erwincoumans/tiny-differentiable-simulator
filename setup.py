@@ -64,8 +64,8 @@ def parallelCCompile(self,
             return
         newcc_args = cc_args
         if _platform == "darwin":
-            if src.endswith('.cpp'):
-                newcc_args = cc_args + ["-mmacosx-version-min=10.7", "-stdlib=libc++"]
+            if src.endswith('.cpp') or src.endswith('.cc'):
+                newcc_args = cc_args + ["-mmacosx-version-min=10.7", "-std=c++17", "-stdlib=libc++"]
         self._compile(obj, src, ext, newcc_args, extra_postargs, pp_opts)
 
     # convert to list, imap is evaluated on-demand
@@ -171,10 +171,11 @@ elif _platform == "darwin":
     CXX_FLAGS += '-DB3_NO_PYTHON_FRAMEWORK '
     CXX_FLAGS += '-DHAS_SOCKLEN_T '
     CXX_FLAGS += '-D_DARWIN '
-    CXX_FLAGS += '-std=c++17 '
-    CXX_FLAGS += '-stdlib=libc++ '
     CXX_FLAGS += '-mmacosx-version-min=10.7 '
     #    CXX_FLAGS += '-framework Cocoa '
+    pytinyopengl3_sources += ["src/visualizer/opengl/tiny_mac_opengl_window.cpp",\
+       "src/visualizer/opengl/tiny_mac_opengl_window_objc.m"]
+    
 else:
     print("bsd!")
     libraries = ['GL', 'GLEW', 'pthread']
