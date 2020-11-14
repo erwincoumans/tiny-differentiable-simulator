@@ -17,7 +17,7 @@
 #include "b3WriteWavFile.h"
 
 //using namespace stk;
-double sampleRate = 48014.0;
+double sampleRate = 48000.0;
 #define MAX_GRAINS 100//500
 int activeGrains = 0;
 float grain_spawn_position = 0.f;
