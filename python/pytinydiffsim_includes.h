@@ -28,6 +28,7 @@
 #include "dynamics/integrator.hpp"
 #include "dynamics/jacobian.hpp"
 #include "math/neural_network.hpp"
+#include "utils/file_utils.hpp"
 
 template <typename Algebra>
 struct UrdfToMultiBody2 {
@@ -47,6 +48,13 @@ inline MyScalar fraction(int a, int b)
 {
     return MyTinyConstants::fraction(a, b);
 }
+
+inline MyScalar copy(MyScalar v)
+{
+    return MyTinyConstants::copy(v);
+}
+
+
 
 inline void MyMassMatrix(tds::MultiBody<MyAlgebra>& mb, MyAlgebra::VectorX& q,
     MyAlgebra::MatrixX* M)
@@ -114,6 +122,28 @@ inline MyAlgebra::VectorX MyInverseKinematics(tds::MultiBody<MyAlgebra>& mb, int
     inverse_kinematics.q_reference = mb.q_;
     inverse_kinematics.compute(mb, mb.q_, q_target);
     return q_target;
+}
+
+std::string MyFindFile(std::string& org_name)
+{
+    std::string result_path;
+    bool has_result = tds::FileUtils::find_file(org_name, result_path);
+    return result_path;
+}
+
+MyScalar MyPi()
+{
+    return MyAlgebra::pi();
+}
+
+MyScalar MyCos(MyScalar v)
+{
+    return MyAlgebra::cos(v);
+}
+
+MyScalar MySin(MyScalar v)
+{
+    return MyAlgebra::sin(v);
 }
 
 
