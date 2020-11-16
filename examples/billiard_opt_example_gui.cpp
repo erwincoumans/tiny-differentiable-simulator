@@ -241,6 +241,8 @@ void grad_dual(double force_x, double force_y, double* cost, double* d_force_x,
   }
 }
 
+#ifdef USE_CERES
+
 struct CeresFunctional {
   int steps{300};
 
@@ -256,7 +258,6 @@ struct CeresFunctional {
   }
 };
 
-#ifdef USE_CERES
 
 ceres::AutoDiffCostFunction<CeresFunctional, 1, 2> cost_function(
     new CeresFunctional);
