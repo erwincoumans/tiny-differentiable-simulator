@@ -71,6 +71,10 @@ struct TinyDualDoubleUtils {
     return TinyDualDouble(double(num) / double(denom));
   }
 
+  static TinyDualDouble copy(TinyDualDouble v) {
+      return v;
+  }
+
   static TinyDualDouble sin1(TinyDualDouble v) { return sin(v); }
 
   static TinyDualDouble sqrt1(TinyDualDouble z) {

@@ -37,6 +37,7 @@
   py::class_<TinyVector3<MyScalar, MyTinyConstants>>(m, "TinyVector3")
       .def(py::init<MyScalar, MyScalar, MyScalar>())
       .def("set_zero", &TinyVector3<MyScalar, MyTinyConstants>::set_zero)
+      .def("sqnorm", &TinyVector3<MyScalar, MyTinyConstants>::sqnorm)
       .def_readwrite("x", &TinyVector3<MyScalar, MyTinyConstants>::m_x)
       .def_readwrite("y", &TinyVector3<MyScalar, MyTinyConstants>::m_y)
       .def_readwrite("z", &TinyVector3<MyScalar, MyTinyConstants>::m_z)
@@ -45,6 +46,7 @@
       .def(py::self += py::self)
       .def(py::self -= py::self)
       .def(-py::self)
+      
       .def("__repr__",
            [](const TinyVector3<MyScalar, MyTinyConstants> &a) {
              return "[" + std::to_string(MyTinyConstants::getDouble(a.m_x)) + " " + std::to_string(MyTinyConstants::getDouble(a.m_y)) +
@@ -319,6 +321,7 @@
       ;
 
   m.def("fraction", &fraction);
+  m.def("copy", &copy);
   m.def("mass_matrix", &MyMassMatrix);
   m.def("forward_kinematics", &MyForwardKinematics);
   m.def("forward_dynamics", &MyForwardDynamics);
@@ -328,6 +331,11 @@
   m.def("point_jacobian", &MyPointJacobian);
   m.def("inverse_kinematics", &MyInverseKinematics);
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
+  m.def("find_file", &MyFindFile);
+  m.def("pi", &MyPi);
+  m.def("cos", &MyCos);
+  m.def("sin", &MySin);
+
   
   
   py::class_<NeuralNetwork<MyAlgebra>>(      m, "NeuralNetwork")
@@ -490,6 +498,7 @@
                     &World<MyAlgebra>::set_gravity)
       .def("compute_contacts_rigid_body",
            &World<MyAlgebra>::compute_contacts_rigid_body)
+      
       .def("compute_contacts_multi_body",
            &World<MyAlgebra>::compute_contacts_multi_body)
       .def("get_collision_dispatcher",
