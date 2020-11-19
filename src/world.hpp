@@ -185,10 +185,10 @@ class World {
     return sphere;
   }
 
-  // CollisionDispatcher<Algebra>
-  // get_collision_dispatcher() {
-  //   return dispatcher;
-  // }
+   CollisionDispatcher<Algebra>
+   get_collision_dispatcher() {
+     return dispatcher_;
+   }
 
   RigidBody* create_rigid_body(const Scalar& mass, const Geometry* geom) {
     RigidBody body(mass, geom);
@@ -212,7 +212,6 @@ class World {
     return nullptr;
   }
 
- protected:
   std::vector<ContactPoint<Algebra>> contacts;
 
   static void compute_contacts_rigid_body_internal(
@@ -333,7 +332,7 @@ class World {
   }
 
   std::vector<std::vector<MultiBodyContactPoint>> compute_contacts_multi_body(
-      const std::list<MultiBody>& bodies,
+      std::list<MultiBody>& bodies,
       CollisionDispatcher<Algebra>* dispatcher) {
     std::vector<std::vector<MultiBodyContactPoint>> contactsOut;
     compute_contacts_multi_body_internal(bodies, dispatcher, contactsOut,

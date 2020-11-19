@@ -877,10 +877,7 @@ static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_eq(
 }
 #endif //USE_CPPAD
 
-template <typename Algebra>
-struct is_eigen_algebra {
-  static constexpr bool value = false;
-};
+
 template <typename Algebra>
 struct is_eigen_algebra<EigenAlgebraT<Algebra>> {
   static constexpr bool value = true;

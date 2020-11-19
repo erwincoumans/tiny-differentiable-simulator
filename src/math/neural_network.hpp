@@ -403,6 +403,7 @@ class NeuralNetwork : public NeuralNetworkSpecification {
     this->template print_states<Algebra>(biases);
   }
 
+#if 0
   void save_graphviz(const std::string& filename,
                      const std::vector<std::string>& input_names = {},
                      const std::vector<std::string>& output_names = {}) const {
@@ -410,6 +411,7 @@ class NeuralNetwork : public NeuralNetworkSpecification {
         ->template save_graphviz<Algebra>(filename, input_names, output_names,
                                           weights, biases);
   }
+#endif
 };
 
 }  // namespace tds
