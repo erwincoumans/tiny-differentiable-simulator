@@ -345,7 +345,7 @@
       //.def("compute", &NeuralNetwork<MyAlgebra>::compute)
       .def("set_parameters", &NeuralNetwork<MyAlgebra>::set_parameters)
       .def("print_params", &NeuralNetwork<MyAlgebra>::print_params)
-      .def("save_graphviz", &NeuralNetwork<MyAlgebra>::save_graphviz)
+      //.def("save_graphviz", &NeuralNetwork<MyAlgebra>::save_graphviz)
       ;
       //.def("compute_contacts", &CollisionDispatcher<MyAlgebra>::compute_contacts2);
 
@@ -461,6 +461,7 @@
       .def("resolve_collision",
            &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision);
 
+#if 0
   py::enum_<VelocitySmoothingMethod>(m, "TinyVelocitySmoothingMethod",
                                          py::arithmetic())
       .value("SMOOTH_VEL_NONE", SMOOTH_VEL_NONE)
@@ -490,7 +491,7 @@
       .def_readwrite("friction_model", &TMBCSS::friction_model_)
       .def("compute_contact_force", &TMBCSS::compute_contact_force)
       .def("compute_friction_force", &TMBCSS::compute_friction_force);
-
+#endif
   py::class_<World<MyAlgebra>>(m, "TinyWorld")
       .def(py::init<>())
       .def("step", &World<MyAlgebra>::step)

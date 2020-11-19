@@ -1,3 +1,6 @@
+#ifndef _MULTI_BODY_HPP
+#define _MULTI_BODY_HPP
+
 #pragma once
 
 #include <vector>
@@ -421,6 +424,11 @@ public:
     }
   }
 
+  TINY_INLINE void set_q(const VectorX& q)
+  {
+      q_ = q;
+  }
+
   TINY_INLINE Scalar get_q_for_link(const VectorX &q, int link_index) const {
     if (Algebra::size(q) == 0) return Algebra::zero();
     const Link &link = links_[link_index];
@@ -531,3 +539,4 @@ static TINY_INLINE MultiBody<AlgebraTo> clone(
   return mb.template clone<AlgebraTo>();
 }
 }  // namespace tds
+#endif //_MULTI_BODY_HPP

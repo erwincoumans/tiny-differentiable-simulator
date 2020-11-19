@@ -13,7 +13,7 @@
 
 #include "math/tiny/tiny_matrix3x3.h"
 #include "math/tiny/tiny_matrix_x.h"
-#include "mb_constraint_solver_spring.hpp"
+//#include "mb_constraint_solver_spring.hpp"
 #include "multi_body.hpp"
 #include "math/pose.hpp"
 #include "math/tiny/tiny_quaternion.h"

@@ -2,9 +2,15 @@
 # then examples with only included third_party dependencies
 # at the end, optional complex examples with complicated dependencies (PyTorch, STAN, BOOST etc)
 
-add_executable(pendulum_example_gui pendulum_example_gui.cpp  ${TDS_HDRS})
-target_link_libraries(pendulum_example_gui opengl_window ${CMAKE_DL_LIBS})
-target_include_directories(pendulum_example_gui PRIVATE ../src)
+add_executable(pendulum_example_tiny_gui pendulum_example_gui.cpp  ${TDS_HDRS})
+target_link_libraries(pendulum_example_tiny_gui opengl_window ${CMAKE_DL_LIBS})
+target_compile_definitions(pendulum_example_tiny_gui PRIVATE USE_TINY )
+target_include_directories(pendulum_example_tiny_gui PRIVATE ../src )
+
+add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
+target_link_libraries(pendulum_example_eigen_gui opengl_window ${CMAKE_DL_LIBS})
+target_include_directories(pendulum_example_eigen_gui PRIVATE ../src  ${EIGEN3_INCLUDE_DIRS})
+
 
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
@@ -36,7 +42,8 @@ target_link_libraries(tiny_urdf_parser_example tinyxml2)
 target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../src)
 
 IF(WIN32)
-    target_link_libraries(pendulum_example_gui Opengl32)
+    target_link_libraries(pendulum_example_tiny_gui Opengl32)
+    target_link_libraries(pendulum_example_eigen_gui Opengl32)
     target_link_libraries(billiard_opt_example_gui Opengl32)
     target_link_libraries(tiny_urdf_parser_opengl_example Opengl32)
     target_link_libraries(opengl_test  Opengl32)
