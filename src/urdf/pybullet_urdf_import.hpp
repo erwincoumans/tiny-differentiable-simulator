@@ -400,7 +400,7 @@ struct PyBulletUrdfImport {
           args2.m_baseVisualShapeIndex = vizShape;
           args2.m_baseMass = 0;
           int viz_uid = viz_api->createMultiBody(args2);
-          visual_shape.sync_visual_body_id = viz_uid;
+          visual_shape.sync_visual_body_uid1 = viz_uid;
           break;
         }
         case TINY_CAPSULE_TYPE: {
@@ -417,7 +417,7 @@ struct PyBulletUrdfImport {
           args2.m_baseVisualShapeIndex = vizShape;
           args2.m_baseMass = 0;
           int viz_uid = viz_api->createMultiBody(args2);
-          visual_shape.sync_visual_body_id = viz_uid;
+          visual_shape.sync_visual_body_uid1 = viz_uid;
           break;
         }
         case TINY_BOX_TYPE: {
@@ -432,7 +432,7 @@ struct PyBulletUrdfImport {
             args2.m_baseVisualShapeIndex = vizShape;
             args2.m_baseMass = 0;
             int viz_uid = viz_api->createMultiBody(args2);
-            visual_shape.sync_visual_body_id = viz_uid;
+            visual_shape.sync_visual_body_uid1 = viz_uid;
             break;
           }
           case TINY_MESH_TYPE: {
@@ -463,7 +463,7 @@ struct PyBulletUrdfImport {
               args_change.m_rgbaColor.setValue(1, 1, 1, 1);
               viz_api->changeVisualShape(args_change);
             }
-            visual_shape.sync_visual_body_id = viz_uid;
+            visual_shape.sync_visual_body_uid1 = viz_uid;
             break;
           }
           default: {

@@ -131,7 +131,7 @@ pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
 
 if _platform == "linux" or _platform == "linux2":
     print("linux")
-    libraries = ['dl', 'pthread']
+    libraries = ['dl', 'pthread', 'stdc++fs']
     CXX_FLAGS += '-D_LINUX '
     CXX_FLAGS += '-DGLEW_STATIC '
     CXX_FLAGS += '-DGLEW_INIT_OPENGL11_FUNCTIONS=1 '
