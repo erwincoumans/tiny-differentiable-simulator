@@ -332,13 +332,6 @@ struct ArticulatedBodyInertia {
       Vector3 a_bottom_b_bottom = a.bottom * b.bottom[i];
       Algebra::assign_column(abi.M, i, a_bottom_b_bottom);
     }
-#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    if constexpr (is_eigen_algebra<Algebra>::value) {
-      abi.H.transposeInPlace();
-    } else {
-      abi.H = abi.H.transpose();
-    }
-#endif
     return abi;
   }
 

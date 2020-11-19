@@ -127,7 +127,7 @@ struct Transform {
     /// right-associative
     Transform tr = *this;
     tr.translation += rotation * t.translation;
-    // tr.translation += Algebra::transpose(rotation) * t.translation;
+    //tr.translation += Algebra::transpose(rotation) * t.translation;
     tr.rotation *= t.rotation;
     return tr;
   }

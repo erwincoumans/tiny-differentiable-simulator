@@ -19,7 +19,9 @@
 #include "base.hpp"
 #include "geometry.hpp"
 #include "math/pose.hpp"
+#ifdef USE_CPPAD
 #include "math/conditionals.hpp"
+#endif //USE_CPPAD
 
 namespace tds {
 template <typename Algebra>

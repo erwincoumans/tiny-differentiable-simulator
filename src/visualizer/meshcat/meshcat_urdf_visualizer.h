@@ -25,13 +25,8 @@
 
 #include "meshcat_cube_data.h"
 #include "meshcat_zmq.h"
-<<<<<<< HEAD:src/visualizer/meshcat/meshcat_urdf_visualizer.h
-#include "multi_body.hpp
-#include "tiny_urdf_structures.h"
-=======
 #include "multi_body.hpp"
 #include "urdf/urdf_structures.hpp"
->>>>>>> c02b5b90cba08605a0c5e292d1da0a9ee8450a01:src/visualizer/meshcat/meshcat_urdf_visualizer.h
 
 inline std::string correct_non_utf_8(const std::string &str) {
   int i, f_size = str.size();

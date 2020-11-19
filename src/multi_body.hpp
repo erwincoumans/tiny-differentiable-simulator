@@ -34,7 +34,7 @@ class MultiBody {
    */
   int dof_{0};
 
-  LinkCollection links_;
+  
 
   /**
    * Whether this system is floating or fixed to the world frame.
@@ -66,11 +66,13 @@ class MultiBody {
   // offset of collision geometries (relative to this link frame)
   std::vector<Transform> X_collisions_;
 
+public:
   VectorX q_, qd_, qdd_, tau_;
 
   std::string name_;
 
- public:
+  LinkCollection links_;
+ 
   explicit MultiBody(bool isFloating = false) : is_floating_(isFloating) {}
 
   template <typename AlgebraTo = Algebra>
