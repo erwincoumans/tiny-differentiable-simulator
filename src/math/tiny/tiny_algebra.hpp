@@ -10,6 +10,8 @@
 #include "tiny_vector3.h"
 #include "tiny_vector_x.h"
 #include "../transform.hpp"
+#undef min
+#undef max
 
 template <typename TinyScalar, typename TinyConstants>
 struct TinyAlgebra {
@@ -316,7 +318,9 @@ struct TinyAlgebra {
   }
 
   TINY_INLINE static void assign_column(Matrix3 &m, Index i, const Vector3 &v) {
-    m[i] = v;
+      for (int j = 0; j < 3; ++j) {
+          m(j, i) = v[j];
+      }
   }
   TINY_INLINE static void assign_column(Matrix6 &m, Index i,
                                         const SpatialVector &v) {
@@ -342,7 +346,7 @@ struct TinyAlgebra {
   }
 
   TINY_INLINE static void assign_row(Matrix3 &m, Index i, const Vector3 &v) {
-    for (int j = 0; j < 6; ++j) {
+    for (int j = 0; j < 3; ++j) {
       m(i, j) = v[j];
     }
   }

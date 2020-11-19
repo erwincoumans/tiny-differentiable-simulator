@@ -22,6 +22,9 @@
 #include "math/conditionals.hpp"
 #include "multi_body.hpp"
 
+#undef min
+#undef max
+
 namespace tds {
 template <typename Algebra>
 struct MultiBodyContactPoint : public ContactPoint<Algebra> {

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "geometry.hpp"
+#ifdef USE_CPPAD
 #include "math/conditionals.hpp"
+#endif
 
 namespace tds {
 template <typename Algebra>

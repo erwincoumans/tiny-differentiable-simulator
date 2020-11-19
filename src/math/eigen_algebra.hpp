@@ -6,8 +6,11 @@
 #endif
 
 // clang-format off
+#ifdef USE_CPPAD
 #include <cppad/cg.hpp>
 #include "math/cppad/eigen_mat_inv.hpp"
+#endif //USE_CPPAD
+
 // clang-format on
 
 #include <Eigen/Core>
@@ -18,6 +21,8 @@
 #include "math/tiny/neural_scalar.hpp"
 
 #include "spatial_vector.hpp"
+#undef max
+#undef min
 
 namespace tds {
 
@@ -222,7 +227,12 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Matrix3 cross_matrix(const Vector3 &v) {
     Matrix3 tmp;
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    tmp << zero(), v[2], -v[1], -v[2], zero(), v[0], v[1], -v[0], zero();
+#else
     tmp << zero(), -v[2], v[1], v[2], zero(), -v[0], -v[1], v[0], zero();
+    
+#endif
     return tmp;
   }
 
@@ -521,7 +531,12 @@ struct EigenAlgebraT {
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     temp << one(), zero(), zero(), zero(), c, s, zero(), -s, c;
+#else
+    temp << one(), zero(), zero(), zero(), c, -s, zero(), s, c;
+#endif
+    //std::cout << "rot_x" << temp << std::endl;
     return temp;
   }
 
@@ -530,7 +545,11 @@ struct EigenAlgebraT {
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     temp << c, zero(), -s, zero(), one(), zero(), s, zero(), c;
+#else
+    temp << c, zero(), s, zero(), one(), zero(), -s, zero(), c;
+#endif
     return temp;
   }
 
@@ -539,7 +558,11 @@ struct EigenAlgebraT {
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     temp << c, s, zero(), -s, c, zero(), zero(), zero(), one();
+#else
+    temp << c, -s, zero(), s, c, zero(), zero(), zero(), one();
+#endif
     return temp;
   }
 
@@ -685,13 +708,16 @@ struct EigenAlgebraT {
       return stan::math::value_of(s);
     } else
 #endif
+#ifdef USE_CPPAD
         if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
                                      CppAD::AD<CppAD::cg::CG<double>>>) {
       return CppAD::Value(CppAD::Var2Par(s)).getValue();
     } else if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
                                         CppAD::AD<double>>) {
       return CppAD::Value(CppAD::Var2Par(s));
-    } else {
+    } else 
+#endif //USE_CPPAD
+    {
       return static_cast<double>(s);
     }
   }
@@ -794,65 +820,72 @@ struct EigenAlgebraT {
 typedef EigenAlgebraT<double> EigenAlgebra;
 
 // Helpers for NeuralAlgebra
-
+#ifdef USE_CPPAD
 template <typename Scalar>
 struct is_cppad_scalar<NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>> {
   static constexpr bool value = true;
 };
 
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_gt(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_false) {
+    return CppAD::CondExpGt(x.evaluate(), y.evaluate(), if_true.evaluate(),
+        if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_ge(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_false) {
+    return CppAD::CondExpGe(x.evaluate(), y.evaluate(), if_true.evaluate(),
+        if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_lt(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_false) {
+    return CppAD::CondExpLt(x.evaluate(), y.evaluate(), if_true.evaluate(),
+        if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_le(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_false) {
+    return CppAD::CondExpLe(x.evaluate(), y.evaluate(), if_true.evaluate(),
+        if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_eq(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>& if_false) {
+    return CppAD::CondExpEq(x.evaluate(), y.evaluate(), if_true.evaluate(),
+        if_false.evaluate());
+}
+#endif //USE_CPPAD
+
+template <typename Algebra>
+struct is_eigen_algebra {
+  static constexpr bool value = false;
+};
 template <typename Algebra>
 struct is_eigen_algebra<EigenAlgebraT<Algebra>> {
   static constexpr bool value = true;
 };
 
-template <typename Scalar>
-static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_gt(
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
-  return CppAD::CondExpGt(x.evaluate(), y.evaluate(), if_true.evaluate(),
-                          if_false.evaluate());
-}
 
-template <typename Scalar>
-static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_ge(
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
-  return CppAD::CondExpGe(x.evaluate(), y.evaluate(), if_true.evaluate(),
-                          if_false.evaluate());
-}
-
-template <typename Scalar>
-static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_lt(
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
-  return CppAD::CondExpLt(x.evaluate(), y.evaluate(), if_true.evaluate(),
-                          if_false.evaluate());
-}
-
-template <typename Scalar>
-static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_le(
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
-  return CppAD::CondExpLe(x.evaluate(), y.evaluate(), if_true.evaluate(),
-                          if_false.evaluate());
-}
-
-template <typename Scalar>
-static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_eq(
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
-    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
-  return CppAD::CondExpEq(x.evaluate(), y.evaluate(), if_true.evaluate(),
-                          if_false.evaluate());
-}
 
 }  // end namespace tds
