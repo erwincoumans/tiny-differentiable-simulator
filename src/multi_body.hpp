@@ -37,7 +37,7 @@ class MultiBody {
    */
   int dof_{0};
 
-  
+ 
 
   /**
    * Whether this system is floating or fixed to the world frame.
@@ -62,6 +62,8 @@ class MultiBody {
   mutable Transform base_X_world_;
 
   std::vector<int> visual_ids_;
+  std::vector<int> visual_ids2_;
+  
   // offset of geometry (relative to the base frame)
   std::vector<Transform> X_visuals_;
 
@@ -203,7 +205,6 @@ public:
   TINY_INLINE const ArticulatedBodyInertia &base_abi() const {
     return base_abi_;
   }
-  
   TINY_INLINE Transform &base_X_world() { 
       return base_X_world_; 
   }
@@ -213,6 +214,9 @@ public:
 
   TINY_INLINE std::vector<int> &visual_ids() { return visual_ids_; }
   TINY_INLINE const std::vector<int> &visual_ids() const { return visual_ids_; }
+
+  TINY_INLINE std::vector<int>& visual_ids2() { return visual_ids2_; }
+  TINY_INLINE const std::vector<int>& visual_ids2() const { return visual_ids2_; }
 
   TINY_INLINE std::vector<Transform> &X_visuals() { return X_visuals_; }
   TINY_INLINE const std::vector<Transform> &X_visuals() const {
@@ -282,7 +286,7 @@ public:
   {
       return Algebra::matrix_to_quat(get_world_transform(-1).rotation);
   }
-  
+
   /**
    * Ensures that the joint coordinates q, qd, qdd, tau are initialized
    * properly in the MultiBody member variables.
@@ -315,7 +319,7 @@ public:
     }
 
     base_abi_ = base_rbi_;
-    
+
     if (is_floating_ && !base_abi_.is_invertible()) {
       fprintf(stderr,
               "Error: floating-base inertia matrix (ABI) is not invertible. "
