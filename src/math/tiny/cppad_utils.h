@@ -20,7 +20,10 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include <cppad/cg.hpp>
 #include <cppad/cppad.hpp>
+#include <string>
+
 #include "math.h"
 
 /**
@@ -30,6 +33,8 @@
 template <typename InnerScalar = double>
 struct CppADUtils {
   typedef typename CppAD::AD<InnerScalar> Scalar;
+  static const bool is_codegen =
+      std::is_same_v<InnerScalar, CppAD::cg::CG<double>>;
 
   static Scalar zero() { return Scalar(0.); }
   static Scalar one() { return Scalar(1.); }
@@ -58,12 +63,65 @@ struct CppADUtils {
   }
 
   template <class T>
+  static T exp(const T& v) {
+    using std::exp;
+    return exp(v);
+  }
+
+  template <class T>
+  static T log(const T& v) {
+    using std::log;
+    return log(v);
+  }
+
+  template <class T>
+  static T pow(const T& v, const T& e) {
+    using std::pow;
+    return pow(v, e);
+  }
+
+  template <class T>
+  static T tanh(const T& v) {
+    using std::tanh;
+    return tanh(v);
+  }
+
+  template <class T>
   static T atan2(const T& dy, const T& dx) {
     using std::atan2;
     return atan2(dy, dx);
   }
 
-  static double getDouble(const Scalar& v) { return CppAD::Value(v); }
+  template <class T>
+  static T min1(const T& a, const T& b) {
+#if DEBUG
+    printf("Called CppAD CondExpLt\n");
+#endif
+    return CppAD::CondExpLt(a, b, a, b);
+  }
+
+  template <class T>
+  static T max1(const T& a, const T
+  & b) {
+#if DEBUG
+    printf("Called CppAD CondExpGt\n");
+#endif
+    return CppAD::CondExpGt(a, b, a, b);
+  }
+
+  template <class T>
+  static T abs(const T& a) {
+    return CppAD::CondExpGt(a, zero(), a, -a);
+  }
+
+  static double getDouble(const Scalar& v) {
+    if constexpr (is_codegen) {
+      return CppAD::Value(v).getValue();
+    } else {
+      return CppAD::Value(v);
+    }
+  }
+
   template <class T>
   static double getDouble(const T& v) {
     return CppAD::Value(v);
@@ -73,6 +131,16 @@ struct CppADUtils {
   static Scalar convert(T) = delete;  // C++11
 
   static Scalar convert(int value) { return Scalar(double(value)); }
+
+  template <class T>
+  static Scalar scalar_from_double(const T& value) {
+    return Scalar(double(value));
+  }
+
+  template <class T>
+  static Scalar scalar_from_string(const T& value) {
+    return Scalar(std::stod(value));
+  }
 
   template <class T>
   static Scalar fraction(T, T) = delete;  // C++11

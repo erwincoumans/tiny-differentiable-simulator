@@ -23,6 +23,11 @@ fprintf(stderr, "Cannot set NaN trap: feenableexcept is not available.");
 	fprintf(stderr, "Cannot set NaN trap: feenableexcept is not available.");
 #endif
 }
+
+template <typename Algebra>
+struct is_eigen_algebra {
+  static constexpr bool value = false;
+};
 }  // namespace tds
 
 typedef void (*SubmitProfileTiming)(const std::string& profileName);

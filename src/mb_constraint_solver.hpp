@@ -19,6 +19,7 @@
 #include "contact_point.hpp"
 #include "dynamics/jacobian.hpp"
 #include "dynamics/mass_matrix.hpp"
+#include "math/conditionals.hpp"
 #include "multi_body.hpp"
 
 namespace tds {
@@ -68,6 +69,19 @@ class MultiBodyConstraintSolver {
 
   virtual ~MultiBodyConstraintSolver() = default;
 
+  template <typename AlgebraTo = Algebra>
+  MultiBodyConstraintSolver<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    MultiBodyConstraintSolver<AlgebraTo> conv;
+    conv.pgs_iterations_ = pgs_iterations_;
+    conv.least_squares_residual_threshold_ = least_squares_residual_threshold_;
+    conv.limit_dependency_ = limit_dependency_;
+    conv.erp_ = C::convert(erp_);
+    conv.cfm_ = C::convert(cfm_);
+    conv.num_friction_dir_ = num_friction_dir_;
+    return conv;
+  }
+
  private:
   /**
    * Projected Gauss-Seidel solver for a MLCP defined by coefficient matrix A
@@ -105,16 +119,14 @@ class MultiBodyConstraintSolver {
         Scalar s = Algebra::one();
         if (!limit_dependency_.empty() && limit_dependency_[i] >= 0) {
           s = x[limit_dependency_[i]];
-          if (s < Algebra::zero()) {
-            s = Algebra::zero();
-          }
+          s = where_lt(s, Algebra::zero(), Algebra::zero(), s);
         }
 
-        if (lo && x[i] < (*lo)[i] * s) {
-          x[i] = (*lo)[i] * s;
+        if (lo) {
+          x[i] = Algebra::max(x[i], (*lo)[i] * s);
         }
-        if (hi && x[i] > (*hi)[i] * s) {
-          x[i] = (*hi)[i] * s;
+        if (hi) {
+          x[i] = Algebra::min(x[i], (*hi)[i] * s);
         }
         // Scalar diff = x[i] - x_old;
         // least_squares_residual += Algebra::getDouble(diff * diff);
@@ -335,8 +347,8 @@ class MultiBodyConstraintSolver {
       submit_profile_timing("");
     }
 
-    //    lcp_A.print("MLCP A");
-    //    lcp_b.print("MLCP b");
+    //  Algebra::print("MLCP A", lcp_A);
+    //  Algebra::print("MLCP b", lcp_b);
 
     VectorX lcp_p(dof_per_contact * n_c);
     Algebra::set_zero(lcp_p);
@@ -425,14 +437,13 @@ class MultiBodyConstraintSolver {
     }
   }
 
- private:
   /**
    * Treat this vector as normal vector of a plane and compute two
    * orthogonal direction vectors of that plane.
    * p and q will be unit vectors, the normal vector does not need to be unit
    * length.
    */
-  inline void plane_space(const Vector3& n, Vector3& p, Vector3& q) const {
+  static inline void plane_space(const Vector3& n, Vector3& p, Vector3& q) {
     if (n[2] * n[2] > Algebra::half()) {
       // choose p in y-z plane
       Scalar a = n[1] * n[1] + n[2] * n[2];
@@ -458,10 +469,17 @@ class MultiBodyConstraintSolver {
     }
   }
 
+ private:
   TINY_INLINE void submit_profile_timing(const std::string& name) const {
     if (profile_timing_func_) {
       profile_timing_func_(name);
     }
   }
 };
+
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE MultiBodyConstraintSolver<AlgebraTo> clone(
+    const MultiBodyConstraintSolver<AlgebraFrom>& s) {
+  return s.template clone<AlgebraTo>();
+}
 }  // namespace tds

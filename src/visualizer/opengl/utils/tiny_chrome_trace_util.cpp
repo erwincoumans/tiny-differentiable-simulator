@@ -1,8 +1,11 @@
 
 #include "tiny_chrome_trace_util.h"
+
 #include <assert.h>
 #include <stdio.h>
+
 #include <vector>
+
 #include "tiny_clock.h"
 #include "tiny_logging.h"
 
@@ -33,8 +36,8 @@ struct TinyTimings {
     for (int i = 0; i < m_numTimings; i++) {
       const char* name = m_timings[i].m_name;
       int threadId = m_timings[i].m_threadId;
-      unsigned long long int startTime = m_timings[i].m_usStartTime;
-      unsigned long long int endTime = m_timings[i].m_usEndTime;
+      long unsigned int startTime = m_timings[i].m_usStartTime;
+      long unsigned int endTime = m_timings[i].m_usEndTime;
 
       if (!gFirstTiming) {
         fprintf(gTimingFile, ",\n");
@@ -46,8 +49,8 @@ struct TinyTimings {
         endTime = startTime;
       }
 
-      unsigned long long int startTimeDiv1000 = startTime / 1000;
-      unsigned long long int endTimeDiv1000 = endTime / 1000;
+      long unsigned int startTimeDiv1000 = startTime / 1000;
+      long unsigned int endTimeDiv1000 = endTime / 1000;
 
 #if 0
 

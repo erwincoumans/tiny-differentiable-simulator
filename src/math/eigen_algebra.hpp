@@ -5,9 +5,17 @@
 #include <stan/math/fwd.hpp>
 #endif
 
+// clang-format off
+#include <cppad/cg.hpp>
+#include "math/cppad/eigen_mat_inv.hpp"
+// clang-format on
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <iostream>
+
+#include "math/conditionals.hpp"
+#include "math/tiny/neural_scalar.hpp"
 
 #include "spatial_vector.hpp"
 
@@ -100,16 +108,70 @@ struct EigenAlgebraT {
   }
 
   /**
+   * CppAD-friendly matrix inverse operation that assumes the input matrix is
+   * positive-definite.
+   */
+  static void plain_symmetric_inverse(const MatrixX &mat, MatrixX &mat_inv) {
+    assert(mat.rows() == mat.cols());
+    VectorX diagonal = mat.diagonal();
+    mat_inv = mat;
+    const int n = mat.rows();
+    int i, j, k;
+    Scalar sum;
+    for (i = 0; i < n; i++) {
+      mat_inv(i, i) = one() / diagonal[i];
+      for (j = i + 1; j < n; j++) {
+        sum = zero();
+        for (k = i; k < j; k++) {
+          sum -= mat_inv(j, k) * mat_inv(k, i);
+        }
+        mat_inv(j, i) = sum / diagonal[j];
+      }
+    }
+    for (i = 0; i < n; i++) {
+      for (j = i + 1; j < n; j++) {
+        mat_inv(i, j) = zero();
+      }
+    }
+    for (i = 0; i < n; i++) {
+      mat_inv(i, i) = mat_inv(i, i) * mat_inv(i, i);
+      for (k = i + 1; k < n; k++) {
+        mat_inv(i, i) += mat_inv(k, i) * mat_inv(k, i);
+      }
+      for (j = i + 1; j < n; j++) {
+        for (k = j; k < n; k++) {
+          mat_inv(i, j) += mat_inv(k, i) * mat_inv(k, j);
+        }
+      }
+    }
+    for (i = 0; i < n; i++) {
+      for (j = 0; j < i; j++) {
+        mat_inv(i, j) = mat_inv(j, i);
+      }
+    }
+  }
+
+  /**
    * Returns true if the matrix `mat` is positive-definite, and assigns
    * `mat_inv` to the inverse of mat.
    * `mat` must be a symmetric matrix.
    */
   static bool symmetric_inverse(const MatrixX &mat, MatrixX &mat_inv) {
-    Eigen::LLT<MatrixX> llt(mat);
-    if (llt.info() == Eigen::NumericalIssue) {
-      return false;
+    if constexpr (!is_cppad_scalar<Scalar>::value) {
+      Eigen::LLT<MatrixX> llt(mat);
+      if (llt.info() == Eigen::NumericalIssue) {
+        return false;
+      }
+      mat_inv = mat.inverse();
+    } else {
+      plain_symmetric_inverse(mat, mat_inv);
+      // // FIXME the atomic op needs to remain in memory but it will fail when
+      // the
+      // // dimensions of the input matrix are not always the same
+      // using InnerScalar = typename Scalar::value_type;
+      // static atomic_eigen_mat_inv<InnerScalar> mat_inv_op;
+      // mat_inv = mat_inv_op.op(mat);
     }
-    mat_inv = mat.inverse();
     return true;
   }
 
@@ -160,7 +222,7 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Matrix3 cross_matrix(const Vector3 &v) {
     Matrix3 tmp;
-    tmp << 0., -v[2], v[1], v[2], 0., -v[0], -v[1], v[0], 0.;
+    tmp << zero(), -v[2], v[1], v[2], zero(), -v[0], -v[1], v[0], zero();
     return tmp;
   }
 
@@ -172,38 +234,50 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Matrix3 diagonal3(const Vector3 &v) {
     Matrix3 tmp;
-    tmp << v[0], 0, 0, 0, v[1], 0, 0, 0, v[2];
+    tmp.setZero();
+    tmp(0, 0) = v[0];
+    tmp(1, 1) = v[1];
+    tmp(2, 2) = v[2];
     return tmp;
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 diagonal3(const Scalar &v) {
     Matrix3 tmp;
-    tmp << v, 0, 0, 0, v, 0, 0, 0, v;
+    tmp.setZero();
+    tmp(0, 0) = v;
+    tmp(1, 1) = v;
+    tmp(2, 2) = v;
     return tmp;
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 eye3() { return Matrix3::Identity(); }
   EIGEN_ALWAYS_INLINE static void set_identity(Quaternion &quat) {
-    quat = Quaternion(1., 0., 0., 0.);
+    quat = Quaternion(Scalar(1.), Scalar(0.), Scalar(0.), Scalar(0.));
   }
 
-  EIGEN_ALWAYS_INLINE static Scalar zero() { return 0; }
-  EIGEN_ALWAYS_INLINE static Scalar one() { return 1; }
-  EIGEN_ALWAYS_INLINE static Scalar two() { return 2; }
-  EIGEN_ALWAYS_INLINE static Scalar half() { return 0.5; }
-  EIGEN_ALWAYS_INLINE static Scalar pi() { return M_PI; }
+  EIGEN_ALWAYS_INLINE static Scalar zero() { return Scalar(0); }
+  EIGEN_ALWAYS_INLINE static Scalar one() { return Scalar(1); }
+  EIGEN_ALWAYS_INLINE static Scalar two() { return Scalar(2); }
+  EIGEN_ALWAYS_INLINE static Scalar half() { return Scalar(0.5); }
+  EIGEN_ALWAYS_INLINE static Scalar pi() { return Scalar(M_PI); }
   EIGEN_ALWAYS_INLINE static Scalar fraction(int a, int b) {
-    return ((double)a) / b;
+    return (Scalar(a)) / b;
   }
 
   static Scalar scalar_from_string(const std::string &s) {
-    return std::stod(s);
+    return from_double(std::stod(s));
   }
 
   EIGEN_ALWAYS_INLINE static Vector3 zero3() { return Vector3::Zero(); }
-  EIGEN_ALWAYS_INLINE static Vector3 unit3_x() { return Vector3(1, 0, 0); }
-  EIGEN_ALWAYS_INLINE static Vector3 unit3_y() { return Vector3(0, 1, 0); }
-  EIGEN_ALWAYS_INLINE static Vector3 unit3_z() { return Vector3(0, 0, 1); }
+  EIGEN_ALWAYS_INLINE static Vector3 unit3_x() {
+    return Vector3(one(), zero(), zero());
+  }
+  EIGEN_ALWAYS_INLINE static Vector3 unit3_y() {
+    return Vector3(zero(), one(), zero());
+  }
+  EIGEN_ALWAYS_INLINE static Vector3 unit3_z() {
+    return Vector3(zero(), zero(), one());
+  }
 
   EIGEN_ALWAYS_INLINE static VectorX segment(const VectorX &vec,
                                              int start_index, int length) {
@@ -343,14 +417,15 @@ struct EigenAlgebraT {
                                                     const VectorX &vec,
                                                     int start_row_index,
                                                     int start_col_index) {
-    mat.block(start_row_index, start_col_index, 1, vec.cols()) = vec;
+    mat.block(start_row_index, start_col_index, 1, vec.rows()) =
+        vec.transpose();
   }
 
   template <int Rows>
   EIGEN_ALWAYS_INLINE static void assign_vertical(
       MatrixX &mat, const Eigen::Matrix<Scalar, Rows, 1> &vec,
       int start_row_index, int start_col_index) {
-    mat.block(start_row_index, start_col_index, vec.cols(), 1) = vec;
+    mat.block(start_row_index, start_col_index, vec.rows(), 1) = vec;
   }
 
   template <int Rows, int Cols>
@@ -375,7 +450,66 @@ struct EigenAlgebraT {
     return Quaternion(w, x, y, z).toRotationMatrix();
   }
   EIGEN_ALWAYS_INLINE static Quaternion matrix_to_quat(const Matrix3 &m) {
-    return Quaternion(m);
+    if constexpr (is_cppad_scalar<Scalar>::value) {
+      // add epsilon to denominator to prevent division by zero
+      const Scalar eps = from_double(1e-6);
+      Scalar tr = m(0, 0) + m(1, 1) + m(2, 2);
+      Scalar q1[4], q2[4], q3[4], q4[4];
+      // if (tr > 0)
+      {
+        Scalar S = sqrt(abs(tr + 1.0)) * two() + eps;
+        q1[0] = fraction(1, 4) * S;
+        q1[1] = (m(2, 1) - m(1, 2)) / S;
+        q1[2] = (m(0, 2) - m(2, 0)) / S;
+        q1[3] = (m(1, 0) - m(0, 1)) / S;
+      }
+      // else if ((m(0,0) > m(1,1))&(m(0,0) > m(2,2)))
+      {
+        Scalar S = sqrt(abs(1.0 + m(0, 0) - m(1, 1) - m(2, 2))) * two() + eps;
+        q2[0] = (m(2, 1) - m(1, 2)) / S;
+        q2[1] = fraction(1, 4) * S;
+        q2[2] = (m(0, 1) + m(1, 0)) / S;
+        q2[3] = (m(0, 2) + m(2, 0)) / S;
+      }
+      // else if (m(1,1) > m(2,2))
+      {
+        Scalar S = sqrt(abs(1.0 + m(1, 1) - m(0, 0) - m(2, 2))) * two() + eps;
+        q3[0] = (m(0, 2) - m(2, 0)) / S;
+        q3[1] = (m(0, 1) + m(1, 0)) / S;
+        q3[2] = fraction(1, 4) * S;
+        q3[3] = (m(1, 2) + m(2, 1)) / S;
+      }
+      // else
+      {
+        Scalar S = sqrt(abs(1.0 + m(2, 2) - m(0, 0) - m(1, 1))) * two() + eps;
+        q4[0] = (m(1, 0) - m(0, 1)) / S;
+        q4[1] = (m(0, 2) + m(2, 0)) / S;
+        q4[2] = (m(1, 2) + m(2, 1)) / S;
+        q4[3] = fraction(1, 4) * S;
+      }
+      Quaternion q;
+      // (m(0,0) > m(1,1))&(m(0,0) > m(2,2))
+      Scalar m00_is_max = where_gt(
+          m(0, 0), m(1, 1), where_gt(m(0, 0), m(2, 2), one(), zero()), zero());
+      Scalar m11_is_max =
+          (one() - m00_is_max) * where_gt(m(1, 1), m(2, 2), one(), zero());
+      Scalar m22_is_max = (one() - m00_is_max) * (one() - m11_is_max);
+      q.w() = where_gt(
+          tr, zero(), q1[0],
+          m00_is_max * q2[0] + m11_is_max * q3[0] + m22_is_max * q4[0]);
+      q.x() = where_gt(
+          tr, zero(), q1[1],
+          m00_is_max * q2[1] + m11_is_max * q3[1] + m22_is_max * q4[1]);
+      q.y() = where_gt(
+          tr, zero(), q1[2],
+          m00_is_max * q2[2] + m11_is_max * q3[2] + m22_is_max * q4[2]);
+      q.z() = where_gt(
+          tr, zero(), q1[3],
+          m00_is_max * q2[3] + m11_is_max * q3[3] + m22_is_max * q4[3]);
+      return q;
+    } else {
+      return Quaternion(m);
+    }
   }
   EIGEN_ALWAYS_INLINE static Quaternion axis_angle_quaternion(
       const Vector3 &axis, const Scalar &angle) {
@@ -387,7 +521,7 @@ struct EigenAlgebraT {
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
-    temp << 1, 0, 0, 0, c, s, 0, -s, c;
+    temp << one(), zero(), zero(), zero(), c, s, zero(), -s, c;
     return temp;
   }
 
@@ -396,7 +530,7 @@ struct EigenAlgebraT {
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
-    temp << c, 0, -s, 0, 1, 0, s, 0, c;
+    temp << c, zero(), -s, zero(), one(), zero(), s, zero(), c;
     return temp;
   }
 
@@ -405,7 +539,7 @@ struct EigenAlgebraT {
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
-    temp << c, s, 0, -s, c, 0, 0, 0, 1;
+    temp << c, s, zero(), -s, c, zero(), zero(), zero(), one();
     return temp;
   }
 
@@ -549,12 +683,17 @@ struct EigenAlgebraT {
     if constexpr (std::is_same_v<Scalar, stan::math::var> ||
                   std::is_same_v<Scalar, stan::math::fvar<double>>) {
       return stan::math::value_of(s);
+    } else
+#endif
+        if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
+                                     CppAD::AD<CppAD::cg::CG<double>>>) {
+      return CppAD::Value(CppAD::Var2Par(s)).getValue();
+    } else if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
+                                        CppAD::AD<double>>) {
+      return CppAD::Value(CppAD::Var2Par(s));
     } else {
       return static_cast<double>(s);
     }
-#else
-    return static_cast<double>(s);
-#endif
   }
 
   TINY_INLINE static Scalar from_double(double s) {
@@ -622,6 +761,12 @@ struct EigenAlgebraT {
   }
 
   template <typename T>
+  TINY_INLINE static auto pow(const T &s, const T &e) {
+    using std::pow;
+    return pow(s, e);
+  }
+
+  template <typename T>
   TINY_INLINE static auto exp(const T &s) {
     using std::exp;
     return exp(s);
@@ -635,19 +780,79 @@ struct EigenAlgebraT {
 
   template <typename T>
   TINY_INLINE static auto max(const T &x, const T &y) {
-    using std::max;
-    return max(x, y);
+    return tds::where_gt(x, y, x, y);
   }
 
   template <typename T>
   TINY_INLINE static auto min(const T &x, const T &y) {
-    using std::min;
-    return min(x, y);
+    return tds::where_lt(x, y, x, y);
   }
 
   EigenAlgebraT<Scalar>() = delete;
 };
 
 typedef EigenAlgebraT<double> EigenAlgebra;
+
+// Helpers for NeuralAlgebra
+
+template <typename Scalar>
+struct is_cppad_scalar<NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>>> {
+  static constexpr bool value = true;
+};
+
+template <typename Algebra>
+struct is_eigen_algebra<EigenAlgebraT<Algebra>> {
+  static constexpr bool value = true;
+};
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_gt(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
+  return CppAD::CondExpGt(x.evaluate(), y.evaluate(), if_true.evaluate(),
+                          if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_ge(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
+  return CppAD::CondExpGe(x.evaluate(), y.evaluate(), if_true.evaluate(),
+                          if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_lt(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
+  return CppAD::CondExpLt(x.evaluate(), y.evaluate(), if_true.evaluate(),
+                          if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_le(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
+  return CppAD::CondExpLe(x.evaluate(), y.evaluate(), if_true.evaluate(),
+                          if_false.evaluate());
+}
+
+template <typename Scalar>
+static TINY_INLINE NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> where_eq(
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &x,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &y,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_true,
+    const NeuralScalar<EigenAlgebraT<CppAD::AD<Scalar>>> &if_false) {
+  return CppAD::CondExpEq(x.evaluate(), y.evaluate(), if_true.evaluate(),
+                          if_false.evaluate());
+}
 
 }  // end namespace tds
