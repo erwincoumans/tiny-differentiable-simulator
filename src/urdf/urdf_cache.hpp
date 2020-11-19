@@ -52,7 +52,7 @@ class UrdfCache {
       }
       data_[urdf_filename] = UrdfStructures();
       UrdfImport::extract_urdf_structs(data_[urdf_filename], robotId, sim, vis);
-      sim->removeBody(robotId);
+      // sim->removeBody(robotId);
     }
     return data_[urdf_filename];
   }
@@ -70,8 +70,9 @@ class UrdfCache {
   MultiBody<Algebra>* construct(const std::string& urdf_filename,
                                 World<Algebra>& world,
                                 bool ignore_cache = false,
-                                bool is_floating = false) {
-    MultiBody<Algebra>* mb = world.create_multi_body();
+                                bool is_floating = false,
+                                const std::string& name = "") {
+    MultiBody<Algebra>* mb = world.create_multi_body(name);
     const auto& urdf_data = retrieve(urdf_filename, ignore_cache);
     UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_data, world, *mb);
     mb->set_floating_base(is_floating);
@@ -84,12 +85,13 @@ class UrdfCache {
                                 PyBulletVisualizerAPI* sim,
                                 PyBulletVisualizerAPI* vis,
                                 bool ignore_cache = false,
-                                bool is_floating = false) {
+                                bool is_floating = false,
+                                const std::string& name = "") {
     assert(sim);
     assert(vis);
     b3RobotSimulatorLoadUrdfFileArgs args;
     args.m_flags |= URDF_MERGE_FIXED_LINKS;
-    MultiBody<Algebra>* mb = world.create_multi_body();
+    MultiBody<Algebra>* mb = world.create_multi_body(name);
     const auto& urdf_data =
         retrieve(urdf_filename, sim, vis, args, ignore_cache);
     UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_data, world, *mb);
@@ -98,9 +100,6 @@ class UrdfCache {
     return mb;
   }
 
-  void clear() {
-    data_.clear();
-  }
+  void clear() { data_.clear(); }
 };
-
 }  // namespace tds

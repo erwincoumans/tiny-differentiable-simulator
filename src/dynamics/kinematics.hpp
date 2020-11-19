@@ -82,7 +82,7 @@ void forward_kinematics(
       #endif
       link.v = link.vJ;
     }
-    MotionVector v_x_vJ = Algebra::cross( link.v, link.vJ);
+    MotionVector v_x_vJ = Algebra::cross(link.v, link.vJ);
     link.c = v_x_vJ /*+link.c_J[i]*/;
 
     link.abi = link.rbi;
@@ -120,8 +120,8 @@ void forward_kinematics(
     link.pA = Algebra::cross(link.v, I_mul_v) - f_ext;
 #ifdef DEBUG
     // Algebra::print("link.abi", link.abi);
-    // Algebra::print("I_mul_v", I_mul_v);
-    // Algebra::print("link.pA", link.pA);
+    Algebra::print("I_mul_v", I_mul_v);
+    Algebra::print("link.pA", link.pA);
 #endif
     // compute helper temporary variables for floating-base RNEA
     // const SpatialVector &parent_a =

@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <stdexcept>
 #include <vector>
 
 #include "math/pose.hpp"
@@ -52,12 +53,18 @@ class Sphere : public Geometry<Algebra> {
   Scalar radius;
 
  public:
-  explicit Sphere(Scalar radius)
+  explicit Sphere(const Scalar &radius)
       : Geometry<Algebra>(TINY_SPHERE_TYPE), radius(radius) {}
 
-  Scalar get_radius() const { return radius; }
+  template <typename AlgebraTo = Algebra>
+  Sphere<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return Sphere<AlgebraTo>(C::convert(radius));
+  }
 
-  Vector3 compute_local_inertia(Scalar mass) const {
+  const Scalar &get_radius() const { return radius; }
+
+  Vector3 compute_local_inertia(const Scalar &mass) const {
     Scalar elem = Algebra::fraction(4, 10) * mass * radius * radius;
     return Vector3(elem, elem, elem);
   }
@@ -73,13 +80,19 @@ class Capsule : public Geometry<Algebra> {
   Scalar length;
 
  public:
-  explicit Capsule(Scalar radius, Scalar length)
+  explicit Capsule(const Scalar &radius, const Scalar &length)
       : Geometry<Algebra>(TINY_CAPSULE_TYPE), radius(radius), length(length) {}
 
-  Scalar get_radius() const { return radius; }
-  Scalar get_length() const { return length; }
+  template <typename AlgebraTo = Algebra>
+  Capsule<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return Capsule<AlgebraTo>(C::convert(radius), C::convert(length));
+  }
 
-  Vector3 compute_local_inertia(Scalar mass) const {
+  const Scalar &get_radius() const { return radius; }
+  const Scalar &get_length() const { return length; }
+
+  Vector3 compute_local_inertia(const Scalar &mass) const {
     Scalar lx = Algebra::fraction(2, 1) * (radius);
     Scalar ly = Algebra::fraction(2, 1) * (radius);
     Scalar lz = length + Algebra::fraction(2, 1) * (radius);
@@ -105,12 +118,36 @@ class Plane : public Geometry<Algebra> {
   Scalar constant;
 
  public:
-  Plane()
+  Plane(const Vector3 &normal = Algebra::unit3_z(),
+        const Scalar &constant = Algebra::zero())
       : Geometry<Algebra>(TINY_PLANE_TYPE),
-        normal(Algebra::zero(), Algebra::zero(), Algebra::one()),
-        constant(Algebra::zero()) {}
+        normal(normal),
+        constant(constant) {}
 
-  const Vector3& get_normal() const { return normal; }
-  Scalar get_constant() const { return constant; }
+  template <typename AlgebraTo = Algebra>
+  Plane<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return Plane<AlgebraTo>(C::convert(normal), C::convert(constant));
+  }
+
+  const Vector3 &get_normal() const { return normal; }
+  const Scalar &get_constant() const { return constant; }
 };
+
+template <typename AlgebraFrom, typename AlgebraTo>
+static TINY_INLINE Geometry<AlgebraTo> *clone(const Geometry<AlgebraFrom> *g) {
+  switch (g->get_type()) {
+    case TINY_SPHERE_TYPE:
+      return new Sphere<AlgebraTo>(
+          ((Sphere<AlgebraFrom> *)g)->template clone<AlgebraTo>());
+    case TINY_CAPSULE_TYPE:
+      return new Capsule<AlgebraTo>(
+          ((Capsule<AlgebraFrom> *)g)->template clone<AlgebraTo>());
+    case TINY_PLANE_TYPE:
+      return new Plane<AlgebraTo>(
+          ((Plane<AlgebraFrom> *)g)->template clone<AlgebraTo>());
+  }
+  throw std::runtime_error(
+      "Unsupported geom type encountered in clone_geom().");
 }
+}  // namespace tds

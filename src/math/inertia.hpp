@@ -42,6 +42,14 @@ struct RigidBodyInertia {
         inertia(m(0, 0), m(1, 0), m(2, 0), m(0, 1), m(1, 1), m(2, 1), m(0, 2),
                 m(1, 2), m(2, 2)) {}
 
+  template <typename AlgebraTo = Algebra>
+  RigidBodyInertia<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    RigidBodyInertia<AlgebraTo> rbi(C::convert(mass), C::convert(com),
+                                    C::convert(inertia));
+    return rbi;
+  }
+
   void set_zero() {
     mass = Algebra::zero();
     Algebra::set_zero(com);
@@ -132,6 +140,13 @@ struct ArticulatedBodyInertia {
     return *this;
   }
 
+  template <typename AlgebraTo = Algebra>
+  ArticulatedBodyInertia<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return ArticulatedBodyInertia<AlgebraTo>(C::convert(I), C::convert(H),
+                                             C::convert(M));
+  }
+
   Matrix6 matrix() const {
     Matrix6 m;
     Matrix3 Ht = Algebra::transpose(H);
@@ -192,15 +207,15 @@ struct ArticulatedBodyInertia {
     return result;
   }
 
-  ForceVector mul_org(const MotionVector& v) const {
-      ForceVector result;
-      auto bottomleft = Algebra::transpose(H);
-      auto topleft_transpose = Algebra::transpose(I);
-      auto topleft = I;
-      auto top_right = H;
-      result.top = bottomleft  * v.top + topleft_transpose * v.bottom;
-      result.bottom = topleft * v.top + top_right * v.bottom;
-      return result;
+  ForceVector mul_org(const MotionVector &v) const {
+    ForceVector result;
+    auto bottomleft = Algebra::transpose(H);
+    auto topleft_transpose = Algebra::transpose(I);
+    auto topleft = I;
+    auto top_right = H;
+    result.top = bottomleft * v.top + topleft_transpose * v.bottom;
+    result.bottom = topleft * v.top + top_right * v.bottom;
+    return result;
   }
 
   ArticulatedBodyInertia operator+(const ArticulatedBodyInertia &abi) const {
@@ -318,7 +333,11 @@ struct ArticulatedBodyInertia {
       Algebra::assign_column(abi.M, i, a_bottom_b_bottom);
     }
 #ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    abi.H = abi.H.transpose();
+    if constexpr (is_eigen_algebra<Algebra>::value) {
+      abi.H.transposeInPlace();
+    } else {
+      abi.H = abi.H.transpose();
+    }
 #endif
     return abi;
   }

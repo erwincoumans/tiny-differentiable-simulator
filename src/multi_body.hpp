@@ -8,6 +8,8 @@
 namespace tds {
 template <typename Algebra>
 class MultiBody {
+  template <typename OtherAlgebra>
+  friend class MultiBody;
   template <typename>
   friend struct UrdfToMultiBody;
 
@@ -32,7 +34,7 @@ class MultiBody {
    */
   int dof_{0};
 
- 
+  LinkCollection links_;
 
   /**
    * Whether this system is floating or fixed to the world frame.
@@ -57,8 +59,6 @@ class MultiBody {
   mutable Transform base_X_world_;
 
   std::vector<int> visual_ids_;
-  std::vector<int> visual_ids2_;
-  
   // offset of geometry (relative to the base frame)
   std::vector<Transform> X_visuals_;
 
@@ -66,14 +66,45 @@ class MultiBody {
   // offset of collision geometries (relative to this link frame)
   std::vector<Transform> X_collisions_;
 
-  
+  VectorX q_, qd_, qdd_, tau_;
+
+  std::string name_;
 
  public:
-
-  VectorX q_, qd_, qdd_, tau_;
-  LinkCollection links_;
-
   explicit MultiBody(bool isFloating = false) : is_floating_(isFloating) {}
+
+  template <typename AlgebraTo = Algebra>
+  MultiBody<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    MultiBody<AlgebraTo> conv(is_floating_);
+    conv.name_ = name_;
+    conv.dof_ = dof_;
+    conv.q_ = C::convert(q_);
+    conv.qd_ = C::convert(qd_);
+    conv.qdd_ = C::convert(qdd_);
+    conv.tau_ = C::convert(tau_);
+    for (const auto &link : links_) {
+      conv.links_.push_back(link.template clone<AlgebraTo>());
+    }
+    conv.control_indices_ = control_indices_;
+    conv.visual_ids_ = visual_ids_;
+    for (const auto &x : X_visuals_) {
+      conv.X_visuals_.push_back(x.template clone<AlgebraTo>());
+    }
+    for (const auto &x : X_collisions_) {
+      conv.X_collisions_.push_back(x.template clone<AlgebraTo>());
+    }
+    for (const auto *geom : collision_geometries_) {
+      conv.collision_geometries_.push_back(
+          tds::clone<Algebra, AlgebraTo>(geom));
+    }
+    conv.base_rbi_ = base_rbi_.template clone<AlgebraTo>();
+    conv.base_applied_force_ = base_applied_force_.template clone<AlgebraTo>();
+    return conv;
+  }
+
+  std::string &name() { return name_; }
+  const std::string &name() const { return name_; }
 
   TINY_INLINE const LinkCollection &links() const { return links_; }
   TINY_INLINE std::size_t size() const { return links_.size(); }
@@ -167,6 +198,7 @@ class MultiBody {
   TINY_INLINE const ArticulatedBodyInertia &base_abi() const {
     return base_abi_;
   }
+  
   TINY_INLINE Transform &base_X_world() { 
       return base_X_world_; 
   }
@@ -176,9 +208,6 @@ class MultiBody {
 
   TINY_INLINE std::vector<int> &visual_ids() { return visual_ids_; }
   TINY_INLINE const std::vector<int> &visual_ids() const { return visual_ids_; }
-
-  TINY_INLINE std::vector<int>& visual_ids2() { return visual_ids2_; }
-  TINY_INLINE const std::vector<int>& visual_ids2() const { return visual_ids2_; }
 
   TINY_INLINE std::vector<Transform> &X_visuals() { return X_visuals_; }
   TINY_INLINE const std::vector<Transform> &X_visuals() const {
@@ -248,7 +277,7 @@ class MultiBody {
   {
       return Algebra::matrix_to_quat(get_world_transform(-1).rotation);
   }
-
+  
   /**
    * Ensures that the joint coordinates q, qd, qdd, tau are initialized
    * properly in the MultiBody member variables.
@@ -281,7 +310,7 @@ class MultiBody {
     }
 
     base_abi_ = base_rbi_;
-
+    
     if (is_floating_ && !base_abi_.is_invertible()) {
       fprintf(stderr,
               "Error: floating-base inertia matrix (ABI) is not invertible. "
@@ -289,7 +318,6 @@ class MultiBody {
       Algebra::print("Floating-base ABI", base_abi_);
       exit(1);
     }
-
   }
 
   /**
@@ -315,28 +343,43 @@ class MultiBody {
         qdd_(mb.qdd_),
         tau_(mb.tau_) {}
 
-  void print_state() const {
-    printf("q: [");
-    for (int i = 0; i < dof(); ++i) {
-      if (i > 0) printf(" ");
-      printf("%.2f", Algebra::to_double(q_[i]));
+  void print_state(bool print_tau = true, bool print_qdd = true,
+                   bool print_qd = true, bool print_q = true) const {
+    if (print_q) {
+      printf("q: [");
+      for (int i = 0; i < dof(); ++i) {
+        if (i > 0) printf(" ");
+        printf("%.2f", Algebra::to_double(q_[i]));
+      }
+      printf("]\t");
     }
-    printf("] \tqd: [");
-    for (int i = 0; i < dof_qd(); ++i) {
-      if (i > 0) printf(" ");
-      printf("%.2f", Algebra::to_double(qd_[i]));
+    if (print_qd) {
+      printf("qd: [");
+      for (int i = 0; i < dof_qd(); ++i) {
+        if (i > 0) printf(" ");
+        printf("%.2f", Algebra::to_double(qd_[i]));
+      }
+      printf("]\t");
     }
-    printf("] \tqdd: [");
-    for (int i = 0; i < dof_qd(); ++i) {
-      if (i > 0) printf(" ");
-      printf("%.2f", Algebra::to_double(qdd_[i]));
+    if (print_qdd) {
+      printf("qdd: [");
+      for (int i = 0; i < dof_qd(); ++i) {
+        if (i > 0) printf(" ");
+        printf("%.2f", Algebra::to_double(qdd_[i]));
+      }
+      printf("]\t");
     }
-    printf("] \ttau: [");
-    for (int i = 0; i < dof_actuated(); ++i) {
-      if (i > 0) printf(" ");
-      printf("%.2f", Algebra::to_double(tau_[i]));
+    if (print_tau) {
+      printf("tau: [");
+      for (int i = 0; i < dof_actuated(); ++i) {
+        if (i > 0) printf(" ");
+        printf("%.2f", Algebra::to_double(tau_[i]));
+      }
+      printf("]");
     }
-    printf("]\n");
+    if (print_q || print_qd || print_qdd || print_tau) {
+      printf("\n");
+    }
   }
 
   const Transform &get_world_transform(int link) const {
@@ -346,7 +389,6 @@ class MultiBody {
       return links_[link].X_world;
     }
   }
-
 
   /**
    * Transforms a point in body coordinates to world coordinates.
@@ -363,7 +405,6 @@ class MultiBody {
       return get_world_transform(link_index).apply_inverse(point);
   }
 
-
   /**
    * Compute center of mass of link in world coordinates.
    * @param link Index of link in `links`.
@@ -376,12 +417,6 @@ class MultiBody {
     } else {
       return tf.apply(links_[link].I.com);
     }
-  }
-
-
-  TINY_INLINE void set_q(const VectorX& q)
-  {
-      q_ = q;
   }
 
   TINY_INLINE Scalar get_q_for_link(const VectorX &q, int link_index) const {
@@ -450,6 +485,7 @@ class MultiBody {
     if (!links_.empty()) parent_index = static_cast<int>(links_.size()) - 1;
     attach(link, parent_index, is_controllable);
   }
+  
   void attach_link(Link& link, int parent_index,
       bool is_controllable = true) {
       attach(link, parent_index, is_controllable);
@@ -486,4 +522,10 @@ class MultiBody {
     links_.push_back(link);
   }
 };
+
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE MultiBody<AlgebraTo> clone(
+    const MultiBody<AlgebraFrom> &mb) {
+  return mb.template clone<AlgebraTo>();
+}
 }  // namespace tds

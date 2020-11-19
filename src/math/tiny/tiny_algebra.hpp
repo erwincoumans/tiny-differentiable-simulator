@@ -566,11 +566,11 @@ struct TinyAlgebra {
     return TinyConstants::tanh(s);
   }
 
-  TINY_INLINE static Scalar min1(const Scalar &a, const Scalar &b) {
+  TINY_INLINE static Scalar min(const Scalar &a, const Scalar &b) {
     return TinyConstants::min1(a, b);
   }
 
-  TINY_INLINE static Scalar max1(const Scalar &a, const Scalar &b) {
+  TINY_INLINE static Scalar max(const Scalar &a, const Scalar &b) {
     return TinyConstants::max1(a, b);
   }
 
