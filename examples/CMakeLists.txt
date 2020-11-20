@@ -39,7 +39,7 @@ IF(USE_CPPAD)
       ${CERES_LIBRARIES}
       ${PYTHON_LIBRARIES}
       python2.7
-      cxxopts::cxxopts
+      #cxxopts::cxxopts
       Pagmo::pagmo
       gflags
       pybullet_visualizer_api
