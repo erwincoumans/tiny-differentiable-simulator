@@ -181,10 +181,17 @@ class MultiBodyConstraintSolver {
                               Algebra::num_cols(mass_matrix_a));
     if (Algebra::num_cols(mass_matrix_a) * Algebra::num_rows(mass_matrix_a) >
         0) {
+      // if constexpr (is_cppad_scalar<Scalar>::value) {
+      //   using InnerScalar = typename Scalar::value_type;
+      //   static atomic_eigen_mat_inv<InnerScalar> mat_inv_op_a;
+      //   mass_matrix_a_inv = mat_inv_op_a.op(mass_matrix_a);
+      //   is_positive_definite_a = true;
+      // } else {
       submit_profile_timing("inverse_mass_matrix_a");
       is_positive_definite_a =
           Algebra::symmetric_inverse(mass_matrix_a, mass_matrix_a_inv);
       submit_profile_timing("");
+      // }
     }
 
     MatrixX mass_matrix_b(n_b, n_b);
@@ -193,10 +200,17 @@ class MultiBodyConstraintSolver {
                               Algebra::num_cols(mass_matrix_b));
     if (Algebra::num_cols(mass_matrix_b) * Algebra::num_rows(mass_matrix_b) >
         0) {
+      // if constexpr (is_cppad_scalar<Scalar>::value) {
+      //   using InnerScalar = typename Scalar::value_type;
+      //   static atomic_eigen_mat_inv<InnerScalar> mat_inv_op_b;
+      //   mass_matrix_b_inv = mat_inv_op_b.op(mass_matrix_b);
+      //   is_positive_definite_b = true;
+      // } else {
       submit_profile_timing("inverse_mass_matrix_b");
       is_positive_definite_b =
           Algebra::symmetric_inverse(mass_matrix_b, mass_matrix_b_inv);
       submit_profile_timing("");
+      // }
     }
     if (!is_positive_definite_a) {
       printf("LCP: mass matrix a is not positive definite\n");
@@ -228,14 +242,22 @@ class MultiBodyConstraintSolver {
 
     for (int i = 0; i < n_c; ++i) {
       const ContactPoint& cp = cps[i];
-      // all contact points are already assumed to have distance < 0
-      if (cp.distance > Algebra::zero()) continue;
+      // if constexpr (!is_cppad_scalar<Scalar>::value) {
+      //   // all contact points are already assumed to have distance < 0
+      //   if (cp.distance > Algebra::zero()) continue;
+      // }
 
-      Matrix3X jac_a = point_jacobian2(*mb_a, cp.link_a, cp.world_point_on_a, false);
+      const Scalar collision = where_lt(cp.distance, Algebra::zero(),
+                                        Algebra::one(), Algebra::zero());
+
+      const Vector3& world_point_a = cp.world_point_on_a;
+      Matrix3X jac_a = point_jacobian2(*mb_a, cp.link_a, world_point_a, false);
       VectorX jac_a_i = Algebra::mul_transpose(jac_a, cp.world_normal_on_b);
       Algebra::assign_horizontal(jac_con, jac_a_i, i, 0);
 
-      Matrix3X jac_b = point_jacobian2(*mb_b, cp.link_b, cp.world_point_on_b, false);
+      const Vector3& world_point_b = cp.world_point_on_b;
+
+      Matrix3X jac_b = point_jacobian2(*mb_b, cp.link_b, world_point_b, false);
       // Matrix3X jac_b =
       //     point_jacobian_fd(*mb_b, mb_b->m_q, cp.link_b,
       //     world_point_b);
@@ -246,11 +268,11 @@ class MultiBodyConstraintSolver {
       std::vector<Scalar> qd_empty;
       int szb = cp.multi_body_b->dof_qd();
       qd_empty.resize(szb, Algebra::zero());
-      std::vector<Scalar> tau_jac;
-      tau_jac.resize(szb);
-      for (int i = 0; i < szb; i++) {
-        tau_jac[i] = -jac_b_i[i];
-      }
+      // std::vector<Scalar> tau_jac;
+      // tau_jac.resize(szb);
+      // for (int i = 0; i < szb; i++) {
+      //   tau_jac[i] = -jac_b_i[i];
+      // }
 
       // compare with unit impulse method
       // std::vector<Scalar> qdd_delta_unit_impulse;
@@ -277,9 +299,15 @@ class MultiBodyConstraintSolver {
 
       lcp_b[i] = -(Algebra::one() + cp.restitution) * normal_rel_vel -
                  baumgarte_rel_vel;
+      lcp_b[i] *= collision;
 
       // friction direction
       Vector3 lateral_rel_vel = rel_vel - normal_rel_vel * cp.world_normal_on_b;
+      // if constexpr (is_cppad_scalar<Scalar>::value) {
+      if constexpr (true) {
+        // add epsilon to make prevent division by zero in gradient of norm
+        lateral_rel_vel[2] += Algebra::from_double(1e-5);
+      }
       // lateral_rel_vel.print("lateral_rel_vel");
       const Scalar lateral = Algebra::norm(lateral_rel_vel);
       // printf("Algebra::norm(lateral_rel_vel): %.6f\n",
@@ -288,17 +316,25 @@ class MultiBodyConstraintSolver {
       Vector3 fr_direction1, fr_direction2;
       //      cp.world_normal_on_b.print("contact normal");
       //      fflush(stdout);
-      if (lateral < Algebra::fraction(1, 10000)) {
-        // use the plane space of the contact normal as friction directions
-        plane_space(cp.world_normal_on_b, fr_direction1, fr_direction2);
-      } else {
-        // use the negative lateral velocity and its orthogonal as friction
-        // directions
-        fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
-        fr_direction1.normalize();
-        fr_direction2 = Algebra::cross(fr_direction1, cp.world_normal_on_b);
-        fr_direction2.normalize();
-      }
+      // if constexpr (is_cppad_scalar<Scalar>::value) {
+      //if constexpr (true) {
+      //  // use the negative lateral velocity and its orthogonal as friction
+      //  // directions
+      //  fr_direction1 =
+      //      lateral_rel_vel * (Algebra::one() / lateral) * collision;
+      //  fr_direction2 =
+      //      Algebra::cross(fr_direction1, cp.world_normal_on_b) * collision;
+      //} else {
+      //  if (lateral < Algebra::fraction(1, 10000)) {
+          // use the plane space of the contact normal as friction directions
+      plane_space(cp.world_normal_on_b, fr_direction1, fr_direction2);
+      //  } else {
+      //    // use the negative lateral velocity and its orthogonal as friction
+      //    // directions
+      //    fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
+      //    fr_direction2 = Algebra::cross(fr_direction1, cp.world_normal_on_b);
+      //  }
+      //}
 
       Scalar l1 = Algebra::dot(fr_direction1, rel_vel);
       lcp_b[n_c + i] = -l1;
@@ -431,6 +467,7 @@ class MultiBodyConstraintSolver {
         delta_qd_b += fr_qd;
       }
 
+      // Algebra::print("delta_qd_b", delta_qd_b);
       for (int i = 0; i < n_b; ++i) {
         mb_b->qd(i) -= delta_qd_b[i];
       }

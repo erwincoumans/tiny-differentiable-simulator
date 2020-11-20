@@ -310,6 +310,7 @@ class World {
       }
       submit_profile_timing("");
     }
+
     {
       submit_profile_timing("compute contacts");
       
@@ -319,6 +320,7 @@ class World {
                                            default_friction);
       submit_profile_timing("");
     }
+
     {
       submit_profile_timing("compute multi body contacts");
       compute_contacts_multi_body_internal(multi_bodies_, &dispatcher_,
