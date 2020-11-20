@@ -145,8 +145,9 @@ class World {
     return body;
   }
 
-  MultiBody* create_multi_body() {
+  MultiBody* create_multi_body(const std::string& name="") {
     MultiBody* body = new MultiBody();
+    body->name() = name;
     multi_bodies_.push_back(body);
     return body;
   }

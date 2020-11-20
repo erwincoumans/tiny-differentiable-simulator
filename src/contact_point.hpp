@@ -3,7 +3,6 @@
 #include "geometry.hpp"
 #include "math/conditionals.hpp"
 
-
 namespace tds {
 template <typename Algebra>
 struct ContactPoint {
@@ -53,7 +52,7 @@ int contact_sphere_sphere(const tds::Geometry<Algebra>* geomA,
     // always return contact point so that we can trace it
     Vector3 normal_on_b = Algebra::one() / length * diff;
     Vector3 point_a_world =
-        poseA.position - sphereA->get_radius() * normal_on_b;
+        poseA.position_ - sphereA->get_radius() * normal_on_b;
     Vector3 point_b_world = point_a_world - distance * normal_on_b;
     ContactPoint pt;
     pt.world_normal_on_b = normal_on_b;
