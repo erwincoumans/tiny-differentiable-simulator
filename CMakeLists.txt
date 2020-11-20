@@ -22,6 +22,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
 # set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
+if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
+  if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+  endif()
+endif()
+
 
 if(COMMAND cmake_policy)
 	cmake_policy(SET CMP0003 NEW)
@@ -280,20 +286,8 @@ IF(USE_CPPAD)
 ENDIF(USE_CPPAD)
 
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/benchmark)
+#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/benchmark)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/HighFive)
-list(APPEND CMAKE_MODULE_PATH
-  ${PROJECT_SOURCE_DIR}/CMake
-  ${PROJECT_SOURCE_DIR}/CMake/portability
-  ${PROJECT_SOURCE_DIR}/CMake/config)
-
-
-#include(CompilerFlagsHelpers)
-#include(ReleaseDebugAutoFlags)
-#include(CheckCXXStandardSupport)
-#include(BlueGenePortability)
-
-
 
 
 # set(MINIGLOG ON)
@@ -303,8 +297,8 @@ list(APPEND CMAKE_MODULE_PATH
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/cxxopts)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/fmt)
+#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/cxxopts)
+#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/fmt)
 
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/pybullet)
