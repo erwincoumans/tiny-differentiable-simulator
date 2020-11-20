@@ -26,6 +26,29 @@ add_executable(opengl_imgui_test opengl_imgui_test.cpp ../third_party/dear_imgui
 target_link_libraries(opengl_imgui_test opengl_window dear_imgui TinyAudio ${CMAKE_DL_LIBS})
 target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../third_party/dear_imgui ../src)
 
+IF(USE_CPPAD)
+  add_executable(cuda_codegen cuda_codegen.cpp ${TDS_HDRS})
+  target_link_libraries(
+    cuda_codegen
+    PRIVATE
+      ${CMAKE_DL_LIBS}
+      opengl_window
+      tinyxml2
+      ${DL}
+      CppADCodeGen
+      ${CERES_LIBRARIES}
+      ${PYTHON_LIBRARIES}
+      python2.7
+      cxxopts::cxxopts
+      Pagmo::pagmo
+      gflags
+      pybullet_visualizer_api
+  )
+  if (USE_STAN)
+    target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
+  endif(USE_STAN)
+ENDIF(USE_CPPAD)
+
 IF(Bullet_FOUND)
   add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
   target_include_directories(laikago_footstep_ik PRIVATE ../src ${EIGEN3_INCLUDE_DIRS})
