@@ -7,6 +7,14 @@
 #include "urdf/urdf_cache.hpp"
 #include "utils/stopwatch.hpp"
 #include "visualizer/opengl/visualizer.h"
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
+
+
 // clang-format on
 using namespace TINY;
 
@@ -87,6 +95,23 @@ struct ContactSimulation {
   }
 };
 
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    result.erase(std::remove(result.begin(), result.end(), '\n'), result.end());
+
+    return result;
+}
+
+
+
 int main(int argc, char* argv[]) {
   using Scalar = double;
   using CGScalar = typename CppAD::cg::CG<Scalar>;
@@ -114,7 +139,9 @@ int main(int argc, char* argv[]) {
   cgen.setCreateForwardZero(true);
 
   tds::CudaLibraryProcessor p(&cgen);
-  p.nvcc_path()="/usr/local/cuda-11.0/bin/nvcc";
+  std::string nvcc_path = exec("which nvcc");
+  std::cout << "Using ["<< nvcc_path << "]" << std::endl;
+  p.nvcc_path()=nvcc_path;
   p.generate_code();
   p.create_library();
 
@@ -132,7 +159,7 @@ int main(int argc, char* argv[]) {
   tds::CudaModel<Scalar> model(model_name);
 
   // how many threads to run on the GPU
-  int num_total_threads = 4096;
+  int num_total_threads = 2048;
 
   std::vector<std::vector<Scalar>> outputs(
       num_total_threads, std::vector<Scalar>(simulation.output_dim()));
