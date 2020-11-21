@@ -34,6 +34,12 @@ struct Transform {
   Transform(const Scalar &trans_x, const Scalar &trans_y, const Scalar &trans_z)
       : translation(trans_x, trans_y, trans_z) {}
 
+  template <typename AlgebraTo = Algebra>
+  Transform<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return Transform<AlgebraTo>(C::convert(translation), C::convert(rotation));
+  }
+
   friend std::ostream &operator<<(std::ostream &os, const Transform &tf) {
     os << "[ translation: " << tf.translation << "  rotation: " << tf.rotation
        << " ]";
@@ -121,7 +127,7 @@ struct Transform {
     /// right-associative
     Transform tr = *this;
     tr.translation += rotation * t.translation;
-    // tr.translation += Algebra::transpose(rotation) * t.translation;
+    //tr.translation += Algebra::transpose(rotation) * t.translation;
     tr.rotation *= t.rotation;
     return tr;
   }
@@ -371,4 +377,9 @@ struct Transform {
     return result;
   }
 };
+
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE Transform<AlgebraTo> clone(const Transform<AlgebraFrom>& x) {
+  return x.template clone<AlgebraTo>();
+}
 }  // namespace tds

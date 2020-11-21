@@ -1,6 +1,7 @@
 #pragma once
 
 #include "geometry.hpp"
+#include "math/conditionals.hpp"
 
 namespace tds {
 template <typename Algebra>
@@ -12,6 +13,17 @@ struct ContactPoint {
   Vector3 world_point_on_a;
   Vector3 world_point_on_b;
   Scalar distance;
+
+  template <typename AlgebraTo = Algebra>
+  ContactPoint<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    ContactPoint<AlgebraTo> conv;
+    conv.world_normal_on_b = C::convert(world_normal_on_b);
+    conv.world_point_on_a = C::convert(world_point_on_a);
+    conv.world_point_on_b = C::convert(world_point_on_b);
+    conv.distance = C::convert(distance);
+    return conv;
+  }
 };
 
 template <typename Algebra>
@@ -36,7 +48,8 @@ int contact_sphere_sphere(const tds::Geometry<Algebra>* geomA,
   Scalar distance = length - (sphereA->get_radius() + sphereB->get_radius());
   Vector3 normal_on_b;
   normal_on_b = Algebra::unit3_x();
-  if (Algebra::greater_than(length, CONTACT_EPSILON)) {
+  if constexpr (is_cppad_scalar<Scalar>::value) {
+    // always return contact point so that we can trace it
     Vector3 normal_on_b = Algebra::one() / length * diff;
     Vector3 point_a_world =
         poseA.position_ - sphereA->get_radius() * normal_on_b;
@@ -48,8 +61,22 @@ int contact_sphere_sphere(const tds::Geometry<Algebra>* geomA,
     pt.distance = distance;
     contactsOut.push_back(pt);
     return 1;
+  } else {
+    if (Algebra::greater_than(length, CONTACT_EPSILON)) {
+      Vector3 normal_on_b = Algebra::one() / length * diff;
+      Vector3 point_a_world =
+          poseA.position_ - sphereA->get_radius() * normal_on_b;
+      Vector3 point_b_world = point_a_world - distance * normal_on_b;
+      ContactPoint pt;
+      pt.world_normal_on_b = normal_on_b;
+      pt.world_point_on_a = point_a_world;
+      pt.world_point_on_b = point_b_world;
+      pt.distance = distance;
+      contactsOut.push_back(pt);
+      return 1;
+    }
+    return 0;
   }
-  return 0;
 }
 
 template <typename Algebra>
@@ -152,6 +179,10 @@ class CollisionDispatcher {
     contact_func f = contactFuncs[geomA->get_type()][geomB->get_type()];
     if (f) {
       return f(geomA, poseA, geomB, poseB, contactsOut);
+    }
+    contact_func g = contactFuncs[geomB->get_type()][geomA->get_type()];
+    if (g) {
+      return g(geomB, poseB, geomA, poseA, contactsOut);
     }
     return 0;
   }
