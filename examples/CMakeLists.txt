@@ -28,6 +28,7 @@ target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../thir
 
 IF(USE_CPPAD)
   add_executable(cuda_codegen cuda_codegen.cpp ${TDS_HDRS})
+  target_compile_definitions(cuda_codegen PRIVATE -DUSE_CPPAD)
   target_link_libraries(
     cuda_codegen
     PRIVATE

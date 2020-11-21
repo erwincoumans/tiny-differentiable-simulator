@@ -253,7 +253,6 @@ OPTION(USE_CPPAD "Use CppAD" OFF)
 
 IF(USE_CPPAD)
   # Add CppAD as an external project and an imported target.
-  add_definitions(-DUSE_CPPAD)
   
   ExternalProject_Add(CppAD-Project
     PREFIX CppAD
