@@ -101,6 +101,9 @@ struct TinyDualDoubleUtils {
       return exp(log(x) * y);
   }
 
+  static TinyDualDouble copy(TinyDualDouble v) {
+      return v;
+  }
 
   static TinyDualDouble exp(TinyDualDouble z)
   {

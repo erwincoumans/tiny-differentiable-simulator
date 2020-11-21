@@ -145,8 +145,9 @@ class World {
     return body;
   }
 
-  MultiBody* create_multi_body() {
+  MultiBody* create_multi_body(const std::string& name="") {
     MultiBody* body = new MultiBody();
+    body->name() = name;
     multi_bodies_.push_back(body);
     return body;
   }
@@ -309,6 +310,7 @@ class World {
       }
       submit_profile_timing("");
     }
+
     {
       submit_profile_timing("compute contacts");
       
@@ -318,6 +320,7 @@ class World {
                                            default_friction);
       submit_profile_timing("");
     }
+
     {
       submit_profile_timing("compute multi body contacts");
       compute_contacts_multi_body_internal(multi_bodies_, &dispatcher_,

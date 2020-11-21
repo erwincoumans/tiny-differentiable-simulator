@@ -25,7 +25,7 @@
 
 template <typename Scalar>
 struct TinyDualUtils {
-  using Dual = TinyDual<Scalar>;
+  using Dual = TINY::TinyDual<Scalar>;
 
   static Dual cos1(const Dual& v) { return Dual(::cos(v.real())); }
 
@@ -68,6 +68,7 @@ struct TinyDualUtils {
   }
 
   static Dual scalar_from_double(double d) { return Dual(d); }
+  static Dual scalar_from_string(const std::string& s) { return Dual(std::stod(s)); }
 
   template <class T>
   static Dual convert(T) = delete;  // C++11
@@ -83,7 +84,7 @@ struct TinyDualUtils {
   }
 };
 
-typedef ::TinyDual<double> TinyDualDouble;
-typedef ::TinyDualUtils<double> TinyDualDoubleUtils;
+typedef TINY::TinyDual<double> TinyDualDouble;
+typedef TinyDualUtils<double> TinyDualDoubleUtils;
 
 #endif  // TINY_DUAL_UTILS_H

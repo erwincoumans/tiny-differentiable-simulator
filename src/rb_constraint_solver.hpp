@@ -32,6 +32,9 @@ struct RigidBodyContactPoint : public ContactPoint<Algebra> {
 
 template <typename Algebra>
 class RigidBodyConstraintSolver {
+  template <typename OtherAlgebra>
+  friend class RigidBodyConstraintSolver;
+
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
@@ -40,6 +43,14 @@ class RigidBodyConstraintSolver {
 
  public:
   virtual ~RigidBodyConstraintSolver() = default;
+
+  template <typename AlgebraTo = Algebra>
+  RigidBodyConstraintSolver<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    RigidBodyConstraintSolver<AlgebraTo> conv;
+    conv.erp_ = C::convert(erp_);
+    return conv;
+  }
 
   // Note that the LCP(A, b) is not explicitly constructed.
   // Baumgarte stabilization is used to reduce positional drift.See description
@@ -110,4 +121,9 @@ class RigidBodyConstraintSolver {
     }
   }
 };
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE RigidBodyConstraintSolver<AlgebraTo> clone(
+    const RigidBodyConstraintSolver<AlgebraFrom>& s) {
+  return s.template clone<AlgebraTo>();
+}
 }  // namespace tds
