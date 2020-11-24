@@ -22,6 +22,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
 # set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
+link_libraries(stdc++fs)
+
 if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
   if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
@@ -303,7 +305,6 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/pybullet)
-SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
 
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cpp_base64)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cloud_seed)
@@ -314,7 +315,12 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 #SUBDIRS(third_party/nlohmann)
 
 
-SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
+OPTION(USE_TESTING "run unit tests" ON)
+IF(USE_TESTING)
+    ENABLE_TESTING()
+    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
+    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
+ENDIF()
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)
 
 OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" ON)

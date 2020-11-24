@@ -44,7 +44,6 @@ IF(USE_CPPAD)
       Pagmo::pagmo
       gflags
       pybullet_visualizer_api
-      stdc++fs
   )
   if (USE_STAN)
     target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})

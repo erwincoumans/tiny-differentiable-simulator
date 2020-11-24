@@ -147,7 +147,6 @@ void TestOnURDF(std::string filename)
       // if (!is_equal<Algebra>(*mb, rbdl_q, rbdl_qd, rbdl_qdd)) {
       //   exit(1);
       // }
-
       ASSERT_TRUE(is_equal<Algebra>(*mb, rbdl_q, rbdl_qd, rbdl_qdd))
           << fail_message << i;
 
