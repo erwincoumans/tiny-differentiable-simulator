@@ -646,7 +646,7 @@ template<class Base>
 void ModelCSourceGen<Base>::printFileStartPThreads(std::ostringstream& cache,
                                                    const std::string& baseTypeName) {
     cache << "\n";
-    cache << CPPADCG_PTHREAD_POOL_H_FILE << "\n";
+    //cache << CPPADCG_PTHREAD_POOL_H_FILE << "\n";
     cache << "\n";
     cache << "typedef struct ExecArgStruct {\n"
             "   cppadcg_function_type func;\n"

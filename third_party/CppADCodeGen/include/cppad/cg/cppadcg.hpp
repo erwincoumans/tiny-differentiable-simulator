@@ -235,8 +235,8 @@ static_assert(false,
 #include <cppad/cg/model/compiler/clang_compiler.hpp>
 
 // model source code generation helpers
-#include <cppad/cg/model/threadpool/pthread_pool_c.hpp>
-#include <cppad/cg/model/threadpool/pthread_pool_h.hpp>
+//#include <cppad/cg/model/threadpool/pthread_pool_c.hpp>
+//#include <cppad/cg/model/threadpool/pthread_pool_h.hpp>
 #include <cppad/cg/model/threadpool/openmp_c.hpp>
 #include <cppad/cg/model/threadpool/openmp_h.hpp>
 #include <cppad/cg/model/model_c_source_gen.hpp>
