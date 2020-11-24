@@ -15,7 +15,7 @@
 
 # Tiny Differentiable Simulator (TDS)
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 set(CMAKE_CXX_STANDARD 17)
