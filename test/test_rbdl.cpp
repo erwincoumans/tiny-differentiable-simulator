@@ -16,8 +16,6 @@ void TestOnURDF(std::string filename)
 {
   Vector3 gravity(0., 0., -9.81);
 
-  ASSERT_TRUE(0);
-  
   World<Algebra> world;
   MultiBody<Algebra> *mb = nullptr;
 
