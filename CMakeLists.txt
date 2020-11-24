@@ -171,6 +171,10 @@ if(USE_RBDL)
   SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/rbdl)
 endif(USE_RBDL)
 
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /std:c++17")
+endif(MSVC)
+
 message ("USING third_party/tinyxml2")
 set(tinyxml2_FOUND TRUE)
 set(tinyxml2_INCLUDE_DIRS third_party/tinyxml2/include)
@@ -252,8 +256,7 @@ include(ExternalProject)
 OPTION(USE_CPPAD "Use CppAD" OFF)
 
 IF(USE_CPPAD)
-  # Add CppAD as an external project and an imported target.
-  
+  # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
     PREFIX CppAD
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/CppAD
@@ -291,10 +294,12 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/HighFive)
 
 
-# set(MINIGLOG ON)
-# set(BUILD_TESTING OFF)
-# set(BUILD_EXAMPLES OFF)
-# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+set(MINIGLOG ON)
+set(BUILD_TESTING OFF)
+set(BUILD_EXAMPLES OFF)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/glog)
+#include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/glog/build)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver/include)
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)

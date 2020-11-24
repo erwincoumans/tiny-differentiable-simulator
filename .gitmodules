@@ -1,6 +1,0 @@
-[submodule "third_party/CppAD"]
-	path = third_party/CppAD
-	url = git@github.com:coin-or/CppAD.git
-[submodule "third_party/CppADCodeGen"]
-	path = third_party/CppADCodeGen
-	url = git@github.com:joaoleal/CppADCodeGen.git
