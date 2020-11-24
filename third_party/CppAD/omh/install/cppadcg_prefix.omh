@@ -1,0 +1,67 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-20 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin cppadcg_prefix$$
+$dollar @$$
+$spell
+    cppad/cg/cg.hpp
+    dir
+    CppAD
+    cppadcg
+    cmake
+    badiff
+    includedirs
+$$
+
+$section Including Cppadcg Speed Tests$$
+
+$head Cppadcg Home Page$$
+$href%https://github.com/joaoleal/CppADCodeGen.git%$$
+
+$head Purpose$$
+CppAD includes speed comparisons for the Cppadcg AD package; see
+$cref speed_cppadcg$$.
+
+$head cppadcg_prefix$$
+If Cppadcg is installed on your system, you can
+specify a value for its install $icode cppadcg_prefix$$ on the
+$cref cmake$$ command line.
+The value of $icode cppadcg_prefix$$ must be such that,
+for one of the directories $icode dir$$ in
+$cref/cmake_install_includedirs/cmake/cmake_install_includedirs/$$,
+$codei%
+    %cppadcg_prefix%/%dir%/cppad/cg/cg.hpp
+%$$
+is a valid way to reference to the include file $code cg.hpp$$;
+
+$head Speed Tests$$
+If you include $icode cppadcg_prefix$$ on the $cref cmake$$ command line,
+you will be able to run the Cppadcg speed correctness tests
+by executing the following commands starting in the
+$cref/distribution directory/download/Distribution Directory/$$:
+$codei%
+    cd build/speed/cppadcg
+    make check_speed_cppadcg
+%$$
+After executing $code make check_speed_cppadcg$$,
+you can run a specific Cppadcg speed test
+by executing the command $code ./speed_cppadcg$$;
+see $cref speed_main$$ for the meaning of the command line
+options to this program.
+
+$head get_cppadcg$$
+If you are using Unix, you can download and install
+a copy of Cppadcg using $cref get_cppadcg.sh$$.
+The corresponding $icode cppadcg_prefix$$ would be
+$code build/prefix$$.
+
+
+$end

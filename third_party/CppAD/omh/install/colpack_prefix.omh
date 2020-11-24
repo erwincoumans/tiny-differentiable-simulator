@@ -1,0 +1,76 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-20 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin colpack_prefix$$
+$dollar @$$
+$spell
+    datadir
+    cppad.hpp
+    namespace
+    std
+    CppAD
+    includedirs
+    colpack
+    cmake
+    dir
+    Jacobians
+$$
+
+$section Enabling Colpack Sparsity Calculations$$
+
+$head Colpack Home Page$$
+$href%https://github.com/CSCsw/ColPack%$$
+
+$head Purpose$$
+If you specify a $icode colpack_prefix$$ on the
+$cref/cmake command/cmake/CMake Command/$$ line,
+the CppAD $cref sparse_jacobian$$ and $cref sparse_hessian$$
+calculations can use this package.
+
+$head colpack_prefix$$
+If Colpack is installed on your system, you can
+specify a value for its install $icode colpack_prefix$$ on the
+$cref cmake$$ command line.
+The value of $icode colpack_prefix$$ must be such that,
+for one of the directories $icode dir$$ in
+$cref/cmake_install_includedirs/cmake/cmake_install_includedirs/$$,
+$codei%
+    %colpack_prefix%/%dir%/ColPack/ColPackHeaders.h
+%$$
+is a valid way to reference to the include file $code ColPackHeaders.h$$.
+
+$head cppad_lib$$
+The Colpack header files has a
+$codei%
+    using namespace std
+%$$
+at the global level.
+For this reason, CppAD does not include these files.
+It is therefore necessary to link the object library $code cppad_lib$$
+when using Colpack.
+
+$children%example/sparse/colpack_jac.cpp
+    %example/sparse/colpack_jacobian.cpp
+    %example/sparse/colpack_hes.cpp
+    %example/sparse/colpack_hessian.cpp
+%$$
+$head Example$$
+The file $cref colpack_jac.cpp$$ ($cref colpack_hes.cpp$$)
+contains an example and test of using Colpack to compute the coloring for
+sparse Jacobians (Hessians).
+
+$head get_colpack$$
+If you are using Unix, you can download and install
+a copy of Colpack using $cref get_colpack.sh$$.
+The corresponding $icode colpack_prefix$$ would be
+$code build/prefix$$.
+
+$end

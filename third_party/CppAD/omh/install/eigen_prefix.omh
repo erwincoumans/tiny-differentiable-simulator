@@ -1,0 +1,90 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-20 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin eigen_prefix$$
+$dollar @$$
+$spell
+    testvector
+    dir
+    namespace
+    Eigen
+    Cpp
+    includedirs
+    cmake
+    det
+    cppad
+$$
+
+$section Including Eigen Examples, Tests, and sparse2eigen$$
+
+$head Eigen Home Page$$
+$href%http://eigen.tuxfamily.org%$$
+
+$head Examples and Tests$$
+CppAD can include the following examples and tests that
+use the linear algebra package Eigen:
+$comment check list with: grep 'eigen.*\.cpp' omh/example_list.omh'$$
+$table
+$rref cppad_eigen.hpp$$
+$rref eigen_array.cpp$$
+$rref eigen_det.cpp$$
+$rref sparse2eigen.cpp$$
+$rref atomic_two_eigen_cholesky.hpp$$
+$rref atomic_two_eigen_mat_inv.hpp$$
+$rref atomic_two_eigen_mat_mul.hpp$$
+$tend
+
+$head sparse2eigen$$
+The $cref sparse2eigen$$ utility will not be available if $icode eigen_prefix$$
+is not specified on the $cref cmake$$ command line.
+
+$head eigen_prefix$$
+If Eigen is installed on your system, you can
+specify a value for its install $icode eigen_prefix$$ on the
+$cref cmake$$ command line.
+The value of $icode eigen_prefix$$ must be such that,
+for one of the directories $icode dir$$ in
+$cref/cmake_install_includedirs/cmake/cmake_install_includedirs/$$,
+$codei%
+    %eigen_prefix%/%dir%/Eigen/Core
+%$$
+is a valid way to reference to the include file $code Core$$;
+
+$head Examples$$
+If you include $icode eigen_prefix$$ on the $cref cmake$$ command line,
+you will be able to run the Eigen examples list above
+by executing the following commands starting in the
+$cref/distribution directory/download/Distribution Directory/$$:
+$codei%
+    cd build/example
+    make check_example
+%$$
+If you do this,
+you will see an indication that the examples
+$code eigen_array$$ and $code eigen_det$$
+have passed their correctness check.
+
+$head Test Vector$$
+If you have specified $icode eigen_prefix$$ you can choose
+$codei%
+    -D cppad_testvector=eigen
+%$$
+on the $cref/cmake command/cmake/CMake Command/$$ line.
+This we set the CppAD $cref testvector$$ to use Eigen vectors.
+
+$head get_eigen$$
+If you are using Unix, you can download and install
+a copy of Eigen using $cref get_eigen.sh$$.
+The corresponding $icode eigen_prefix$$ would be
+$code build/prefix$$.
+
+
+$end

@@ -1,0 +1,128 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-20 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin adolc_prefix$$
+$dollar @$$
+$spell
+    dir
+    mul
+    cmake
+    includedirs
+    CppAD
+    adolc
+    adouble
+    colpack
+    cygdrive
+    Cygwin
+    bashrc
+$$
+
+$section Including Adolc Examples and Tests$$
+
+$head Adolc Home Page$$
+$href%https://projects.coin-or.org/ADOL-C%$$
+
+$head Purpose$$
+CppAD includes examples and tests that can use the AD package Adolc.
+The includes speed comparison with other AD packages; see
+$cref speed_adolc$$.
+It also includes examples that combine Adolc with
+CppAD; see
+$table
+$rref base_adolc.hpp$$
+$rref mul_level_adolc.cpp$$
+$rref mul_level_adolc_ode.cpp$$
+$tend
+
+
+$head adolc_prefix$$
+If Adolc is installed on your system, you can
+specify a value for its install $icode adolc_prefix$$ on the
+$cref cmake$$ command line.
+The value of $icode adolc_prefix$$ must be such that,
+for one of the directories $icode dir$$ in
+$cref/cmake_install_includedirs/cmake/cmake_install_includedirs/$$,
+$codei%
+    %adolc_prefix%/%dir%/adolc/adouble.h
+%$$
+is a valid way to reference to the include file $code adouble.h$$;
+Note that CppAD assumes Adolc has been configured with
+its sparse matrix computations enabled; i.e, using
+$codei%
+    --with-colpack=%adolc_prefix%
+%$$
+In other words ColPack is installed and
+with the same prefix as ACOL-C; see
+$cref get_colpack.sh$$.
+
+$head Examples$$
+If you include $icode adolc_prefix$$ on the $cref cmake$$ command line,
+you will be able to run the Adolc examples listed above
+by executing the following commands starting in the
+$cref/distribution directory/download/Distribution Directory/$$:
+$codei%
+    cd build/example
+    make check_example
+%$$
+If you do this,
+you will see an indication that the examples
+$code mul_level_adolc$$ and $code mul_level_adolc_ode$$
+have passed their correctness check.
+
+$head Speed Tests$$
+If you include $icode adolc_prefix$$ on the $cref cmake$$ command line,
+you will be able to run the Adolc speed correctness tests
+by executing the following commands starting in the
+$cref/distribution directory/download/Distribution Directory/$$:
+$codei%
+    cd build/speed/adolc
+    make check_speed_adolc
+%$$
+After executing $code make check_speed_adolc$$,
+you can run a specific Adolc speed tests
+by executing the command $code ./speed_adolc$$;
+see $cref speed_main$$ for the meaning of the command line
+options to this program.
+
+$head Unix$$
+If you are using Unix,
+you may have to add
+$icode adolc_prefix$$ to $code LD_LIBRARY_PATH$$.
+For example, if you use the $code bash$$ shell to run your programs,
+you could include
+$codei%
+    LD_LIBRARY_PATH=%adolc_prefix%/lib:@{LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH
+%$$
+in your $code @HOME/.bashrc$$ file.
+
+$head Cygwin$$
+If you are using Cygwin,
+you may have to add to following lines to the file
+$code .bashrc$$ in your home directory:
+$codei%
+    PATH=%adolc_prefix%/bin:@{PATH}
+    export PATH
+%$$
+in order for Adolc to run properly.
+If $icode adolc_prefix$$ begins with a disk specification,
+you must use the Cygwin format for the disk specification.
+For example,
+if $code d:/adolc_base$$ is the proper directory,
+$code /cygdrive/d/adolc_base$$ should be used for $icode adolc_prefix$$.
+
+$head get_adolc$$
+If you are using Unix, you can download and install
+a copy of Adolc using $cref get_adolc.sh$$.
+The corresponding $icode adolc_prefix$$ would be
+$code build/prefix$$.
+
+$end

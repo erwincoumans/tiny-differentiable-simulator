@@ -1,0 +1,66 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-17 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+
+$begin Install$$
+$dollar @$$
+$spell
+    autotools
+    makefiles
+    nmake
+    cmake
+    tarball
+    CppAD
+$$
+
+
+$section CppAD Download, Test, and Install Instructions$$
+
+$head Instructions$$
+
+$subhead Step 1: Download$$
+Use the $cref download$$ instructions to obtain a copy or CppAD.
+
+$subhead Step 2: Cmake$$
+Use the $cref cmake$$ instructions to configure CppAD.
+
+$subhead Step 3: Check$$
+Use the $cref cmake_check$$ instructions to check the
+CppAD examples and tests.
+
+$subhead Step 4: Installation$$
+Use the command
+$codep
+    make install
+$$
+to install CppAD.
+If you created $code nmake$$ makefiles, you will have
+to use
+$codep
+    nmake install
+$$
+see the
+$cref/generator/cmake/generator/$$ option for the $code cmake$$ command.
+
+
+$childtable%
+    omh/install/download.omh%
+    omh/install/cmake.omh%
+    omh/install/cmake_check.omh%
+    omh/install/pkgconfig.omh
+%$$
+
+$head Deprecated$$
+$cref autotools$$
+
+
+
+$end

@@ -1,0 +1,158 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-18 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+
+$begin download$$
+$spell
+    yyyy
+    mm
+    dd
+    omhelp
+    https
+    org
+    dir
+    exe
+    gpl
+    xzf
+    CppAD
+    cppad
+    rel
+    gz
+    hpp
+    github
+    git git
+    htm
+    grep
+    txt
+    gh
+    html
+    svn
+$$
+$dollar @$$
+
+$section Download The CppAD Source Code$$
+
+$head Purpose$$
+CppAD is an include file library and you therefore need the source
+code to use it.
+This section discusses how to download the different versions of CppAD.
+
+$head Distribution Directory$$
+We refer to the CppAD source directory created by the download instructions
+below as the distribution directory.
+As a check, the distribution directory contains the file
+$code include/cppad/cppad.hpp$$.
+
+$head Version$$
+A CppAD $icode version$$ number has the following fields:
+$icode yyyy$$ is four decimal digits denoting a year,
+$icode mm$$ is two decimal digits denoting a month,
+and $icode dd$$ is two decimal digits denoting a day.
+For example $icode%version% = 20160101%$$ corresponds to January 1, 2016.
+
+$head Release$$
+Special versions corresponding to the beginning of each year
+have $icode dd$$ equal to zero.
+These version numbers are combined with release numbers denoted by
+$icode rel$$.
+Higher release numbers correspond to more bug fixes.
+For example
+$icode%version%.%rel% = 20160000.0%$$ corresponds to the first release
+of the version for 2016,
+$code 20160000.1$$ corresponds to the first bug fix for 2016.
+The compressed archive names on the github
+$href%https://github.com/coin-or/CppAD/releases%releases%$$ page
+are named $icode%version%.%rel%.tar.gz%$$.
+Before 2019,
+these archives correspond to the Eclipse Public License Version 1
+license and do not include the documentation.
+Starting in 2019,
+these archives correspond to the EPL 2.0 or (GPL 2.0 or later) license and
+a separate compressed archive is available
+on the releases page with name $icode%version%.doc.tar.gz%$$.
+
+
+$head Git$$
+CppAD source code development is current done using $code git$$
+You can a git clone of the current version using the command
+$codei%
+    git clone https://github.com/coin-or/CppAD.git cppad.git
+%$$
+This procedure requires that
+the $href|https://en.wikipedia.org/wiki/Git_%28software%29|git|$$
+is installed on your system.
+
+$subhead Version$$
+After downloading the source code,
+and changing into the distribution directory,
+use the following command to determine the corresponding
+$cref/version/download/Version/$$:
+$codep
+    grep '^SET(cppad_version' CMakeLists.txt
+$$
+Use the following command to determine the git $icode hash$$ code
+corresponding to this version:
+$codep
+    git show-ref | grep 'refs/heads/master'
+$$
+You can get an old version using the command
+$codei%
+    git checkout -q %hash%
+%$$
+You can check the corresponding version number using the command
+$codep
+    grep '^SET(cppad_version' CMakeLists.txt
+$$
+
+$subhead Compressed Archives$$
+You can build a compressed archive, from a clone of the git repository,
+using the script $code bin/package.sh$$.
+These archives have the documentation in the $code doc$$ directory
+and do not have the $code git$$ information.
+They are intended for re-distribution.
+
+$subhead Documentation$$
+The documentation at the web address
+$href%https://coin-or.github.io/CppAD%$$ is for the
+most recent version of CppAD.
+You can get the documentation
+for an other versions of CppAD.
+To do so, in the distribution directory execute the following commands:
+$codep
+    git checkout gh-pages
+    git log > junk.log
+$$
+The file $code junk.log$$ will contain the git $icode hash$$ codes
+for different version of the documentation along with the date.
+Select the $icode hash$$ for the version you are using, execute the command
+$codei%
+    git checkout %hash%
+%$$
+You can then view documentation for version you are using by opening the file
+$code doc/index.html$$ in a web browser.
+
+$subhead Building Documentation$$
+The documentation for CppAD can be built, from a clone of the git repository,
+using $href%http://www.seanet.com/~bradbell/omhelp/%OMhelp%$$.
+You will need to install the $code omhelp$$ command so that
+$codep
+    which omhelp
+$$
+shows it is in your path.
+Once you have done this,
+in the distribution directory execute the following command:
+$codei%
+    bin/run_omhelp.sh htm
+%$$
+You can then view documentation for version you are using by opening the file
+$code doc/index.html$$ in a web browser.
+
+$end

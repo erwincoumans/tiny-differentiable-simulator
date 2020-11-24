@@ -1,0 +1,67 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-20 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin sacado_prefix$$
+$dollar @$$
+$spell
+    dir
+    Sacado
+    includedirs
+    cmake
+    CppAD
+    hpp
+$$
+
+$section Including Sacado Speed Tests$$
+
+$head Sacado Home Page$$
+$href%https://github.com/trilinos/Trilinos/tree/master/packages/sacado%$$
+
+$head Purpose$$
+CppAD includes speed comparisons for the Sacado AD package;
+see $cref speed_sacado$$.
+
+$head sacado_prefix$$
+If Sacado is installed on your system, you can
+specify a value for its install $icode sacado_prefix$$ on the
+$cref cmake$$ command line.
+The value of $icode sacado_prefix$$ must be such that,
+for one of the directories $icode dir$$ in
+$cref/cmake_install_includedirs/cmake/cmake_install_includedirs/$$,
+$codei%
+    %sacado_prefix%/%dir%/Sacado.hpp
+%$$
+is a valid way to reference to the include file $code Sacado.hpp$$;
+
+$head Speed Tests$$
+If you include $icode sacado_prefix$$ on the $cref cmake$$ command line,
+you will be able to run the Sacado speed correctness tests
+by executing the following commands starting in the
+$cref/distribution directory/download/Distribution Directory/$$:
+$codei%
+    cd build/speed/sacado
+    make check_speed_sacado
+%$$
+After executing $code make check_speed_sacado$$,
+you can run a specific Sacado speed test
+by executing the command $code ./speed_sacado$$;
+see $cref speed_main$$ for the meaning of the command line
+options to this program.
+
+$head get_sacado$$
+If you are using Unix, you can download and install
+a copy of Sacado using $cref get_sacado.sh$$.
+The corresponding $icode sacado_prefix$$ would be
+$code build/prefix$$.
+
+
+
+$end

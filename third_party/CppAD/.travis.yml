@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-18 Bradley M. Bell
+#
+# CppAD is distributed under the terms of the
+#              Eclipse Public License Version 2.0.
+#
+# This Source Code may also be made available under the following
+# Secondary License when the conditions for such availability set forth
+# in the Eclipse Public License, Version 2.0 are satisfied:
+#       GNU General Public License, Version 2.0 or later.
+# -----------------------------------------------------------------------------
+#
+sudo:     false
+language: cpp
+compiler: gcc
+
+script:
+  # bin/travis.sh test_name
+  #
+  # Where test_name can be 'all', a directory that contains tests,
+  # or a file that contains one test. A file that contains one test must
+  # have the .cpp extension.  Note that travis does not yet support test
+  # that require other packages; e.g., adolc. We are waiting for a
+  # good way to build these dependicies and store them.
+  #
+  bin/travis.sh all
+
+notifications:
+  email:
+    recipients:
+      bradbell@seanet.com
+    on_success: change # send e-mail what success status changes
+    on_failure: always # always send e-mail when a test fails

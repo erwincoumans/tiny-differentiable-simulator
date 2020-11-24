@@ -1,0 +1,66 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-20 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin fadbad_prefix$$
+$dollar @$$
+$spell
+    dir
+    CppAD
+    fadbad
+    cmake
+    badiff
+    includedirs
+$$
+
+$section Including Fadbad Speed Tests$$
+
+$head Fadbad Home Page$$
+$href%http://www.fadbad.com%$$
+
+$head Purpose$$
+CppAD includes speed comparisons for the Fadbad AD package; see
+$cref speed_fadbad$$.
+
+$head fadbad_prefix$$
+If Fadbad is installed on your system, you can
+specify a value for its install $icode fadbad_prefix$$ on the
+$cref cmake$$ command line.
+The value of $icode fadbad_prefix$$ must be such that,
+for one of the directories $icode dir$$ in
+$cref/cmake_install_includedirs/cmake/cmake_install_includedirs/$$,
+$codei%
+    %fadbad_prefix%/%dir%/FADBAD++/badiff.h
+%$$
+is a valid way to reference to the include file $code badiff.h$$;
+
+$head Speed Tests$$
+If you include $icode fadbad_prefix$$ on the $cref cmake$$ command line,
+you will be able to run the Fadbad speed correctness tests
+by executing the following commands starting in the
+$cref/distribution directory/download/Distribution Directory/$$:
+$codei%
+    cd build/speed/fadbad
+    make check_speed_fadbad
+%$$
+After executing $code make check_speed_fadbad$$,
+you can run a specific Fadbad speed test
+by executing the command $code ./speed_fadbad$$;
+see $cref speed_main$$ for the meaning of the command line
+options to this program.
+
+$head get_fadbad$$
+If you are using Unix, you can download and install
+a copy of Fadbad using $cref get_fadbad.sh$$.
+The corresponding $icode fadbad_prefix$$ would be
+$code build/prefix$$.
+
+
+$end

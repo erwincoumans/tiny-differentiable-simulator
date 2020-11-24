@@ -1,0 +1,111 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-18 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin pkgconfig$$
+$spell
+    cmake
+    datadir
+    ipopt
+    CppAD
+    pkg-config
+    Cflags
+    Dir
+    builddir
+    libdir
+    libdirs
+    prefixdir
+    cppad
+    pkgconfig
+    uninstalled
+    colpack
+$$
+
+$section CppAD pkg-config Files$$
+
+$head Purpose$$
+The $code pkg-config$$ package helps with the use of installed libraries;
+see its
+$href%http://people.freedesktop.org/~dbn/pkg-config-guide.html%guide%$$
+for more information.
+
+$head Usage$$
+The necessary flags for compiling code that includes CppAD can
+be obtained with the command
+$codep
+    pkg-config --cflags cppad
+$$
+The flags for linking can be obtains with the command
+$codep
+    pkg-config --libs cppad
+$$
+Note that this command assumes $cref/cppad.pc/pkgconfig/$$ is in
+the search path $code PKG_CONFIG_PATH$$.
+
+$head Defined Fields$$
+The $code pkg-config$$ files $code cppad.pc$$ and
+$code cppad-uninstalled.pc$$ contain the following information:
+$table
+$icode Name$$ $cnext
+    A human-readable name for the CppAD package.
+$rnext
+$icode Description$$ $cnext
+    A brief description of the CppAD package.
+$rnext
+$icode URL$$ $cnext
+    A URL where people can get more information about the CppAD package.
+$rnext
+$icode Version$$ $cnext
+    A string specifically defining the version of the CppAD package.
+$rnext
+$icode Cflags$$ $cnext
+    The necessary flags for using any of the CppAD include files.
+$rnext
+$icode Libs$$ $cnext
+    The flags necessary for linking programs that use CppAD include files.
+$rnext
+$icode Requires$$ $cnext
+    If $cref ipopt_prefix$$ is specified,
+    the packages required to use the $cref/cppad_ipopt/cppad_ipopt_nlp/$$
+    library.
+$tend
+
+$head CppAD Configuration Paths$$
+The location of $code cppad.pc$$ and $code cppad-uninstalled.pc$$
+are given below.
+Note that $code cppad.pc$$ is placed in two locations.
+$table
+$bold Path$$ $cnext $bold Description$$
+$rnext
+$icode builddir$$  $cnext
+    directory where the
+    $cref/cmake command/cmake/CMake Command/$$ is executed.
+$rnext
+$icode prefix$$ $cnext
+    value of $cref/cppad_prefix/cmake/cppad_prefix/$$ during configuration.
+$rnext
+$icode datadir$$ $cnext
+    value of $cref/cmake_install_datadir/cmake/cmake_install_datadir/$$.
+$rnext
+$icode libdir$$ $cnext
+    first directory in
+    $cref/cmake_install_libdirs/cmake/cmake_install_libdirs/$$.
+$rnext
+$icode%builddir%/pkgconfig/cppad-uninstalled.pc%$$ $cnext
+    for testing before $code make install$$
+$rnext
+$icode%prefix%/%datadir%/pkgconfig/cppad.pc%$$ $cnext
+    for use after
+    $cref/make install/install/Instructions/Step 4: Installation/$$
+$rnext
+$icode%prefix%/%libdir%/pkgconfig/cppad.pc%$$ $cnext
+$tend
+
+$end

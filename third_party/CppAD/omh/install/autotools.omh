@@ -1,0 +1,474 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-20 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+
+$begin autotools$$
+$dollar ^$$
+$spell
+    Autotools
+    CppAD
+    dist_dir
+    num
+    cxx
+    openmp
+    fadbad
+    ipopt
+    addr
+    hpp
+    adolc
+    eigen
+    sacado
+    cpp
+    cppad
+    gprof
+    sed
+    user
+    yyyymmdd
+    testvector
+    stdvector
+    boostvector
+    std
+    fopenmp
+    adouble
+    colpack
+    Linux
+    Cygwin
+    cygdrive
+    badiff
+    Ip
+    sizeof
+    op
+    arg
+    cpp
+    usr
+    htm
+    ublas
+    cp
+$$
+
+
+$section Autotools Unix Test and Installation$$
+
+$head Deprecated 2012-12-26$$
+This install procedure has been deprecated and no improvements
+have been added since 2012.
+For example, this install procedure will not detect any of the
+$code c++11$$ extensions.
+You should use the $cref cmake$$ instructions to install CppAD.
+
+$head Distribution Directory$$
+You must first obtain a copy of the CppAD distribution directory
+using the $cref download$$ instructions.
+We refer to the corresponding
+$cref/distribution directory/download/Distribution Directory/$$ as
+$icode dist_dir$$.
+
+$head Build Directory$$
+Create the directory $icode%dist_dir%/build%$$,
+which will be referred to as the build directory below.
+
+$head Configure$$
+Execute the following command in the build directory:
+$codei%
+./configure                                  \
+    --prefix=%prefix_dir%                    \
+    --with-Documentation                     \
+    --with-%test%vector                      \
+    MAX_NUM_THREADS=%max_num_threads%         \
+    CXX_FLAGS=%cxx_flags%                     \
+    OPENMP_FLAGS=%openmp_flags%               \
+    POSTFIX_DIR=%postfix_dir%                 \
+    ADOLC_DIR=%adolc_dir%                     \
+    BOOST_DIR=%boost_dir%                     \
+    EIGEN_DIR=%eigen_dir%                     \
+    FADBAD_DIR=%fadbad_dir%                   \
+    SADADO_DIR=%sacado_dir%                   \
+    IPOPT_DIR=%ipopt_dir%                     \
+    TAPE_ADDR_TYPE=%tape_addr_type%           \
+    TAPE_ID_TYPE=%tape_id_type%
+%$$
+where only the $code configure$$ line need appear; i.e.,
+the entries in all of the other lines are optional.
+The text in italic above is replaced values that you choose
+(see discussion below).
+
+$head make$$
+The following command, in the build directory,
+copies the file $code configure.hpp$$ from
+the build to the source directory and then builds
+some object libraries that are used by the tests:
+$codei%
+    make
+%$$
+
+$subhead Examples and Tests$$
+Once you have executed the $code make$$ command,
+you can run the correctness and speed tests.
+The following command will build and run all the correctness and speed tests.
+$codep
+    make test
+$$
+
+$head Profiling CppAD$$
+The CppAD derivative speed tests mentioned above can be profiled.
+You can test that the results computed during this profiling are correct
+by executing the following commands starting in the build directory:
+$codei%
+    cd speed/profile
+    make test
+%$$
+After executing $code make test$$, you can run a profile speed test
+by executing the command
+$codei%
+    ./speed_profile %test% %seed% %option_list%
+%$$
+see $cref speed_main$$ for the meaning of the command line
+arguments to this program.
+After you have run a profiling speed test,
+you can then obtain the profiling results with
+$codei%
+    gprof -b speed_profile
+%$$
+In C++, template parameters and argument types become part of a
+routines's name.
+This can make the $code gprof$$ output hard to read
+(the routine names can be very long).
+You can remove the template parameters and argument types from the
+routine names by executing the following command
+$codep
+    gprof -b speed_profile | sed -f gprof.sed
+$$
+
+$head prefix_dir$$
+The default value for prefix directory is $code ^HOME$$
+i.e., by default the CppAD include files
+will $cref/install/autotools/make install/$$ below $code ^HOME$$.
+If you want to install elsewhere, you will have to use this option.
+As an example of using the $codei%--prefix=%prefix_dir%$$ option,
+if you specify
+$codep
+    ./configure --prefix=/usr/local
+$$
+the CppAD include files will be installed in the directory
+$codei%
+    /usr/local/include/cppad
+%$$
+If $cref/--with-Documentation/autotools/--with-Documentation/$$
+is specified, the CppAD documentation files will be installed in the directory
+$codei%
+    /usr/local/share/doc/cppad-%yyyymmdd%
+%$$
+where $icode yyyymmdd$$ is the year, month, and day corresponding
+to the version of CppAD.
+
+$head --with-Documentation$$
+If the command line argument $code --with-Documentation$$ is specified,
+the CppAD documentation HTML and XML files are copied to the directory
+$codei%
+    %prefix_dir%/share/doc/%postfix_dir%/cppad-%yyyymmdd%
+%$$
+(see $cref/postfix_dir/autotools/postfix_dir/$$).
+The top of the CppAD HTML documentation tree
+(with mathematics displayed as LaTex command) will be located at
+$codei%
+    %prefix_dir%/share/doc/%postfix_dir%/cppad-%yyyymmdd%/cppad.htm
+%$$
+
+$head --with-testvector$$
+The $cref/CPPAD_TESTVECTOR/testvector/$$
+template class is used for many of the CppAD examples and tests.
+The default for this template class is $codei%CppAD::vector<%Scalar%>%$$.
+If one, and only one, of the following command line arguments is specified:
+$codep
+    --with-stdvector
+    --with-boostvector
+    --with-eigenvector
+$$
+the corresponding of the following template classes is used
+$codei%
+    std::vector<%Scalar%>
+    boost::numeric::ublas::vector<%Scalar%>
+    Eigen::matrix<%Scalar%, Eigen::Dynamic, 1>
+%$$
+See also,
+$cref/boost_dir/autotools/boost_dir/$$
+and
+$cref/eigen_dir/autotools/eigen_dir/$$.
+
+$head max_num_threads$$
+this specifies the value for the default value for the preprocessor symbol
+$cref/CPPAD_MAX_NUM_THREADS/multi_thread/CPPAD_MAX_NUM_THREADS/$$.
+It must be greater than or equal to four; i.e.,
+$icode%max_num_threads% >= 4%$$.
+
+$head cxx_flags$$
+If the command line argument $icode CompilerFlags$$ is present,
+it specifies compiler flags.
+For example,
+$codei%
+    CXX_FLAGS="-Wall -ansi"
+%$$
+would specify that warning flags $code -Wall$$
+and $code -ansi$$ should be included
+in all the C++ compile commands.
+The error and warning flags chosen must be valid options
+for the C++ compiler.
+The default value for $icode CompilerFlags$$ is the
+empty string.
+
+$head openmp_flags$$
+If the command line argument $icode OpenmpFlags$$ is present,
+it specifies the necessary flags so that the compiler will
+properly interpret OpenMP directives.
+For example, when using the GNU $code g++$$ compiler,
+the following setting includes the OpenMP tests:
+$codei%
+    OPENMP_FLAGS=-fopenmp
+%$$
+If you specify configure command,
+the CppAD OpenMP correctness and speed tests will be built; see
+$cref/threading/thread_test.cpp/threading/$$
+multi-threading tests.
+
+$head postfix_dir$$
+By default, the postfix directory is empty; i.e., there
+is no postfix directory.
+As an example of using the $codei%POSTFIX_DIR=%postfix_dir%$$ option,
+if you specify
+$codep
+    ./configure --prefix=/usr/local POSTFIX_DIR=coin
+$$
+the CppAD include files will be
+$cref/installed/autotools/make install/$$ in the directory
+$codei%
+    /usr/local/include/coin-or/cppad
+%$$
+If $cref/--with-Documentation/autotools/--with-Documentation/$$
+is specified, the CppAD documentation files will be installed in the directory
+$codei%
+    /usr/local/share/doc/coin-or/cppad-%yyyymmdd%
+%$$
+
+$head adolc_dir$$
+If you have
+$href%https://projects.coin-or.org/ADOL-C%ADOL-C%$$
+installed on your system, you can
+specify a value for $icode adolc_dir$$ in the
+$cref/configure/autotools/Configure/$$ command line.
+The value of $icode adolc_dir$$ must be such that
+$codei%
+    %adolc_dir%/include/adolc/adouble.h
+%$$
+is a valid way to reference $code adouble.h$$.
+In this case, you can run the Adolc speed correctness tests
+by executing the following commands starting in the build directory:
+$codei%
+    cd speed/adolc
+    make test
+%$$
+After executing $code make test$$, you can run an Adolc speed tests
+by executing the command $code ./adolc$$;
+see $cref speed_main$$ for the meaning of the command line
+options to this program.
+Note that these speed tests assume Adolc has been configure with
+its sparse matrix computations enabled using
+$codei%
+    --with-colpack=%colpack_dir%
+%$$
+
+$subhead Linux$$
+If you are using Linux,
+you will have to add $icode%adolc_dir%/lib%$$ to $code LD_LIBRARY_PATH$$.
+For example, if you use the $code bash$$ shell to run your programs,
+you could include
+$codei%
+    LD_LIBRARY_PATH=%adolc_dir%/lib:^{LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH
+%$$
+in your $code ^HOME/.bash_profile$$ file.
+
+$subhead Cygwin$$
+If you are using Cygwin,
+you will have to add to following lines to the file
+$code .bash_profile$$ in your home directory:
+$codei%
+    PATH=%adolc_dir%/bin:^{PATH}
+    export PATH
+%$$
+in order for Adolc to run properly.
+If $icode adolc_dir$$ begins with a disk specification,
+you must use the Cygwin format for the disk specification.
+For example,
+if $code d:/adolc_base$$ is the proper directory,
+$code /cygdrive/d/adolc_base$$ should be used for $icode adolc_dir$$.
+
+$head boost_dir$$
+If the command line argument
+$codei%
+    BOOST_DIR=%boost_dir%
+%$$
+is present, it must be such that files
+$codei%
+    %boost_dir%/include/boost/numeric/ublas/vector.hpp
+    %boost_dir%/include/boost/thread.hpp
+%$$
+are present.
+In this case, these files will be used by CppAD.
+See also, $cref/--with-boostvector/autotools/--with-testvector/$$
+
+$head eigen_dir$$
+If you have
+$href%http://eigen.tuxfamily.org%Eigen%$$
+installed on your system, you can
+specify a value for $icode eigen_dir$$.
+It must be such that
+$codei%
+    %eigen_dir%/include/Eigen/Core
+%$$
+is a valid include file.
+In this case CppAD will compile and test the Eigen examples; e.g.,
+$cref eigen_array.cpp$$.
+See also, $cref/--with-eigenvector/autotools/--with-testvector/$$
+
+$head fadbad_dir$$
+If you have
+$href%
+    http://www.fadbad.com/%
+    Fadbad 2.1
+%$$
+installed on your system, you can
+specify a value for $icode fadbad_dir$$.
+It must be such that
+$codei%
+    %fadbad_dir%/include/FADBAD++/badiff.h
+%$$
+is a valid reference to $code badiff.h$$.
+In this case, you can run the Fadbad speed correctness tests
+by executing the following commands starting in the build directory:
+$codei%
+    cd speed/fadbad
+    make test
+%$$
+After executing $code make test$$, you can run a Fadbad speed tests
+by executing the command $code ./fadbad$$;
+see $cref speed_main$$ for the meaning of the command line
+options to this program.
+
+$head ipopt_dir$$
+If you have
+$href%
+    http://www.coin-or.org/projects/Ipopt.xml%
+    Ipopt
+%$$
+installed on your system, you can
+specify a value for $icode ipopt_dir$$.
+It must be such that
+$codei%
+    %ipopt_dir%/include/coin-or/IpIpoptApplication.hpp
+%$$
+is a valid reference to $code IpIpoptApplication.hpp$$.
+In this case, the CppAD interface to Ipopt
+examples can be built and tested
+by executing the following commands starting in the build directory:
+$codei%
+    make
+    #
+    cd cppad_ipopt/example
+    make test
+    #
+    cd ../test
+    make test
+    #
+    cd ../speed
+    make test
+%$$
+Once this has been done, you can execute the program
+$code ./speed$$ in the $code build/cppad_ipopt/speed$$ directory;
+see $code ipopt_ode_speed.cpp$$.
+
+$head sacado_dir$$
+If you have
+$href%
+    http://trilinos.sandia.gov/packages/sacado/%
+    Sacado
+%$$
+installed on your system, you can
+specify a value for $icode sacado_dir$$.
+It must be such that
+$codei%
+    %sacado_dir%/include/Sacado.hpp
+%$$
+is a valid reference to $code Sacado.hpp$$.
+In this case, you can run the Sacado speed correctness tests
+by executing the following commands starting in the build directory:
+$codei%
+    cd speed/sacado
+    make test
+%$$
+After executing $code make test$$, you can run a Sacado speed tests
+by executing the command $code ./sacado$$;
+see $cref speed_main$$ for the meaning of the command line
+options to this program.
+
+
+$head tape_addr_type$$
+If the command line argument $icode tape_addr_type$$ is present,
+it specifies the type used for address in the AD recordings (tapes).
+The valid values for this argument are
+$code unsigned short int$$,
+$code unsigned int$$,
+$code size_t$$.
+The smaller the value of $icode%sizeof(%tape_addr_type%)%$$,
+the less memory is used.
+On the other hand, the value
+$codei%
+    std::numeric_limits<%tape_addr_type%>::max()
+%$$
+must be larger than any of the following:
+$cref/size_op/seq_property/size_op/$$,
+$cref/size_op_arg/seq_property/size_op_arg/$$,
+$cref/size_par/seq_property/size_text/$$,
+$cref/size_par/seq_property/size_par/$$,
+$cref/size_par/seq_property/size_VecAD/$$.
+
+
+$head tape_id_type$$
+If the command line argument $icode tape_id_type$$ is present,
+it specifies the type used for identifying tapes.
+The valid values for this argument are
+$code unsigned short int$$,
+$code unsigned int$$,
+$code size_t$$.
+The smaller the value of $icode%sizeof(%tape_id_type%)%$$,
+the less memory is used.
+On the other hand, the value
+$codei%
+    std::numeric_limits<%tape_id_type%>::max()
+%$$
+must be larger than the maximum number of tapes per thread
+times $cref/max_num_threads/autotools/max_num_threads/$$.
+
+$head make install$$
+Once you are satisfied that the tests are giving correct results,
+you can install CppAD into easy to use directories by executing the command
+$codep
+    make install
+$$
+This will install CppAD in the location specified by
+$cref/prefix_dir/autotools/prefix_dir/$$.
+You must have permission to write in the $icode prefix_dir$$
+directory to execute this command.
+You may optionally specify a destination directory for the install; i.e.,
+$codei%
+    make install DESTDIR=%DestinationDirectory%
+%$$
+
+$end

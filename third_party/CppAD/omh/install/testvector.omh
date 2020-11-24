@@ -1,0 +1,72 @@
+/* --------------------------------------------------------------------------
+CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-19 Bradley M. Bell
+
+  CppAD is distributed under the terms of the
+               Eclipse Public License Version 2.0.
+
+  This Source Code may also be made available under the following
+  Secondary License when the conditions for such availability set forth
+  in the Eclipse Public License, Version 2.0 are satisfied:
+        GNU General Public License, Version 2.0 or later.
+-------------------------------------------------------------------------- */
+$begin cppad_testvector$$
+$spell
+    CppAD
+    cppad
+    eigen
+    std
+    testvector
+    namespace
+    cmake
+    vec
+$$
+
+$section Choosing the CppAD Test Vector Template Class$$
+
+$head Syntax$$
+$codei%CPPAD_TESTVECTOR(%Scalar%) %vec%%$$
+
+$head Example Simple Vector$$
+The value $icode cppad_testvector$$
+in the $cref/cmake command/cmake/CMake Command/$$ must be one of the
+following:
+$code boost$$, $code cppad$$, $code eigen$$, or $code std$$.
+It specifies which $cref simplevector$$
+corresponds to the template class
+$cref/CPPAD_TESTVECTOR/testvector/$$
+which is used for many of the CppAD examples and tests.
+
+$head std$$
+If $icode%cppad_testvector%$$ is $icode std$$,
+the $code std::vector$$ template class is used to define
+$code CPPAD_TESTVECTOR$$.
+
+$head cppad$$
+If $icode%cppad_testvector%$$ is $icode cppad$$,
+the $cref cppad_vector$$ template class is used to define
+$code CPPAD_TESTVECTOR$$.
+
+$head boost$$
+If $icode%cppad_testvector%$$ is $icode boost$$,
+$href%
+    http://www.boost.org/doc/libs/1_52_0/libs/numeric/ublas/doc/vector.htm%
+    boost ublas vector
+%$$
+template class is used to define
+$code CPPAD_TESTVECTOR$$.
+In this case, the
+$href%
+    http://www.cmake.org/cmake/help/cmake2.6docs.html#module:FindBoost%
+    cmake FindBoost
+%$$
+module must be able to automatically figure out where Boost is installed.
+
+$head eigen$$
+If $icode%cppad_testvector%$$ is $icode eigen$$,
+one of the eigen template classes is used to define
+$code CPPAD_TESTVECTOR$$.
+In this case,
+$cref eigen_prefix$$ must be specified on the $code cmake$$ command line.
+
+
+$end
