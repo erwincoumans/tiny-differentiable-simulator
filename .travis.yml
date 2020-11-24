@@ -1,0 +1,34 @@
+language: cpp
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      env:
+        - BUILD_NAME=TRUSTY_GCC
+        - SUDO=sudo
+    - os: linux
+      compiler: clang
+      env:
+        - BUILD_NAME=TRUSTY_CLANG
+        - SUDO=sudo
+    - os: osx
+      compiler: gcc
+      env:
+        - BUILD_NAME=OSX_GCC
+    - os: osx
+      compiler: clang
+      env:
+        - COMPILER=clang++
+        - BUILD_NAME=OSX_CLANG
+addons:
+      apt:
+        packages:
+          - python3
+script:
+  - echo "CXX="$CXX
+  - echo "CC="$CC
+  - cmake . 
+  - make -j8
+  - ctest -j8 --output-on-failure
+  - sudo make install
+
