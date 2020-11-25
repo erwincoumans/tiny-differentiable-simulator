@@ -38,25 +38,17 @@ addons:
 
 
 install:
-   # The following Homebrew packages aren't linked by default, and need to be
-   # prepended to the path explicitly.
-   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      export PATH="$(brew --prefix llvm)/bin:$PATH";
-     fi
-   # /usr/bin/gcc points to an older compiler on both Linux and macOS.
-   - if [ "$CXX" = "g++" ]; then export CXX="g++-9" CC="gcc-9"; fi
-   # /usr/bin/clang points to an older compiler on both Linux and macOS.
-   #
-   # Homebrew's llvm package doesn't ship a versioned clang++ binary, so the values
-   # below don't work on macOS. Fortunately, the path change above makes the
-   # default values (clang and clang++) resolve to the correct compiler on macOS.
-   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-       if [ "$CXX" = "clang++" ]; then export CXX="clang++-10" CC="clang-10"; fi;
-     fi
-   - echo ${CC}
-   - echo ${CXX}
-   - ${CXX} --version
-   - cmake --version
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+     export PATH="$(brew --prefix llvm)/bin:$PATH";
+    fi
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-9" CC="gcc-9"; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+      if [ "$CXX" = "clang++" ]; then export CXX="clang++-10" CC="clang-10"; fi;
+    fi
+  - echo ${CC}
+  - echo ${CXX}
+  - ${CXX} --version
+  - cmake --version
 
 script:
   - echo "CXX="$CXX
