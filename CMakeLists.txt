@@ -15,16 +15,12 @@
 
 # Tiny Differentiable Simulator (TDS)
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
 # set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
-
-IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
-link_libraries(stdc++fs)
-ENDIF()
 
 if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
   if (NOT CMAKE_BUILD_TYPE)
@@ -49,19 +45,22 @@ PROJECT(DIFF_PHYSICS)
 FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
 
 
+include(ExternalProject)
+
 find_package(Eigen3)
 if (Eigen3_FOUND)
     message("FOUND EIGEN")
     add_definitions(-DUSE_EIGEN)
-    #include_directories("third_party/eigen3")
+    include_directories("third_party/eigen3")
 else(Eigen3_FOUND)
     set(Eigen3_FOUND TRUE)
     message("Using third_party/eigen3")
     add_definitions(-DUSE_EIGEN)
     set(EIGEN3_INCLUDE_DIRS  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/eigen3)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/third_party/eigen3")
     message("Eigen=")
     message(${EIGEN3_INCLUDE_DIRS})
-    #include_directories(${EIGEN3_INCLUDE_DIRS})
+    include_directories(${EIGEN3_INCLUDE_DIRS})
 endif (Eigen3_FOUND)
 
 
@@ -175,6 +174,10 @@ if(USE_RBDL)
   SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/rbdl)
 endif(USE_RBDL)
 
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /std:c++17")
+endif(MSVC)
+
 message ("USING third_party/tinyxml2")
 set(tinyxml2_FOUND TRUE)
 set(tinyxml2_INCLUDE_DIRS third_party/tinyxml2/include)
@@ -236,7 +239,7 @@ IF(USE_ENOKI)
   # set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS})
 ENDIF(USE_ENOKI)
 
-OPTION(USE_PAGMO "Use Pagmo" ON)
+OPTION(USE_PAGMO "Use Pagmo" OFF)
 if(USE_PAGMO)
   find_package(pagmo)
   if (pagma_FOUND)
@@ -244,20 +247,16 @@ if(USE_PAGMO)
   endif()
 endif(USE_PAGMO)
 
-OPTION(USE_OPTIM "Use OptimLib" ON)
+OPTION(USE_OPTIM "Use OptimLib" OFF)
 if(USE_OPTIM)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/optim)
 	add_definitions(-DUSE_OPTIM)
 	add_definitions(-DOPTIM_ENABLE_EIGEN_WRAPPERS)
 endif(USE_OPTIM)
 
-include(ExternalProject)
-
-OPTION(USE_CPPAD "Use CppAD" OFF)
-
+OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" ON)
 IF(USE_CPPAD)
-  # Add CppAD as an external project and an imported target.
-  
+  # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
     PREFIX CppAD
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/CppAD
@@ -294,11 +293,29 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/benchmark)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/HighFive)
 
+ExternalProject_Add(glog-Project
+    PREFIX glog
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
+    CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
+)
+add_library(glog INTERFACE IMPORTED)
+add_dependencies(glog glog-Project)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
 
-# set(MINIGLOG ON)
-# set(BUILD_TESTING OFF)
-# set(BUILD_EXAMPLES OFF)
-# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+
+ExternalProject_Add(ceres-solver-Project
+    PREFIX ceres-solver
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
+    CMAKE_ARGS
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
+      -DBUILD_EXAMPLES=OFF
+  )
+add_library(ceres-solver INTERFACE IMPORTED)
+add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
+
+
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
@@ -307,6 +324,7 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/pybullet)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
 
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cpp_base64)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cloud_seed)
@@ -316,13 +334,11 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/crossguid)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 #SUBDIRS(third_party/nlohmann)
 
+add_library(differentiation INTERFACE)
+target_link_libraries(differentiation INTERFACE ceres-solver CppADCodeGen)
 
-OPTION(USE_TESTING "run unit tests" ON)
-IF(USE_TESTING)
-    ENABLE_TESTING()
-    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
-    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
-ENDIF()
+
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)
 
 OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" ON)

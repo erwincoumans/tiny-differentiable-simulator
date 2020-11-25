@@ -14,7 +14,6 @@
 #include <string>
 #include <array>
 
-
 // clang-format on
 using namespace TINY;
 
@@ -95,23 +94,6 @@ struct ContactSimulation {
   }
 };
 
-std::string exec(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) {
-        throw std::runtime_error("popen() failed!");
-    }
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-        result += buffer.data();
-    }
-    result.erase(std::remove(result.begin(), result.end(), '\n'), result.end());
-
-    return result;
-}
-
-
-
 int main(int argc, char* argv[]) {
   using Scalar = double;
   using CGScalar = typename CppAD::cg::CG<Scalar>;
@@ -139,9 +121,13 @@ int main(int argc, char* argv[]) {
   cgen.setCreateForwardZero(true);
 
   tds::CudaLibraryProcessor p(&cgen);
-  std::string nvcc_path = exec("which nvcc");
-  std::cout << "Using ["<< nvcc_path << "]" << std::endl;
-  p.nvcc_path()=nvcc_path;
+#if CPPAD_CG_SYSTEM_WIN
+  std::string nvcc_path = tds::exec("where nvcc");
+#else
+  std::string nvcc_path = tds::exec("which nvcc");
+#endif
+  std::cout << "Using [" << nvcc_path << "]" << std::endl;
+  p.nvcc_path() = nvcc_path;
   p.generate_code();
   p.create_library();
 
@@ -177,7 +163,7 @@ int main(int argc, char* argv[]) {
   // app.dump_frames_to_video("test.mp4");
 
   int sphere_shape = app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
-  //typedef tds::Conversion<DiffAlgebra, tds::TinyAlgebraf> Conversion;
+  // typedef tds::Conversion<DiffAlgebra, tds::TinyAlgebraf> Conversion;
   std::vector<int> visuals;
   for (int i = 0; i < num_total_threads * simulation.system->size(); ++i) {
     TinyVector3f pos(0, 0, 0);
@@ -228,7 +214,7 @@ int main(int argc, char* argv[]) {
           pos[1] += radius * (i / square_id) - square_id * radius / 2;
           TinyQuaternionf orn(0, 0, 0, 1);
           if (l > 0) {
-            //app.m_renderer->draw_line(prev_pos, pos, line_color, line_width);
+             //app.m_renderer->draw_line(prev_pos, pos, line_color, line_width);
           }
           prev_pos = pos;
           app.m_renderer->write_single_instance_transform_to_cpu(pos, orn,
@@ -236,7 +222,7 @@ int main(int argc, char* argv[]) {
         }
       }
       app.m_renderer->update_camera(upAxis);
-    
+
       DrawGridData data;
       data.drawAxis = true;
       data.upAxis = upAxis;

@@ -1,7 +1,12 @@
 #pragma once
 
 #include <cppad/cg.hpp>
+#include <cppad/cg/arithmetic.hpp>
 #include <cppad/cg/support/cppadcg_eigen.hpp>
+
+#if CPPAD_CG_SYSTEM_WIN
+#include <windows.h>
+#endif
 
 #include "file_utils.hpp"
 #include "stopwatch.hpp"
@@ -134,8 +139,13 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     std::ostringstream complete;
 
     complete << "#include <math.h>\n#include <stdio.h>\n\n";
+    complete << R"(#ifdef _WIN32
+#define MODULE_API __declspec(dllexport)
+#else
+#define MODULE_API
+#endif)";
 
-    complete << "typedef " << this->_baseTypeName << " Float;\n\n";
+    complete << "\n\ntypedef " << this->_baseTypeName << " Float;\n\n";
 
     complete << R"(struct CudaFunctionMetaData {
   int output_dim;
@@ -145,13 +155,13 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     std::string function_name = std::string(this->_name) + "_forward_zero";
 
     // meta data retrieval function
-    complete << "\n\nextern \"C\" CudaFunctionMetaData " << function_name
-             << "_meta() {\n";
+    complete << "\n\nextern \"C\" {\nMODULE_API CudaFunctionMetaData "
+             << function_name << "_meta() {\n";
     complete << "  CudaFunctionMetaData data;\n";
     complete << "  data.output_dim = " << output_dim << ";\n";
     complete << "  data.input_dim = " << input_dim << ";\n";
     complete << "  data.global_dim = " << global_dim << ";\n";
-    complete << "  return data;\n}\n";
+    complete << "  return data;\n}\n}\n";
 
     // CUDA kernel
     complete << "\n__global__\n";
@@ -196,7 +206,7 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     complete << "Float* dev_input = nullptr;\n\n";
 
     // allocation function
-    complete << "extern \"C\" void " << function_name
+    complete << "extern \"C\" {\nMODULE_API void " << function_name
              << "_allocate(int num_total_threads) {\n";
     complete << "  const size_t output_dim = num_total_threads * " << output_dim
              << ";\n";
@@ -208,14 +218,14 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     complete << "}\n\n";
 
     // deallocation function
-    complete << "extern \"C\" void " << function_name << "_deallocate() {\n";
+    complete << "MODULE_API void " << function_name << "_deallocate() {\n";
     complete << "  cudaFreeHost(dev_output);\n";
     complete << "  cudaFreeHost(dev_input);\n";
     complete << "  // cudaDeviceReset();\n";
     complete << "}\n\n";
 
     // kernel launch function
-    fun_head_start = "extern \"C\" void " + function_name + "(";
+    fun_head_start = "MODULE_API void " + function_name + "(";
     fun_arg_pad = std::string(fun_head_start.size(), ' ');
     complete << fun_head_start;
     complete << "int num_total_threads,\n";
@@ -246,7 +256,7 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
   // Copy output vector from GPU buffer to host memory.
   cudaMemcpy(output, dev_output, output_dim * sizeof(Float), cudaMemcpyDeviceToHost);)";
 
-    complete << "\n}\n";
+    complete << "\n}\n}\n";
 
     return complete.str();
   }
@@ -255,12 +265,21 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
 namespace {
 template <typename FunctionPtrT>
 FunctionPtrT load_function(const std::string& function_name, void* lib_handle) {
+#if CPPAD_CG_SYSTEM_WIN
+  auto ptr =
+      (FunctionPtrT)GetProcAddress((HMODULE)lib_handle, function_name.c_str());
+  if (!ptr) {
+    throw std::runtime_error("Cannot load symbol '" + function_name +
+                             "': error code " + std::to_string(GetLastError()));
+  }
+#else
   auto ptr = (FunctionPtrT)dlsym(lib_handle, function_name.c_str());
   const char* dlsym_error = dlerror();
   if (dlsym_error) {
     throw std::runtime_error("Cannot load symbol '" + function_name +
                              "': " + std::string(dlsym_error));
   }
+#endif
   return ptr;
 }
 }  // namespace
@@ -388,6 +407,23 @@ struct CudaModel {
  public:
   CudaFunction<Scalar> forward_zero;
 
+#if CPPAD_CG_SYSTEM_WIN
+  CudaModel(const std::string& model_name) : model_name_(model_name) {
+    // load the dynamic library
+    std::string path = model_name + ".dll";
+    std::string abs_path;
+    bool found = tds::FileUtils::find_file(path, abs_path);
+    assert(found);
+    lib_handle_ = LoadLibrary(abs_path.c_str());
+    if (lib_handle_ == nullptr) {
+      throw std::runtime_error("Failed to dynamically load library '" +
+                               model_name + "': error code " +
+                               std::to_string(GetLastError()));
+    }
+    forward_zero =
+        CudaFunction<Scalar>(model_name + "_forward_zero", lib_handle_);
+  }
+#else
   // loads the shared library
   CudaModel(const std::string& model_name, int dlOpenMode = RTLD_NOW)
       : model_name_(model_name) {
@@ -402,10 +438,10 @@ struct CudaModel {
       throw std::runtime_error("Failed to dynamically load library '" +
                                model_name + "': " + std::string(dlerror()));
     }
-
     forward_zero =
         CudaFunction<Scalar>(model_name + "_forward_zero", lib_handle_);
   }
+#endif
 };
 
 template <class Base>
@@ -431,7 +467,8 @@ class CudaLibraryProcessor {
     std::filesystem::path src_dir(cgen_->getName() + "_srcs");
     std::filesystem::create_directories(src_dir);
 
-    forward_zero_src_name_ = src_dir / (cgen_->getName() + "_forward_zero.cu");
+    forward_zero_src_name_ =
+        (src_dir / (cgen_->getName() + "_forward_zero.cu")).string();
 
     // generate CUDA code
     std::string source_zero = cgen_->zero_source();
@@ -446,11 +483,15 @@ class CudaLibraryProcessor {
   void create_library() const {
     std::stringstream cmd;
     std::cout << "Compiling CUDA library via " << nvcc_path_ << std::endl;
-    cmd << nvcc_path_ << " ";
+    cmd << "\"" << nvcc_path_ << "\" ";
     cmd << "--ptxas-options=-O" << std::to_string(optimization_level_) << ",-v "
+#if CPPAD_CG_SYSTEM_WIN
+        << "-o " << cgen_->getName() << ".dll "
+#else
         << "--compiler-options "
         << "-fPIC "
         << "-o " << cgen_->getName() << ".so "
+#endif
         << "--shared " << forward_zero_src_name_;
     tds::Stopwatch timer;
     timer.start();
@@ -462,24 +503,25 @@ class CudaLibraryProcessor {
       throw std::runtime_error("CUDA compilation failed with return code " +
                                std::to_string(return_code) + ".");
     }
-
-    // // compile shared library
-    // std::string stdout_msg, stderr_msg;
-    // try {
-    //   CppAD::cg::system::callExecutable(
-    //       nvcc_path_,
-    //       {"--ptxas-options=-O" + std::to_string(optimization_level_) +
-    //       ",-v",
-    //        "--compiler-options", "-fPIC", "-o", cgen_->getName() + ".so",
-    //        "--shared", forward_zero_src_name_},
-    //       &stdout_msg, &stderr_msg);
-    // } catch (const CppAD::cg::CGException& e) {
-    //   std::cout << stdout_msg << std::endl;
-    //   std::cerr << stderr_msg << std::endl;
-    //   throw e;
-    // }
-    // std::cout << stdout_msg << std::endl;
-    // std::cerr << stderr_msg << std::endl;
   }
 };
+
+static std::string exec(const char* cmd) {
+  std::array<char, 1024> buffer;
+  std::string result;
+#if CPPAD_CG_SYSTEM_WIN
+  std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+#else
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+#endif
+  if (!pipe) {
+    throw std::runtime_error("popen() failed!");
+  }
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    result += buffer.data();
+  }
+  result.erase(std::remove(result.begin(), result.end(), '\n'), result.end());
+
+  return result;
+}
 }  // namespace tds

@@ -508,6 +508,7 @@ void TinyWin32Window::create_window(const TinyWindowConstructionInfo& ci) {
 
   // get handle to exe file
   HINSTANCE hInstance = GetModuleHandle(0);
+  SetProcessDPIAware();
 
   // create the window if we need to and we do not use the null device
   if (!windowHandle) {
