@@ -84,7 +84,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
 #endif
 
     assert(link.joint_type == JOINT_FIXED ||
-           Algebra::abs(link.D) > Algebra::zero());
+          Algebra::to_double(Algebra::abs(link.D)) > 0.0);
     Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
                                                  : Algebra::one() / link.D;
 #ifdef DEBUG

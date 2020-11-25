@@ -505,6 +505,7 @@ struct CodeGenSettings {
   std::vector<double> default_nograd_x;
 };
 
+#if CPPAD_CG_SYSTEM_LINUX
 template <template <typename> typename F, typename ScalarAlgebra>
 class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
  public:
@@ -706,4 +707,5 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
   std::unique_ptr<CppAD::cg::LinuxDynamicLib<Scalar>> lib_{nullptr};
   std::unique_ptr<CppAD::cg::GenericModel<Scalar>> model_;
 };
+#endif
 }  // namespace tds
