@@ -1,6 +1,4 @@
 language: cpp
-dist: bionic
-osx_image: xcode11.3
 
 matrix:
   include:
@@ -25,30 +23,12 @@ matrix:
         - BUILD_NAME=OSX_CLANG
 addons:
       apt:
-        sources:
-         - sourceline: 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main'
-              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-         - sourceline: 'ppa:ubuntu-toolchain-r/test'
         packages:
           - python3
           - clang-10
           - cmake
           - gcc-9
           - g++-9
-
-
-install:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-     export PATH="$(brew --prefix llvm)/bin:$PATH";
-    fi
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-9" CC="gcc-9"; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-      if [ "$CXX" = "clang++" ]; then export CXX="clang++-10" CC="clang-10"; fi;
-    fi
-  - echo ${CC}
-  - echo ${CXX}
-  - ${CXX} --version
-  - cmake --version
 
 script:
   - echo "CXX="$CXX
