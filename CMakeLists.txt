@@ -180,8 +180,8 @@ endif(MSVC)
 
 message ("USING third_party/tinyxml2")
 set(tinyxml2_FOUND TRUE)
-set(tinyxml2_INCLUDE_DIRS third_party/tinyxml2/include)
-SUBDIRS(third_party/tinyxml2)
+set(tinyxml2_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/third_party/tinyxml2/include)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/tinyxml2)
 
 IF(WIN32)
 	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "Shared Libs" FORCE)
