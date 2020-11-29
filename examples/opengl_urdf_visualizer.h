@@ -64,9 +64,9 @@ struct OpenGLUrdfVisualizer {
 
   TinyOpenGL3App m_opengl_app;
 
-  OpenGLUrdfVisualizer(int width=1024, int height=768)
+  OpenGLUrdfVisualizer(int width=1024, int height=768, const title* = "test")
       : m_uid(1234) ,
-      m_opengl_app("test", width, height)
+      m_opengl_app(title, width, height)
   {
       
       m_opengl_app.m_renderer->init();
