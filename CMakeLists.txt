@@ -15,12 +15,16 @@
 
 # Tiny Differentiable Simulator (TDS)
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
 # set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
+
+IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    link_libraries(stdc++fs)
+ENDIF()
 
 if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
   if (NOT CMAKE_BUILD_TYPE)
@@ -47,22 +51,23 @@ FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
 
 include(ExternalProject)
 
-find_package(Eigen3)
+#find_package(Eigen3)
 if (Eigen3_FOUND)
     message("FOUND EIGEN")
+    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
     add_definitions(-DUSE_EIGEN)
-    include_directories("${CMAKE_CURRENT_LIST_DIR}/third_party/eigen3")
-    include_directories(${EIGEN3_INCLUDE_DIRS})
+    #include_directories(${EIGEN3_INCLUDE_DIRS})
 else(Eigen3_FOUND)
     set(Eigen3_FOUND TRUE)
     message("Using third_party/eigen3")
     add_definitions(-DUSE_EIGEN)
-    set(EIGEN3_INCLUDE_DIRS  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/eigen3)
-    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/third_party/eigen3")
-    message("Eigen=")
-    message(${EIGEN3_INCLUDE_DIRS})
-    include_directories(${EIGEN3_INCLUDE_DIRS})
+    set(EIGEN3_INCLUDE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/third_party/eigen3)
+    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
+    #include_directories(${EIGEN3_INCLUDE_DIRS})
 endif (Eigen3_FOUND)
+
+add_definitions(-DTDS_HOME="${CMAKE_CURRENT_LIST_DIR}")
+message("Setting TDS_HOME=${CMAKE_CURRENT_LIST_DIR}")
 
 
 OPTION(TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS "Use left-associative multiplication and row-major (transposed) matrices in RBDL/Featherstone style" OFF)
@@ -206,19 +211,6 @@ if(USE_STAN)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/opencl_2.2.0)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/sundials_5.2.0/include)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/tbb_2019_U8/include)
-else(USE_STAN)
-	find_package(Eigen3 CONFIG)
-	if (Eigen3_FOUND)
-		message("FOUND EIGEN")
-		add_definitions(-DUSE_EIGEN)
-		include_directories(${EIGEN3_INCLUDE_DIRS})
-	else(Eigen3_FOUND)
-		set(Eigen3_FOUND TRUE)
-		message("Using third_party/eigen3")
-		add_definitions(-DUSE_EIGEN)
-		set(EIGEN3_INCLUDE_DIRS  third_party/eigen3)
-		include_directories(${EIGEN3_INCLUDE_DIRS})
-	endif (Eigen3_FOUND)
 endif(USE_STAN)
 
 OPTION(USE_ENOKI "Use Enoki" OFF)
@@ -255,7 +247,7 @@ if(USE_OPTIM)
 	add_definitions(-DOPTIM_ENABLE_EIGEN_WRAPPERS)
 endif(USE_OPTIM)
 
-OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" ON)
+OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" OFF)
 IF(USE_CPPAD)
   # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
@@ -328,7 +320,6 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/pybullet)
-SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
 
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cpp_base64)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cloud_seed)
@@ -339,6 +330,7 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 #SUBDIRS(third_party/nlohmann)
 
 add_library(differentiation INTERFACE)
+target_include_directories(differentiation INTERFACE ${EIGEN3_INCLUDE_DIRS})
 if(USE_CERES)
     target_link_libraries(differentiation INTERFACE ceres-solver)
 endif(USE_CERES)
@@ -347,7 +339,12 @@ if(USE_CPPAD)
 endif(USE_CPPAD)
 
 
-SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
+OPTION(USE_TESTING "Run unit tests" ON)
+IF(USE_TESTING)
+    ENABLE_TESTING()
+    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
+    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
+ENDIF()
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)
 
 OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" ON)
