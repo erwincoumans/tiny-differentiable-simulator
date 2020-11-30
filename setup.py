@@ -94,7 +94,7 @@ libraries = []
 include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
 
 pytinyopengl3_libraries = []
-pytinyopengl3_include_dirs = ['src']
+pytinyopengl3_include_dirs = ['src', 'third_party/tinyobjloader']
 
 try:
     import numpy
@@ -125,6 +125,8 @@ pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
 "src/visualizer/opengl/tiny_opengl3_app.cpp",\
 "third_party/stb_image/stb_image_write.cpp",\
 "third_party/glad/gl.c",\
+"third_party/stb_image/stb_image.cpp",\
+"third_party/tinyobjloader/tiny_obj_loader.cc",\
 ]
 
 
