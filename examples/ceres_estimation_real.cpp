@@ -28,6 +28,7 @@
 #include "world.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
+#include "math/tiny/tiny_algebra.hpp"
 
 #define JUST_VISUALIZE false
 #define USE_PBH true
@@ -55,6 +56,7 @@ const int param_dim = param_dim_inertia + param_dim_length + param_dim_mass +
 #define TRUE_MASS_LINK2 0.1 // Not actually in the paper.
 
 using namespace tds;
+using namespace TINY;
 
 #ifdef USE_MATPLOTLIB
 template <typename T>

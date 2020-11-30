@@ -259,7 +259,7 @@ class CeresEstimatorOld : ceres::IterationCallback {
     template <typename T>
     static void plot_trajectory(const std::vector<std::vector<T>> &states,
                                 const std::string &title = "Figure") {
-      typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
+      typedef std::conditional_t<std::is_same_v<T, double>, TINY::DoubleUtils,
                                  CeresUtils<kParameterDim>>
           Utils;
       for (int i = 0; i < static_cast<int>(states[0].size()); ++i) {
@@ -277,7 +277,7 @@ class CeresEstimatorOld : ceres::IterationCallback {
 
     template <typename T>
     static void print_states(const std::vector<std::vector<T>> &states) {
-      typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
+      typedef std::conditional_t<std::is_same_v<T, double>, TINY::DoubleUtils,
                                  CeresUtils<kParameterDim>>
           Utils;
       for (const auto &s : states) {
@@ -300,7 +300,7 @@ class CeresEstimatorOld : ceres::IterationCallback {
       // }
 
       // select the right scalar traits based on the type of the input
-      typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
+      typedef std::conditional_t<std::is_same_v<T, double>, TINY::DoubleUtils,
                                  CeresUtils<kParameterDim>>
           Utils;
       T regularization = Utils::zero();
