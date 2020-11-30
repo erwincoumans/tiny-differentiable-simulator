@@ -28,7 +28,7 @@ parser.add_argument("--input", type=str, default="mpc_20201028-164829_mpc_inputs
 parser.add_argument("--output", type=str, default="mpc_20201028-164829_torques.npy")
 args = parser.parse_args()
 
-model = torch.load("mpc_ffn_model.pt")
+model = torch.load("mpc_ffn_model.pt",  map_location='cpu')
 model.to('cpu')
 
 model.double()
