@@ -45,7 +45,7 @@ enum DiffMethod {
  * Choose whether to use TinyAlgebra (true) or EigenAlgebra for differentiation
  * with CppADCodeGen.
  */
-static const inline bool DiffCppAdCodeGenUsesTinyAlgebra = true;
+static const inline bool DiffCppAdCodeGenUsesTinyAlgebra = false;
 
 TINY_INLINE std::string diff_method_name(DiffMethod m) {
   switch (m) {

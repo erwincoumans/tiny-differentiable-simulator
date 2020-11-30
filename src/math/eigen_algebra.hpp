@@ -230,7 +230,6 @@ struct EigenAlgebraT {
     tmp << zero(), v[2], -v[1], -v[2], zero(), v[0], v[1], -v[0], zero();
 #else
     tmp << zero(), -v[2], v[1], v[2], zero(), -v[0], -v[1], v[0], zero();
-
 #endif
     return tmp;
   }
