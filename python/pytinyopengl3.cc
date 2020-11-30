@@ -22,6 +22,12 @@
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/tiny_camera.h"
 #include <string>
+
+#include "tiny_obj_loader.h"
+#include "utils/file_utils.hpp"
+#include "visualizer/opengl/utils/tiny_mesh_utils.h"
+#include "stb_image/stb_image.h"
+
 using namespace TINY;
 
 std::string file_open_dialog(TinyWindowInterface* window)
@@ -36,6 +42,60 @@ std::string file_open_dialog(TinyWindowInterface* window)
       }
   }
   return file_name;
+}
+
+
+std::vector<int> my_load_obj_shapes(TinyOpenGL3App& opengl_app, const std::string& obj_filename, const ::TINY::TinyVector3f& pos, const ::TINY::TinyQuaternionf& orn, const ::TINY::TinyVector3f& scaling)
+{
+    std::vector<int> shape_ids;
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+
+    //test Wavefront obj loading
+    std::string warn;
+    std::string err;
+    char basepath[1024];
+    bool triangulate = true;
+
+    ::tds::FileUtils::extract_path(obj_filename.c_str(), basepath, 1024);
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, obj_filename.c_str(),
+        basepath, triangulate);
+
+    for (int i = 0; i < shapes.size(); i++)
+    {
+        std::vector<int> indices;
+        std::vector<GfxVertexFormat1> vertices;
+        int textureIndex = -1;
+        TinyMeshUtils::extract_shape(attrib, shapes[i], materials, indices, vertices, textureIndex);
+        textureIndex = -1;
+        ::TINY::TinyVector3f color(1, 1, 1);
+        if (shapes[i].mesh.material_ids.size())
+        {
+            int mat_id = shapes[i].mesh.material_ids[0];
+            if (mat_id >=0 && mat_id < materials.size())
+            {
+                const tinyobj::material_t& mat = materials[mat_id];
+                color.setValue(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
+                if (mat.diffuse_texname.length())
+                {
+                    std::string texture_file_name = std::string(basepath) + mat.diffuse_texname;
+                    std::vector< unsigned char> buffer;
+                    int width, height, n;
+                    unsigned char* image = stbi_load(texture_file_name.c_str(), &width, &height, &n, 3);
+
+                    textureIndex = opengl_app.m_renderer->register_texture(image, width, height);
+                    free(image);
+                }
+            }
+        }
+        int shape = opengl_app.m_renderer->register_shape(&vertices[0].x, vertices.size(), &indices[0], indices.size(), B3_GL_TRIANGLES, textureIndex);
+        shape_ids.push_back(shape);
+    }
+
+    opengl_app.m_renderer->write_transforms();
+    return shape_ids;
 }
 
 
@@ -70,8 +130,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       py::arg("allowRetina")=1,
       py::arg("windowType")=0,
       py::arg("renderDevice")=-1,
-      py::arg("maxNumObjectCapacity")=128 * 1024,
-      py::arg("maxShapeCapacityInBytes")=128 * 1024 * 1024)
+      py::arg("maxNumObjectCapacity")=256 * 1024,
+      py::arg("maxShapeCapacityInBytes")= 256 * 1024 * 1024)
       .def("swap_buffer", &TinyOpenGL3App::swap_buffer)
       .def("register_cube_shape", &TinyOpenGL3App::register_cube_shape)
       .def("register_graphics_unit_sphere_shape", &TinyOpenGL3App::register_graphics_unit_sphere_shape)
@@ -109,7 +169,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
     .def("register_graphics_instance", &TinyGLInstancingRenderer::register_graphics_instance)
     .def("write_single_instance_transform_to_cpu", &TinyGLInstancingRenderer::write_single_instance_transform_to_cpu)
-    
+    .def("write_single_instance_color_to_cpu", &TinyGLInstancingRenderer::write_single_instance_color_to_cpu2)
+      
     .def("render_scene", &TinyGLInstancingRenderer::render_scene)
     .def("write_transforms", &TinyGLInstancingRenderer::write_transforms)
     .def("remove_all_instances", &TinyGLInstancingRenderer::remove_all_instances)
@@ -134,6 +195,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   ;
   
   m.def("file_open_dialog", &file_open_dialog);
+
+  m.def("load_obj_shapes", &my_load_obj_shapes);
       
   py::class_<TinyVector3<float, FloatUtils>>(m, "TinyVector3f")
       .def(py::init<float, float, float>())

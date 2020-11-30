@@ -148,6 +148,12 @@ class TinyGLInstancingRenderer {
                                                       float* orientation,
                                                       int srcIndex);
 
+  virtual void write_single_instance_color_to_cpu2(const ::TINY::TinyVector3f& rgb_color, float alpha, int srcIndex)
+  {
+      float rgba_color[4] = {rgb_color[0],rgb_color[1], rgb_color[2], alpha};
+      write_single_instance_color_to_cpu(rgba_color, srcIndex);
+  }
+
   virtual void write_single_instance_color_to_cpu(const float* color,
                                                   int srcIndex);
   virtual void write_single_instance_color_to_cpu(const double* color,
