@@ -65,7 +65,7 @@ def parallelCCompile(self,
         newcc_args = cc_args
         if _platform == "darwin":
             if src.endswith('.cpp') or src.endswith('.cc'):
-                newcc_args = cc_args + ["-mmacosx-version-min=10.7", "-std=c++17", "-stdlib=libc++"]
+                newcc_args = cc_args + ["-mmacosx-version-min=10.15", "-std=c++17", "-stdlib=libc++"]
         self._compile(obj, src, ext, newcc_args, extra_postargs, pp_opts)
 
     # convert to list, imap is evaluated on-demand
@@ -94,7 +94,7 @@ libraries = []
 include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
 
 pytinyopengl3_libraries = []
-pytinyopengl3_include_dirs = ['src']
+pytinyopengl3_include_dirs = ['src', 'third_party/tinyobjloader']
 
 try:
     import numpy
@@ -125,6 +125,8 @@ pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
 "src/visualizer/opengl/tiny_opengl3_app.cpp",\
 "third_party/stb_image/stb_image_write.cpp",\
 "third_party/glad/gl.c",\
+"third_party/stb_image/stb_image.cpp",\
+"third_party/tinyobjloader/tiny_obj_loader.cc",\
 ]
 
 
@@ -167,11 +169,11 @@ elif _platform == "win32":
     
 elif _platform == "darwin":
     print("darwin!")
-    os.environ['LDFLAGS'] = '-framework Cocoa -mmacosx-version-min=10.7 -stdlib=libc++ -framework OpenGL'
+    os.environ['LDFLAGS'] = '-framework Cocoa -mmacosx-version-min=10.15 -stdlib=libc++ -framework OpenGL'
     CXX_FLAGS += '-DB3_NO_PYTHON_FRAMEWORK '
     CXX_FLAGS += '-DHAS_SOCKLEN_T '
     CXX_FLAGS += '-D_DARWIN '
-    CXX_FLAGS += '-mmacosx-version-min=10.7 '
+    CXX_FLAGS += '-mmacosx-version-min=10.15 '
     #    CXX_FLAGS += '-framework Cocoa '
     pytinyopengl3_sources += ["src/visualizer/opengl/tiny_mac_opengl_window.cpp",\
        "src/visualizer/opengl/tiny_mac_opengl_window_objc.m"]
