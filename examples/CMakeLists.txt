@@ -44,12 +44,20 @@ IF(USE_CPPAD)
       Pagmo::pagmo
       gflags
       pybullet_visualizer_api
+      stdc++fs
   )
   if (USE_STAN)
     target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
   endif(USE_STAN)
 ENDIF(USE_CPPAD)
 
+IF(USE_CERES)
+add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
+target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${CMAKE_DL_LIBS}
+  ${CERES_LIBRARIES})
+target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
+
+ENDIF()
 IF(Bullet_FOUND)
   add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
   target_include_directories(laikago_footstep_ik PRIVATE ../src ${EIGEN3_INCLUDE_DIRS})

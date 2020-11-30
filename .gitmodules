@@ -4,3 +4,6 @@
 [submodule "third_party/CppADCodeGen"]
 	path = third_party/CppADCodeGen
 	url = https://github.com/joaoleal/CppADCodeGen.git
+[submodule "third_party/ceres-solver"]
+	path = third_party/ceres-solver
+	url = https://github.com/ceres-solver/ceres-solver
