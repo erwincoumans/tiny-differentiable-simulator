@@ -157,8 +157,8 @@ struct TinyAlgebra {
     Scalar ql = q.length();
     return Quaternion(q.x() / ql, q.y() / ql, q.z() / ql, q.w() / ql);
   }
-  TINY_INLINE static auto normalize(const Vector3 &v) { return v / v.length(); }
-  TINY_INLINE static auto normalize(const VectorX &v) { return v / v.length(); }
+  TINY_INLINE static auto normalize(const Vector3 &v) { return v * (one() / v.length()); }
+  TINY_INLINE static auto normalize(const VectorX &v) { return v * (one() / v.length()); }
 
   /**
    * Cross product in matrix form.

@@ -59,11 +59,13 @@ template <class Base>
 class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
   using CGBase = CppAD::cg::CG<Base>;
 
-  std::size_t global_dim{0};
+  std::size_t global_dim_{0};
 
  public:
   CudaSourceGen(CppAD::ADFun<CppAD::cg::CG<Base>>& fun, std::string model)
       : CppAD::cg::ModelCSourceGen<Base>(fun, model) {}
+
+  void set_global_dim(std::size_t global_dim) { global_dim_ = global_dim; }
 
   const std::map<std::string, std::string>& sources() {
     auto mtt = CppAD::cg::MultiThreadingType::NONE;
@@ -82,19 +84,19 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     CppAD::cg::CodeHandler<Base> handler;
     handler.setJobTimer(this->_jobTimer);
 
-    const std::size_t input_dim = this->_fun.Domain();
-    const std::size_t output_dim = this->_fun.Range();
-
-    std::cout << "Generating code for function with input dimension "
-              << input_dim << " and output dimension " << output_dim << "...\n";
-
-    if (global_dim > input_dim) {
+    if (global_dim_ > this->_fun.Domain()) {
       std::cerr << "CUDA codegen failed: global data input size must not be "
                    "larger than the provided input vector size.\n";
       std::exit(1);
     }
 
-    std::vector<CGBase> indVars(input_dim);
+    const std::size_t input_dim = this->_fun.Domain() - global_dim_;
+    const std::size_t output_dim = this->_fun.Range();
+
+    std::cout << "Generating code for function with input dimension "
+              << input_dim << " and output dimension " << output_dim << "...\n";
+
+    std::vector<CGBase> indVars(input_dim + global_dim_);
     handler.makeVariables(indVars);
     if (this->_x.size() > 0) {
       for (std::size_t i = 0; i < indVars.size(); i++) {
@@ -123,15 +125,19 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     langC.setGenerateFunction("");  // this->_name + "_forward_zero");
 
     std::ostringstream code;
-    CudaVariableNameGenerator<Base> nameGen(global_dim);
+    CudaVariableNameGenerator<Base> nameGen(global_dim_);
 
     handler.generateCode(code, langC, dep, nameGen, this->_atomicFunctions,
                          jobName);
 
     std::size_t temporary_dim = nameGen.getMaxTemporaryVariableID() + 1 -
                                 nameGen.getMinTemporaryVariableID();
-    std::cout << "Code generated with " << temporary_dim
-              << " temporary variables.\n";
+    if (temporary_dim == 0) {
+      std::cerr << "Warning: generated code has no temporary variables.\n";
+    } else {
+      std::cout << "Code generated with " << temporary_dim
+                << " temporary variables.\n";
+    }
     // for (const auto& var : nameGen.getTemporary()) {
     //   std::cout << "\t" << var.name << std::endl;
     // }
@@ -160,7 +166,7 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     complete << "  CudaFunctionMetaData data;\n";
     complete << "  data.output_dim = " << output_dim << ";\n";
     complete << "  data.input_dim = " << input_dim << ";\n";
-    complete << "  data.global_dim = " << global_dim << ";\n";
+    complete << "  data.global_dim = " << global_dim_ << ";\n";
     complete << "  return data;\n}\n}\n";
 
     // CUDA kernel
@@ -174,11 +180,12 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     complete << fun_arg_pad << "const Float *input) {\n";
     complete << "   const int i = blockIdx.x * blockDim.x + threadIdx.x;\n";
     complete << "   if (i >= num_total_threads) return;\n";
-    complete << "   const int j = " << global_dim << " + i * "
-             << (input_dim - global_dim)
+    complete << "   const int j = " << global_dim_ << " + i * " << (input_dim)
              << ";  // thread-local input index offset\n\n";
-    complete << "   Float v[" << temporary_dim << "];\n";
-    if (global_dim > 0) {
+    if (temporary_dim > 0) {
+      complete << "   Float v[" << temporary_dim << "];\n";
+    }
+    if (global_dim_ > 0) {
       complete << "   const Float *x = &(input[0]);\n";
     }
     complete << "   const Float *xj = &(input[j]);\n";
@@ -210,8 +217,8 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
              << "_allocate(int num_total_threads) {\n";
     complete << "  const size_t output_dim = num_total_threads * " << output_dim
              << ";\n";
-    complete << "  const size_t input_dim = num_total_threads * "
-             << (input_dim - global_dim) << " + " << global_dim << ";\n\n";
+    complete << "  const size_t input_dim = num_total_threads * " << input_dim
+             << " + " << global_dim_ << ";\n\n";
     complete
         << "  allocate((void**)&dev_output, output_dim * sizeof(Float));\n";
     complete << "  allocate((void**)&dev_input, input_dim * sizeof(Float));\n";
@@ -236,8 +243,8 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
 
     complete << "  const size_t output_dim = num_total_threads * " << output_dim
              << ";\n";
-    complete << "  const size_t input_dim = num_total_threads * "
-             << (input_dim - global_dim) << " + " << global_dim << ";\n";
+    complete << "  const size_t input_dim = num_total_threads * " << input_dim
+             << " + " << global_dim_ << ";\n";
 
     complete << R"(
   // Copy input vector from host memory to GPU buffers.
@@ -369,7 +376,8 @@ struct CudaFunction {
         ++i;
       }
     }
-    Scalar* output = new Scalar[thread_outputs[0].size() * num_total_threads];
+    Scalar* output =
+        new Scalar[(*thread_outputs)[0].size() * num_total_threads];
 
     int num_blocks = ceil(num_total_threads * 1. / num_threads_per_block);
 
