@@ -17,7 +17,9 @@
 #ifndef _TINY_DOUBLE_UTILS_H
 #define _TINY_DOUBLE_UTILS_H
 
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES 1
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

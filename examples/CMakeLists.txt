@@ -35,16 +35,7 @@ IF(USE_CPPAD)
       ${CMAKE_DL_LIBS}
       opengl_window
       tinyxml2
-      ${DL}
-      CppADCodeGen
-      ${CERES_LIBRARIES}
-      ${PYTHON_LIBRARIES}
-      python2.7
-      #cxxopts::cxxopts
-      Pagmo::pagmo
-      gflags
-      pybullet_visualizer_api
-      stdc++fs
+      differentiation
   )
   if (USE_STAN)
     target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
@@ -73,15 +64,6 @@ target_link_libraries(opengl_test opengl_window ${CMAKE_DL_LIBS})
 add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
 target_link_libraries(tiny_urdf_parser_example tinyxml2)
 target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../src)
-
-IF(WIN32)
-    target_link_libraries(pendulum_example_tiny_gui Opengl32)
-    target_link_libraries(pendulum_example_eigen_gui Opengl32)
-    target_link_libraries(billiard_opt_example_gui Opengl32)
-    target_link_libraries(tiny_urdf_parser_opengl_example Opengl32)
-    target_link_libraries(opengl_test  Opengl32)
-    target_link_libraries(opengl_imgui_test Opengl32)
-ENDIF(WIN32)
 
 
 set(MESHCAT_LIBRARIES crossguid cpp_base64 zmq )
