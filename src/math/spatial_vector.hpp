@@ -4,6 +4,7 @@
 #include <ostream>
 
 #include "../base.hpp"
+#include "utils/conversion.hpp"
 
 namespace tds {
 template <typename Algebra>
@@ -27,6 +28,12 @@ struct SpatialVector {
   // operator Vector6() const {
   //   return Vector6(top[0], top[1], top[2], bottom[0], bottom[1], bottom[2]);
   // }
+
+  template <typename AlgebraTo = Algebra>
+  SpatialVector<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return SpatialVector<AlgebraTo>(C::convert(top), C::convert(bottom));
+  }
 
   TINY_INLINE Scalar &operator[](int i) {
     if (i < 3)
@@ -77,6 +84,12 @@ struct SpatialVector {
 };
 // ENOKI_STRUCT_SUPPORT(SpatialVector, top, bottom)
 
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE SpatialVector<AlgebraTo> clone(
+    const SpatialVector<AlgebraFrom> &v) {
+  return v.template clone<AlgebraTo>();
+}
+
 template <typename Algebra>
 struct MotionVector : public SpatialVector<Algebra> {
   using SpatialVector = tds::SpatialVector<Algebra>;
@@ -90,6 +103,12 @@ struct MotionVector : public SpatialVector<Algebra> {
   explicit MotionVector(const SpatialVector &v) {
     top = v.top;
     bottom = v.bottom;
+  }
+
+  template <typename AlgebraTo = Algebra>
+  MotionVector<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return MotionVector<AlgebraTo>(C::convert(top), C::convert(bottom));
   }
 
   TINY_INLINE MotionVector operator-(const MotionVector &vec) const {
@@ -136,6 +155,12 @@ struct MotionVector : public SpatialVector<Algebra> {
     }
 };
 
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE MotionVector<AlgebraTo> clone(
+    const MotionVector<AlgebraFrom> &v) {
+  return v.template clone<AlgebraTo>();
+}
+
 template <typename Algebra>
 struct ForceVector : public SpatialVector<Algebra> {
   using SpatialVector = tds::SpatialVector<Algebra>;
@@ -147,6 +172,12 @@ struct ForceVector : public SpatialVector<Algebra> {
   using SpatialVector::bottom;
   using SpatialVector::SpatialVector;
   using SpatialVector::top;
+
+  template <typename AlgebraTo = Algebra>
+  ForceVector<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return ForceVector<AlgebraTo>(C::convert(top), C::convert(bottom));
+  }
 
   TINY_INLINE ForceVector operator-(const ForceVector &vec) const {
     return ForceVector(top - vec.top, bottom - vec.bottom);
@@ -203,4 +234,10 @@ struct ForceVector : public SpatialVector<Algebra> {
     // }
 
 };
+
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE ForceVector<AlgebraTo> clone(
+    const ForceVector<AlgebraFrom> &v) {
+  return v.template clone<AlgebraTo>();
+}
 }  // namespace tds

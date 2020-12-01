@@ -1,6 +1,6 @@
 #pragma once
 
-#include <filesystem>
+#include "filesystem.hpp"
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h> /* _NSGetExecutablePath */
@@ -60,7 +60,6 @@ struct FileUtils {
         relative_file_name = root + prefixes[i] + org_file_name;
         f = fopen(relative_file_name.c_str(), "rb");
         if (f) {
-          printf("found file: %s\n", relative_file_name.c_str());
           relative_file_name = fs::canonical(fs::path(relative_file_name)).u8string();
           file_found = true;
           break;

@@ -161,7 +161,6 @@ struct UrdfVisual {
   bool has_local_material;
   int sync_visual_body_uid1;
   int sync_visual_body_uid2;
-  
 };
 
 template <typename Algebra>

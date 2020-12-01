@@ -72,6 +72,10 @@ struct DoubleUtils {
     return double(num) / double(denom);
   }
 
+  static double copy(double v) {
+      return v;
+  }
+
   static double scalar_from_string(const std::string& txt) {
     double result = atof(txt.c_str());
     return result;

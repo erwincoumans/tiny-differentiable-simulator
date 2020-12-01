@@ -37,6 +37,7 @@
   py::class_<TinyVector3<MyScalar, MyTinyConstants>>(m, "TinyVector3")
       .def(py::init<MyScalar, MyScalar, MyScalar>())
       .def("set_zero", &TinyVector3<MyScalar, MyTinyConstants>::set_zero)
+      .def("sqnorm", &TinyVector3<MyScalar, MyTinyConstants>::sqnorm)
       .def_readwrite("x", &TinyVector3<MyScalar, MyTinyConstants>::m_x)
       .def_readwrite("y", &TinyVector3<MyScalar, MyTinyConstants>::m_y)
       .def_readwrite("z", &TinyVector3<MyScalar, MyTinyConstants>::m_z)
@@ -45,6 +46,7 @@
       .def(py::self += py::self)
       .def(py::self -= py::self)
       .def(-py::self)
+      
       .def("__repr__",
            [](const TinyVector3<MyScalar, MyTinyConstants> &a) {
              return "[" + std::to_string(MyTinyConstants::getDouble(a.m_x)) + " " + std::to_string(MyTinyConstants::getDouble(a.m_y)) +
@@ -319,6 +321,7 @@
       ;
 
   m.def("fraction", &fraction);
+  m.def("copy", &copy);
   m.def("mass_matrix", &MyMassMatrix);
   m.def("forward_kinematics", &MyForwardKinematics);
   m.def("forward_dynamics", &MyForwardDynamics);
@@ -328,6 +331,11 @@
   m.def("point_jacobian", &MyPointJacobian);
   m.def("inverse_kinematics", &MyInverseKinematics);
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
+  m.def("find_file", &MyFindFile);
+  m.def("pi", &MyPi);
+  m.def("cos", &MyCos);
+  m.def("sin", &MySin);
+
   
   
   py::class_<NeuralNetwork<MyAlgebra>>(      m, "NeuralNetwork")
@@ -337,7 +345,7 @@
       //.def("compute", &NeuralNetwork<MyAlgebra>::compute)
       .def("set_parameters", &NeuralNetwork<MyAlgebra>::set_parameters)
       .def("print_params", &NeuralNetwork<MyAlgebra>::print_params)
-      .def("save_graphviz", &NeuralNetwork<MyAlgebra>::save_graphviz)
+      //.def("save_graphviz", &NeuralNetwork<MyAlgebra>::save_graphviz)
       ;
       //.def("compute_contacts", &CollisionDispatcher<MyAlgebra>::compute_contacts2);
 
@@ -453,6 +461,7 @@
       .def("resolve_collision",
            &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision);
 
+#if 0
   py::enum_<VelocitySmoothingMethod>(m, "TinyVelocitySmoothingMethod",
                                          py::arithmetic())
       .value("SMOOTH_VEL_NONE", SMOOTH_VEL_NONE)
@@ -482,7 +491,7 @@
       .def_readwrite("friction_model", &TMBCSS::friction_model_)
       .def("compute_contact_force", &TMBCSS::compute_contact_force)
       .def("compute_friction_force", &TMBCSS::compute_friction_force);
-
+#endif
   py::class_<World<MyAlgebra>>(m, "TinyWorld")
       .def(py::init<>())
       .def("step", &World<MyAlgebra>::step)
@@ -490,6 +499,7 @@
                     &World<MyAlgebra>::set_gravity)
       .def("compute_contacts_rigid_body",
            &World<MyAlgebra>::compute_contacts_rigid_body)
+      
       .def("compute_contacts_multi_body",
            &World<MyAlgebra>::compute_contacts_multi_body)
       .def("get_collision_dispatcher",
