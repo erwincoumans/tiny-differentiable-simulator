@@ -22,10 +22,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
 # set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
-IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    link_libraries(stdc++fs)
-ENDIF()
-
 if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
   if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
@@ -44,6 +40,11 @@ endif(COMMAND cmake_policy)
 SET(MSVC_INCREMENTAL_DEFAULT ON)
 
 PROJECT(DIFF_PHYSICS)
+
+IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    link_libraries(stdc++fs)
+ENDIF()
+
 
 #The core library consists of those headers
 FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
