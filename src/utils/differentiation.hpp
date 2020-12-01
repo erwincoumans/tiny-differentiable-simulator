@@ -8,8 +8,6 @@
 #include <stan/math.hpp>
 #include <stan/math/fwd.hpp>
 #endif
-#include <ceres/autodiff_cost_function.h>
-// clang-format on
 
 #include <cppad/cg.hpp>
 #include <cppad/cg/support/cppadcg_eigen.hpp>
@@ -24,9 +22,13 @@
 #include "math/tiny/tiny_dual_utils.h"
 #include "math/eigen_algebra.hpp"
 #include "math/tiny/tiny_algebra.hpp"
+#ifdef USE_CERES
+#include <ceres/autodiff_cost_function.h>
 #include "math/tiny/ceres_utils.h"
+#endif
 #include "math/tiny/cppad_utils.h"
 #include "stopwatch.hpp"
+// clang-format on
 
 namespace tds {
 enum DiffMethod {
@@ -74,8 +76,12 @@ struct default_diff_algebra<DIFF_NUMERICAL, Dim, Scalar> {
 };
 template <int Dim, typename Scalar>
 struct default_diff_algebra<DIFF_CERES, Dim, Scalar> {
+#ifdef USE_CERES
   using ADScalar = ceres::Jet<Scalar, Dim>;
   using type = TinyAlgebra<ADScalar, CeresUtils<Dim, Scalar>>;
+#else
+  using type = EigenAlgebra;
+#endif
 };
 template <int Dim, typename Scalar>
 struct default_diff_algebra<DIFF_DUAL, Dim, Scalar> {
@@ -139,6 +145,7 @@ static std::enable_if_t<Method == DIFF_NUMERICAL, void> compute_gradient(
   }
 }
 
+#ifdef USE_CERES
 namespace {
 template <int Dim, template <typename> typename F, typename Scalar>
 struct CeresFunctional {
@@ -157,6 +164,7 @@ struct CeresFunctional {
   }
 };
 }  // namespace
+#endif
 
 /**
  * Forward-mode autodiff using Ceres' Jet implementation.
@@ -168,6 +176,7 @@ template <DiffMethod Method, int Dim, template <typename> typename F,
           typename Scalar = double>
 static std::enable_if_t<Method == DIFF_CERES, void> compute_gradient(
     const std::vector<Scalar>& x, std::vector<Scalar>& dfx) {
+#ifdef USE_CERES
   assert(static_cast<int>(x.size()) == Dim);
   dfx.resize(x.size());
   typedef CeresFunctional<Dim, F, Scalar> CF;
@@ -176,6 +185,11 @@ static std::enable_if_t<Method == DIFF_CERES, void> compute_gradient(
   Scalar* grad = dfx.data();
   const Scalar* params = x.data();
   cost_function.Evaluate(&params, &fx, &grad);
+#else
+  throw std::runtime_error(
+      "Variable 'USE_CERES' must be set to use automatic "
+      "differentiation functions from Ceres.");
+#endif
 }
 
 /**
@@ -288,6 +302,7 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
 
  private:
   using Scalar = typename ScalarAlgebra::Scalar;
+#ifdef USE_CERES
   using ADScalar = ceres::Jet<Scalar, kDim>;
   mutable std::vector<Scalar> gradient_;
 
@@ -313,8 +328,10 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
 
   CostFunctional* cost_{nullptr};
   ceres::AutoDiffCostFunction<CostFunctional, 1, kDim> cost_function_;
+#endif
 
  public:
+#ifdef USE_CERES
   // CostFunctional pointer is managed by cost_function_.
   GradientFunctional()
       : cost_(new CostFunctional(this)), cost_function_(cost_) {}
@@ -331,11 +348,19 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
         ceres::AutoDiffCostFunction<CostFunctional, 1, kDim>(cost_);
     return *this;
   }
+#else
+  F<ScalarAlgebra> f_scalar_;
+#endif
 
   Scalar value(const std::vector<Scalar>& x) const {
+#ifdef USE_CERES
     return cost_->f_scalar(x);
+#else
+    return f_scalar_(x);
+#endif
   }
   const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+#ifdef USE_CERES
     assert(static_cast<int>(x.size()) == kDim);
     gradient_.resize(x.size());
     Scalar fx;
@@ -343,6 +368,11 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
     const Scalar* params = x.data();
     cost_function_.Evaluate(&params, &fx, &grad);
     return gradient_;
+#else
+    throw std::runtime_error(
+        "Variable 'USE_CERES' must be set to use automatic "
+        "differentiation functions from Ceres.");
+#endif
   }
 };
 
@@ -505,6 +535,7 @@ struct CodeGenSettings {
   std::vector<double> default_nograd_x;
 };
 
+#if CPPAD_CG_SYSTEM_LINUX
 template <template <typename> typename F, typename ScalarAlgebra>
 class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
  public:
@@ -614,15 +645,15 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
 
   Scalar value(const std::vector<Scalar>& x) const {
     const auto fx = model_->ForwardZero(x);
-    #ifndef NDEBUG
-        const auto fx_slow = f_scalar_(x);
-        const bool close = std::fabs(fx_slow - fx[0]) < 1e-6;
-        if (!close) {
-          std::cout << "Scalar/CodeGen 0th order mismatch: " << fx_slow << " vs "
-                    << fx[0] << "\n";
-        }
-        assert(close);
-    #endif
+#ifndef NDEBUG
+    const auto fx_slow = f_scalar_(x);
+    const bool close = std::fabs(fx_slow - fx[0]) < 1e-6;
+    if (!close) {
+      std::cout << "Scalar/CodeGen 0th order mismatch: " << fx_slow << " vs "
+                << fx[0] << "\n";
+    }
+    assert(close);
+#endif
     return fx[0];
   }
   const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
@@ -696,14 +727,15 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
   // file name of the dynamic library to load
   std::string library_name_{""};
 
-  #ifndef NDEBUG
-    F<ScalarAlgebra> f_scalar_;
-  //   GradientFunctional<tds::DIFF_CERES, F, ScalarAlgebra> ceres_functional_;
-  #endif
+#ifndef NDEBUG
+  F<ScalarAlgebra> f_scalar_;
+//   GradientFunctional<tds::DIFF_CERES, F, ScalarAlgebra> ceres_functional_;
+#endif
   mutable std::vector<Scalar> gradient_;
   mutable std::vector<std::size_t> rows_;
   mutable std::vector<std::size_t> cols_;
   std::unique_ptr<CppAD::cg::LinuxDynamicLib<Scalar>> lib_{nullptr};
   std::unique_ptr<CppAD::cg::GenericModel<Scalar>> model_;
 };
+#endif
 }  // namespace tds

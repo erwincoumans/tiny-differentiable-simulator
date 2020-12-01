@@ -22,3 +22,13 @@ IF(USE_RBDL)
   target_compile_definitions(test_rbdl_tds PUBLIC -D_VARIADIC_MAX=10, -DGTEST_LANG_CXX11 -DUSE_RBDL )
   ADD_TEST(test_rbdl_tds_PASS test_rbdl_tds)  
 ENDIF(USE_RBDL)
+
+add_executable(test_gradients test_gradients.cpp)
+target_link_libraries(test_gradients PRIVATE differentiation gtest gtestmain)
+add_test(GradientTests test_gradients)
+
+if (USE_CPPAD)
+    add_executable(test_codegen test_codegen.cpp)
+    target_link_libraries(test_codegen PRIVATE differentiation gtest gtestmain tinyxml2 ${CMAKE_DL_LIBS})
+    add_test(CodegenTests test_codegen)
+endif (USE_CPPAD)

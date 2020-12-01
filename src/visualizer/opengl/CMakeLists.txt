@@ -78,6 +78,9 @@ endif ()
 
   endif()
 # endif()
+if (WIN32)
+    target_link_libraries(opengl_window Opengl32)
+endif (WIN32)
 
 IF(APPLE)
   FIND_PACKAGE(OpenGL)

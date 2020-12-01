@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "math/conditionals.hpp"
 #include "../multi_body.hpp"
 #include "kinematics.hpp"
 
@@ -83,8 +84,13 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     printf("LINK  %i\n", i);
 #endif
 
-    assert(link.joint_type == JOINT_FIXED ||
-           Algebra::abs(link.D) > Algebra::zero());
+    if constexpr (is_cppad_scalar<Scalar>::value) {
+      assert(link.joint_type == JOINT_FIXED ||
+             Algebra::to_double(Algebra::abs(link.D)) > 0.0);
+    } else {
+      assert(link.joint_type == JOINT_FIXED ||
+             Algebra::abs(link.D) > Algebra::zero());
+    }
     Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
                                                  : Algebra::one() / link.D;
 #ifdef DEBUG
