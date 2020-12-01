@@ -1,4 +1,4 @@
-#
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#Tiny Differentiable Simulator or TDS
+# Tiny Differentiable Simulator (TDS)
 
-cmake_minimum_required(VERSION 2.4.3)
+cmake_minimum_required(VERSION 3.12)
+
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
+# set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
-cmake_policy(SET CMP0042 NEW)
+IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+link_libraries(stdc++fs)
+ENDIF()
 
-cmake_policy(SET CMP0017 NEW)
- if(COMMAND cmake_policy)
-      cmake_policy(SET CMP0003 NEW)
-    endif(COMMAND cmake_policy)
+if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
+  if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+  endif()
+endif()
+
+
+if(COMMAND cmake_policy)
+	cmake_policy(SET CMP0003 NEW)
+	cmake_policy(SET CMP0017 NEW)
+	cmake_policy(SET CMP0042 NEW)
+	cmake_policy(SET CMP0057 NEW)
+endif(COMMAND cmake_policy)
     
 #this line has to appear before 'PROJECT' in order to be able to disable incremental linking
 SET(MSVC_INCREMENTAL_DEFAULT ON)
@@ -35,7 +48,6 @@ PROJECT(DIFF_PHYSICS)
 #The core library consists of those headers
 FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
 
-set(CMAKE_CXX_STANDARD 17)
 
 find_package(Eigen3)
 if (Eigen3_FOUND)
@@ -155,9 +167,6 @@ IF(Bullet_FOUND)
   	ENDIF(USE_MSVC_DISABLE_RTTI)
   	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4244 /wd4267")
   ENDIF(MSVC)
-  
-  SUBDIRS(src/visualizer/pybullet)
-
 ENDIF(Bullet_FOUND)
 
 OPTION (USE_RBDL "Compare against RBDL" ON)
@@ -178,26 +187,145 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 
-
-
 ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 
-SUBDIRS(third_party/gtest)
-SUBDIRS(test)
-SUBDIRS(src/visualizer/opengl)
+OPTION(USE_STAN "Use Stan Math" OFF)
+if(USE_STAN)
+	add_definitions(-pthread -D_REENTRANT -DBOOST_DISABLE_ASSERTS -DUSE_STAN)
+	set(STAN_LIBRARIES ${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/tbb/libtbb.so.2)
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math)
+	set(Eigen3_FOUND true)
+	# use Eigen distribution from Stan Math
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/boost_1.72.0)
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/eigen_3.3.7)
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/cpplint_1.4.5)
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/opencl_2.2.0)
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/sundials_5.2.0/include)
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/tbb_2019_U8/include)
+else(USE_STAN)
+	find_package(Eigen3 CONFIG)
+	if (Eigen3_FOUND)
+		message("FOUND EIGEN")
+		add_definitions(-DUSE_EIGEN)
+		include_directories(${EIGEN3_INCLUDE_DIRS})
+	else(Eigen3_FOUND)
+		set(Eigen3_FOUND TRUE)
+		message("Using third_party/eigen3")
+		add_definitions(-DUSE_EIGEN)
+		set(EIGEN3_INCLUDE_DIRS  third_party/eigen3)
+		include_directories(${EIGEN3_INCLUDE_DIRS})
+	endif (Eigen3_FOUND)
+endif(USE_STAN)
 
-SUBDIRS(third_party/cpp_base64)
-SUBDIRS(third_party/cloud_seed)
-SUBDIRS(third_party/tiny_audio)
-SUBDIRS(third_party/dear_imgui)
-SUBDIRS(third_party/crossguid)
-SUBDIRS(third_party/zeromq)
+OPTION(USE_ENOKI "Use Enoki" OFF)
+IF(USE_ENOKI)
+  add_definitions(-DUSE_ENOKI)
+  set(ENOKI_AUTODIFF ON CACHE BOOL "Use enoki with autodiff" FORCE)
+  set(ENOKI_CUDA ON CACHE BOOL "Use enoki with CUDA" FORCE)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/enoki)
+  enoki_set_compile_flags()
+  enoki_set_native_flags()
+  get_directory_property(ENOKI_COMPILE_OPTIONS     COMPILE_OPTIONS)
+  get_directory_property(ENOKI_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
+  set_property(DIRECTORY . PROPERTY COMPILE_OPTIONS     ${ENOKI_COMPILE_OPTIONS})
+  set_property(DIRECTORY . PROPERTY COMPILE_DEFINITIONS ${ENOKI_COMPILE_DEFINITIONS})
+  set(ENOKI_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/third_party/enoki/include)
+  include_directories(${ENOKI_INCLUDE_DIRS})
+  set(CMAKE_CXX_STANDARD_LIBRARIES ${CMAKE_CXX_STANDARD_LIBRARIES})
+  # set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
+  # set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS})
+ENDIF(USE_ENOKI)
+
+OPTION(USE_PAGMO "Use Pagmo" ON)
+if(USE_PAGMO)
+  find_package(pagmo)
+  if (pagma_FOUND)
+    add_definitions(-DUSE_PAGMO)
+  endif()
+endif(USE_PAGMO)
+
+OPTION(USE_OPTIM "Use OptimLib" ON)
+if(USE_OPTIM)
+	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/optim)
+	add_definitions(-DUSE_OPTIM)
+	add_definitions(-DOPTIM_ENABLE_EIGEN_WRAPPERS)
+endif(USE_OPTIM)
+
+include(ExternalProject)
+
+OPTION(USE_CPPAD "Use CppAD" OFF)
+
+IF(USE_CPPAD)
+  # Add CppAD as an external project and an imported target.
+  
+  ExternalProject_Add(CppAD-Project
+    PREFIX CppAD
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/CppAD
+    CMAKE_ARGS
+      -Dcppad_prefix=${CMAKE_CURRENT_BINARY_DIR}/CppAD
+  )
+  add_library(CppAD INTERFACE IMPORTED)
+  add_dependencies(CppAD CppAD-Project)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include)
+  target_include_directories(CppAD INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include)
+  
+  # Same for CppADCodeGen
+  ExternalProject_Add(CppADCodeGen-Project
+    PREFIX CppADCodeGen
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/CppADCodeGen
+    CMAKE_ARGS
+      -DCPPAD_INCLUDE_DIR=${CMAKE_CURRENT_BINARY_DIR}/CppAD/include
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/CppADCodeGen
+      -DGOOGLETEST_GIT=ON
+  )
+  add_dependencies(CppADCodeGen-Project CppAD)
+  add_library(CppADCodeGen INTERFACE IMPORTED)
+  add_dependencies(CppADCodeGen CppAD-Project CppADCodeGen-Project)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CppADCodeGen/include)
+  target_include_directories(CppADCodeGen
+    INTERFACE
+      ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include
+      ${CMAKE_CURRENT_BINARY_DIR}/CppADCodeGen/include
+  )
+ENDIF(USE_CPPAD)
+
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/benchmark)
+#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/HighFive)
+
+
+# set(MINIGLOG ON)
+# set(BUILD_TESTING OFF)
+# set(BUILD_EXAMPLES OFF)
+# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/cxxopts)
+#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/fmt)
+
+subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)
+subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/pybullet)
+
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cpp_base64)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cloud_seed)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/tiny_audio)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/dear_imgui)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/crossguid)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 #SUBDIRS(third_party/nlohmann)
 
 
-SUBDIRS(examples)
+OPTION(USE_TESTING "run unit tests" ON)
+IF(USE_TESTING)
+    ENABLE_TESTING()
+    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
+    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
+ENDIF()
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)
 
 OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" ON)
 IF(BUILD_PYTHON_PLUGIN)
-  SUBDIRS(python)
+  SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/python)
 ENDIF()

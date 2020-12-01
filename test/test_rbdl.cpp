@@ -16,7 +16,6 @@ void TestOnURDF(std::string filename)
 {
   Vector3 gravity(0., 0., -9.81);
 
-  
   World<Algebra> world;
   MultiBody<Algebra> *mb = nullptr;
 
@@ -147,7 +146,6 @@ void TestOnURDF(std::string filename)
       // if (!is_equal<Algebra>(*mb, rbdl_q, rbdl_qd, rbdl_qdd)) {
       //   exit(1);
       // }
-
       ASSERT_TRUE(is_equal<Algebra>(*mb, rbdl_q, rbdl_qd, rbdl_qdd))
           << fail_message << i;
 

@@ -23,8 +23,9 @@
 #include <iostream>
 #include <random>
 #include <vector>
-#undef max
-#undef min
+
+#include "math/conditionals.hpp"
+
 namespace tds {
 
 enum NeuralNetworkActivation {
@@ -42,6 +43,48 @@ enum NeuralNetworkInitialization {
   NN_INIT_ZERO = -1,
   NN_INIT_XAVIER = 0,  // good for tanh activations
   NN_INIT_HE,          // good for sigmoid activations
+};
+
+/**
+ * Statically sized NN specification with a predefined number of layers so that
+ * the number of parameters can be statically inferred at compile time.
+ */
+template <std::size_t NumLayers>
+struct StaticNeuralNetworkSpecification {
+  static const inline std::size_t kNumLayers = NumLayers;
+
+  std::array<NeuralNetworkActivation, kNumLayers> activations;
+  std::array<int, kNumLayers> layers;
+  std::array<bool, kNumLayers> use_bias;
+
+  constexpr StaticNeuralNetworkSpecification(
+      std::size_t default_num_hidden_units = 5, bool default_use_bias = true)
+      : activations(), layers(), use_bias() {
+    for (std::size_t i = 0; i < kNumLayers; ++i) {
+      layers[i] = default_num_hidden_units;
+      use_bias[i] = default_use_bias;
+    }
+  }
+
+  constexpr int input_dim() const { return layers[0]; }
+  constexpr int output_dim() const { return layers.back(); }
+  constexpr int num_weights() const {
+    int num = 0;
+    for (std::size_t i = 1; i < kNumLayers; ++i) {
+      num += layers[i - 1] * layers[i];
+    }
+    return num;
+  }
+  constexpr int num_units(int layer_id) const { return layers[layer_id]; }
+  constexpr int num_biases() const {
+    int num = 0;
+    for (std::size_t i = 0; i < kNumLayers; ++i) {
+      num += use_bias[i] ? layers[i] : 0;
+    }
+    return num;
+  }
+  constexpr int num_parameters() const { return num_weights() + num_biases(); }
+  constexpr int num_layers() const { return static_cast<int>(kNumLayers); }
 };
 
 /**
@@ -66,6 +109,19 @@ class NeuralNetworkSpecification {
     layers_[0] = input_dim;
     for (int size : layer_sizes) {
       add_linear_layer(activation, size, learn_bias);
+    }
+  }
+
+  template <std::size_t NumLayers>
+  NeuralNetworkSpecification(
+      const StaticNeuralNetworkSpecification<NumLayers>& spec) {
+    activations_.resize(NumLayers);
+    layers_.resize(NumLayers);
+    use_bias_.resize(NumLayers);
+    for (std::size_t i = 0; i < NumLayers; ++i) {
+      activations_[i] = spec.activations[i];
+      layers_[i] = spec.layers[i];
+      use_bias_[i] = spec.use_bias[i];
     }
   }
 
@@ -199,14 +255,14 @@ class NeuralNetworkSpecification {
             current[ci] = Algebra::sin(current[ci]);
             break;
           case NN_ACT_RELU:
-            current[ci] = Algebra::max1(zero, current[ci]);
+            current[ci] = Algebra::max(zero, current[ci]);
             break;
           case NN_ACT_SOFT_RELU:
             current[ci] = Algebra::log(one + Algebra::exp(current[ci]));
             break;
           case NN_ACT_ELU:
-            current[ci] = current[ci] >= zero ? current[ci]
-                                              : Algebra::exp(current[ci]) - one;
+            current[ci] = tds::where_ge(current[ci], zero, current[ci],
+                                        Algebra::exp(current[ci]) - one);
             break;
           case NN_ACT_SIGMOID: {
             typename Algebra::Scalar exp_x = Algebra::exp(current[ci]);
@@ -227,21 +283,26 @@ class NeuralNetworkSpecification {
   }
 
   template <typename Algebra>
-  void save_graphviz(
-      const std::string& filename,
-      const std::vector<std::string>& input_names = {},
-      const std::vector<std::string>& output_names = {},
-      const std::vector<typename Algebra::Scalar>& weights = {},
-      const std::vector<typename Algebra::Scalar>& biases = {}) const {
+  void save_graphviz(const std::string& filename,
+                     const std::vector<std::string>& input_names = {},
+                     const std::vector<std::string>& output_names = {},
+                     const std::vector<typename Algebra::Scalar>& weights = {},
+                     const std::vector<typename Algebra::Scalar>& biases = {},
+                     bool show_arrows = false) const {
     std::ofstream file(filename);
-    file << "graph G {\n\t";
+    if (show_arrows) {
+      file << "digraph G {\n\t";
+    } else {
+      file << "graph G {\n\t";
+    }
     file << "rankdir=LR;\n\tsplines=false;\n\tedge[style=invis];\n\tranksep="
             "1.4;\n\t";
-    file << "node[shape=circle,color=black,style=filled,fillcolor=gray];\n\t";
+    file << "node[shape=circle,color=black,style=filled,fillcolor=lightgray];"
+            "\n\t";
     for (std::size_t i = 0; i < layers_.size(); ++i) {
-      file << "{\n\t\t";
+      file << "{\n\t";
       for (int j = 0; j < layers_[i]; ++j) {
-        file << "n_" << i << "_" << j << " [label=";
+        file << "\tn_" << i << "_" << j << " [label=";
         if (i == 0 && j < input_names.size()) {
           file << "\"" << input_names[j] << "\"";
         } else if (i == static_cast<int>(layers_.size()) - 1 &&
@@ -250,35 +311,43 @@ class NeuralNetworkSpecification {
         } else {
           file << "\"\"";
         }
-        file << "];\n\t\t";
+        file << "];\n\t";
       }
       file << "}\n\t";
     }
     file << "// prevent tilting\n\t";
     for (std::size_t i = 2; i < layers_.size(); ++i) {
-      file << "n_" << i - 1 << "_0--n_" << i << "_0;\n\t";
+      file << "n_" << i - 1 << "_0-";
+      file << (show_arrows ? '>' : '-');
+      file << "n_" << i << "_0;\n\t";
     }
-    file << "edge[style=solid, tailport=e, headport=w];\n\t";
-    typename Algebra::Scalar max_weight = Algebra::zero();
+    file << "edge[style=solid";
+    if (!show_arrows) {
+      file << ", tailport=e, headport=w";
+    }
+    file << "];\n\t";
+    double max_weight = 2;
     if (!weights.empty()) {
-      max_weight = (Algebra::abs(weights[0]));
+      max_weight = std::abs(Algebra::from_double(weights[0]));
       for (const auto& w : weights) {
-        max_weight = Algebra::max1(max_weight, Algebra::abs(w));
+        max_weight = std::max(max_weight, std::abs(Algebra::from_double(w)));
       }
     }
     std::size_t weight_i = 0;
     for (std::size_t i = 1; i < layers_.size(); ++i) {
-      for (int j = 0; j < layers_[i - 1]; ++j) {
-        for (int k = 0; k < layers_[i]; ++k, ++weight_i) {
-          file << "n_" << i - 1 << "_" << j << "--n_" << i << "_" << k;
+      for (int j = 0; j < layers_[i]; ++j) {
+        for (int k = 0; k < layers_[i - 1]; ++k, ++weight_i) {
+          file << "\tn_" << i - 1 << "_" << k << "-";
+          file << (show_arrows ? '>' : '-');
+          file << "n_" << i << "_" << j;
           if (!weights.empty()) {
             file << "[penwidth="
                  << std::to_string(
-                        std::abs(Algebra::to_double(weights[weight_i])) /
-                     Algebra::to_double(max_weight) * 3.0)
+                        std::abs(Algebra::from_double(weights[weight_i])) /
+                        max_weight * 3.0)
                  << "]";
           }
-          file << ";\n\t";
+          file << ";\n";
         }
       }
     }
@@ -323,7 +392,8 @@ class NeuralNetwork : public NeuralNetworkSpecification {
     weights.resize(num_weights());
     biases.resize(num_biases());
     std::copy(params.begin(), params.begin() + num_weights(), weights.begin());
-    std::copy(params.begin() + num_weights(), params.begin() + num_weights() + num_biases(), biases.begin());
+    std::copy(params.begin() + num_weights(),
+              params.begin() + num_weights() + num_biases(), biases.begin());
   }
 
   void print_params() const {
@@ -336,9 +406,9 @@ class NeuralNetwork : public NeuralNetworkSpecification {
   void save_graphviz(const std::string& filename,
                      const std::vector<std::string>& input_names = {},
                      const std::vector<std::string>& output_names = {}) const {
-    //static_cast<const NeuralNetworkSpecification*>(this)
-      //  ->template save_graphviz<Algebra>(filename, input_names, output_names,weights, biases);
-      NeuralNetworkSpecification::save_graphviz<Algebra>(filename, input_names, output_names, weights, biases);
+    dynamic_cast<NeuralNetworkSpecification*>(this)
+        ->template save_graphviz<Algebra>(filename, input_names, output_names,
+                                          weights, biases);
   }
 };
 

@@ -16,8 +16,10 @@
 
 #pragma once
 
+#include "utils/conversion.hpp"
+
 namespace tds {
-/// Pose is a coordinate frame specified as position_ and orientation_
+/// Pose is a coordinate frame specified as position and orientation
 /// quaternion.
 template <typename Algebra>
 struct Pose {
@@ -60,4 +62,10 @@ struct Pose {
     position_ = Algebra::rotate(orientation_, -position_);
   }
 };
+
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static inline Pose<AlgebraTo> clone(const Pose<AlgebraFrom>& p) {
+  typedef Conversion<AlgebraFrom, AlgebraTo> C;
+  return Pose<AlgebraTo>(C::convert(p.position), C::convert(p.orientation));
+}
 }  // namespace tds

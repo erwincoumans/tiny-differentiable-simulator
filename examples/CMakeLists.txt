@@ -2,9 +2,15 @@
 # then examples with only included third_party dependencies
 # at the end, optional complex examples with complicated dependencies (PyTorch, STAN, BOOST etc)
 
-add_executable(pendulum_example_gui pendulum_example_gui.cpp  ${TDS_HDRS})
-target_link_libraries(pendulum_example_gui opengl_window ${CMAKE_DL_LIBS})
-target_include_directories(pendulum_example_gui PRIVATE ../src)
+add_executable(pendulum_example_tiny_gui pendulum_example_gui.cpp  ${TDS_HDRS})
+target_link_libraries(pendulum_example_tiny_gui opengl_window ${CMAKE_DL_LIBS})
+target_compile_definitions(pendulum_example_tiny_gui PRIVATE USE_TINY )
+target_include_directories(pendulum_example_tiny_gui PRIVATE ../src )
+
+add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
+target_link_libraries(pendulum_example_eigen_gui opengl_window ${CMAKE_DL_LIBS})
+target_include_directories(pendulum_example_eigen_gui PRIVATE ../src  ${EIGEN3_INCLUDE_DIRS})
+
 
 add_executable(spherical_joint_test spherical_joint_test.cpp  ${TDS_HDRS})
 target_link_libraries(spherical_joint_test opengl_window ${CMAKE_DL_LIBS})
@@ -24,6 +30,30 @@ add_executable(opengl_imgui_test opengl_imgui_test.cpp ../third_party/dear_imgui
 target_link_libraries(opengl_imgui_test opengl_window dear_imgui TinyAudio ${CMAKE_DL_LIBS})
 target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../third_party/dear_imgui ../src)
 
+IF(USE_CPPAD)
+  add_executable(cuda_codegen cuda_codegen.cpp ${TDS_HDRS})
+  target_compile_definitions(cuda_codegen PRIVATE -DUSE_CPPAD)
+  target_link_libraries(
+    cuda_codegen
+    PRIVATE
+      ${CMAKE_DL_LIBS}
+      opengl_window
+      tinyxml2
+      ${DL}
+      CppADCodeGen
+      ${CERES_LIBRARIES}
+      ${PYTHON_LIBRARIES}
+      python2.7
+      #cxxopts::cxxopts
+      Pagmo::pagmo
+      gflags
+      pybullet_visualizer_api
+  )
+  if (USE_STAN)
+    target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
+  endif(USE_STAN)
+ENDIF(USE_CPPAD)
+
 IF(Bullet_FOUND)
   add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
   target_include_directories(laikago_footstep_ik PRIVATE ../src ${EIGEN3_INCLUDE_DIRS})
@@ -42,6 +72,8 @@ target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../sr
 IF(WIN32)
     target_link_libraries(pendulum_example_gui Opengl32)
     target_link_libraries(spherical_joint_test Opengl32)
+    target_link_libraries(pendulum_example_tiny_gui Opengl32)
+    target_link_libraries(pendulum_example_eigen_gui Opengl32)
     target_link_libraries(billiard_opt_example_gui Opengl32)
     target_link_libraries(tiny_urdf_parser_opengl_example Opengl32)
     target_link_libraries(opengl_test  Opengl32)

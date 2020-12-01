@@ -34,11 +34,15 @@
 using namespace TINY;
 using namespace tds;
 #include "visualizer/opengl/tiny_opengl3_app.h"
-#include "math/tiny/tiny_algebra.hpp"
 
+#ifdef USE_TINY
+  #include "math/tiny/tiny_algebra.hpp"
+#else
+  #include "math/eigen_algebra.hpp"
+#endif
 
 int main(int argc, char* argv[]) {
-
+#ifdef USE_TINY
   typedef TinyAlgebra<double, DoubleUtils> Algebra;
   typedef typename Algebra::Vector3 Vector3;
   typedef typename Algebra::Quaternion Quarternion;
@@ -46,6 +50,15 @@ int main(int argc, char* argv[]) {
   typedef typename Algebra::Matrix3 Matrix3;
   typedef typename Algebra::Matrix3X Matrix3X;
   typedef typename Algebra::MatrixX MatrixX;
+#else
+  typedef EigenAlgebra Algebra;
+  typedef typename Algebra::Vector3 Vector3;
+  typedef typename Algebra::Quaternion Quarternion;
+  typedef typename Algebra::VectorX VectorX;
+  typedef typename Algebra::Matrix3 Matrix3;
+  typedef typename Algebra::Matrix3X Matrix3X;
+  typedef typename Algebra::MatrixX MatrixX;
+#endif
   typedef tds::RigidBody<Algebra> RigidBody;
   typedef tds::RigidBodyContactPoint<Algebra> RigidBodyContactPoint;
   typedef tds::MultiBody<Algebra> MultiBody;
@@ -94,11 +107,10 @@ int main(int argc, char* argv[]) {
   }
   
 
-  mb->q() = std::vector<double>(mb->dof(), DoubleUtils::zero());
-  mb->qd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
-  mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
-  mb->qdd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
-
+  mb->q() = Algebra::zerox(mb->dof());
+  mb->qd() = Algebra::zerox(mb->dof_qd());
+  mb->tau() = Algebra::zerox(mb->dof_qd());
+  mb->qdd() = Algebra::zerox(mb->dof_qd());
 
   Vector3 gravity(0., 0., -9.81);
 
@@ -155,12 +167,12 @@ int main(int argc, char* argv[]) {
         const Transform& geom_X_world = 
                body->links()[l].X_world * body->links()[l].X_visuals[0];
 
-        TinyVector3f base_pos(geom_X_world.translation.getX(),
-                            geom_X_world.translation.getY(),
-                            geom_X_world.translation.getZ());
-        geom_X_world.rotation.getRotation(rot);
-        TinyQuaternionf base_orn(rot.getX(), rot.getY(), rot.getZ(),
-                                rot.getW());
+        TinyVector3f base_pos(geom_X_world.translation.x(),
+                            geom_X_world.translation.y(),
+                            geom_X_world.translation.z());
+        rot = Algebra::matrix_to_quat(geom_X_world.rotation);
+        TinyQuaternionf base_orn(rot.x(), rot.y(), rot.z(),
+                                rot.w());
         if (l>=0)
         {
           //printf("b=%d\n",b);

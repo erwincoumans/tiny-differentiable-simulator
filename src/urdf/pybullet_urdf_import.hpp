@@ -78,10 +78,10 @@ struct PyBulletUrdfImport {
         }
       };
 
-      joint.joint_axis_xyz.setValue(
-          Algebra::from_double(jointInfo.m_jointAxis[0]),
-          Algebra::from_double(jointInfo.m_jointAxis[1]),
-          Algebra::from_double(jointInfo.m_jointAxis[2]));
+      joint.joint_axis_xyz =
+          Vector3(Algebra::from_double(jointInfo.m_jointAxis[0]),
+                  Algebra::from_double(jointInfo.m_jointAxis[1]),
+                  Algebra::from_double(jointInfo.m_jointAxis[2]));
 
       if (jointInfo.m_parentIndex < 0) {
         joint.parent_name = urdf_structures.base_links[0].link_name;
@@ -133,15 +133,16 @@ struct PyBulletUrdfImport {
 
       btTransform tmp2(btQuaternion::getIdentity(), parentCom2JointPos);
       btTransform pos = parentInertia * tmp2;
-      joint.joint_origin_xyz.setValue(Algebra::from_double(pos.getOrigin()[0]),
-                                      Algebra::from_double(pos.getOrigin()[1]),
-                                      Algebra::from_double(pos.getOrigin()[2]));
+      joint.joint_origin_xyz =
+          Vector3(Algebra::from_double(pos.getOrigin()[0]),
+                  Algebra::from_double(pos.getOrigin()[1]),
+                  Algebra::from_double(pos.getOrigin()[2]));
       btScalar roll, pitch, yaw;
       pos_.getRotation().getEulerZYX(yaw, pitch, roll);
       btVector3 rpy = btVector3(roll, pitch, yaw);
-      joint.joint_origin_rpy.setValue(Algebra::from_double(rpy[0]),
-                                      Algebra::from_double(rpy[1]),
-                                      Algebra::from_double(rpy[2]));
+      joint.joint_origin_rpy =
+          Vector3(Algebra::from_double(rpy[0]), Algebra::from_double(rpy[1]),
+                  Algebra::from_double(rpy[2]));
       urdf_structures.links.push_back(child_link);
       urdf_structures.joints.push_back(joint);
     }
@@ -199,20 +200,20 @@ struct PyBulletUrdfImport {
     sim_api->getDynamicsInfo(body_unique_id, linkIndex, &dyn);
 
     urdfLink.urdf_inertial.mass = Algebra::from_double(dyn.m_mass);
-    urdfLink.urdf_inertial.inertia_xxyyzz.setValue(
-        Algebra::from_double(dyn.m_localInertialDiagonal[0]),
-        Algebra::from_double(dyn.m_localInertialDiagonal[1]),
-        Algebra::from_double(dyn.m_localInertialDiagonal[2]));
-    urdfLink.urdf_inertial.origin_xyz.setValue(
-        Algebra::from_double(dyn.m_localInertialFrame[0]),
-        Algebra::from_double(dyn.m_localInertialFrame[1]),
-        Algebra::from_double(dyn.m_localInertialFrame[2]));
+    urdfLink.urdf_inertial.inertia_xxyyzz =
+        Vector3(Algebra::from_double(dyn.m_localInertialDiagonal[0]),
+                Algebra::from_double(dyn.m_localInertialDiagonal[1]),
+                Algebra::from_double(dyn.m_localInertialDiagonal[2]));
+    urdfLink.urdf_inertial.origin_xyz =
+        Vector3(Algebra::from_double(dyn.m_localInertialFrame[0]),
+                Algebra::from_double(dyn.m_localInertialFrame[1]),
+                Algebra::from_double(dyn.m_localInertialFrame[2]));
     btVector3 rpy = sim_api->getEulerFromQuaternion(
         btQuaternion(dyn.m_localInertialFrame[3], dyn.m_localInertialFrame[4],
                      dyn.m_localInertialFrame[5], dyn.m_localInertialFrame[6]));
-    urdfLink.urdf_inertial.origin_rpy.setValue(Algebra::from_double(rpy[0]),
-                                               Algebra::from_double(rpy[1]),
-                                               Algebra::from_double(rpy[2]));
+    urdfLink.urdf_inertial.origin_rpy =
+        Vector3(Algebra::from_double(rpy[0]), Algebra::from_double(rpy[1]),
+                Algebra::from_double(rpy[2]));
 
     // visual shapes
     b3VisualShapeInformation visualShapeInfo;
@@ -224,21 +225,21 @@ struct PyBulletUrdfImport {
       if (visual.m_linkIndex == linkIndex) {
         UrdfVisual<Algebra> viz;
         // offset
-        viz.origin_xyz.setValue(
-            Algebra::from_double(visual.m_localVisualFrame[0]),
-            Algebra::from_double(visual.m_localVisualFrame[1]),
-            Algebra::from_double(visual.m_localVisualFrame[2]));
+        viz.origin_xyz =
+            Vector3(Algebra::from_double(visual.m_localVisualFrame[0]),
+                    Algebra::from_double(visual.m_localVisualFrame[1]),
+                    Algebra::from_double(visual.m_localVisualFrame[2]));
         btVector3 rpy = sim_api->getEulerFromQuaternion(btQuaternion(
             visual.m_localVisualFrame[3], visual.m_localVisualFrame[4],
             visual.m_localVisualFrame[5], visual.m_localVisualFrame[6]));
-        viz.origin_rpy.setValue(Algebra::from_double(rpy[0]),
-                                Algebra::from_double(rpy[1]),
-                                Algebra::from_double(rpy[2]));
+        viz.origin_rpy =
+            Vector3(Algebra::from_double(rpy[0]), Algebra::from_double(rpy[1]),
+                    Algebra::from_double(rpy[2]));
 
-        viz.material.material_rgb.setValue(
-            Algebra::from_double(visual.m_rgbaColor[0]),
-            Algebra::from_double(visual.m_rgbaColor[1]),
-            Algebra::from_double(visual.m_rgbaColor[2]));
+        viz.material.material_rgb =
+            Vector3(Algebra::from_double(visual.m_rgbaColor[0]),
+                    Algebra::from_double(visual.m_rgbaColor[1]),
+                    Algebra::from_double(visual.m_rgbaColor[2]));
         // viz.material_a =
         // Algebra::from_double(visual.m_rgbaColor[3]);
 
@@ -261,18 +262,18 @@ struct PyBulletUrdfImport {
           }
           case GEOM_BOX: {
             Vector3 halfExtents;
-            halfExtents.setValue(Algebra::from_double(visual.m_dimensions[0]),
-                                 Algebra::from_double(visual.m_dimensions[1]),
-                                 Algebra::from_double(visual.m_dimensions[2]));
+            halfExtents = Vector3(Algebra::from_double(visual.m_dimensions[0]),
+                                  Algebra::from_double(visual.m_dimensions[1]),
+                                  Algebra::from_double(visual.m_dimensions[2]));
             viz.geometry.box.extents = halfExtents * Algebra::fraction(2, 1);
             viz.geometry.geom_type = TINY_BOX_TYPE;
             break;
           }
           case GEOM_MESH: {
-            viz.geometry.mesh.scale.setValue(
-                Algebra::from_double(visual.m_dimensions[0]),
-                Algebra::from_double(visual.m_dimensions[1]),
-                Algebra::from_double(visual.m_dimensions[2]));
+            viz.geometry.mesh.scale =
+                Vector3(Algebra::from_double(visual.m_dimensions[0]),
+                        Algebra::from_double(visual.m_dimensions[1]),
+                        Algebra::from_double(visual.m_dimensions[2]));
             viz.geometry.mesh.file_name = visual.m_meshAssetFileName;
             printf("extract mesh: %s\n", viz.geometry.mesh.file_name.c_str());
             printf("extract scale: %f,%f,%f\n",
@@ -319,15 +320,15 @@ struct PyBulletUrdfImport {
                        colShapeData.m_localCollisionFrame[6]));
       btTransform col_tr = inertial_tr * col_local_tr;
 
-      col.origin_xyz.setValue(Algebra::from_double(col_tr.getOrigin()[0]),
-                              Algebra::from_double(col_tr.getOrigin()[1]),
-                              Algebra::from_double(col_tr.getOrigin()[2]));
+      col.origin_xyz = Vector3(Algebra::from_double(col_tr.getOrigin()[0]),
+                               Algebra::from_double(col_tr.getOrigin()[1]),
+                               Algebra::from_double(col_tr.getOrigin()[2]));
       btVector3 rpy;
       col_tr.getRotation().getEulerZYX(rpy[0], rpy[1], rpy[2]);
 
-      col.origin_rpy.setValue(Algebra::from_double(rpy[0]),
-                              Algebra::from_double(rpy[1]),
-                              Algebra::from_double(rpy[2]));
+      col.origin_rpy =
+          Vector3(Algebra::from_double(rpy[0]), Algebra::from_double(rpy[1]),
+                  Algebra::from_double(rpy[2]));
 
       switch (colShapeData.m_collisionGeometryType) {
         case GEOM_SPHERE: {
@@ -338,7 +339,8 @@ struct PyBulletUrdfImport {
           break;
         }
         // case GEOM_BOX: {
-        //	col.box.extents.setValue(Algebra::from_double(colShapeData.m_dimensions[0]),
+        //	col.box.extents =
+        //Vector3(Algebra::from_double(colShapeData.m_dimensions[0]),
         //		Algebra::from_double(colShapeData.m_dimensions[1]),
         //		Algebra::from_double(colShapeData.m_dimensions[2]));
         //	col.geom_type1 = BOX_TYPE;
@@ -356,15 +358,16 @@ struct PyBulletUrdfImport {
         }
         // case GEOM_MESH: {
         //	col.mesh.file_name = colShapeData.m_meshAssetFileName;
-        //	col.mesh.scale.setValue(Algebra::from_double(colShapeData.m_dimensions[0]),
+        //	col.mesh.scale =
+        //Vector3(Algebra::from_double(colShapeData.m_dimensions[0]),
         //		Algebra::from_double(colShapeData.m_dimensions[1]),
         //		Algebra::from_double(colShapeData.m_dimensions[2]));
         //	col.geom_type1 = MESH_TYPE;
         //	break;
         //}
         case GEOM_PLANE: {
-          col.geometry.plane.normal.setValue(Algebra::zero(), Algebra::zero(),
-                                             Algebra::one());
+          col.geometry.plane.normal =
+              Vector3(Algebra::zero(), Algebra::zero(), Algebra::one());
           col.geometry.plane.constant = Algebra::zero();
           col.geometry.geom_type = TINY_PLANE_TYPE;
           urdfLink.urdf_collision_shapes.push_back(col);

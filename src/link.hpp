@@ -74,7 +74,6 @@ struct Link {
   std::vector<Transform> X_collisions;  // offset of collision geometries
   // (relative to this link frame)
   std::vector<int> visual_ids;
-  std::vector<int> visual_ids2;
   std::vector<Transform>
       X_visuals;  // offset of geometry (relative to this link frame)
 
@@ -93,6 +92,33 @@ struct Link {
        const RigidBodyInertia &rbi)
       : X_T(parent_link_to_joint), rbi(rbi) {
     set_joint_type(joint_type);
+  }
+
+  template <typename AlgebraTo = Algebra>
+  Link<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    Link<AlgebraTo> conv(joint_type, tds::clone<Algebra, AlgebraTo>(X_T),
+                         rbi.template clone<AlgebraTo>());
+    conv.index = index;
+    conv.parent_index = parent_index;
+    conv.link_name = link_name;
+    conv.joint_name = joint_name;
+    conv.f_ext = tds::clone<Algebra, AlgebraTo>(f_ext);
+    conv.visual_ids = visual_ids;
+    for (const auto &x : X_visuals) {
+      conv.X_visuals.push_back(x.template clone<AlgebraTo>());
+    }
+    for (const auto &x : X_collisions) {
+      conv.X_collisions.push_back(x.template clone<AlgebraTo>());
+    }
+    for (auto *geom : collision_geometries) {
+      conv.collision_geometries.push_back(tds::clone<Algebra, AlgebraTo>(geom));
+    }
+    conv.q_index = q_index;
+    conv.qd_index = qd_index;
+    conv.stiffness = C::convert(stiffness);
+    conv.damping = C::convert(damping);
+    return conv;
   }
 
   void set_joint_type(JointType type,
@@ -350,13 +376,7 @@ struct Link {
 #if SWAP_TRANSFORM_ASSOCIATIVITY
     *X_parent = (*X_J) * X_T;
 #else
-
-
-    //X_T.print("X_T");
-    //X_J->print("X_J");
     *X_parent = X_T * (*X_J);
-    //X_parent->print("X_parent");
-
 #endif
   }
 
@@ -406,4 +426,9 @@ struct Link {
     jcalc(qd, &vJ);
   }
 };
+
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static inline Link<AlgebraTo> clone(const Link<AlgebraFrom> &link) {
+  return link.template clone<AlgebraTo>();
+}
 }  // namespace tds

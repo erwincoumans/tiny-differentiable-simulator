@@ -28,10 +28,11 @@
  * (i.e. "jets").
  * http://ceres-solver.org/automatic_derivatives.html#dual-numbers-jets
  *
- * Supports ceres::Jet<double, N> for N partial derivatives.
+ * Supports ceres::Jet<InnerScalar, N> for N partial derivatives.
  */
-template <int N> struct CeresUtils {
-  typedef ceres::Jet<double, N> Jet;
+template <int N, typename InnerScalar = double>
+struct CeresUtils {
+  typedef ceres::Jet<InnerScalar, N> Jet;
 
   static Jet zero() { return Jet(0.); }
   static Jet one() { return Jet(1.); }
@@ -41,65 +42,91 @@ template <int N> struct CeresUtils {
   static Jet pi() { return Jet(M_PI); }
   static Jet half_pi() { return Jet(M_PI / 2.); }
 
-  template <class T> static T cos1(const T &v) {
+  template <class T>
+  static T cos1(const T &v) {
     using std::cos;
     return cos(v);
   }
 
-  template <class T> static T sin1(const T &v) {
+  template <class T>
+  static T sin1(const T &v) {
     using std::sin;
     return sin(v);
   }
 
-  template <class T> static T sqrt1(const T &v) {
+  template <class T>
+  static T sqrt1(const T &v) {
     using std::sqrt;
     return sqrt(v);
   }
 
-  template <class T> static T atan2(const T &dy, const T &dx) {
+  template <class T>
+  static T atan2(const T &dy, const T &dx) {
     using std::atan2;
     return atan2(dy, dx);
   }
 
-  template <class T> static T asin(const T &v) {
+  template <class T>
+  static T asin(const T &v) {
     using std::asin;
     return asin(v);
   }
 
-  template <class T> static T copysign(const T &x, const T &y) {
+  template <class T>
+  static T copysign(const T &x, const T &y) {
     return ::copysign(x, y);
   }
 
-  template <class T> static T abs(const T &v) { return ceres::abs(v); }
+  template <class T>
+  static T abs(const T &v) {
+    return ceres::abs(v);
+  }
 
-  template <class T> static T pow(const T &a, const T &b) {
+  template <class T>
+  static T pow(const T &a, const T &b) {
     return ceres::pow(a, b);
   }
 
-  template <class T> static T exp(const T &v) { return ceres::exp(v); }
+  template <class T>
+  static T exp(const T &v) {
+    return ceres::exp(v);
+  }
 
-  template <class T> static T log(const T &v) { return ceres::log(v); }
+  template <class T>
+  static T log(const T &v) {
+    return ceres::log(v);
+  }
 
-  template <class T> static T tanh(const T &v) { return ceres::tanh(v); }
+  template <class T>
+  static T tanh(const T &v) {
+    return ceres::tanh(v);
+  }
 
-  template <class T> static T min1(const T &a, const T &b) {
+  template <class T>
+  static T min1(const T &a, const T &b) {
     using std::min;
     return min(a, b);
   }
 
-  template <class T> static T max1(const T &a, const T &b) {
+  template <class T>
+  static T max1(const T &a, const T &b) {
     using std::max;
     return max(a, b);
   }
 
   static double getDouble(const Jet &v) { return v.a; }
-  template <class T> static double getDouble(const T &v) { return v; }
+  template <class T>
+  static double getDouble(const T &v) {
+    return v;
+  }
 
-  template <class T> static Jet convert(T) = delete; // C++11
+  template <class T>
+  static Jet convert(T) = delete;  // C++11
 
   static Jet convert(int value) { return Jet(double(value)); }
 
-  template <class T> static Jet fraction(T, T) = delete; // C++11
+  template <class T>
+  static Jet fraction(T, T) = delete;  // C++11
 
   static Jet fraction(int num, int denom) {
     return Jet(double(num) / double(denom));
@@ -120,4 +147,4 @@ template <int N> struct CeresUtils {
   }
 };
 
-#endif // CERES_UTILS_H
+#endif  // CERES_UTILS_H
