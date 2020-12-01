@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "math/conditionals.hpp"
 #include "../multi_body.hpp"
 #include "kinematics.hpp"
 
