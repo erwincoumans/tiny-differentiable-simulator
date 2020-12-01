@@ -14,7 +14,7 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
   using Vector3 = typename Algebra::Vector3;
   using Quaternion = typename Algebra::Quaternion;
 
-  assert(Algebra::size(q) == mb.dof());
+  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
   assert(Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == mb.dof_qd());
 
@@ -47,7 +47,7 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
     // 4-dimensional q from 3-dimensional qd for the base rotation
     Algebra::quat_increment(
         base_rot, Algebra::quat_velocity(base_rot, angular_velocity, dt));
-    Algebra::normalize(base_rot);
+    base_rot = Algebra::normalize(base_rot);
     mb.base_X_world().rotation = Algebra::quat_to_matrix(base_rot);
 
     q[0] = Algebra::quat_x(base_rot);
@@ -61,12 +61,34 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
     qd_offset = 0;
   }
 
-  for (int i = 0; i < mb.dof_qd() - qd_offset; i++) {
-    int qindex = i + q_offset;
-    int qdindex = i + qd_offset;
-    qd[qdindex] += qdd[qdindex] * dt;
-    q[qindex] += qd[qdindex] * dt;
+  for (auto &link: mb.links()){
+      int qindex = link.q_index;
+      int qdindex = link.qd_index;
+      if (link.joint_type == JOINT_SPHERICAL){
+          qd[qdindex] += qdd[qdindex] * dt;
+          qd[qdindex + 1] += qdd[qdindex + 1] * dt;
+          qd[qdindex + 2] += qdd[qdindex + 2] * dt;
+
+          auto q_now = mb.get_q_for_link(q, link.index);
+          auto base_rot = Algebra::quat_from_xyzw(q_now[0], q_now[1], q_now[2], q_now[3]);
+          Algebra::quat_increment(
+                  base_rot, Algebra::quat_velocity(base_rot, Vector3(qd[qdindex], qd[qdindex + 1], qd[qdindex + 2]), dt));
+          base_rot = Algebra::normalize(base_rot);
+
+          q[0] = Algebra::quat_x(base_rot); q[1] = Algebra::quat_y(base_rot);
+          q[2] = Algebra::quat_z(base_rot); q[3] = Algebra::quat_w(base_rot);
+
+      } else{
+          qd[qdindex] += qdd[qdindex] * dt;
+          q[qindex] += qd[qdindex] * dt;
+      }
   }
+//  for (int i = 0; i < mb.dof_qd() - qd_offset; i++) {
+//    int qindex = i + q_offset;
+//    int qdindex = i + qd_offset;
+//    qd[qdindex] += qdd[qdindex] * dt;
+//    q[qindex] += qd[qdindex] * dt;
+//  }
 }
 
 /**
