@@ -204,13 +204,13 @@ static std::enable_if_t<Method == DIFF_DUAL, void> compute_gradient(
   dfx.resize(x.size());
   std::vector<Dual> x_dual(x.size());
   for (std::size_t i = 0; i < x.size(); ++i) {
-    x_dual[i].real() = x[i];
+    x_dual[i].set_real(x[i]);
   }
   for (std::size_t i = 0; i < x.size(); ++i) {
-    x_dual[i].dual() = 1.;
+    x_dual[i].set_dual(1.);
     Dual fx = f(x_dual);
     dfx[i] = fx.dual();
-    x_dual[i].dual() = 0.;
+    x_dual[i].set_dual(0.);
   }
 }
 
