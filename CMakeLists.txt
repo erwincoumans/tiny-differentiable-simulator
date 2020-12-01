@@ -249,6 +249,7 @@ endif(USE_OPTIM)
 
 OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" OFF)
 IF(USE_CPPAD)
+  add_definitions(-DUSE_CPPAD)
   # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
     PREFIX CppAD
@@ -343,6 +344,7 @@ OPTION(USE_TESTING "Run unit tests" ON)
 IF(USE_TESTING)
     ENABLE_TESTING()
     SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest/include)
     SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
 ENDIF()
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)
