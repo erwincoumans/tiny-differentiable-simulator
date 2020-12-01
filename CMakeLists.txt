@@ -250,7 +250,6 @@ endif(USE_OPTIM)
 
 OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" OFF)
 IF(USE_CPPAD)
-  add_definitions(-DUSE_CPPAD)
   # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
     PREFIX CppAD
@@ -262,6 +261,7 @@ IF(USE_CPPAD)
   add_dependencies(CppAD CppAD-Project)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include)
   target_include_directories(CppAD INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include)
+  target_compile_definitions(CppAD INTERFACE -DUSE_CPPAD)
   
   # Same for CppADCodeGen
   ExternalProject_Add(CppADCodeGen-Project
