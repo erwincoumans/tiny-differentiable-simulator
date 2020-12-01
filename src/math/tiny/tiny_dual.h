@@ -30,8 +30,8 @@ class TinyDual {
   const Scalar& real() const { return m_real; }
   const Scalar& dual() const { return m_dual; }
 
-  Scalar& real() { return m_real; }
-  Scalar& dual() { return m_dual; }
+  void set_real(const Scalar& real) { m_real = real; }
+  void set_dual(const Scalar& dual) { m_dual = dual; }
 
   inline friend TinyDual operator+(const TinyDual& lhs, const TinyDual& rhs) {
     return TinyDual(lhs.real() + rhs.real(), lhs.dual() + rhs.dual());

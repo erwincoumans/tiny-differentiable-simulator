@@ -324,7 +324,7 @@ public:
       fprintf(stderr,
               "Error: floating-base inertia matrix (ABI) is not invertible. "
               "Are you sure the model should be floating-base?\n");
-      Algebra::print("Floating-base ABI", base_abi_);
+      // requires to_double, which breaks Algebra::print("Floating-base ABI", base_abi_);
       exit(1);
     }
   }
