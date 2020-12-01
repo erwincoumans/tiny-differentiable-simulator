@@ -89,6 +89,7 @@ struct ArticulatedBodyInertia {
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
   using Matrix6 = typename Algebra::Matrix6;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
   typedef tds::MotionVector<Algebra> MotionVector;
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::RigidBodyInertia<Algebra> RigidBodyInertia;
@@ -186,11 +187,17 @@ struct ArticulatedBodyInertia {
    * Ia*v = mv(Iw + Hv, Mv + H^T w)
    */
   ForceVector operator*(const MotionVector &v) const {
-    ForceVector result;
-    result.top = I * v.top + H * v.bottom;
-    result.bottom = M * v.bottom + Algebra::transpose(H) * v.top;
-    return result;
+      ForceVector result;
+      result.top = I * v.top + H * v.bottom;
+      result.bottom = M * v.bottom + Algebra::transpose(H) * v.top;
+      return result;
   }
+    Matrix6x3 operator*(const Matrix6x3 &v) const {
+        Matrix6x3 result;
+        result.m_top = I * v.m_top + H * v.m_bottom;
+        result.m_bottom = M * v.m_bottom + Algebra::transpose(H) * v.m_top;
+        return result;
+    }
 
   ForceVector mul_org(const MotionVector& v) const {
       ForceVector result;
@@ -322,6 +329,25 @@ struct ArticulatedBodyInertia {
 #endif
     return abi;
   }
+
+    /**
+     * Multiplies Matrix6x3 a and b as a * b^T, resulting in a 6x6 matrix.
+     */
+    static ArticulatedBodyInertia mul_transpose(const Matrix6x3 &a,
+                                                const Matrix6x3 &b) {
+        // printf("mul_transpose:\n");
+        // Algebra::print("a", a);
+        // Algebra::print("b", b);
+        ArticulatedBodyInertia abi;
+        abi.I = a.m_top * b.m_top;
+        abi.M = a.m_bottom * b.m_bottom;
+        abi.H = a.m_top * b.m_bottom;
+
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+        abi.H = abi.H.transpose();
+#endif
+        return abi;
+    }
 
   void print(const char *name) const {
     printf("%s\n", name);

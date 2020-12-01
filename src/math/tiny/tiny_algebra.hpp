@@ -5,6 +5,7 @@
 #include "../spatial_vector.hpp"
 #include "tiny_matrix3x3.h"
 #include "tiny_matrix6x6.h"
+#include "tiny_matrix6x3.h"
 #include "tiny_matrix_x.h"
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
@@ -20,6 +21,7 @@ struct TinyAlgebra {
   using Matrix3 = ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants>;
   using Matrix6 = ::TINY::TinyMatrix6x6<TinyScalar, TinyConstants>;
   using Matrix3X = ::TINY::TinyMatrix3xX<TinyScalar, TinyConstants>;
+  using Matrix6x3 = ::TINY::TinyMatrix6x3<TinyScalar, TinyConstants>;
   using MatrixX = ::TINY::TinyMatrixXxX<TinyScalar, TinyConstants>;
   using Quaternion = ::TINY::TinyQuaternion<TinyScalar, TinyConstants>;
   using SpatialVector = tds::SpatialVector<TinyAlgebra>;
@@ -126,14 +128,36 @@ struct TinyAlgebra {
     return vector_a.dot(vector_b);
   }
 
-  template <template <typename, typename> typename ColumnType>
-  TINY_INLINE static VectorX mul_transpose(
-      const ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &mat,
-      const ColumnType<TinyScalar, TinyConstants> &vec) {
-    return mat.mul_transpose(vec);
-  }
+    template <template <typename, typename> typename ColumnType>
+    TINY_INLINE static VectorX mul_transpose(
+            const ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &mat,
+            const ColumnType<TinyScalar, TinyConstants> &vec) {
+        return mat.mul_transpose(vec);
+    }
+/**
+     * Multiplication of a 6x3 matrix with a Vector3 returns a force vector
+     * @param a
+     * @param b
+     * @return
+     */
+    TINY_INLINE static ForceVector mul_2_force_vector(
+            const Matrix6x3 &mat,
+            const Vector3 &vec) {
+        ForceVector res;
+        res.top = mat.m_top * vec;
+        res.bottom = mat.m_bottom * vec;
+        return res;
+    }
+    TINY_INLINE static MotionVector mul_2_motion_vector(
+            const Matrix6x3 &mat,
+            const Vector3 &vec) {
+        MotionVector res;
+        res.top = mat.m_top * vec;
+        res.bottom = mat.m_bottom * vec;
+        return res;
+    }
 
-  TINY_INLINE static Scalar norm(const MotionVector &v) {
+    TINY_INLINE static Scalar norm(const MotionVector &v) {
     return TinyConstants::sqrt1(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] +
                                 v[3] * v[3] + v[4] * v[4] + v[5] * v[5]);
   }
@@ -382,6 +406,23 @@ struct TinyAlgebra {
     Quaternion quat;
     quat.setRotation(axis, angle);
     return quat;
+  }
+  TINY_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
+      Vector3 qv(quat.getX(), quat.getY(), quat.getZ());
+      Scalar qv_norm = qv.length();
+      Scalar theta = 2 * TinyConstants::atan2(qv_norm, quat.getW());
+
+      if (qv_norm < pow(Scalar(std::numeric_limits<double>::epsilon()), 1./4)){
+          return 1./(0.5 + theta*theta/48) * qv;
+      }
+
+      return (theta / qv_norm) * qv;
+  }
+  TINY_INLINE static Scalar quaternion_angle(const Quaternion quat) {
+      Vector3 qv(quat.getX(), quat.getY(), quat.getZ());
+      Scalar qv_norm = qv.length();
+      Scalar theta = 2 * TinyConstants::atan2(qv_norm, quat.getW());
+      return theta;
   }
   TINY_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {
     Matrix3 m;

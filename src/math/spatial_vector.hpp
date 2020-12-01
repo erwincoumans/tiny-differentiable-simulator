@@ -12,6 +12,7 @@ struct SpatialVector {
   using Vector3 = typename Algebra::Vector3;
   // using Vector6 = typename Algebra::Vector6;
   using Matrix6 = typename Algebra::Matrix6;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
 
   Vector3 top{Algebra::zero3()};
   Vector3 bottom{Algebra::zero3()};
@@ -80,6 +81,8 @@ template <typename Algebra>
 struct MotionVector : public SpatialVector<Algebra> {
   using SpatialVector = tds::SpatialVector<Algebra>;
   using Scalar = typename Algebra::Scalar;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
+  using Vector3 = typename Algebra::Vector3;
   using SpatialVector::bottom;
   using SpatialVector::SpatialVector;
   using SpatialVector::top;
@@ -119,6 +122,18 @@ struct MotionVector : public SpatialVector<Algebra> {
   TINY_INLINE MotionVector operator*(const Scalar &s) const {
     return MotionVector(s * top, s * bottom);
   }
+    /**
+       * Multiplication with a motion vector handles the operation as a multiplication with the transpose of this
+       * matrix.
+       * @param a [6x3] matrix
+       * @param b MotionVector
+       * @return Vector3
+       */
+    friend Vector3 operator*(const Matrix6x3 &m, const MotionVector &v) {
+        Vector3 result;
+        result = m.m_top.transpose() * v.top + m.m_bottom.transpose() * v.bottom;
+        return result;
+    }
 };
 
 template <typename Algebra>
@@ -126,6 +141,8 @@ struct ForceVector : public SpatialVector<Algebra> {
   using SpatialVector = tds::SpatialVector<Algebra>;
   using Scalar = typename Algebra::Scalar;
   // using Vector6 = typename Algebra::Vector6;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
+  using Vector3 = typename Algebra::Vector3;
   using Matrix6 = typename Algebra::Matrix6;
   using SpatialVector::bottom;
   using SpatialVector::SpatialVector;
@@ -162,14 +179,28 @@ struct ForceVector : public SpatialVector<Algebra> {
     return ForceVector(s * top, s * bottom);
   }
 
+    /**
+         * Multiplication with a motion vector handles the operation as a multiplication with the transpose of this
+         * matrix.
+         * @param a [6x3] matrix
+         * @param b MotionVector or ForceVector
+         * @return Vector3
+         */
+    friend Vector3 operator*(const Matrix6x3 &m, const ForceVector &v) {
+        Vector3 result;
+        result = m.m_top.transpose() * v.top + m.m_bottom.transpose() * v.bottom;
+        return result;
+    }
+
   /**
    * This function only exists to multiply the inverse of the 6x6 inertia matrix
    * (ABI) with the bias force vector of the MultiBody base.
    */
-  // TINY_INLINE friend MotionVector<Algebra> operator*(const Matrix6 &m,
-  //                                                    const ForceVector &v) {
-  //   Vector6 v6 = v;
-  //   return m * v6;
-  // }
+    // TINY_INLINE friend MotionVector<Algebra> operator*(const Matrix6 &m,
+    //                                                    const ForceVector &v) {
+    //   Vector6 v6 = v;
+    //   return m * v6;
+    // }
+
 };
 }  // namespace tds
