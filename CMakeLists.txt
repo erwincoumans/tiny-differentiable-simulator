@@ -22,10 +22,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For LLVM tooling
 # set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
-IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
-link_libraries(stdc++fs)
-ENDIF()
-
 if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
   if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
@@ -45,24 +41,34 @@ SET(MSVC_INCREMENTAL_DEFAULT ON)
 
 PROJECT(DIFF_PHYSICS)
 
+IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    link_libraries(stdc++fs)
+ENDIF()
+
+
 #The core library consists of those headers
 FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
 
 
-find_package(Eigen3)
+include(ExternalProject)
+
+#find_package(Eigen3)
 if (Eigen3_FOUND)
     message("FOUND EIGEN")
+    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
     add_definitions(-DUSE_EIGEN)
-    #include_directories("third_party/eigen3")
+    #include_directories(${EIGEN3_INCLUDE_DIRS})
 else(Eigen3_FOUND)
     set(Eigen3_FOUND TRUE)
     message("Using third_party/eigen3")
     add_definitions(-DUSE_EIGEN)
-    set(EIGEN3_INCLUDE_DIRS  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/eigen3)
-    message("Eigen=")
-    message(${EIGEN3_INCLUDE_DIRS})
+    set(EIGEN3_INCLUDE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/third_party/eigen3)
+    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
     #include_directories(${EIGEN3_INCLUDE_DIRS})
 endif (Eigen3_FOUND)
+
+add_definitions(-DTDS_HOME="${CMAKE_CURRENT_LIST_DIR}")
+message("Setting TDS_HOME=${CMAKE_CURRENT_LIST_DIR}")
 
 
 OPTION(TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS "Use left-associative multiplication and row-major (transposed) matrices in RBDL/Featherstone style" OFF)
@@ -175,10 +181,14 @@ if(USE_RBDL)
   SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/rbdl)
 endif(USE_RBDL)
 
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /std:c++17")
+endif(MSVC)
+
 message ("USING third_party/tinyxml2")
 set(tinyxml2_FOUND TRUE)
-set(tinyxml2_INCLUDE_DIRS third_party/tinyxml2/include)
-SUBDIRS(third_party/tinyxml2)
+set(tinyxml2_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/third_party/tinyxml2/include)
+SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/tinyxml2)
 
 IF(WIN32)
 	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "Shared Libs" FORCE)
@@ -202,19 +212,6 @@ if(USE_STAN)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/opencl_2.2.0)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/sundials_5.2.0/include)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/stan_math/lib/tbb_2019_U8/include)
-else(USE_STAN)
-	find_package(Eigen3 CONFIG)
-	if (Eigen3_FOUND)
-		message("FOUND EIGEN")
-		add_definitions(-DUSE_EIGEN)
-		include_directories(${EIGEN3_INCLUDE_DIRS})
-	else(Eigen3_FOUND)
-		set(Eigen3_FOUND TRUE)
-		message("Using third_party/eigen3")
-		add_definitions(-DUSE_EIGEN)
-		set(EIGEN3_INCLUDE_DIRS  third_party/eigen3)
-		include_directories(${EIGEN3_INCLUDE_DIRS})
-	endif (Eigen3_FOUND)
 endif(USE_STAN)
 
 OPTION(USE_ENOKI "Use Enoki" OFF)
@@ -236,7 +233,7 @@ IF(USE_ENOKI)
   # set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS})
 ENDIF(USE_ENOKI)
 
-OPTION(USE_PAGMO "Use Pagmo" ON)
+OPTION(USE_PAGMO "Use Pagmo" OFF)
 if(USE_PAGMO)
   find_package(pagmo)
   if (pagma_FOUND)
@@ -244,20 +241,16 @@ if(USE_PAGMO)
   endif()
 endif(USE_PAGMO)
 
-OPTION(USE_OPTIM "Use OptimLib" ON)
+OPTION(USE_OPTIM "Use OptimLib" OFF)
 if(USE_OPTIM)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/optim)
 	add_definitions(-DUSE_OPTIM)
 	add_definitions(-DOPTIM_ENABLE_EIGEN_WRAPPERS)
 endif(USE_OPTIM)
 
-include(ExternalProject)
-
-OPTION(USE_CPPAD "Use CppAD" OFF)
-
+OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" OFF)
 IF(USE_CPPAD)
-  # Add CppAD as an external project and an imported target.
-  
+  # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
     PREFIX CppAD
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/CppAD
@@ -268,6 +261,7 @@ IF(USE_CPPAD)
   add_dependencies(CppAD CppAD-Project)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include)
   target_include_directories(CppAD INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/CppAD/include)
+  target_compile_definitions(CppAD INTERFACE -DUSE_CPPAD)
   
   # Same for CppADCodeGen
   ExternalProject_Add(CppADCodeGen-Project
@@ -294,11 +288,42 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/benchmark)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/HighFive)
 
+OPTION(USE_CERES "Use Ceres solver" OFF)
+IF(USE_CERES)
+    add_definitions(-DUSE_CERES)
+    ExternalProject_Add(glog-Project
+        PREFIX glog
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
+        CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
+    )
+    add_library(glog INTERFACE IMPORTED)
+    add_dependencies(glog glog-Project)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
+
+    ExternalProject_Add(ceres-solver-Project
+        PREFIX ceres-solver
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
+        CMAKE_ARGS
+          -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
+          -DBUILD_EXAMPLES=OFF
+      )
+    add_library(ceres-solver INTERFACE IMPORTED)
+    add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
+ENDIF(USE_CERES)
+
 
 # set(MINIGLOG ON)
 # set(BUILD_TESTING OFF)
 # set(BUILD_EXAMPLES OFF)
-# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+
+OPTION(USE_CERES "Use Ceres" OFF)
+IF(USE_CERES)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+  SET(CERES_LIBRARIES Ceres::ceres)
+ENDIF()
+
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
@@ -316,11 +341,21 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/crossguid)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 #SUBDIRS(third_party/nlohmann)
 
+add_library(differentiation INTERFACE)
+target_include_directories(differentiation INTERFACE ${EIGEN3_INCLUDE_DIRS})
+if(USE_CERES)
+    target_link_libraries(differentiation INTERFACE ceres-solver)
+endif(USE_CERES)
+if(USE_CPPAD)
+    target_link_libraries(differentiation INTERFACE CppADCodeGen)
+endif(USE_CPPAD)
 
-OPTION(USE_TESTING "run unit tests" ON)
+
+OPTION(USE_TESTING "Run unit tests" ON)
 IF(USE_TESTING)
     ENABLE_TESTING()
     SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/third_party/gtest/include)
     SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/test)
 ENDIF()
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)

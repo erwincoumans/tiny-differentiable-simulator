@@ -17,10 +17,12 @@
 #pragma once
 
 #include "../multi_body.hpp"
-#include "pybullet_urdf_import.hpp"
 #include "urdf_parser.hpp"
 #include "urdf_to_multi_body.hpp"
 #include "world.hpp"
+#if USE_BULLET
+#include "pybullet_urdf_import.hpp"
+#endif
 
 namespace tds {
 template <typename Algebra>
@@ -29,12 +31,15 @@ class UrdfCache {
   using Vector3 = typename Algebra::Vector3;
   typedef tds::UrdfStructures<Algebra> UrdfStructures;
 
+  #if USE_BULLET
   typedef tds::PyBulletUrdfImport<Algebra> UrdfImport;
   typedef b3RobotSimulatorLoadUrdfFileArgs UrdfFileArgs;
+  #endif
 
   std::map<std::string, UrdfStructures> data_;
 
  public:
+#if USE_BULLET
   const UrdfStructures& retrieve(const std::string& urdf_filename,
                                  PyBulletVisualizerAPI* sim,
                                  PyBulletVisualizerAPI* vis,
@@ -56,6 +61,7 @@ class UrdfCache {
     }
     return data_[urdf_filename];
   }
+  #endif
 
   const UrdfStructures& retrieve(const std::string& urdf_filename,
                                  bool ignore_cache = false) {
@@ -66,7 +72,6 @@ class UrdfCache {
     }
     return data_[urdf_filename];
   }
-
   MultiBody<Algebra>* construct(const std::string& urdf_filename,
                                 World<Algebra>& world,
                                 bool ignore_cache = false,
@@ -80,6 +85,7 @@ class UrdfCache {
     return mb;
   }
 
+#if USE_BULLET
   MultiBody<Algebra>* construct(const std::string& urdf_filename,
                                 World<Algebra>& world,
                                 PyBulletVisualizerAPI* sim,
@@ -99,6 +105,7 @@ class UrdfCache {
     mb->initialize();
     return mb;
   }
+  #endif
 
   void clear() { data_.clear(); }
 };
