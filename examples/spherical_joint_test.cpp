@@ -92,21 +92,26 @@ int main(int argc, char* argv[]) {
       int instance = app.m_renderer->register_graphics_instance(sphere_shape, pos, orn, color, scaling);
       mbvisuals.push_back(instance);
   }
-  
 
-//  mb->q() = std::vector<double>(mb->dof() + mb->spherical_joints(), DoubleUtils::zero());
-    mb->q()[2] = Algebra::sqrt(0.5); mb->q()[3] = Algebra::sqrt(0.5);
+//   If this line is uncommented, the initial rotation is set to 90 degrees around the vertical axis and the spherical
+//   joint behaves strange (ends up in some kind of unstable loop)
+//    mb->q()[2] = Algebra::sqrt(0.5); mb->q()[3] = Algebra::sqrt(0.5);
+
+//  If you rotate the base there is no problem
 //  mb->set_orientation(Quaternion(Algebra::zero(), Algebra::zero(), Algebra::sqrt(0.5), Algebra::sqrt(0.5)));
+
   mb->qd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
-//  mb->qd()[2] = 1.;
-//  mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
+// Setting an non-zero initial velocity around the y-axis also creates unstable behavior
+//  mb->qd()[1] = 0.1;
+
+  mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
   mb->qdd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
 
-  for (auto &link: mb->links_){
-      link.damping = Algebra::one()* 1;
+// Set some stiffness and/or damping for test purposes
+//  for (auto &link: mb->links_){
+//      link.damping = Algebra::one() * 10;
 //      link.stiffness = Algebra::one() * 300;
-  }
-  mb->links_[0].stiffness = 0;
+//  }
 
   Vector3 gravity(0., 0., -9.81);
 
@@ -124,7 +129,7 @@ int main(int argc, char* argv[]) {
     data.upAxis = upAxis;
     app.draw_grid(data);
 
-    // mb->clear_forces();
+     mb->clear_forces();
     tds::forward_kinematics(*mb);
 
     { world.step(dt); }
