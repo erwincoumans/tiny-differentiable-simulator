@@ -45,7 +45,7 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
     // Algebra::matrix_to_quat(mb.base_X_world().rotation); Algebra::print("Base
     // quat (TDS): ", base_rot); Algebra::print("base_rot", base_rot); update
     // 4-dimensional q from 3-dimensional qd for the base rotation
-    Algebra::quat_increment(
+      Algebra::quat_increment(
         base_rot, Algebra::quat_velocity(base_rot, angular_velocity, dt));
     base_rot = Algebra::normalize(base_rot);
     mb.base_X_world().rotation = Algebra::quat_to_matrix(base_rot);
@@ -74,7 +74,6 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
           Algebra::quat_increment(
                   base_rot, Algebra::quat_velocity(base_rot, Vector3(qd[qdindex], qd[qdindex + 1], qd[qdindex + 2]), dt));
           base_rot = Algebra::normalize(base_rot);
-
           q[0] = Algebra::quat_x(base_rot); q[1] = Algebra::quat_y(base_rot);
           q[2] = Algebra::quat_z(base_rot); q[3] = Algebra::quat_w(base_rot);
 

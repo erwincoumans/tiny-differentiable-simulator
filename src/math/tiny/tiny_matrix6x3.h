@@ -122,11 +122,10 @@ namespace TINY
         }
 
         /**
-         * Multiplication with another Matrix6x3 handles the operation as a multiplication with the transpose of this
-         * matrix.
+         * Multiplication with a Matrix3x3 returns a Matrix6x3
          * @param a Matrix6x3
-         * @param b Matrix6x3
-         * @return TinyMatrix3x3
+         * @param b TinyMatrix3x3
+         * @return Matrix6x3
          */
         friend TinyMatrix6x3 operator*(const TinyMatrix6x3& a,
                                        const TinyMatrix3x3& b) {

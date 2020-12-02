@@ -414,10 +414,10 @@ struct TinyAlgebra {
   TINY_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
       Vector3 qv(quat.getX(), quat.getY(), quat.getZ());
       Scalar qv_norm = qv.length();
-      Scalar theta = 2 * TinyConstants::atan2(qv_norm, quat.getW());
+      Scalar theta = two() * TinyConstants::atan2(qv_norm, quat.getW());
 
-      if (qv_norm < pow(Scalar(std::numeric_limits<double>::epsilon()), 1./4)){
-          return 1./(0.5 + theta*theta/48) * qv;
+      if (qv_norm < pow(Scalar(std::numeric_limits<double>::epsilon()), fraction(1, 4))){
+          return one()/(half() + theta*theta*fraction(1, 48)) * qv;
       }
 
       return (theta / qv_norm) * qv;
@@ -425,7 +425,7 @@ struct TinyAlgebra {
   TINY_INLINE static Scalar quaternion_angle(const Quaternion quat) {
       Vector3 qv(quat.getX(), quat.getY(), quat.getZ());
       Scalar qv_norm = qv.length();
-      Scalar theta = 2 * TinyConstants::atan2(qv_norm, quat.getW());
+      Scalar theta = two() * TinyConstants::atan2(qv_norm, quat.getW());
       return theta;
   }
   TINY_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {

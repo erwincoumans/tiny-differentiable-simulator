@@ -93,6 +93,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
 //        Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
 //                                                     : Algebra::one() / link.D;
 
+        // I made this a member to avoid double calculation of the inverse: it is used again at line 256
         link.invD_3d = link.D_3d.inverse();
 #ifdef DEBUG
         printf("invD[%d]=%f\n", i, Algebra::to_double(invD));
