@@ -39,21 +39,21 @@ IF(USE_CPPAD)
       ${CMAKE_DL_LIBS}
       opengl_window
       tinyxml2
-      ${DL}
-      CppADCodeGen
-      ${CERES_LIBRARIES}
-      ${PYTHON_LIBRARIES}
-      python2.7
-      #cxxopts::cxxopts
-      Pagmo::pagmo
-      gflags
-      pybullet_visualizer_api
+      differentiation
   )
   if (USE_STAN)
     target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
   endif(USE_STAN)
 ENDIF(USE_CPPAD)
 
+IF(USE_CERES)
+message("Ceres libs:" ${CERES_LIBRARIES})
+add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
+target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${CMAKE_DL_LIBS} stdc++fs
+  ${CERES_LIBRARIES})
+target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
+
+ENDIF()
 IF(Bullet_FOUND)
   add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
   target_include_directories(laikago_footstep_ik PRIVATE ../src ${EIGEN3_INCLUDE_DIRS})
@@ -68,17 +68,6 @@ target_link_libraries(opengl_test opengl_window ${CMAKE_DL_LIBS})
 add_executable(tiny_urdf_parser_example tiny_urdf_parser_example.cpp ${TDS_HDRS})
 target_link_libraries(tiny_urdf_parser_example tinyxml2)
 target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../src)
-
-IF(WIN32)
-    target_link_libraries(pendulum_example_gui Opengl32)
-    target_link_libraries(spherical_joint_test Opengl32)
-    target_link_libraries(pendulum_example_tiny_gui Opengl32)
-    target_link_libraries(pendulum_example_eigen_gui Opengl32)
-    target_link_libraries(billiard_opt_example_gui Opengl32)
-    target_link_libraries(tiny_urdf_parser_opengl_example Opengl32)
-    target_link_libraries(opengl_test  Opengl32)
-    target_link_libraries(opengl_imgui_test Opengl32)
-ENDIF(WIN32)
 
 
 set(MESHCAT_LIBRARIES crossguid cpp_base64 zmq )

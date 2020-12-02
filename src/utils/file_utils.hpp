@@ -21,6 +21,10 @@
 
 #include <cassert>
 
+#ifndef TDS_HOME
+#define TDS_HOME "."
+#endif
+
 namespace tds {
 struct ResourcePath {
   char* m_path;
@@ -34,7 +38,8 @@ struct ResourcePath {
 struct FileUtils {
   static inline std::string root{""};
   static inline std::vector<std::string> prefixes{
-      {"./", "./data/", "../data/", "../../data/", "../../../data/",
+      {TDS_HOME "/", TDS_HOME "/data/", "../data/", "../../data/",
+       "../../../data/",
        "../../../../data/", "./tds/", "./tds/data/", "../tds/data/",
        "../../tds/data/"}};
 
@@ -71,9 +76,9 @@ struct FileUtils {
         char path_to_exe[TINY_MAX_EXE_PATH_LEN];
         int exe_name_pos =
             extract_path(exe_path, path_to_exe, TINY_MAX_EXE_PATH_LEN);
-        if (exe_name_pos) {
-          root = path_to_exe;
-        }
+        //if (exe_name_pos) {
+        //  root = path_to_exe;
+        //}
       }
     }
     if (f) {
