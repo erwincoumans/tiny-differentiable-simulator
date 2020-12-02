@@ -37,10 +37,9 @@ using namespace tds;
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "math/tiny/tiny_algebra.hpp"
 
-
 #ifdef USE_CERES
 #include <ceres/autodiff_cost_function.h>
-#include "ceres_utils.h"
+#include "math/tiny/ceres_utils.h"
 #endif //USE_CERES
 #include <chrono>  // std::chrono::seconds
 #include <thread>  // std::this_thread::sleep_for
@@ -253,7 +252,7 @@ struct CeresFunctional {
     typedef std::conditional_t<std::is_same_v<T, double>, DoubleUtils,
                                CeresUtils<2>>
         Utils;
-    *e = rollout<T, Utils>(fx, fy, steps);
+    *e = rollout<TinyAlgebra<T, Utils> >(fx, fy, steps);
     return true;
   }
 };
@@ -347,7 +346,7 @@ int main(int argc, char* argv[]) {
     auto duration = duration_cast<microseconds>(stop - start);
     printf("Ceres Jet took %ld microseconds.",
            static_cast<long>(duration.count()));
-    rollout<double, DoubleUtils>(force_x, force_y, steps, &app);
+    rollout<TinyAlgebra<double, DoubleUtils> >(force_x, force_y, steps, &app);
   }
 #endif //USE_CERES
 
