@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
   app.m_renderer->init();
   app.set_up_axis(2);
   app.m_renderer->get_active_camera()->set_camera_distance(4);
-  app.m_renderer->get_active_camera()->set_camera_pitch(-90);
+  app.m_renderer->get_active_camera()->set_camera_pitch(-30);
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
   //install ffmpeg in path and uncomment, to enable video recording
   //app.dump_frames_to_video("test.mp4");
@@ -73,10 +73,10 @@ int main(int argc, char* argv[]) {
   std::vector<MultiBody*> mbbodies;
   std::vector<int> mbvisuals;
 
-  int num_spheres = 1;
+  int num_spheres = 5;
 
   MultiBody* mb = world.create_multi_body();
-  init_compound_pendulum<Algebra>(*mb, world, num_spheres);
+    init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);
 
   mbbodies.push_back(mb);
 
@@ -95,30 +95,33 @@ int main(int argc, char* argv[]) {
 
 //   If this line is uncommented, the initial rotation is set to 90 degrees around the vertical axis and the spherical
 //   joint behaves strange (ends up in some kind of unstable loop)
-//    mb->q()[2] = Algebra::sqrt(0.5); mb->q()[3] = Algebra::sqrt(0.5);
+//    mb->q()[0] = Algebra::sqrt(0.5); mb->q()[3] = Algebra::sqrt(0.5);
 
 //  If you rotate the base there is no problem
 //  mb->set_orientation(Quaternion(Algebra::zero(), Algebra::zero(), Algebra::sqrt(0.5), Algebra::sqrt(0.5)));
 
   mb->qd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
 // Setting an non-zero initial velocity around the y-axis also creates unstable behavior
-//  mb->qd()[1] = 0.1;
+//  mb->qd()[2] = .1;
+//  mb->qd()[1] = 2;
+//  mb->qd()[0] = .1;
 
   mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
   mb->qdd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
 
 // Set some stiffness and/or damping for test purposes
-//  for (auto &link: mb->links_){
-//      link.damping = Algebra::one() * 10;
+  for (auto &link: mb->links_){
+      link.damping = Algebra::one() * 0.;
 //      link.stiffness = Algebra::one() * 300;
-//  }
+  }
 
   Vector3 gravity(0., 0., -9.81);
 
   MatrixX M(mb->dof_qd(), mb->dof_qd());
 
-  double dt = 1. / 480.;
-  app.set_mp4_fps(1./dt);
+  int fps = 1920;
+  double dt = 1. / fps;
+  app.set_mp4_fps(fps);
   int upAxis = 2;
   int count = 0;
   while (!app.m_window->requested_exit()) 
