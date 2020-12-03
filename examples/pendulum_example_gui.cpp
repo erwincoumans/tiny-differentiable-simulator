@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
   int num_spheres = 5;
 
   MultiBody* mb = world.create_multi_body();
-  init_compound_pendulum<Algebra>(*mb, world, num_spheres);
+    init_compound_pendulum<Algebra>(*mb, world, num_spheres);
 
   mbbodies.push_back(mb);
 
@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
 
   MatrixX M(mb->links().size(), mb->links().size());
 
-  double dt = 1. / 240.;
+  double dt = 1. / 19200.;
   app.set_mp4_fps(1./dt);
   int upAxis = 2;
   while (!app.m_window->requested_exit()) 

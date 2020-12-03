@@ -257,8 +257,8 @@ void forward_dynamics(MultiBody<Algebra> &mb,
       Algebra::print("a'", link.a);
 #endif
       if (link.joint_type == JOINT_SPHERICAL){
-          Vector3 Ut_a = link.U_3d * link.a;
-          Vector3 u_Ut_a = link.u_3d - Ut_a;
+          Vector3 Ut_a_vec = link.U_3d * link.a;
+          Vector3 u_Ut_a = link.u_3d - Ut_a_vec;
           Vector3 qdd_val = link.invD_3d * u_Ut_a;
 
           for (int ii = 0; ii < 3; ii++) {

@@ -7,7 +7,7 @@
 #include "world.hpp"
 
 template <typename Algebra>
-void init_compound_pendulum(
+void init_spherical_compound_pendulum(
     tds::MultiBody<Algebra> &mb, tds::World<Algebra> &world, int num_links = 2,
     std::vector<typename Algebra::Scalar> link_lengths = {},
     std::vector<typename Algebra::Scalar> masses = {}) {
@@ -21,7 +21,9 @@ void init_compound_pendulum(
 
   for (int i = 0; i < num_links; i++) {
     Link l;
-    l.set_joint_type(tds::JOINT_SPHERICAL);
+    if (i >= 0) l.set_joint_type(tds::JOINT_SPHERICAL);
+    else l.set_joint_type(tds::JOINT_REVOLUTE_X);
+
     l.X_T.rotation = Algebra::eye3();
     Scalar pos_y = i == 0 ? Algebra::zero()
                           : (!link_lengths.empty() ? link_lengths[i]
