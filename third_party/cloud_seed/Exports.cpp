@@ -4,6 +4,7 @@
 #include "FastSin.h"
 #include "AudioLib/ValueTables.h"
 #include <assert.h>
+#include <stdio.h>
 
 using namespace CloudSeed;
 
