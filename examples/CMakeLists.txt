@@ -14,9 +14,6 @@ target_include_directories(pendulum_example_eigen_gui PRIVATE ../src)
 
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
-IF(USE_CERES)
-    target_link_libraries(billiard_opt_example_gui ${CERES_LIBRARIES})
-ENDIF()
 target_include_directories(billiard_opt_example_gui PRIVATE ../src)
 
 
@@ -48,13 +45,21 @@ ENDIF(USE_CPPAD)
 
 IF(USE_CERES)
 message("Ceres libs:" ${CERES_LIBRARIES})
-add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
-target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres Eigen3::Eigen ${CMAKE_DL_LIBS} 
-  ${CERES_LIBRARIES})
-target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
 
+add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
+target_link_libraries(ceres_estimation_real pybullet_visualizer_api  glog::glog Eigen3::Eigen ${CMAKE_DL_LIBS}  )
+
+# We want to link against ceres-debug.lib in Debug builds and Release/ceres.lib in optimized/Release builds.
 if (WIN32)
     target_link_libraries(ceres_estimation_real  Opengl32)
+    target_link_libraries( ceres_estimation_real 
+      debug ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Debug/ceres-debug.lib 
+      optimized  ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Release/ceres.lib)
+    target_include_directories( ceres_estimation_real PRIVATE  ../third_party/glog/build_cmake/local_install/include ../third_party/ceres-solver/build_cmake/local_install/include )
+    target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
+
+else(WIN32)
+    target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres)
 endif (WIN32)
 
 IF(APPLE)
