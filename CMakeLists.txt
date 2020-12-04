@@ -56,16 +56,10 @@ include(ExternalProject)
 find_package(Eigen3)
 if (Eigen3_FOUND)
     message("FOUND EIGEN")
+
     message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
     add_definitions(-DUSE_EIGEN)
-    #include_directories(${EIGEN3_INCLUDE_DIRS})
 else(Eigen3_FOUND)
-    set(Eigen3_FOUND TRUE)
-    message("Using third_party/eigen3")
-    add_definitions(-DUSE_EIGEN)
-    set(EIGEN3_INCLUDE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/third_party/eigen)
-    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
-    #include_directories(${EIGEN3_INCLUDE_DIRS})
 endif (Eigen3_FOUND)
 
 add_definitions(-DTDS_HOME="${CMAKE_CURRENT_LIST_DIR}")
@@ -291,27 +285,36 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 
 OPTION(USE_CERES "Use Ceres solver" ON)
 IF(USE_CERES)
-    add_definitions(-DUSE_CERES)
-    ExternalProject_Add(glog-Project
-        PREFIX glog
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
-        CMAKE_ARGS
-            -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
-    )
-    add_library(glog INTERFACE IMPORTED)
-    add_dependencies(glog glog-Project)
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
-
-    ExternalProject_Add(ceres-solver-Project
-        PREFIX ceres-solver
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
-        CMAKE_ARGS
-          -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
-          -DBUILD_EXAMPLES=OFF
-      )
-    add_library(ceres-solver INTERFACE IMPORTED)
-    add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
+    find_package(glog)
+    find_package(gflags)
+    #find_package(Ceres)
+    find_package(Ceres CONFIG REQUIRED)
+    IF(ceres_FOUND)
+	    add_definitions(-DUSE_CERES)
+	    message("FOUND CERES!")
+    ELSE()
+#    add_definitions(-DUSE_CERES)
+#      ExternalProject_Add(glog-Project
+#          PREFIX glog
+#          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
+#          CMAKE_ARGS
+#              -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
+#      )
+#      add_library(glog INTERFACE IMPORTED)
+#      add_dependencies(glog glog-Project)
+#      include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
+#  
+#      ExternalProject_Add(ceres-solver-Project
+#          PREFIX ceres-solver
+#          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
+#          CMAKE_ARGS
+#            -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
+#            -DBUILD_EXAMPLES=OFF
+#        )
+#      add_library(ceres-solver INTERFACE IMPORTED)
+#      add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
+#      include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
+    ENDIF()
 ENDIF(USE_CERES)
 
 
@@ -320,10 +323,10 @@ ENDIF(USE_CERES)
 # set(BUILD_EXAMPLES OFF)
 
 OPTION(USE_CERES "Use Ceres" OFF)
-IF(USE_CERES)
-  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
-  SET(CERES_LIBRARIES Ceres::ceres)
-ENDIF()
+#IF(USE_CERES)
+#  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+#  SET(CERES_LIBRARIES Ceres::ceres)
+#ENDIF()
 
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -345,9 +348,11 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 add_library(differentiation INTERFACE)
 target_link_directories(differentiation INTERFACE Eigen3::Eigen)
 target_include_directories(differentiation INTERFACE )
-if(USE_CERES)
-    target_link_libraries(differentiation INTERFACE ceres-solver)
-endif(USE_CERES)
+
+#if(USE_CERES)
+#    target_link_libraries(differentiation INTERFACE ceres-solver)
+#endif(USE_CERES)
+
 if(USE_CPPAD)
     target_link_libraries(differentiation INTERFACE CppADCodeGen)
 endif(USE_CPPAD)
