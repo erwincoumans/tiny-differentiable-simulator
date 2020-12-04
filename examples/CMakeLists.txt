@@ -48,7 +48,7 @@ ENDIF(USE_CPPAD)
 IF(USE_CERES)
 message("Ceres libs:" ${CERES_LIBRARIES})
 add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
-target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${CMAKE_DL_LIBS} 
+target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres Eigen3::Eigen ${CMAKE_DL_LIBS} 
   ${CERES_LIBRARIES})
 target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
 
