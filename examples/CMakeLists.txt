@@ -53,11 +53,31 @@ target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres
   ${CERES_LIBRARIES})
 target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
 
+if (WIN32)
+    target_link_libraries(ceres_estimation_real  Opengl32)
+endif (WIN32)
+
+IF(APPLE)
+  FIND_PACKAGE(OpenGL)
+  target_link_libraries(ceres_estimation_real ${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
+ENDIF()
+
 ENDIF()
 IF(Bullet_FOUND)
   add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
   target_include_directories(laikago_footstep_ik PRIVATE ../src )
   target_link_libraries(laikago_footstep_ik pybullet_visualizer_api Eigen3::Eigen)
+
+if (WIN32)
+    target_link_libraries(laikago_footstep_ik  Opengl32)
+endif (WIN32)
+
+IF(APPLE)
+  FIND_PACKAGE(OpenGL)
+  target_link_libraries(laikago_footstep_ik ${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
+ENDIF()
+
+
 ENDIF()
 
 add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
