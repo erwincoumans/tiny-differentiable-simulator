@@ -38,6 +38,7 @@ IF(USE_CPPAD)
       ${CMAKE_DL_LIBS}
       opengl_window
       tinyxml2
+      Eigen3::Eigen
       differentiation
   )
   if (USE_STAN)

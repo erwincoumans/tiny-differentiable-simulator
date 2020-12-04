@@ -57,6 +57,6 @@ cd $ROOT
 mkdir build_cmake
 cd build_cmake
 
-cmake  -DBullet_DIR=$ROOT/third_party/bullet3/build_cmake -Dgflags_DIR=$ROOT/third_party/gflags/build_cmake -Dglog_DIR=$ROOT/third_party/glog/build_cmake -DEigen3_DIR=$ROOT/third_party/eigen/build_cmake -DCeres_DIR=$ROOT/third_party/ceres-solver/build_cmake/local_install/lib/cmake/Ceres ..
+cmake  -DBullet_DIR=$ROOT/third_party/bullet3/build_cmake -Dgflags_DIR=$ROOT/third_party/gflags/build_cmake -Dglog_DIR=$ROOT/third_party/glog/build_cmake -DEigen3_DIR=$ROOT/third_party/eigen/build_cmake -DCeres_DIR=$ROOT/third_party/ceres-solver/build_cmake/local_install/lib/cmake/Ceres -DUSE_CPPAD=ON ..
 make -j
 
