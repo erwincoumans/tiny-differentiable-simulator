@@ -48,7 +48,7 @@ cd $ROOT
 pushd third_party/ceres-solver
 mkdir build_cmake
 cd build_cmake
-cmake  -DBUILD_TESTING=OFF -Dgflags_DIR=$ROOT/third_party/gflags/build_cmake -Dglog_DIR=$ROOT/third_party/glog/build_cmake -DEigen3_DIR=$ROOT/third_party/eigen/build_cmake  -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$ROOT/third_party/ceres-solver/build_cmake/local_install ..
+cmake  -DBUILD_EXAMPLES=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_TESTING=OFF -Dgflags_DIR=$ROOT/third_party/gflags/build_cmake -Dglog_DIR=$ROOT/third_party/glog/build_cmake -DEigen3_DIR=$ROOT/third_party/eigen/build_cmake  -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$ROOT/third_party/ceres-solver/build_cmake/local_install ..
 make -j4
 make install
 popd
