@@ -14,7 +14,6 @@ typedef CwiseUnaryOp<internal::scalar_expm1_op<Scalar>, const Derived> Expm1Retu
 typedef CwiseUnaryOp<internal::scalar_log_op<Scalar>, const Derived> LogReturnType;
 typedef CwiseUnaryOp<internal::scalar_log1p_op<Scalar>, const Derived> Log1pReturnType;
 typedef CwiseUnaryOp<internal::scalar_log10_op<Scalar>, const Derived> Log10ReturnType;
-typedef CwiseUnaryOp<internal::scalar_log2_op<Scalar>, const Derived> Log2ReturnType;
 typedef CwiseUnaryOp<internal::scalar_cos_op<Scalar>, const Derived> CosReturnType;
 typedef CwiseUnaryOp<internal::scalar_sin_op<Scalar>, const Derived> SinReturnType;
 typedef CwiseUnaryOp<internal::scalar_tan_op<Scalar>, const Derived> TanReturnType;
@@ -158,18 +157,6 @@ inline const Log10ReturnType
 log10() const
 {
   return Log10ReturnType(derived());
-}
-
-/** \returns an expression of the coefficient-wise base-2 logarithm of *this.
-  *
-  * This function computes the coefficient-wise base-2 logarithm.
-  *
-  */
-EIGEN_DEVICE_FUNC
-inline const Log2ReturnType
-log2() const
-{
-  return Log2ReturnType(derived());
 }
 
 /** \returns an expression of the coefficient-wise square root of *this.

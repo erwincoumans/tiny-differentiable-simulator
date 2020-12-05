@@ -83,7 +83,7 @@ static void initializeDeviceProp() {
       // Wait for the other thread to inititialize the properties.
       while (!m_devicePropInitialized) {
         std::atomic_thread_fence(std::memory_order_acquire);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        EIGEN_SLEEP(1000);
       }
     }
   }

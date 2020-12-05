@@ -472,13 +472,13 @@ endif()
 install(DIRECTORY Eigen DESTINATION ${INCLUDE_INSTALL_DIR} COMPONENT Devel)
 
 
-option(EIGEN_BUILD_DOC "Enable creation of Eigen documentation" OFF)
+option(EIGEN_BUILD_DOC "Enable creation of Eigen documentation" ON)
 if(EIGEN_BUILD_DOC)
   add_subdirectory(doc EXCLUDE_FROM_ALL)
 endif()
 
 
-option(BUILD_TESTING "Enable creation of Eigen tests." OFF)
+option(BUILD_TESTING "Enable creation of Eigen tests." ON)
 if(BUILD_TESTING)
   include(EigenConfigureTesting)
 
@@ -495,8 +495,8 @@ if(EIGEN_LEAVE_TEST_IN_ALL_TARGET)
   add_subdirectory(blas)
   add_subdirectory(lapack)
 else()
-  #add_subdirectory(blas EXCLUDE_FROM_ALL)
-  #add_subdirectory(lapack EXCLUDE_FROM_ALL)
+  add_subdirectory(blas EXCLUDE_FROM_ALL)
+  add_subdirectory(lapack EXCLUDE_FROM_ALL)
 endif()
 
 # add SYCL
@@ -531,7 +531,7 @@ endif()
 
 add_subdirectory(unsupported)
 
-#add_subdirectory(demos EXCLUDE_FROM_ALL)
+add_subdirectory(demos EXCLUDE_FROM_ALL)
 
 # must be after test and unsupported, for configuring buildtests.in
 add_subdirectory(scripts EXCLUDE_FROM_ALL)
@@ -542,7 +542,7 @@ if(EIGEN_BUILD_BTL)
 endif()
 
 if(NOT WIN32)
-  #add_subdirectory(bench/spbench EXCLUDE_FROM_ALL)
+  add_subdirectory(bench/spbench EXCLUDE_FROM_ALL)
 endif()
 
 configure_file(scripts/cdashtesting.cmake.in cdashtesting.cmake @ONLY)

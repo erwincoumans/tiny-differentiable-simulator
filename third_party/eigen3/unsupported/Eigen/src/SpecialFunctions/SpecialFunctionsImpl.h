@@ -348,7 +348,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erf_float(const T& a_x) {
 template <typename T>
 struct erf_impl {
   EIGEN_DEVICE_FUNC
-  static EIGEN_STRONG_INLINE T run(const T& x) {
+  static EIGEN_STRONG_INLINE T run(const T x) {
     return generic_fast_erf_float(x);
   }
 };
@@ -490,8 +490,7 @@ struct erfc_impl<double> {
 template<typename T>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T flipsign(
     const T& should_flipsign, const T& x) {
-  typedef typename unpacket_traits<T>::type Scalar;
-  const T sign_mask = pset1<T>(Scalar(-0.0));
+  const T sign_mask = pset1<T>(-0.0);
   T sign_bit = pand<T>(should_flipsign, sign_mask);
   return pxor<T>(sign_bit, x);
 }
