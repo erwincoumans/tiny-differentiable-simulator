@@ -7,10 +7,11 @@ target_link_libraries(pendulum_example_tiny_gui opengl_window ${CMAKE_DL_LIBS})
 target_compile_definitions(pendulum_example_tiny_gui PRIVATE USE_TINY )
 target_include_directories(pendulum_example_tiny_gui PRIVATE ../src )
 
+if (Eigen3_FOUND)
 add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_eigen_gui opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_eigen_gui PRIVATE ../src)
-
+endif()
 
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})

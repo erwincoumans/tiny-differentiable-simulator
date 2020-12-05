@@ -37,7 +37,7 @@ cd %ROOT%
 
 
 
-pushd third_party\eigen
+pushd third_party\eigen3
 mkdir build_cmake
 cd build_cmake
 cmake -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release  -DCMAKE_INSTALL_PREFIX:PATH=local_install   ..
@@ -66,7 +66,7 @@ cd %ROOT%
 pushd third_party\ceres-solver
 mkdir build_cmake
 cd build_cmake
-cmake  -DCMAKE_CXX_FLAGS="/MP" -DBUILD_EXAMPLES=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_TESTING=OFF -Dgflags_DIR=%ROOT%/third_party/gflags/build_cmake -Dglog_DIR=%ROOT%/third_party/glog/build_cmake -DEigen3_DIR=%ROOT%/third_party/eigen/build_cmake  -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%/third_party/ceres-solver/build_cmake/local_install ..
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DBUILD_EXAMPLES=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_TESTING=OFF -Dgflags_DIR=%ROOT%/third_party/gflags/build_cmake -Dglog_DIR=%ROOT%/third_party/glog/build_cmake -DEigen3_DIR=%ROOT%/third_party/eigen3/build_cmake  -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%/third_party/ceres-solver/build_cmake/local_install ..
 cmake  --build .  --target ALL_BUILD  --config Debug
 cmake  --build .  --target INSTALL  --config Release
 mkdir local_install\lib\Release
@@ -86,7 +86,7 @@ del third_party\gflags\build_cmake\local_install\lib\*.lib
 mkdir build_cmake
 cd build_cmake
 
-cmake  -DCMAKE_CXX_FLAGS="/MP" -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON -DBullet_DIR=%ROOT%\third_party\bullet3\build_cmake -Dgflags_DIR=%ROOT%\third_party\gflags\build_cmake -Dglog_DIR=%ROOT%\third_party\glog\build_cmake -DEigen3_DIR=%ROOT%\third_party\eigen\build_cmake -DCeres_DIR=%ROOT%\third_party\ceres-solver\build_cmake\local_install\cmake -DUSE_CPPAD=ON ..
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON -DBullet_DIR=%ROOT%\third_party\bullet3\build_cmake -Dgflags_DIR=%ROOT%\third_party\gflags\build_cmake -Dglog_DIR=%ROOT%\third_party\glog\build_cmake -DEigen3_DIR=%ROOT%\third_party\eigen3\build_cmake -DCeres_DIR=%ROOT%\third_party\ceres-solver\build_cmake\local_install\cmake -DUSE_CPPAD=ON ..
 
 cmake  --build .  --target INSTALL  --config Release
 start DIFF_PHYSICS.sln

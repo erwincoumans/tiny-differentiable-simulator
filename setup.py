@@ -91,7 +91,7 @@ CXX_FLAGS += '-fpermissive '
 # libraries += [current_python]
 
 libraries = []
-include_dirs = ['src', '.','python', 'third_party/eigen', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
+include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
 
 pytinyopengl3_libraries = []
 pytinyopengl3_include_dirs = ['src', 'third_party/tinyobjloader']
