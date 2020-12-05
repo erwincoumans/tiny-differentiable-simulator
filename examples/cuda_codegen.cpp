@@ -55,9 +55,9 @@ struct ContactSimulation {
 
   ContactSimulation() {
     std::string plane_filename, urdf_filename;
-    tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
+    //tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
+    //cache.construct(plane_filename, world, false, false);
     tds::FileUtils::find_file("pendulum5.urdf", urdf_filename);
-    cache.construct(plane_filename, world, false, false);
     system = cache.construct(urdf_filename, world, false, false);
     system->base_X_world().translation = Algebra::unit3_z();
   }
@@ -110,6 +110,7 @@ int main(int argc, char* argv[]) {
   std::vector<Dual> ay(simulation.output_dim());
   std::cout << "Tracing function for code generation...\n";
   ay = simulation(ax);
+
   CppAD::ADFun<CGScalar> tape;
   tape.Dependent(ax, ay);
   tape.optimize();
@@ -177,6 +178,9 @@ int main(int argc, char* argv[]) {
 
   model.forward_zero.allocate(num_total_threads);
 
+  std::vector< TinyVector3f> positions;
+  std::vector<unsigned int> indices;
+
   TinyVector3f line_color(0.3, 0.3, 0.3);
   float line_width = 1;
   const int link_pos_id_offset =
@@ -189,6 +193,10 @@ int main(int argc, char* argv[]) {
       inputs[i][0] = std::rand() * 1. / RAND_MAX;
     }
     for (int t = 0; t < 1000; ++t) {
+
+        positions.resize(0);
+        indices.resize(0);
+
       timer.start();
       // call GPU kernel
       model.forward_zero(&outputs, inputs, 64);
@@ -215,11 +223,32 @@ int main(int argc, char* argv[]) {
           TinyQuaternionf orn(0, 0, 0, 1);
           if (l > 0) {
              //app.m_renderer->draw_line(prev_pos, pos, line_color, line_width);
+             indices.push_back(positions.size());
+             positions.push_back(prev_pos);
+             indices.push_back(positions.size());
+             positions.push_back(pos);
+             if (positions.size()>256)
+             {
+                 app.m_renderer->draw_lines(&positions[0],
+                     line_color, positions.size(),
+                     sizeof(TinyVector3f), &indices[0],
+                     indices.size(), line_width);
+                 positions.resize(0);
+                 indices.resize(0);
+             }
           }
           prev_pos = pos;
           app.m_renderer->write_single_instance_transform_to_cpu(pos, orn,
                                                                  sphereId);
         }
+      }
+
+      if (positions.size())
+      {
+          app.m_renderer->draw_lines(&positions[0],
+              line_color, positions.size(),
+              sizeof(TinyVector3f), &indices[0],
+              indices.size(), line_width);
       }
       app.m_renderer->update_camera(upAxis);
 
