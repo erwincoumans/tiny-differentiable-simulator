@@ -56,11 +56,11 @@ if (WIN32)
       debug ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Debug/ceres-debug.lib 
       optimized  ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Release/ceres.lib)
     target_include_directories( ceres_estimation_real PRIVATE  ../third_party/glog/build_cmake/local_install/include ../third_party/ceres-solver/build_cmake/local_install/include )
-    target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
 
 else(WIN32)
     target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres)
 endif (WIN32)
+target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
 
 IF(APPLE)
   FIND_PACKAGE(OpenGL)
