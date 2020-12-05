@@ -256,7 +256,7 @@ setup(
     license='Apache License 2.0',
     platforms='any',
     keywords=[
-        ''physics simulation', 'optimal control', 
+        'physics simulation', 'optimal control', 
         'robotics', 'collision detection', 'opengl',
         'reinforcement learning'
     ],
