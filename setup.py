@@ -245,19 +245,20 @@ extensions.append(pytinyopengl3_ext)
 
 setup(
     name='pytinydiffsim',
-    version='0.0.3',
+    version='0.0.4',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
     long_description=
-    'tbd',
-    url='https://github.com/bulletphysics/bullet3',
+    'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
+    url='https://github.com/google-research/tiny-differentiable-simulator',
     author='Eric Heiden, David Millard, Erwin Coumans',
     author_email='erwincoumans@google.com',
-    license='zlib',
+    license='Apache License 2.0',
     platforms='any',
     keywords=[
-        'game development', 'virtual reality', 'physics simulation', 'robotics',
-        'collision detection', 'opengl'
+        ''physics simulation', 'optimal control', 
+        'robotics', 'collision detection', 'opengl',
+        'reinforcement learning'
     ],
     install_requires=[
         'numpy',
