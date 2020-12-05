@@ -50,21 +50,6 @@ plog<Packet8d>(const Packet8d& _x) {
 F16_PACKET_FUNCTION(Packet16f, Packet16h, plog)
 BF16_PACKET_FUNCTION(Packet16f, Packet16bf, plog)
 
-template <>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS EIGEN_UNUSED Packet16f
-plog2<Packet16f>(const Packet16f& _x) {
-  return plog2_float(_x);
-}
-
-template <>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS EIGEN_UNUSED Packet8d
-plog2<Packet8d>(const Packet8d& _x) {
-  return plog2_double(_x);
-}
-
-F16_PACKET_FUNCTION(Packet16f, Packet16h, plog2)
-BF16_PACKET_FUNCTION(Packet16f, Packet16bf, plog2)
-
 // Exponential function. Works by writing "x = m*log(2) + r" where
 // "m = floor(x/log(2)+1/2)" and "r" is the remainder. The result is then
 // "exp(x) = 2^m*exp(r)" where exp(r) is in the range [-1,1).

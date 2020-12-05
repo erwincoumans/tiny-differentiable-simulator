@@ -396,22 +396,6 @@ struct functor_traits<scalar_log10_op<Scalar> >
 { enum { Cost = 5 * NumTraits<Scalar>::MulCost, PacketAccess = packet_traits<Scalar>::HasLog10 }; };
 
 /** \internal
-  *
-  * \brief Template functor to compute the base-2 logarithm of a scalar
-  *
-  * \sa class CwiseUnaryOp, Cwise::log2()
-  */
-template<typename Scalar> struct scalar_log2_op {
-  EIGEN_EMPTY_STRUCT_CTOR(scalar_log2_op)
-  EIGEN_DEVICE_FUNC inline const Scalar operator() (const Scalar& a) const { return Scalar(M_LOG2E) * std::log(a); }
-  template <typename Packet>
-  EIGEN_DEVICE_FUNC inline Packet packetOp(const Packet& a) const { return internal::plog2(a); }
-};
-template<typename Scalar>
-struct functor_traits<scalar_log2_op<Scalar> >
-{ enum { Cost = 5 * NumTraits<Scalar>::MulCost, PacketAccess = packet_traits<Scalar>::HasLog }; };
-
-/** \internal
   * \brief Template functor to compute the square root of a scalar
   * \sa class CwiseUnaryOp, Cwise::sqrt()
   */

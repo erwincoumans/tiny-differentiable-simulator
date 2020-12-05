@@ -33,13 +33,10 @@
   * Much of the documentation can be found \ref eigen_tensors "here".
   */
 
-#include <atomic>
-#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <random>
-#include <thread>
 
 #ifdef _WIN32
 typedef __int16 int16_t;
@@ -51,6 +48,7 @@ typedef unsigned __int64 uint64_t;
 #include <windows.h>
 #else
 #include <stdint.h>
+#include <unistd.h>
 #endif
 
 #ifdef _WIN32
@@ -72,6 +70,8 @@ typedef unsigned __int64 uint64_t;
   #else
     #include <cuda_runtime.h>
   #endif
+  #include <atomic>
+  #include <unistd.h>
 #endif
 
 #include "src/Tensor/TensorMacros.h"

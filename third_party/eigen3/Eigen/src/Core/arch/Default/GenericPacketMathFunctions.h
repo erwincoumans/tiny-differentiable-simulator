@@ -59,21 +59,21 @@ pldexp_double(Packet a, Packet exponent)
   return pmul(a, preinterpret<Packet>(plogical_shift_left<52>(ei)));
 }
 
-// Natural or base 2 logarithm.
+// Natural logarithm
 // Computes log(x) as log(2^e * m) = C*e + log(m), where the constant C =log(2)
 // and m is in the range [sqrt(1/2),sqrt(2)). In this range, the logarithm can
 // be easily approximated by a polynomial centered on m=1 for stability.
 // TODO(gonnet): Further reduce the interval allowing for lower-degree
 //               polynomial interpolants -> ... -> profit!
-template <typename Packet, bool base2>
+template <typename Packet>
 EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
 EIGEN_UNUSED
-Packet plog_impl_float(const Packet _x)
+Packet plog_float(const Packet _x)
 {
   Packet x = _x;
 
   const Packet cst_1              = pset1<Packet>(1.0f);
-  const Packet cst_neg_half       = pset1<Packet>(-0.5f);
+  const Packet cst_half           = pset1<Packet>(0.5f);
   // The smallest non denormalized float number.
   const Packet cst_min_norm_pos   = pset1frombits<Packet>( 0x00800000u);
   const Packet cst_minus_inf      = pset1frombits<Packet>( 0xff800000u);
@@ -90,6 +90,8 @@ Packet plog_impl_float(const Packet _x)
   const Packet cst_cephes_log_p6 = pset1<Packet>(+2.0000714765E-1f);
   const Packet cst_cephes_log_p7 = pset1<Packet>(-2.4999993993E-1f);
   const Packet cst_cephes_log_p8 = pset1<Packet>(+3.3333331174E-1f);
+  const Packet cst_cephes_log_q1 = pset1<Packet>(-2.12194440e-4f);
+  const Packet cst_cephes_log_q2 = pset1<Packet>(0.693359375f);
 
   // Truncate input values to the minimum positive normal.
   x = pmax(x, cst_min_norm_pos);
@@ -127,17 +129,14 @@ Packet plog_impl_float(const Packet _x)
   y  = pmadd(y, x3, y2);
   y  = pmul(y, x3);
 
-  y = pmadd(cst_neg_half, x2, y);
-  x = padd(x, y);
-
   // Add the logarithm of the exponent back to the result of the interpolation.
-  if (base2) {
-    const Packet cst_log2e = pset1<Packet>(static_cast<float>(M_LOG2E));
-    x = pmadd(x, cst_log2e, e);
-  } else {
-    const Packet cst_ln2 = pset1<Packet>(static_cast<float>(M_LN2));
-    x = pmadd(e, cst_ln2, x);
-  }
+  y1  = pmul(e, cst_cephes_log_q1);
+  tmp = pmul(x2, cst_half);
+  y   = padd(y, y1);
+  x   = psub(x, tmp);
+  y2  = pmul(e, cst_cephes_log_q2);
+  x   = padd(x, y);
+  x   = padd(x, y2);
 
   Packet invalid_mask = pcmp_lt_or_nan(_x, pzero(_x));
   Packet iszero_mask  = pcmp_eq(_x,pzero(_x));
@@ -150,45 +149,32 @@ Packet plog_impl_float(const Packet _x)
                               por(pselect(pos_inf_mask,cst_pos_inf,x), invalid_mask));
 }
 
-template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-EIGEN_UNUSED
-Packet plog_float(const Packet _x)
-{
-  return plog_impl_float<Packet, /* base2 */ false>(_x);
-}
 
-template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-EIGEN_UNUSED
-Packet plog2_float(const Packet _x)
-{
-  return plog_impl_float<Packet, /* base2 */ true>(_x);
-}
-
-/* Returns the base e (2.718...) or base 2 logarithm of x.
- * The argument is separated into its exponent and fractional parts.
- * The logarithm of the fraction in the interval [sqrt(1/2), sqrt(2)],
- * is approximated by
+/* Returns the base e (2.718...) logarithm of x.
+ * The argument is separated into its exponent and fractional
+ * parts.  If the exponent is between -1 and +1, the logarithm
+ * of the fraction is approximated by
  *
  *     log(1+x) = x - 0.5 x**2 + x**3 P(x)/Q(x).
  *
+ * Otherwise, setting  z = 2(x-1)/x+1),
+ *                     log(x) = z + z**3 P(z)/Q(z).
+ * 
  * for more detail see: http://www.netlib.org/cephes/
  */
-template <typename Packet, bool base2>
+template <typename Packet>
 EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
 EIGEN_UNUSED
-Packet plog_impl_double(const Packet _x)
+Packet plog_double(const Packet _x)
 {
   Packet x = _x;
 
   const Packet cst_1              = pset1<Packet>(1.0);
-  const Packet cst_neg_half       = pset1<Packet>(-0.5);
-  // The smallest non denormalized double.
+  const Packet cst_half           = pset1<Packet>(0.5);
+  // The smallest non denormalized float number.
   const Packet cst_min_norm_pos   = pset1frombits<Packet>( static_cast<uint64_t>(0x0010000000000000ull));
   const Packet cst_minus_inf      = pset1frombits<Packet>( static_cast<uint64_t>(0xfff0000000000000ull));
   const Packet cst_pos_inf        = pset1frombits<Packet>( static_cast<uint64_t>(0x7ff0000000000000ull));
-
 
  // Polynomial Coefficients for log(1+x) = x - x**2/2 + x**3 P(x)/Q(x)
  //                             1/sqrt(2) <= x < sqrt(2)
@@ -200,12 +186,15 @@ Packet plog_impl_double(const Packet _x)
   const Packet cst_cephes_log_p4 = pset1<Packet>(1.79368678507819816313E1);
   const Packet cst_cephes_log_p5 = pset1<Packet>(7.70838733755885391666E0);
 
-  const Packet cst_cephes_log_q0 = pset1<Packet>(1.0);
-  const Packet cst_cephes_log_q1 = pset1<Packet>(1.12873587189167450590E1);
-  const Packet cst_cephes_log_q2 = pset1<Packet>(4.52279145837532221105E1);
-  const Packet cst_cephes_log_q3 = pset1<Packet>(8.29875266912776603211E1);
-  const Packet cst_cephes_log_q4 = pset1<Packet>(7.11544750618563894466E1);
-  const Packet cst_cephes_log_q5 = pset1<Packet>(2.31251620126765340583E1);
+  const Packet cst_cephes_log_r0 = pset1<Packet>(1.0);
+  const Packet cst_cephes_log_r1 = pset1<Packet>(1.12873587189167450590E1);
+  const Packet cst_cephes_log_r2 = pset1<Packet>(4.52279145837532221105E1);
+  const Packet cst_cephes_log_r3 = pset1<Packet>(8.29875266912776603211E1);
+  const Packet cst_cephes_log_r4 = pset1<Packet>(7.11544750618563894466E1);
+  const Packet cst_cephes_log_r5 = pset1<Packet>(2.31251620126765340583E1);
+
+  const Packet cst_cephes_log_q1 = pset1<Packet>(-2.121944400546905827679e-4);
+  const Packet cst_cephes_log_q2 = pset1<Packet>(0.693359375);
 
   // Truncate input values to the minimum positive normal.
   x = pmax(x, cst_min_norm_pos);
@@ -231,34 +220,31 @@ Packet plog_impl_double(const Packet _x)
   Packet x3 = pmul(x2, x);
 
   // Evaluate the polynomial approximant , probably to improve instruction-level parallelism.
-  // y = x - 0.5*x^2 + x^3 * polevl( x, P, 5 ) / p1evl( x, Q, 5 ) );
-  Packet y, y1, y_;
+  // y = x * ( z * polevl( x, P, 5 ) / p1evl( x, Q, 5 ) );
+  Packet y, y1, y2,y_;
   y  = pmadd(cst_cephes_log_p0, x, cst_cephes_log_p1);
   y1 = pmadd(cst_cephes_log_p3, x, cst_cephes_log_p4);
   y  = pmadd(y, x, cst_cephes_log_p2);
   y1 = pmadd(y1, x, cst_cephes_log_p5);
   y_ = pmadd(y, x3, y1);
 
-  y  = pmadd(cst_cephes_log_q0, x, cst_cephes_log_q1);
-  y1 = pmadd(cst_cephes_log_q3, x, cst_cephes_log_q4);
-  y  = pmadd(y, x, cst_cephes_log_q2);
-  y1 = pmadd(y1, x, cst_cephes_log_q5);
+  y  = pmadd(cst_cephes_log_r0, x, cst_cephes_log_r1);
+  y1 = pmadd(cst_cephes_log_r3, x, cst_cephes_log_r4);
+  y  = pmadd(y, x, cst_cephes_log_r2);
+  y1 = pmadd(y1, x, cst_cephes_log_r5);
   y  = pmadd(y, x3, y1);
 
   y_ = pmul(y_, x3);
   y  = pdiv(y_, y);
 
-  y = pmadd(cst_neg_half, x2, y);
-  x = padd(x, y);
-
   // Add the logarithm of the exponent back to the result of the interpolation.
-  if (base2) {
-    const Packet cst_log2e = pset1<Packet>(M_LOG2E);
-    x = pmadd(x, cst_log2e, e);
-  } else {
-    const Packet cst_ln2 = pset1<Packet>(M_LN2);
-    x = pmadd(e, cst_ln2, x);
-  }
+  y1  = pmul(e, cst_cephes_log_q1);
+  tmp = pmul(x2, cst_half);
+  y   = padd(y, y1);
+  x   = psub(x, tmp);
+  y2  = pmul(e, cst_cephes_log_q2);
+  x   = padd(x, y);
+  x   = padd(x, y2);
 
   Packet invalid_mask = pcmp_lt_or_nan(_x, pzero(_x));
   Packet iszero_mask  = pcmp_eq(_x,pzero(_x));
@@ -269,22 +255,6 @@ Packet plog_impl_double(const Packet _x)
   //  - +INF will be +INF
   return pselect(iszero_mask, cst_minus_inf,
                               por(pselect(pos_inf_mask,cst_pos_inf,x), invalid_mask));
-}
-
-template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-EIGEN_UNUSED
-Packet plog_double(const Packet _x)
-{
-  return plog_impl_double<Packet, /* base2 */ false>(_x);
-}
-
-template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
-EIGEN_UNUSED
-Packet plog2_double(const Packet _x)
-{
-  return plog_impl_double<Packet, /* base2 */ true>(_x);
 }
 
 /** \internal \returns log(1 + x) computed using W. Kahan's formula.
