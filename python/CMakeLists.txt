@@ -85,8 +85,8 @@ ADD_LIBRARY(pytinydiffsim_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
 #SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES DEBUG_POSTFIX "_d")
 
 
-TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2)
-TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2)
+TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2 Eigen3::Eigen)
+TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2 Eigen3::Eigen)
 
 IF (WIN32)
   TARGET_COMPILE_OPTIONS(pytinydiffsim PUBLIC -bigobj)
@@ -119,7 +119,6 @@ INCLUDE_DIRECTORIES(
 		${PYTHON_INCLUDE_DIRS}
     ${PYTHON_NUMPY_INCLUDE_DIR}
 	../src
-	${EIGEN3_INCLUDE_DIRS}
 )
 
 ##################################################################

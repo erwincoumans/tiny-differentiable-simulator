@@ -52,19 +52,26 @@ FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
 
 include(ExternalProject)
 
-#find_package(Eigen3)
+
+find_package(Eigen3 QUIET)
 if (Eigen3_FOUND)
     message("FOUND EIGEN")
+
     message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
     add_definitions(-DUSE_EIGEN)
-    #include_directories(${EIGEN3_INCLUDE_DIRS})
 else(Eigen3_FOUND)
-    set(Eigen3_FOUND TRUE)
-    message("Using third_party/eigen3")
-    add_definitions(-DUSE_EIGEN)
-    set(EIGEN3_INCLUDE_DIRS  ${CMAKE_CURRENT_LIST_DIR}/third_party/eigen3)
-    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
-    #include_directories(${EIGEN3_INCLUDE_DIRS})
+    OPTION(USE_EIGEN_FALLBACK "Use third_party/eigen3" ON)
+      if (USE_EIGEN_FALLBACK)
+      message("Using third_party/eigen3")
+      add_library (eigen INTERFACE)
+      add_library (Eigen3::Eigen ALIAS eigen)
+      #target_compile_definitions (eigen INTERFACE ${EIGEN_DEFINITIONS})
+      target_include_directories (eigen INTERFACE
+          ${CMAKE_CURRENT_LIST_DIR}/third_party/eigen3
+      )
+      set(Eigen3_FOUND TRUE)
+      add_definitions(-DUSE_EIGEN)
+    endif(USE_EIGEN_FALLBACK)
 endif (Eigen3_FOUND)
 
 add_definitions(-DTDS_HOME="${CMAKE_CURRENT_LIST_DIR}")
@@ -175,11 +182,13 @@ IF(Bullet_FOUND)
   ENDIF(MSVC)
 ENDIF(Bullet_FOUND)
 
+if (Eigen3_FOUND)
 OPTION (USE_RBDL "Compare against RBDL" ON)
 if(USE_RBDL)
   add_definitions(-DUSE_RBDL)
   SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/rbdl)
 endif(USE_RBDL)
+endif(Eigen3_FOUND)
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /std:c++17")
@@ -290,27 +299,36 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
 
 OPTION(USE_CERES "Use Ceres solver" OFF)
 IF(USE_CERES)
-    add_definitions(-DUSE_CERES)
-    ExternalProject_Add(glog-Project
-        PREFIX glog
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
-        CMAKE_ARGS
-            -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
-    )
-    add_library(glog INTERFACE IMPORTED)
-    add_dependencies(glog glog-Project)
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
-
-    ExternalProject_Add(ceres-solver-Project
-        PREFIX ceres-solver
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
-        CMAKE_ARGS
-          -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
-          -DBUILD_EXAMPLES=OFF
-      )
-    add_library(ceres-solver INTERFACE IMPORTED)
-    add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
+    find_package(glog)
+    find_package(gflags)
+    #find_package(Ceres)
+    find_package(Ceres CONFIG REQUIRED)
+    IF(ceres_FOUND)
+	    add_definitions(-DUSE_CERES)
+	    message("FOUND CERES!")
+    ELSE()
+#    add_definitions(-DUSE_CERES)
+#      ExternalProject_Add(glog-Project
+#          PREFIX glog
+#          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
+#          CMAKE_ARGS
+#              -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/glog
+#      )
+#      add_library(glog INTERFACE IMPORTED)
+#      add_dependencies(glog glog-Project)
+#      include_directories(${CMAKE_CURRENT_BINARY_DIR}/glog/include)
+#  
+#      ExternalProject_Add(ceres-solver-Project
+#          PREFIX ceres-solver
+#          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver
+#          CMAKE_ARGS
+#            -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ceres-solver
+#            -DBUILD_EXAMPLES=OFF
+#        )
+#      add_library(ceres-solver INTERFACE IMPORTED)
+#      add_dependencies(ceres-solver ceres-solver-Project glog eigen3)
+#      include_directories(${CMAKE_CURRENT_BINARY_DIR}/ceres-solver/include)
+    ENDIF()
 ENDIF(USE_CERES)
 
 
@@ -319,10 +337,10 @@ ENDIF(USE_CERES)
 # set(BUILD_EXAMPLES OFF)
 
 OPTION(USE_CERES "Use Ceres" OFF)
-IF(USE_CERES)
-  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
-  SET(CERES_LIBRARIES Ceres::ceres)
-ENDIF()
+#IF(USE_CERES)
+#  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
+#  SET(CERES_LIBRARIES Ceres::ceres)
+#ENDIF()
 
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -342,10 +360,13 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 #SUBDIRS(third_party/nlohmann)
 
 add_library(differentiation INTERFACE)
-target_include_directories(differentiation INTERFACE ${EIGEN3_INCLUDE_DIRS})
-if(USE_CERES)
-    target_link_libraries(differentiation INTERFACE ceres-solver)
-endif(USE_CERES)
+target_link_directories(differentiation INTERFACE Eigen3::Eigen)
+target_include_directories(differentiation INTERFACE )
+
+#if(USE_CERES)
+#    target_link_libraries(differentiation INTERFACE ceres-solver)
+#endif(USE_CERES)
+
 if(USE_CPPAD)
     target_link_libraries(differentiation INTERFACE CppADCodeGen)
 endif(USE_CPPAD)
@@ -362,5 +383,7 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)
 
 OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" ON)
 IF(BUILD_PYTHON_PLUGIN)
+  if (Eigen3_FOUND)
   SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/python)
+  endif()
 ENDIF()

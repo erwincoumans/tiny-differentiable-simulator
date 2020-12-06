@@ -7,10 +7,11 @@ target_link_libraries(pendulum_example_tiny_gui opengl_window ${CMAKE_DL_LIBS})
 target_compile_definitions(pendulum_example_tiny_gui PRIVATE USE_TINY )
 target_include_directories(pendulum_example_tiny_gui PRIVATE ../src )
 
+if (Eigen3_FOUND)
 add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
-target_link_libraries(pendulum_example_eigen_gui opengl_window ${CMAKE_DL_LIBS})
-target_include_directories(pendulum_example_eigen_gui PRIVATE ../src  ${EIGEN3_INCLUDE_DIRS})
-
+target_link_libraries(pendulum_example_eigen_gui opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
+target_include_directories(pendulum_example_eigen_gui PRIVATE ../src)
+endif()
 
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
@@ -35,6 +36,7 @@ IF(USE_CPPAD)
       ${CMAKE_DL_LIBS}
       opengl_window
       tinyxml2
+      Eigen3::Eigen
       differentiation
   )
   if (USE_STAN)
@@ -44,16 +46,44 @@ ENDIF(USE_CPPAD)
 
 IF(USE_CERES)
 message("Ceres libs:" ${CERES_LIBRARIES})
+
 add_executable(ceres_estimation_real ceres_estimation_real.cpp ${TDS_HDRS})
-target_link_libraries(ceres_estimation_real pybullet_visualizer_api ${CMAKE_DL_LIBS} stdc++fs
-  ${CERES_LIBRARIES})
+target_link_libraries(ceres_estimation_real pybullet_visualizer_api  glog::glog Eigen3::Eigen ${CMAKE_DL_LIBS}  )
+
+# We want to link against ceres-debug.lib in Debug builds and Release/ceres.lib in optimized/Release builds.
+if (WIN32)
+    target_link_libraries(ceres_estimation_real  Opengl32)
+    target_link_libraries( ceres_estimation_real 
+      debug ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Debug/ceres-debug.lib 
+      optimized  ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Release/ceres.lib)
+    target_include_directories( ceres_estimation_real PRIVATE  ../third_party/glog/build_cmake/local_install/include ../third_party/ceres-solver/build_cmake/local_install/include )
+
+else(WIN32)
+    target_link_libraries(ceres_estimation_real pybullet_visualizer_api Ceres::ceres)
+endif (WIN32)
 target_include_directories(ceres_estimation_real PRIVATE ../data/ibm-double-pendulum)
+
+IF(APPLE)
+  FIND_PACKAGE(OpenGL)
+  target_link_libraries(ceres_estimation_real ${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
+ENDIF()
 
 ENDIF()
 IF(Bullet_FOUND)
   add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
-  target_include_directories(laikago_footstep_ik PRIVATE ../src ${EIGEN3_INCLUDE_DIRS})
-  target_link_libraries(laikago_footstep_ik pybullet_visualizer_api)
+  target_include_directories(laikago_footstep_ik PRIVATE ../src )
+  target_link_libraries(laikago_footstep_ik pybullet_visualizer_api Eigen3::Eigen)
+
+if (WIN32)
+    target_link_libraries(laikago_footstep_ik  Opengl32)
+endif (WIN32)
+
+IF(APPLE)
+  FIND_PACKAGE(OpenGL)
+  target_link_libraries(laikago_footstep_ik ${COCOA} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
+ENDIF()
+
+
 ENDIF()
 
 add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
