@@ -97,7 +97,7 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
         mb.base_velocity().bottom = Vector3(qd[3], qd[4], qd[5]);
 
         mb.base_velocity() += mb.base_acceleration() * dt;
-        mb.base_acceleration().set_zero();
+        Algebra::set_zero(mb.base_acceleration());
 
         // Algebra::print("mb.base_velocity()", mb.base_velocity());
         qd[0] = mb.base_velocity().top[0];
@@ -128,6 +128,6 @@ template <typename Algebra>
 void integrate_euler_qdd(MultiBody<Algebra>& mb,
     const typename Algebra::Scalar& dt) {
     integrate_euler_qdd(mb, mb.q(), mb.qd(), mb.qdd(), dt);
-    mb.qdd().set_zero();
+    Algebra::set_zero(mb.qdd());
 }
 }  // namespace tds
