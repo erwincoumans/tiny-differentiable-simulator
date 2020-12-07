@@ -128,6 +128,6 @@ template <typename Algebra>
 void integrate_euler_qdd(MultiBody<Algebra>& mb,
     const typename Algebra::Scalar& dt) {
     integrate_euler_qdd(mb, mb.q(), mb.qd(), mb.qdd(), dt);
-    mb.qdd().set_zero();
+    Algebra::set_zero(mb.qdd());
 }
 }  // namespace tds
