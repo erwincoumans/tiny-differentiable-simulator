@@ -86,7 +86,7 @@ del third_party\gflags\build_cmake\local_install\lib\*.lib
 mkdir build_cmake
 cd build_cmake
 
-cmake  -DCMAKE_CXX_FLAGS="/MP" -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON -DBullet_DIR=%ROOT%\third_party\bullet3\build_cmake -Dgflags_DIR=%ROOT%\third_party\gflags\build_cmake -Dglog_DIR=%ROOT%\third_party\glog\build_cmake -DEigen3_DIR=%ROOT%\third_party\eigen3\build_cmake -DCeres_DIR=%ROOT%\third_party\ceres-solver\build_cmake\local_install\cmake -DUSE_CPPAD=ON ..
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DUSE_CERES=ON -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON -DBullet_DIR=%ROOT%\third_party\bullet3\build_cmake -Dgflags_DIR=%ROOT%\third_party\gflags\build_cmake -Dglog_DIR=%ROOT%\third_party\glog\build_cmake -DEigen3_DIR=%ROOT%\third_party\eigen3\build_cmake -DCeres_DIR=%ROOT%\third_party\ceres-solver\build_cmake\local_install\cmake -DUSE_CPPAD=ON ..
 
 cmake  --build .  --target INSTALL  --config Release
 start DIFF_PHYSICS.sln
