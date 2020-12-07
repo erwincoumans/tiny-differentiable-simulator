@@ -177,18 +177,24 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     complete << fun_head_start;
     complete << "int num_total_threads,\n";
     complete << fun_arg_pad << "Float *output,\n";
-    complete << fun_arg_pad << "const Float *input) {\n";
+    complete << fun_arg_pad << "const Float *local_input";
+    if (global_dim_ > 0) {
+      complete << ",\n" << fun_arg_pad << "const Float *global_input";
+    }
+    complete << ") {\n";
     complete << "   const int i = blockIdx.x * blockDim.x + threadIdx.x;\n";
-    complete << "   if (i >= num_total_threads) return;\n";
-    complete << "   const int j = " << global_dim_ << " + i * " << (input_dim)
-             << ";  // thread-local input index offset\n\n";
+    complete << "   if (i >= num_total_threads) {\n";
+    complete << "      printf(\"ERROR: thread index %i exceeded provided "
+                "number of total threads %i.\\n\", i, num_total_threads);\n";
+    complete << "      return;\n   }\n\n";
     if (temporary_dim > 0) {
       complete << "   Float v[" << temporary_dim << "];\n";
     }
     if (global_dim_ > 0) {
-      complete << "   const Float *x = &(input[0]);\n";
+      complete << "   const Float *x = &(global_input[0]);  // global input\n";
     }
-    complete << "   const Float *xj = &(input[j]);\n";
+    complete << "   const Float *xj = &(local_input[i * " << input_dim
+             << "]);  // thread-local input\n";
     complete << "   Float *y = &(output[i * " << output_dim << "]);\n";
 
     complete << "\n";
@@ -202,7 +208,7 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
   cudaError status = cudaMallocHost(x, size);
   if (status != cudaSuccess) {
     fprintf(stderr, "Error %i (%s) while allocating CUDA memory: %s.\n",
-    status, cudaGetErrorName(status), cudaGetErrorString(status));
+            status, cudaGetErrorName(status), cudaGetErrorString(status));
     exit((int)status);
   }
 })";
@@ -210,7 +216,8 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
 
     // global device memory pointers
     complete << "Float* dev_output = nullptr;\n";
-    complete << "Float* dev_input = nullptr;\n\n";
+    complete << "Float* dev_local_input = nullptr;\n";
+    complete << "Float* dev_global_input = nullptr;\n\n";
 
     // allocation function
     complete << "extern \"C\" {\nMODULE_API void " << function_name
@@ -218,18 +225,56 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     complete << "  const size_t output_dim = num_total_threads * " << output_dim
              << ";\n";
     complete << "  const size_t input_dim = num_total_threads * " << input_dim
-             << " + " << global_dim_ << ";\n\n";
+             << ";\n\n";
     complete
         << "  allocate((void**)&dev_output, output_dim * sizeof(Float));\n";
-    complete << "  allocate((void**)&dev_input, input_dim * sizeof(Float));\n";
+    complete
+        << "  allocate((void**)&dev_local_input, input_dim * sizeof(Float));\n";
+    complete << "  allocate((void**)&dev_global_input, " << global_dim_
+             << " * sizeof(Float));\n";
     complete << "}\n\n";
 
     // deallocation function
     complete << "MODULE_API void " << function_name << "_deallocate() {\n";
     complete << "  cudaFreeHost(dev_output);\n";
-    complete << "  cudaFreeHost(dev_input);\n";
+    complete << "  cudaFreeHost(dev_local_input);\n";
+    complete << "  cudaFreeHost(dev_global_input);\n";
     complete << "  // cudaDeviceReset();\n";
     complete << "}\n\n";
+
+    // send thread-local inputs to GPU
+    fun_head_start = "MODULE_API bool " + function_name + "_send_local(";
+    fun_arg_pad = std::string(fun_head_start.size(), ' ');
+    complete << fun_head_start;
+    complete << "int num_total_threads,\n";
+    complete << fun_arg_pad << "const Float *input) {\n";
+    complete << "  const size_t input_dim = num_total_threads * " << input_dim
+             << ";\n";
+    complete << "  cudaError status = cudaMemcpy(dev_local_input, input, "
+                "input_dim * sizeof(Float), "
+                "cudaMemcpyHostToDevice);\n";
+    complete << R"(  if (status != cudaSuccess) {
+    fprintf(stderr, "Error %i (%s) while sending thread-local input data to GPU: %s.\n",
+            status, cudaGetErrorName(status), cudaGetErrorString(status));
+    return false;
+  }
+)";
+    complete << "  return true;\n}\n\n";
+
+    // send thread-local inputs to GPU
+    complete << "MODULE_API bool " + function_name + "_send_global(";
+    complete << "const Float *input) {\n";
+    complete << "  cudaError status = cudaMemcpy(dev_global_input, input, "
+             << global_dim_
+             << " * sizeof(Float), "
+                "cudaMemcpyHostToDevice);\n";
+    complete << R"(  if (status != cudaSuccess) {
+    fprintf(stderr, "Error %i (%s) while sending global input data to GPU: %s.\n",
+            status, cudaGetErrorName(status), cudaGetErrorString(status));
+    return false;
+  }
+)";
+    complete << "  return true;\n}\n\n";
 
     // kernel launch function
     fun_head_start = "MODULE_API void " + function_name + "(";
@@ -238,30 +283,41 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     complete << "int num_total_threads,\n";
     complete << fun_arg_pad << "int num_blocks,\n";
     complete << fun_arg_pad << "int num_threads_per_block,\n";
-    complete << fun_arg_pad << "Float *output,\n";
-    complete << fun_arg_pad << "const Float *input) {\n";
+    complete << fun_arg_pad << "Float *output) {\n";
 
     complete << "  const size_t output_dim = num_total_threads * " << output_dim
              << ";\n";
-    complete << "  const size_t input_dim = num_total_threads * " << input_dim
-             << " + " << global_dim_ << ";\n";
 
+    fun_head_start =
+        "  " + kernel_name + "<<<num_blocks, num_threads_per_block>>>(";
+    fun_arg_pad = std::string(fun_head_start.size(), ' ');
+    complete << fun_head_start;
+    complete << "num_total_threads,\n";
+    complete << fun_arg_pad << "dev_output,\n";
+    complete << fun_arg_pad << "dev_local_input";
+    if (global_dim_ > 0) {
+      complete << ",\n" << fun_arg_pad << "dev_global_input";
+    }
+    complete << ");\n";
     complete << R"(
-  // Copy input vector from host memory to GPU buffers.
-  cudaMemcpy(dev_input, input, input_dim * sizeof(Float), cudaMemcpyHostToDevice);
-  cudaMemcpy(dev_output, output, output_dim * sizeof(Float), cudaMemcpyHostToDevice);
-
-  )";
-    complete << kernel_name;
-    complete
-        << R"(<<<num_blocks, num_threads_per_block>>>(num_total_threads, dev_output, dev_input);
-  
   // cudaDeviceSynchronize waits for the kernel to finish, and returns
   // any errors encountered during the launch.
   cudaDeviceSynchronize();
+  cudaError status = cudaGetLastError();
+  if (status != cudaSuccess) {
+    fprintf(stderr, "Error %i (%s) while executing CUDA kernel: %s.\n",
+            status, cudaGetErrorName(status), cudaGetErrorString(status));
+    exit((int)status);
+  }
 
   // Copy output vector from GPU buffer to host memory.
-  cudaMemcpy(output, dev_output, output_dim * sizeof(Float), cudaMemcpyDeviceToHost);)";
+  cudaMemcpy(output, dev_output, output_dim * sizeof(Float), cudaMemcpyDeviceToHost);
+  status = cudaGetLastError();
+  if (status != cudaSuccess) {
+    fprintf(stderr, "Error %i (%s) while retrieving output from kernel: %s.\n",
+            status, cudaGetErrorName(status), cudaGetErrorString(status));
+    exit((int)status);
+  })";
 
     complete << "\n}\n}\n";
 
@@ -292,7 +348,12 @@ FunctionPtrT load_function(const std::string& function_name, void* lib_handle) {
 }  // namespace
 
 template <typename Scalar>
-using DefaultCudaFunctionPtrT = void (*)(int, int, int, Scalar*, const Scalar*);
+using DefaultCudaFunctionPtrT = void (*)(int, int, int, Scalar*);
+template <typename Scalar>
+using SendLocalFunctionPtrT = bool (*)(int, const Scalar*);
+template <typename Scalar>
+using SendGlobalFunctionPtrT = bool (*)(const Scalar*);
+
 using MetaDataFunctionPtrT = CudaFunctionMetaData (*)();
 using AllocateFunctionPtrT = void (*)(int);
 using DeallocateFunctionPtrT = void (*)();
@@ -301,13 +362,23 @@ template <typename Scalar,
           typename kFunctionPtrT = DefaultCudaFunctionPtrT<Scalar>>
 struct CudaFunction {
   using FunctionPtrT = kFunctionPtrT;
-
   std::string function_name;
+  CudaFunctionMetaData meta_data{};
 
-  CudaFunctionMetaData meta_data;
+  /**
+   * Global input dimension.
+   */
+  int global_input_dim() const { return meta_data.global_dim; }
+  /**
+   * Input dimension per thread.
+   */
+  int thread_input_dim() const { return meta_data.input_dim; }
+  /**
+   * Output dimension per thread.
+   */
+  int output_dimension() const { return meta_data.output_dim; }
 
   CudaFunction() = default;
-
   CudaFunction(const std::string& function_name, void* lib_handle)
       : function_name(function_name) {
     fun_ = load_function<FunctionPtrT>(function_name, lib_handle);
@@ -318,6 +389,10 @@ struct CudaFunction {
                                                     lib_handle);
     deallocate_ = load_function<DeallocateFunctionPtrT>(
         function_name + "_deallocate", lib_handle);
+    send_global_fun_ = load_function<SendGlobalFunctionPtrT<Scalar>>(
+        function_name + "_send_global", lib_handle);
+    send_local_fun_ = load_function<SendLocalFunctionPtrT<Scalar>>(
+        function_name + "_send_local", lib_handle);
   }
 
   inline void allocate(int num_total_threads) const {
@@ -330,7 +405,26 @@ struct CudaFunction {
                          int num_threads_per_block, Scalar* output,
                          const Scalar* input) const {
     assert(fun_);
-    fun_(num_total_threads, num_blocks, num_threads_per_block, output, input);
+    bool status;
+    status = send_global_input(input);
+    assert(status);
+    if (!status) {
+      return false;
+    }
+    status = send_local_input(&(input[meta_data.global_dim]));
+    assert(status);
+    if (!status) {
+      return false;
+    }
+    fun_(num_total_threads, num_blocks, num_threads_per_block, output);
+    return true;
+  }
+
+  inline bool operator()(int num_total_threads, Scalar* output,
+                         int num_threads_per_block = 32) const {
+    assert(fun_);
+    int num_blocks = num_total_threads / num_threads_per_block;
+    fun_(num_total_threads, num_blocks, num_threads_per_block, output);
     return true;
   }
 
@@ -339,53 +433,30 @@ struct CudaFunction {
                          int num_threads_per_block = 32,
                          const std::vector<Scalar>& global_input = {}) const {
     assert(fun_);
-    if (thread_outputs == nullptr || thread_outputs->empty() ||
-        (*thread_outputs)[0].empty()) {
-      assert(false);
+    bool status;
+    status = send_local_input(thread_inputs);
+    assert(status);
+    if (!status) {
       return false;
     }
-    if (thread_outputs->size() != thread_inputs.size()) {
-      assert(false);
-      return false;
-    }
-    if (static_cast<int>(thread_inputs[0].size()) != meta_data.input_dim) {
-      assert(false);
-      return false;
-    }
-    if (static_cast<int>((*thread_outputs)[0].size()) != meta_data.output_dim) {
-      assert(false);
-      return false;
-    }
-    if (static_cast<int>(global_input.size()) != meta_data.global_dim) {
-      assert(false);
-      return false;
-    }
-
-    auto num_total_threads = static_cast<int>(thread_inputs.size());
-    // concatenate thread-wise inputs and global memory into contiguous input
-    // array
-    Scalar* input = new Scalar[global_input.size() +
-                               thread_inputs[0].size() * num_total_threads];
-    std::size_t i = 0;
-    for (; i < global_input.size(); ++i) {
-      input[i] = global_input[i];
-    }
-    for (const auto& thread : thread_inputs) {
-      for (const Scalar& t : thread) {
-        input[i] = t;
-        ++i;
+    if (!global_input.empty()) {
+      status = send_global_input(global_input);
+      assert(status);
+      if (!status) {
+        return false;
       }
     }
-    Scalar* output =
-        new Scalar[(*thread_outputs)[0].size() * num_total_threads];
 
-    int num_blocks = ceil(num_total_threads * 1. / num_threads_per_block);
+    int num_total_threads = static_cast<int>(thread_inputs.size());
+    Scalar* output = new Scalar[num_total_threads * meta_data.output_dim];
+
+    int num_blocks = num_total_threads / num_threads_per_block;
 
     // call GPU kernel
-    fun_(num_total_threads, num_blocks, num_threads_per_block, output, input);
+    fun_(num_total_threads, num_blocks, num_threads_per_block, output);
 
     // assign thread-wise outputs
-    i = 0;
+    std::size_t i = 0;
     for (auto& thread : *thread_outputs) {
       for (Scalar& t : thread) {
         t = output[i];
@@ -393,15 +464,63 @@ struct CudaFunction {
       }
     }
 
-    delete[] input;
     delete[] output;
     return true;
+  }
+
+  inline bool send_local_input(int num_total_threads,
+                               const Scalar* input) const {
+    assert(send_local_fun_);
+    return send_local_fun_(num_total_threads, input);
+  }
+  inline bool send_local_input(
+      const std::vector<std::vector<Scalar>>& thread_inputs) const {
+    assert(send_local_fun_);
+    if (thread_inputs.empty() ||
+        static_cast<int>(thread_inputs[0].size()) != meta_data.input_dim) {
+      assert(false);
+      return false;
+    }
+    auto num_total_threads = static_cast<int>(thread_inputs.size());
+    Scalar* input = new Scalar[thread_inputs[0].size() * num_total_threads];
+    std::size_t i = 0;
+    for (const auto& thread : thread_inputs) {
+      for (const Scalar& t : thread) {
+        input[i] = t;
+        ++i;
+      }
+    }
+    bool status = send_local_fun_(num_total_threads, input);
+    delete[] input;
+    return status;
+  }
+  inline bool send_local_input(const std::vector<Scalar>& thread_inputs) const {
+    assert(send_local_fun_);
+    auto num_total_threads =
+        static_cast<int>(thread_inputs.size() / meta_data.input_dim);
+    return send_local_fun_(num_total_threads, thread_inputs.data());
+  }
+
+  inline bool send_global_input(const Scalar* input) const {
+    assert(send_global_fun_);
+    return send_global_fun_(input);
+  }
+
+  inline bool send_global_input(const std::vector<Scalar>& input) const {
+    assert(send_global_fun_);
+    if (static_cast<int>(input.size()) != meta_data.global_dim) {
+      assert(false);
+      return false;
+    }
+    return send_global_fun_(input.data());
   }
 
  protected:
   FunctionPtrT fun_{nullptr};
   AllocateFunctionPtrT allocate_{nullptr};
   DeallocateFunctionPtrT deallocate_{nullptr};
+  SendGlobalFunctionPtrT<Scalar> send_global_fun_{nullptr};
+  SendLocalFunctionPtrT<Scalar> send_local_fun_{nullptr};
 };
 
 template <typename Scalar>
