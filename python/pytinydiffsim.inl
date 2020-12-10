@@ -329,6 +329,7 @@
   m.def("integrate_euler_qdd", &MyIntegrateEulerQdd);
   m.def("compute_inertia_dyad", &MyComputeInertia);
   m.def("point_jacobian", &MyPointJacobian);
+  m.def("quat_integrate", &MyQuatIntegrate);
   m.def("inverse_kinematics", &MyInverseKinematics);
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
   m.def("find_file", &MyFindFile);

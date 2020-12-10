@@ -101,6 +101,17 @@ inline tds::RigidBodyInertia<MyAlgebra> MyComputeInertia(const MyScalar& mass,
     return rb_inertia;
 }
 
+inline MyAlgebra::Quaternion MyQuatIntegrate(const MyAlgebra::Quaternion& start_orn, const MyAlgebra::Vector3& ang_vel, MyScalar dt)
+{
+    MyAlgebra::Quaternion orn = start_orn;
+    MyAlgebra::Quaternion orn2 = MyAlgebra::quat_velocity(orn, ang_vel, dt);
+    MyAlgebra::quat_increment(orn, orn2);
+    orn = MyAlgebra::normalize(orn);
+    return orn;
+}
+
+
+
 inline MyAlgebra::Matrix3X MyPointJacobian(tds::MultiBody<MyAlgebra>& mb, int link_index, const MyAlgebra::Vector3& point, bool is_local)
 {
     return tds::point_jacobian2(mb, link_index, point, is_local);
