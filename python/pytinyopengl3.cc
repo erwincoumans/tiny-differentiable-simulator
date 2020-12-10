@@ -19,6 +19,7 @@
 
 #include "math/tiny/tiny_float_utils.h"
 #include "math/tiny/tiny_vector3.h"
+#include "math/tiny/tiny_pose.h"
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/tiny_camera.h"
 #include <string>
@@ -198,6 +199,14 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
   m.def("load_obj_shapes", &my_load_obj_shapes);
       
+  
+  py::class_<TinyPose<float, FloatUtils>>(m, "TinyPosef")
+      .def(py::init<>())
+      .def(py::self * py::self)
+      .def_readwrite("position", &TinyPose<float, FloatUtils>::m_position)
+      .def_readwrite("orientation", &TinyPose<float, FloatUtils>::m_orientation)
+      .def("set_identity", &TinyPose<float, FloatUtils>::set_identity);
+
   py::class_<TinyVector3<float, FloatUtils>>(m, "TinyVector3f")
       .def(py::init<float, float, float>())
       .def("set_zero", &TinyVector3<float, FloatUtils>::set_zero)
