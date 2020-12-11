@@ -13,7 +13,7 @@
 
 #include "rbdl/Model.h"
 #include "rbdl/Joint.h"
-#ifdef WIN32
+#ifdef _WIN32
 void sincos(double angle, double* s, double* c)
 {
     if (s)

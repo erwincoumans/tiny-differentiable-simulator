@@ -2,4 +2,12 @@ include MANIFEST.in *.txt
 recursive-include examples *.h
 recursive-include examples *.cpp
 recursive-include python *.*
+recursive-include third_party/eigen3 *.*
+recursive-include third_party/eigen3 *
+recursive-include third_party/tinyxml2 *.*
+recursive-include third_party/pybind11 *.*
+recursive-include third_party/tinyobjloader *.*
+recursive-include third_party/stb_image *.*
+recursive-include third_party/glad *.*
+recursive-include src *.*
 include .
