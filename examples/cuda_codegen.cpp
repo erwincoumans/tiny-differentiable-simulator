@@ -186,7 +186,8 @@ int main(int argc, char* argv[]) {
   const int link_pos_id_offset =
       simulation.system->dof() + simulation.system->dof_qd();
   const int square_id = (int)std::sqrt((double)num_total_threads);
-  const float radius = 1.f;
+  //sim_spacing is the visual distance between independent parallel simulations
+  const float sim_spacing = 5.f;
   for (int run = 0; run < 40; ++run) {
     for (int i = 0; i < num_total_threads; ++i) {
       inputs[i] = std::vector<Scalar>(simulation.input_dim(), Scalar(0));
@@ -218,8 +219,8 @@ int main(int argc, char* argv[]) {
           pos[0] = outputs[i][link_pos_id_offset + l * 3 + 0];
           pos[1] = outputs[i][link_pos_id_offset + l * 3 + 1];
           pos[2] = outputs[i][link_pos_id_offset + l * 3 + 2];
-          pos[0] += radius * (i % square_id) - square_id * radius / 2;
-          pos[1] += radius * (i / square_id) - square_id * radius / 2;
+          pos[0] += sim_spacing * (i % square_id) - square_id * sim_spacing / 2;
+          pos[1] += sim_spacing * (i / square_id) - square_id * sim_spacing / 2;
           TinyQuaternionf orn(0, 0, 0, 1);
           if (l > 0) {
              //app.m_renderer->draw_line(prev_pos, pos, line_color, line_width);
