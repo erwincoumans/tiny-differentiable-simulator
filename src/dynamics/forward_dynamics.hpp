@@ -261,10 +261,14 @@ void forward_dynamics(MultiBody<Algebra> &mb,
           Vector3 u_Ut_a = link.u_3d - Ut_a_vec;
           Vector3 qdd_val = link.invD_3d * u_Ut_a;
 
-          for (int ii = 0; ii < 3; ii++) {
-              assert(!std::isnan(Algebra::to_double(qdd_val[ii])));
-              qdd[link.qd_index + ii] = qdd_val[ii];
-          }
+
+          assert(!std::isnan(Algebra::to_double(qdd_val[0])));
+          assert(!std::isnan(Algebra::to_double(qdd_val[1])));
+          assert(!std::isnan(Algebra::to_double(qdd_val[2])));
+          qdd[link.qd_index] = qdd_val[0];
+          qdd[link.qd_index + 1] = qdd_val[1];
+          qdd[link.qd_index + 2] = qdd_val[2];
+
           link.a += Algebra::mul_2_motion_vector(link.S_3d, qdd_val);
       } else{
           Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
