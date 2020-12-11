@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
   app.m_renderer->init();
   app.set_up_axis(2);
   app.m_renderer->get_active_camera()->set_camera_distance(4);
-  app.m_renderer->get_active_camera()->set_camera_pitch(-30);
+  app.m_renderer->get_active_camera()->set_camera_pitch(-10);
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
   //install ffmpeg in path and uncomment, to enable video recording
   //app.dump_frames_to_video("test.mp4");
@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
 
   MatrixX M(mb->dof_qd(), mb->dof_qd());
 
-  int fps = 1920;
+  int fps = 19200;
   double dt = 1. / fps;
   app.set_mp4_fps(fps);
   int upAxis = 2;
