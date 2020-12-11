@@ -22,7 +22,7 @@ struct all_unroller
     row = (UnrollCount-1) % Rows
   };
 
-  static inline bool run(const Derived &mat)
+  EIGEN_DEVICE_FUNC static inline bool run(const Derived &mat)
   {
     return all_unroller<Derived, UnrollCount-1, Rows>::run(mat) && mat.coeff(row, col);
   }
@@ -31,13 +31,13 @@ struct all_unroller
 template<typename Derived, int Rows>
 struct all_unroller<Derived, 0, Rows>
 {
-  static inline bool run(const Derived &/*mat*/) { return true; }
+  EIGEN_DEVICE_FUNC static inline bool run(const Derived &/*mat*/) { return true; }
 };
 
 template<typename Derived, int Rows>
 struct all_unroller<Derived, Dynamic, Rows>
 {
-  static inline bool run(const Derived &) { return false; }
+  EIGEN_DEVICE_FUNC static inline bool run(const Derived &) { return false; }
 };
 
 template<typename Derived, int UnrollCount, int Rows>
@@ -48,7 +48,7 @@ struct any_unroller
     row = (UnrollCount-1) % Rows
   };
   
-  static inline bool run(const Derived &mat)
+  EIGEN_DEVICE_FUNC static inline bool run(const Derived &mat)
   {
     return any_unroller<Derived, UnrollCount-1, Rows>::run(mat) || mat.coeff(row, col);
   }
@@ -57,13 +57,13 @@ struct any_unroller
 template<typename Derived, int Rows>
 struct any_unroller<Derived, 0, Rows>
 {
-  static inline bool run(const Derived & /*mat*/) { return false; }
+  EIGEN_DEVICE_FUNC static inline bool run(const Derived & /*mat*/) { return false; }
 };
 
 template<typename Derived, int Rows>
 struct any_unroller<Derived, Dynamic, Rows>
 {
-  static inline bool run(const Derived &) { return false; }
+  EIGEN_DEVICE_FUNC static inline bool run(const Derived &) { return false; }
 };
 
 } // end namespace internal
