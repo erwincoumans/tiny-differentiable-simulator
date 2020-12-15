@@ -209,8 +209,10 @@ struct ArticulatedBodyInertia {
   }
     Matrix6x3 operator*(const Matrix6x3 &v) const {
         Matrix6x3 result;
-        result.m_top = I * v.m_top + H * v.m_bottom;
-        result.m_bottom = M * v.m_bottom + Algebra::transpose(H) * v.m_top;
+        Matrix3 temp = I * Algebra::top(v) + H * Algebra::bottom(v);
+        Algebra::assign_block(result, temp, 0, 0);
+        temp = M * Algebra::bottom(v) + Algebra::transpose(H) * Algebra::top(v);
+        Algebra::assign_block(result, temp, 3, 0);
         return result;
     }
 
@@ -351,13 +353,15 @@ struct ArticulatedBodyInertia {
         // Algebra::print("a", a);
         // Algebra::print("b", b);
         ArticulatedBodyInertia abi;
-        abi.I = a.m_top * b.m_top;
-        abi.M = a.m_bottom * b.m_bottom;
-        abi.H = a.m_top * b.m_bottom;
+        abi.I = Algebra::top(a) * Algebra::top(b);
+        abi.M = Algebra::bottom(a) * Algebra::bottom(b);
+        Matrix3 Htemp = Algebra::top(a) * Algebra::bottom(b);
 
-#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-        abi.H = abi.H.transpose();
-#endif
+//#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+//        abi.H = Htemp.transpose();
+//#else
+//        abi.H = Htemp;
+//#endif
         return abi;
     }
 

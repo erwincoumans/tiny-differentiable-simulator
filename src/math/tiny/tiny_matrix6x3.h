@@ -35,6 +35,7 @@ namespace TINY
         typedef ::TINY::TinyVectorX<TinyScalar, TinyConstants> TinyVectorX;
 
         TinyMatrix3x3 m_top, m_bottom;
+        bool m_tranposed = false;
 
         TinyVector3 m_center_of_mass;
         //
@@ -50,6 +51,12 @@ namespace TINY
            m_bottom.set_zero();
            m_center_of_mass.set_zero();
          }
+
+      TinyMatrix6x3 transpose() const{
+        TinyMatrix6x3 out(m_top, m_bottom);
+        out.m_tranposed = true;
+        return out;
+      }
 
         TinyMatrix6x3& operator-=(const TinyMatrix6x3& mat) {
             m_top -= mat.m_topLeftMat;
@@ -116,7 +123,9 @@ namespace TINY
          */
         friend TinyMatrix3x3 operator*(const TinyMatrix6x3& a,
                                        const TinyMatrix6x3& b) {
-            TinyMatrix3x3 res;
+          TinyConstants::FullAssert(a.m_tranposed);
+
+          TinyMatrix3x3 res;
             res = a.m_top.transpose() * b.m_top + a.m_bottom.transpose() * b.m_bottom;
             return res;
         }

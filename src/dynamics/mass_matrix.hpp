@@ -54,7 +54,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
     int qd_i = link.qd_index;
     if (link.joint_type == JOINT_SPHERICAL){
         Matrix6x3 Fi = Ic * link.S_3d;
-        Algebra::assign_block(*M, link.S_3d * Fi, qd_i, qd_i);
+        Algebra::assign_block(*M, Algebra::transpose(link.S_3d) * Fi, qd_i, qd_i);
 
 //        int j = i;
 //        while (mb[j].parent_index != -1) {

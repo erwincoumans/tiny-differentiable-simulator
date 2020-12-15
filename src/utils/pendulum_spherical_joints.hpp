@@ -21,7 +21,7 @@ void init_spherical_compound_pendulum(
 
   for (int i = 0; i < num_links; i++) {
     Link l;
-    if (i >= 0) l.set_joint_type(tds::JOINT_SPHERICAL);
+    if (i >= 1) l.set_joint_type(tds::JOINT_SPHERICAL);
     else l.set_joint_type(tds::JOINT_REVOLUTE_X);
 
     l.X_T.rotation = Algebra::eye3();

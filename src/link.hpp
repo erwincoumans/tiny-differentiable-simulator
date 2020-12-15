@@ -165,8 +165,8 @@ struct Link {
         S.top = axis;
         break;
       case JOINT_SPHERICAL:
-          S_3d.set_zero();
-          S_3d.m_top.set_identity();
+          Algebra::set_zero(S_3d);
+          Algebra::assign_block(S_3d, Algebra::eye3(), 0, 0);
           break;
       case JOINT_FIXED:
         break;
@@ -255,7 +255,7 @@ struct Link {
                 break;
             }
             case JOINT_SPHERICAL: {
-                const auto quat = Quaternion(q[0], q[1], q[2], q[3]);
+                const auto quat = Algebra::quat_from_xyzw(q[0], q[1], q[2], q[3]);
                 X_J->rotation = Algebra::quat_to_matrix(quat);
                 break;
             }

@@ -124,6 +124,25 @@ struct TinyAlgebra {
   TINY_INLINE static Scalar dot(const ForceVector &a, const MotionVector &b) {
     return dot(b, a);
   }
+  /**
+   * Multiplication of a matrix6x3 with a force/motion vector handles the operation as a multiplication with the
+   * transpose of the matrix.
+   * @param a [6x3] matrix
+   * @param b MotionVector or ForceVector
+   * @return Vector3
+   */
+  TINY_INLINE static Vector3 dot(const Matrix6x3 &a,
+                                 const ForceVector &b) {
+    Vector3 res;
+    res = a.m_top.transpose() * b.top + a.m_bottom.transpose() * b.bottom;
+    return res;
+  }
+  TINY_INLINE static Vector3 dot(const Matrix6x3 &a,
+                                 const MotionVector &b) {
+    Vector3 res;
+    res = a.m_top.transpose() * b.top + a.m_bottom.transpose() * b.bottom;
+    return res;
+  }
 
   template <typename T1, typename T2>
   TINY_INLINE static auto dot(const T1 &vector_a, const T2 &vector_b) {
@@ -253,6 +272,14 @@ struct TinyAlgebra {
     return mat.block(start_row_index, start_col_index, rows, cols);
   }
 
+  TINY_INLINE static Matrix3 top(const Matrix6x3 &mat) {
+    return mat.m_top;
+  }
+
+  TINY_INLINE static Matrix3 bottom(const Matrix6x3 &mat) {
+    return mat.m_bottom;
+  }
+
   template <template <typename, typename> typename VectorType>
   TINY_INLINE static void assign_horizontal(
       MatrixX &mat, const VectorType<TinyScalar, TinyConstants> &vec,
@@ -302,6 +329,17 @@ struct TinyAlgebra {
         output.m_bottomRightMat = input;
       }
     }
+  }
+
+  TINY_INLINE static void assign_block(Matrix6x3 &output, const Matrix3 &input,
+                                       Index i, Index j, Index m = 3,
+                                       Index n = 3, Index input_i = 0,
+                                       Index input_j = 0) {
+      if (i == 0) {
+          output.m_top = input;
+      } else {
+          output.m_bottom = input;
+      }
   }
 
   template <template <typename, typename> typename ColumnType>
@@ -492,6 +530,7 @@ struct TinyAlgebra {
   }
 
   TINY_INLINE static void set_zero(Matrix3 &m) { m.set_zero(); }
+  TINY_INLINE static void set_zero(Matrix6x3 &m) { m.set_zero(); }
   template <typename S, typename U,
             template <typename, typename> typename ColumnType>
   TINY_INLINE static void set_zero(::TINY::TinyMatrixXxX_<S, U, ColumnType> &m) {
