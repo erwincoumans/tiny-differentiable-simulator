@@ -74,6 +74,16 @@ else(Eigen3_FOUND)
     endif(USE_EIGEN_FALLBACK)
 endif (Eigen3_FOUND)
 
+OPTION(USE_TORCH "Use LibTorch" OFF)
+IF (USE_TORCH)
+    find_package(Torch)
+    if (Torch_FOUND)
+        message("FOUND TORCH")
+        message("Torch directories: ${TORCH_LIBRARIES}")
+    endif (Torch_FOUND)
+    add_definitions(-DUSE_TORCH)
+ENDIF (USE_TORCH)
+
 add_definitions(-DTDS_HOME="${CMAKE_CURRENT_LIST_DIR}")
 message("Setting TDS_HOME=${CMAKE_CURRENT_LIST_DIR}")
 

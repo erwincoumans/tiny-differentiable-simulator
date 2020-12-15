@@ -109,3 +109,8 @@ add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
 target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
+IF (USE_TORCH)
+    add_executable(load_pytorch_network load_pytorch_network.cpp ${TDS_HDRS})
+    target_link_libraries(load_pytorch_network "${TORCH_LIBRARIES}")
+    target_include_directories(load_pytorch_network PRIVATE ../src)
+ENDIF (USE_TORCH)
