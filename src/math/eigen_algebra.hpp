@@ -34,6 +34,7 @@ struct EigenAlgebraT {
   using VectorX = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
   using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
   using Matrix6 = Eigen::Matrix<Scalar, 6, 6>;
+  using Matrix6x3 = Eigen::Matrix<Scalar, 6, 3>;
   using Matrix3X = Eigen::Matrix<Scalar, 3, Eigen::Dynamic>;
   using MatrixX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
   using Quaternion = Eigen::Quaternion<Scalar>;
@@ -192,6 +193,29 @@ struct EigenAlgebraT {
                                         const MotionVector &b) {
     return dot(b, a);
   }
+  /**
+   * Multiplication of a matrix6x3 with a force/motion vector handles the operation as a multiplication with the
+   * transpose of the matrix.
+   * @param a [6x3] matrix
+   * @param b MotionVector or ForceVector
+   * @return Vector3
+   */
+  EIGEN_ALWAYS_INLINE static Vector3 dot(const Matrix6x3 &a,
+                                        const ForceVector &b) {
+    Vector3 res;
+    for (int i = 0; i < 3; i++){
+      res[i] = a(0, i) * b[0]  + a(1, i) * b[1] + a(2, i) * b[2] + a(3, i) * b[3] + a(4, i) * b[4] + a(5, i) * b[5];
+    }
+    return res;
+  }
+  EIGEN_ALWAYS_INLINE static Vector3 dot(const Matrix6x3 &a,
+                                        const MotionVector &b) {
+    Vector3 res;
+    for (int i = 0; i < 3; i++){
+      res[i] = a(0, i) * b[0]  + a(1, i) * b[1] + a(2, i) * b[2] + a(3, i) * b[3] + a(4, i) * b[4] + a(5, i) * b[5];
+    }
+    return res;
+  }
 
   template <typename T1, typename T2>
   EIGEN_ALWAYS_INLINE static auto dot(const T1 &vector_a, const T2 &vector_b) {
@@ -299,6 +323,14 @@ struct EigenAlgebraT {
     return mat.block(start_row_index, start_col_index, rows, cols);
   }
 
+  EIGEN_ALWAYS_INLINE static Matrix3 top(const Matrix6x3 &mat) {
+    return mat.block(0, 0, 3, 3);
+  }
+
+  EIGEN_ALWAYS_INLINE static Matrix3 bottom(const Matrix6x3 &mat) {
+    return mat.block(3, 0, 3, 3);
+  }
+
   EIGEN_ALWAYS_INLINE static void assign_block(Matrix3X &output,
                                                const Matrix3 &input, int i,
                                                int j, int m = -1, int n = -1,
@@ -329,6 +361,22 @@ struct EigenAlgebraT {
         output(ii + i, jj + j) = input(ii + input_i, jj + input_j);
       }
     }
+  }
+
+  EIGEN_ALWAYS_INLINE static void assign_block(Matrix6x3 &output,
+                                               const Matrix3 &input, int i,
+                                               int j, int m = -1, int n = -1,
+                                               int input_i = 0,
+                                               int input_j = 0) {
+      if (m < 0) m = input.rows();
+      if (n < 0) n = input.cols();
+      assert(i + m <= output.rows() && j + n <= output.cols());
+      assert(input_i + m <= input.rows() && input_j + n <= input.cols());
+      for (int ii = 0; ii < m; ++ii) {
+          for (int jj = 0; jj < n; ++jj) {
+              output(ii + i, jj + j) = input(ii + input_i, jj + input_j);
+          }
+      }
   }
 
   EIGEN_ALWAYS_INLINE static void assign_block(Matrix3 &output,
@@ -447,6 +495,29 @@ struct EigenAlgebraT {
     return mat.transpose() * vec;
   }
 
+  /**
+     * Multiplication of a 6x3 matrix with a Vector3 returns a force vector
+     * @param a
+     * @param b
+     * @return
+     */
+  TINY_INLINE static ForceVector mul_2_force_vector(
+          const Matrix6x3 &mat,
+          const Vector3 &vec) {
+
+    VectorX res = mat * vec;
+
+    return ForceVector(Vector3(res[0], res[1], res[2]), Vector3(res[3], res[4], res[5]));
+  }
+  TINY_INLINE static MotionVector mul_2_motion_vector(
+          const Matrix6x3 &mat,
+          const Vector3 &vec) {
+
+    VectorX res = mat * vec;
+
+    return MotionVector(Vector3(res[0], res[1], res[2]), Vector3(res[3], res[4], res[5]));
+  }
+
   EIGEN_ALWAYS_INLINE static Matrix3 quat_to_matrix(const Quaternion &quat) {
     // NOTE: Eigen requires quat to be normalized
     return quat.toRotationMatrix();
@@ -523,7 +594,11 @@ struct EigenAlgebraT {
       const Vector3 &axis, const Scalar &angle) {
     return Quaternion(Eigen::AngleAxis(angle, axis));
   }
+  TINY_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
+    auto ang_ax = Eigen::AngleAxis<Scalar>(quat);
 
+    return ang_ax.axis() * ang_ax.angle();
+  }
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {
     using std::cos, std::sin;
     Scalar c = cos(angle);
@@ -631,6 +706,7 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3X &m) { m.setZero(); }
+  EIGEN_ALWAYS_INLINE static void set_zero(Matrix6x3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Vector3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(VectorX &m) { m.setZero(); }
 

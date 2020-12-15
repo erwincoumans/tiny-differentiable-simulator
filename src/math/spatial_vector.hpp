@@ -150,7 +150,7 @@ struct MotionVector : public SpatialVector<Algebra> {
        */
     friend Vector3 operator*(const Matrix6x3 &m, const MotionVector &v) {
         Vector3 result;
-        result = m.m_top.transpose() * v.top + m.m_bottom.transpose() * v.bottom;
+        result = Algebra::top(m).transpose() * v.top + Algebra::bottom(m).transpose() * v.bottom;
         return result;
     }
 };
@@ -209,19 +209,6 @@ struct ForceVector : public SpatialVector<Algebra> {
   TINY_INLINE ForceVector operator*(const Scalar &s) const {
     return ForceVector(s * top, s * bottom);
   }
-
-    /**
-         * Multiplication with a motion vector handles the operation as a multiplication with the transpose of this
-         * matrix.
-         * @param a [6x3] matrix
-         * @param b MotionVector or ForceVector
-         * @return Vector3
-         */
-    friend Vector3 operator*(const Matrix6x3 &m, const ForceVector &v) {
-        Vector3 result;
-        result = m.m_top.transpose() * v.top + m.m_bottom.transpose() * v.bottom;
-        return result;
-    }
 
   /**
    * This function only exists to multiply the inverse of the 6x6 inertia matrix

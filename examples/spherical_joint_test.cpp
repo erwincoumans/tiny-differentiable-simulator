@@ -34,12 +34,21 @@
 using namespace TINY;
 using namespace tds;
 #include "visualizer/opengl/tiny_opengl3_app.h"
-#include "math/tiny/tiny_algebra.hpp"
+
+#ifdef USE_TINY
+  #include "math/tiny/tiny_algebra.hpp"
+#else
+  #include "math/eigen_algebra.hpp"
+#endif
 
 
 int main(int argc, char* argv[]) {
 
+#ifdef USE_TINY
   typedef TinyAlgebra<double, DoubleUtils> Algebra;
+#else
+  typedef EigenAlgebra Algebra;
+#endif
   typedef typename Algebra::Vector3 Vector3;
   typedef typename Algebra::Quaternion Quaternion;
   typedef typename Algebra::VectorX VectorX;
@@ -56,7 +65,8 @@ int main(int argc, char* argv[]) {
   app.m_renderer->init();
   app.set_up_axis(2);
   app.m_renderer->get_active_camera()->set_camera_distance(4);
-  app.m_renderer->get_active_camera()->set_camera_pitch(-10);
+  app.m_renderer->get_active_camera()->set_camera_pitch(-30);
+  app.m_renderer->get_active_camera()->set_camera_yaw(90);
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
   //install ffmpeg in path and uncomment, to enable video recording
   //app.dump_frames_to_video("test.mp4");
@@ -74,16 +84,24 @@ int main(int argc, char* argv[]) {
   std::vector<int> mbvisuals;
 
   int num_spheres = 5;
+  int num_multibodies = 1;
 
-  MultiBody* mb = world.create_multi_body();
+  std::vector<MatrixX> MassM;
+  for (int ii = 0; ii < num_multibodies; ii++){
+    MultiBody* mb = world.create_multi_body();
     init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);
-
-  mbbodies.push_back(mb);
+    mb->set_position(Vector3(ii, 0, 0));
+//    Quaternion q0(Algebra::fraction(1, Algebra::sqrt(ii*2)), 0, 0, 1 - Algebra::fraction(1, Algebra::sqrt(ii*2)));
+//    mb->set_orientation(q0);
+    mbbodies.push_back(mb);
+    MatrixX M(mb->dof_qd(), mb->dof_qd());
+    MassM.push_back(M);
+  }
 
   int sphere_shape = app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
   
 
-  for (int i = 0; i < num_spheres; i++)
+  for (int i = 0; i < num_spheres * num_multibodies; i++)
   {
       TinyVector3f pos(0, i*0.1, 0);
       TinyQuaternionf orn(0, 0, 0, 1);
@@ -100,26 +118,24 @@ int main(int argc, char* argv[]) {
 //  If you rotate the base there is no problem
 //  mb->set_orientation(Quaternion(Algebra::zero(), Algebra::zero(), Algebra::sqrt(0.5), Algebra::sqrt(0.5)));
 
-  mb->qd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
+//  mb->qd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
 // Setting an non-zero initial velocity around the y-axis also creates unstable behavior
 //  mb->qd()[2] = .1;
 //  mb->qd()[1] = 2;
 //  mb->qd()[0] = .1;
 
-  mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
-  mb->qdd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
+//  mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
+//  mb->qdd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
 
 // Set some stiffness and/or damping for test purposes
-  for (auto &link: mb->links_){
-      link.damping = Algebra::one() * 0.;
+  for (auto &link: mbbodies[0]->links_){
+      link.damping = Algebra::one() * 1.;
 //      link.stiffness = Algebra::one() * 300;
   }
 
   Vector3 gravity(0., 0., -9.81);
 
-  MatrixX M(mb->dof_qd(), mb->dof_qd());
-
-  int fps = 19200;
+  int fps = 480;
   double dt = 1. / fps;
   app.set_mp4_fps(fps);
   int upAxis = 2;
@@ -131,24 +147,25 @@ int main(int argc, char* argv[]) {
     data.drawAxis = true;
     data.upAxis = upAxis;
     app.draw_grid(data);
+    for (auto &mb: mbbodies){
+      mb->clear_forces();
+      tds::forward_kinematics(*mb);
 
-     mb->clear_forces();
-    tds::forward_kinematics(*mb);
+      { world.step(dt); }
 
-    { world.step(dt); }
+      { tds::forward_dynamics(*mb, gravity); }
 
-    { tds::forward_dynamics(*mb, gravity); }
+      {
+        tds::integrate_euler(*mb, mb->q(), mb->qd(), mb->qdd(), dt);
 
-    {
-      tds::integrate_euler(*mb, mb->q(), mb->qd(), mb->qdd(), dt);
-    
 
-      // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
-      tds::mass_matrix(*mb, &M);
-      
-      //M.print("M");
-      if (mb->qd()[0] < -1e4) {
-        assert(0);
+        // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
+//        tds::mass_matrix(*mb, &M);
+
+        //M.print("M");
+        if (mb->qd()[0] < -1e4) {
+          assert(0);
+        }
       }
     }
 
@@ -172,13 +189,17 @@ int main(int argc, char* argv[]) {
         const Transform& geom_X_world = 
                body->links()[l].X_world * body->links()[l].X_visuals[0];
 
-        TinyVector3f base_pos(geom_X_world.translation.getX(),
-                            geom_X_world.translation.getY(),
-                            geom_X_world.translation.getZ());
-        geom_X_world.rotation.getRotation(rot);
-        TinyQuaternionf base_orn(rot.getX(), rot.getY(), rot.getZ(),
-                                rot.getW());
-        if (l>=0)
+        TinyVector3f base_pos(geom_X_world.translation.x(),
+                            geom_X_world.translation.y(),
+                            geom_X_world.translation.z());
+        rot = Algebra::matrix_to_quat(geom_X_world.rotation);
+        TinyQuaternionf base_orn(rot.x(), rot.y(), rot.z(),
+                                rot.w());
+        if (l == 0){
+          prev_pos = TinyVector3f(b, 0, 0);
+          app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
+        }
+        else if (l>0)
         {
           //printf("b=%d\n",b);
           app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);

@@ -55,7 +55,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     if (link.joint_type == JOINT_SPHERICAL){
         link.U_3d = link.abi * link.S_3d;
 
-        link.D_3d = link.S_3d * link.U_3d;
+        link.D_3d = Algebra::transpose(link.S_3d) * link.U_3d;
 
         VectorX tau_temp = mb.get_tau_for_link(tau, i);
 
@@ -72,7 +72,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
         tau_temp -= link.damping * mb.get_qd_for_link(qd, i);
 
         Vector3 tau_val(tau_temp[0], tau_temp[1], tau_temp[2]);
-        link.u_3d = tau_val - link.S_3d * link.pA;
+        link.u_3d = tau_val - Algebra::dot(link.S_3d, link.pA);
 
 #ifdef DEBUG
         Algebra::print("ABI", link.abi);

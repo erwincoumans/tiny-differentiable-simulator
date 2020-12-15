@@ -279,10 +279,10 @@ public:
   void set_orientation(const Quaternion& initial_orientation) {
       base_X_world_.rotation = Algebra::quat_to_matrix(initial_orientation);
       if (is_floating_) {
-          q_[0] = initial_orientation[0];
-          q_[1] = initial_orientation[1];
-          q_[2] = initial_orientation[2];
-          q_[3] = initial_orientation[3];
+          q_[0] = Algebra::quat_x(initial_orientation);
+          q_[1] = Algebra::quat_y(initial_orientation);
+          q_[2] = Algebra::quat_z(initial_orientation);
+          q_[3] = Algebra::quat_w(initial_orientation);
       }
   }
 
@@ -465,7 +465,7 @@ public:
     TINY_INLINE VectorX get_q_for_link(const VectorX &q, int link_index) const {
         const Link &link = links_[link_index];
 
-        if (q.m_size == 0 || link.joint_type == JOINT_FIXED){
+        if (Algebra::size(q) == 0 || link.joint_type == JOINT_FIXED){
             return link.joint_type == JOINT_SPHERICAL ? Algebra::zerox(4) : Algebra::zerox(1);
         }
 
@@ -487,7 +487,7 @@ public:
     TINY_INLINE VectorX get_qd_for_link(const VectorX &qd, int link_index) const {
         const Link &link = links_[link_index];
 
-        if (qd.m_size == 0 || link.joint_type == JOINT_FIXED){
+        if (Algebra::size(qd) == 0 || link.joint_type == JOINT_FIXED){
             return link.joint_type == JOINT_SPHERICAL ? Algebra::zerox(3) : Algebra::zerox(1);
         }
 
@@ -527,7 +527,7 @@ public:
                                         int link_index) const {
         const Link &link = links_[link_index];
 
-        if (tau.m_size == 0 || link.joint_type == JOINT_FIXED){
+        if (Algebra::size(tau) == 0 || link.joint_type == JOINT_FIXED){
             return link.joint_type == JOINT_SPHERICAL ? Algebra::zerox(3) : Algebra::zerox(1);
         }
         int offset = is_floating_ ? -6 : 0;

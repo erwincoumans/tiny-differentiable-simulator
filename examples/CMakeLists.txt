@@ -11,10 +11,15 @@ if (Eigen3_FOUND)
 add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_eigen_gui opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_eigen_gui PRIVATE ../src)
+
+add_executable(spherical_joint_test_eigen spherical_joint_test.cpp  ${TDS_HDRS})
+target_link_libraries(spherical_joint_test_eigen opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
+target_include_directories(spherical_joint_test_eigen PRIVATE ../src)
 endif()
 
 add_executable(spherical_joint_test spherical_joint_test.cpp  ${TDS_HDRS})
 target_link_libraries(spherical_joint_test opengl_window ${CMAKE_DL_LIBS})
+target_compile_definitions(spherical_joint_test PRIVATE USE_TINY )
 target_include_directories(spherical_joint_test PRIVATE ../src)
 
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})

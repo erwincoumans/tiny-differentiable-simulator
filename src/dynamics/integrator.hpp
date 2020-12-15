@@ -74,8 +74,10 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
           Algebra::quat_increment(
                   base_rot, Algebra::quat_velocity(base_rot, Vector3(qd[qdindex], qd[qdindex + 1], qd[qdindex + 2]), dt));
           base_rot = Algebra::normalize(base_rot);
-          q[qindex + 0] = Algebra::quat_x(base_rot); q[qindex + 1] = Algebra::quat_y(base_rot);
-          q[qindex + 2] = Algebra::quat_z(base_rot); q[qindex + 3] = Algebra::quat_w(base_rot);
+          q[qindex + 0] = Algebra::quat_x(base_rot);
+          q[qindex + 1] = Algebra::quat_y(base_rot);
+          q[qindex + 2] = Algebra::quat_z(base_rot);
+          q[qindex + 3] = Algebra::quat_w(base_rot);
 
       } else{
           qd[qdindex] += qdd[qdindex] * dt;
