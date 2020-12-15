@@ -53,13 +53,13 @@ FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
 include(ExternalProject)
 
 
-find_package(Eigen3 QUIET)
-if (Eigen3_FOUND)
-    message("FOUND EIGEN")
-
-    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
-    add_definitions(-DUSE_EIGEN)
-else(Eigen3_FOUND)
+#find_package(Eigen3 QUIET)
+#if (Eigen3_FOUND)
+#    message("FOUND EIGEN")
+#
+#    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
+#    add_definitions(-DUSE_EIGEN)
+#else(Eigen3_FOUND)
     OPTION(USE_EIGEN_FALLBACK "Use third_party/eigen3" ON)
       if (USE_EIGEN_FALLBACK)
       message("Using third_party/eigen3")
@@ -72,7 +72,7 @@ else(Eigen3_FOUND)
       set(Eigen3_FOUND TRUE)
       add_definitions(-DUSE_EIGEN)
     endif(USE_EIGEN_FALLBACK)
-endif (Eigen3_FOUND)
+#endif (Eigen3_FOUND)
 
 add_definitions(-DTDS_HOME="${CMAKE_CURRENT_LIST_DIR}")
 message("Setting TDS_HOME=${CMAKE_CURRENT_LIST_DIR}")
@@ -361,7 +361,7 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 
 add_library(differentiation INTERFACE)
 target_link_directories(differentiation INTERFACE Eigen3::Eigen)
-target_include_directories(differentiation INTERFACE )
+target_include_directories(differentiation INTERFACE ${EIGEN3_INCLUDE_DIRS})
 
 #if(USE_CERES)
 #    target_link_libraries(differentiation INTERFACE ceres-solver)
