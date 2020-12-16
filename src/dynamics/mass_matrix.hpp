@@ -52,47 +52,66 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
     }
 
     int qd_i = link.qd_index;
+
+    if (link.joint_type == JOINT_FIXED) continue;
+
     if (link.joint_type == JOINT_SPHERICAL){
-        Matrix6x3 Fi = Ic * link.S_3d;
-        Algebra::assign_block(*M, Algebra::transpose(link.S_3d) * Fi, qd_i, qd_i);
+      Matrix6x3 Fi = Ic * link.S_3d;
+      Algebra::assign_block(*M, Algebra::transpose(link.S_3d) * Fi, qd_i, qd_i);
 
-//        int j = i;
-//        while (mb[j].parent_index != -1) {
-//            Fi = mb[j].X_parent.apply(Fi);
-//            j = mb[j].parent_index;
-//            if (mb[j].joint_type == JOINT_FIXED) continue;
-//            int qd_j = mb[j].qd_index;
-//            (*M)(qd_i, qd_j) = Algebra::dot(Fi, mb[j].S);
-//            (*M)(qd_j, qd_i) = (*M)(qd_i, qd_j);
-//        }
-//
-//        if (mb.is_floating()) {
-//            Fi = mb[j].X_parent.apply(Fi);
-//            Algebra::assign_column(*M, qd_i, Fi);
-//            Algebra::assign_row(*M, qd_i, Fi);
-//        }
+      int j = i;
+      while (mb[j].parent_index != -1) {
+        Fi = mb[j].X_parent.apply(Fi);
+        j = mb[j].parent_index;
+        if (mb[j].joint_type == JOINT_FIXED) continue;
+        int qd_j = mb[j].qd_index;
+
+        if (mb[j].joint_type == JOINT_SPHERICAL) {
+          Matrix3 Hij = Algebra::transpose(Fi) * mb[j].S_3d;
+          Algebra::assign_block(*M, Hij, qd_i, qd_j);
+          Algebra::assign_block(*M, Algebra::transpose(Hij), qd_j, qd_i);
+        } else{
+          Vector3 Hij = Algebra::dot(Fi, mb[j].S);
+          for (int ii = 0; ii < 3; ii++){
+            (*M)(qd_i + ii, qd_j) = Hij(ii);
+            (*M)(qd_j, qd_i + ii) = Hij(ii);
+          }
+        }
+      }
+      if (mb.is_floating()) {
+        Fi = mb[j].X_parent.apply(Fi);
+        Algebra::assign_block(*M, Fi, 0, qd_i, 6, 3);
+        Algebra::assign_block(*M, Algebra::transpose(Fi), qd_i, 0, 6, 3);
+      }
     }else {
-        ForceVector Fi = Ic * link.S;  // Ic.mul_inv(link.S);
+      ForceVector Fi = Ic * link.S;  // Ic.mul_inv(link.S);
+//      if (link.joint_type == JOINT_FIXED) continue;
+      (*M)(qd_i, qd_i) = Algebra::dot(link.S, Fi);
 
-        if (link.joint_type == JOINT_FIXED) continue;
+      int j = i;
+      while (mb[j].parent_index != -1) {
+        Fi = mb[j].X_parent.apply(Fi);
+        j = mb[j].parent_index;
+        if (mb[j].joint_type == JOINT_FIXED) continue;
 
-        (*M)(qd_i, qd_i) = Algebra::dot(link.S, Fi);
-
-        int j = i;
-        while (mb[j].parent_index != -1) {
-            Fi = mb[j].X_parent.apply(Fi);
-            j = mb[j].parent_index;
-            if (mb[j].joint_type == JOINT_FIXED) continue;
-            int qd_j = mb[j].qd_index;
-            (*M)(qd_i, qd_j) = Algebra::dot(Fi, mb[j].S);
-            (*M)(qd_j, qd_i) = (*M)(qd_i, qd_j);
+        int qd_j = mb[j].qd_index;
+        if (mb[j].joint_type == JOINT_SPHERICAL) {
+          Vector3 Hij = Algebra::dot(mb[j].S_3d, Fi);
+          for (int ii = 0; ii < 3; ii++){
+            (*M)(qd_i + ii, qd_j) = Hij(ii);
+            (*M)(qd_j, qd_i + ii) = Hij(ii);
+          }
+        }else{
+          (*M)(qd_i, qd_j) = Algebra::dot(Fi, mb[j].S);
+          (*M)(qd_j, qd_i) = (*M)(qd_i, qd_j);
         }
+      }
 
-        if (mb.is_floating()) {
-            Fi = mb[j].X_parent.apply(Fi);
-            Algebra::assign_column(*M, qd_i, Fi);
-            Algebra::assign_row(*M, qd_i, Fi);
-        }
+      if (mb.is_floating()) {
+          Fi = mb[j].X_parent.apply(Fi);
+          Algebra::assign_column(*M, qd_i, Fi);
+          Algebra::assign_row(*M, qd_i, Fi);
+      }
     }
   }
   if (mb.is_floating()) {

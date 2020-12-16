@@ -469,11 +469,6 @@ struct EigenAlgebraT {
     m.block(i, 3, 1, 3) = v.bottom;
   }
 
-  EIGEN_ALWAYS_INLINE static void assign_row(Matrix6x3 &m, Index i,
-                                             const Vector3 &v) {
-    m.row(i) = v;
-  }
-
   EIGEN_ALWAYS_INLINE static void assign_horizontal(MatrixX &mat,
                                                     const VectorX &vec,
                                                     int start_row_index,
