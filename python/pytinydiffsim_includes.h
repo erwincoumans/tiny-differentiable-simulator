@@ -38,7 +38,7 @@ struct UrdfToMultiBody2 {
         ::tds::World<Algebra>* world,
         ::tds::MultiBody<Algebra>* mb) {
         ::tds::UrdfToMultiBody<Algebra>::convert_to_multi_body(
-            *urdf_structures, *world, *mb);
+            *urdf_structures, *world, *mb, 0);
 
         mb->initialize();
     }

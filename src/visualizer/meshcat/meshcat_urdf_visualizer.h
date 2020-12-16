@@ -170,7 +170,7 @@ struct MeshcatUrdfVisualizer {
   }
 
   void convert_link_visuals(TinyUrdfLink &link, int link_index,
-                            bool useTextureUuid) {
+                            bool useTextureUuid, std::vector<int>& visual_instance_uids) {
     for (int vis_index = 0; vis_index < (int)link.urdf_visual_shapes.size();
          vis_index++) {
       UrdfVisual &v =
@@ -231,13 +231,14 @@ struct MeshcatUrdfVisualizer {
           }
         }
       }
-      v.sync_visual_body_uid1 = m_uid;
+
+      visual_instance_uids.push_back(m_uid);
       m_b2vis[m_uid++] = b2v;
     }
   }
 
   void convert_visuals(TinyUrdfStructures &urdf,
-                       const std::string &texture_path) {
+                       const std::string &texture_path, TinyMultiBody* body) {
     load_texture(texture_path);
 
     m_link_name_to_index.clear();
@@ -245,21 +246,24 @@ struct MeshcatUrdfVisualizer {
       int link_index = -1;
       std::string link_name = urdf.base_links[0].link_name;
       m_link_name_to_index[link_name] = link_index;
-      convert_link_visuals(urdf.base_links[0], link_index, false);
+      std::vector<int> indices;
+      convert_link_visuals(urdf.base_links[0], link_index, false, body? body->visual_instance_uids() : indices);
+      
     }
 
     for (int link_index = 0; link_index < (int)urdf.links.size();
          link_index++) {
       std::string link_name = urdf.links[link_index].link_name;
       m_link_name_to_index[link_name] = link_index;
-      convert_link_visuals(urdf.links[link_index], link_index, false);
+      std::vector<int> indices;
+      convert_link_visuals(urdf.links[link_index], link_index, false, body? body->links_[link_index].visual_instance_uids : indices);
     }
   }
 
   void sync_visual_transforms(const TinyMultiBody *body) {
     // sync base transform
-    for (int v = 0; v < body->visual_ids().size(); v++) {
-      int visual_id = body->visual_ids()[v];
+    for (int v = 0; v < body->visual_instance_uids().size(); v++) {
+      int visual_id = body->visual_instance_uids()[v];
       if (m_b2vis.find(visual_id) != m_b2vis.end()) {
         Quaternion rot;
         Transform geom_X_world =
@@ -283,8 +287,8 @@ struct MeshcatUrdfVisualizer {
     }
 
     for (int l = 0; l < body->links().size(); l++) {
-      for (int v = 0; v < body->links()[l].visual_ids.size(); v++) {
-        int visual_id = body->links()[l].visual_ids[v];
+      for (int v = 0; v < body->links()[l].visual_instance_uids.size(); v++) {
+        int visual_id = body->links()[l].visual_instance_uids[v];
         if (m_b2vis.find(visual_id) != m_b2vis.end()) {
           Quaternion rot;
           Transform geom_X_world =
