@@ -598,16 +598,16 @@
   py::class_<UrdfVisual<MyAlgebra>>(m, "TinyUrdfVisual")
       .def(py::init<>())
       .def_readwrite("origin_xyz",
-                     &UrdfVisual<MyAlgebra>::origin_xyz)
+          &UrdfVisual<MyAlgebra>::origin_xyz)
       .def_readwrite("origin_rpy",
-                     &UrdfVisual<MyAlgebra>::origin_rpy)
+          &UrdfVisual<MyAlgebra>::origin_rpy)
       .def_readwrite("geometry", &UrdfVisual<MyAlgebra>::geometry)
       .def_readwrite(
           "sync_visual_body_uid1",
-          &UrdfVisual<MyAlgebra>::sync_visual_body_uid1)
-      .def_readwrite(
-          "sync_visual_body_uid2",
-          &UrdfVisual<MyAlgebra>::sync_visual_body_uid2);
+          &UrdfVisual<MyAlgebra>::visual_shape_uid);
+      //.def_readwrite(
+      //    "sync_visual_body_uid2",
+      //    &UrdfVisual<MyAlgebra>::sync_visual_body_uid2);
 
   py::class_<UrdfJoint<MyAlgebra>>(m, "TinyUrdfJoint")
       .def(py::init<>())

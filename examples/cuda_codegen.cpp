@@ -49,7 +49,7 @@ struct ContactSimulation {
 
   int input_dim() const { return system->dof() + system->dof_qd(); }
   int state_dim() const {
-    return system->dof() + system->dof_qd() + system->size() * 3;
+    return system->dof() + system->dof_qd() + system->num_links() * 3;
   }
   int output_dim() const { return num_timesteps * state_dim(); }
 
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
   int sphere_shape = app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
   // typedef tds::Conversion<DiffAlgebra, tds::TinyAlgebraf> Conversion;
   std::vector<int> visuals;
-  for (int i = 0; i < num_total_threads * simulation.system->size(); ++i) {
+  for (int i = 0; i < num_total_threads * simulation.system->num_links(); ++i) {
     TinyVector3f pos(0, 0, 0);
     TinyQuaternionf orn(0, 0, 0, 1);
     TinyVector3f color(0.5, 0.6, 1);
@@ -213,7 +213,7 @@ int main(int argc, char* argv[]) {
       int visual_id = 0;
       for (int i = 0; i < num_total_threads; ++i) {
         TinyVector3f prev_pos(0, 0, 0);
-        for (std::size_t l = 0; l < simulation.system->size(); ++l) {
+        for (std::size_t l = 0; l < simulation.system->num_links(); ++l) {
           int sphereId = visuals[visual_id++];
           TinyVector3f pos;
           pos[0] = outputs[i][link_pos_id_offset + l * 3 + 0];

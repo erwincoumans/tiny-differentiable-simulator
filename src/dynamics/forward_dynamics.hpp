@@ -46,7 +46,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
 
   forward_kinematics(mb, q, qd);
 
-  for (int i = static_cast<int>(mb.size()) - 1; i >= 0; i--) {
+  for (int i = static_cast<int>(mb.num_links()) - 1; i >= 0; i--) {
     const Link &link = mb[i];
     int parent = link.parent_index;
     link.U = link.abi * link.S;
@@ -172,7 +172,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     mb.base_acceleration() = -spatial_gravity;
   }
 
-  for (int i = 0; i < static_cast<int>(mb.size()); i++) {
+  for (int i = 0; i < static_cast<int>(mb.num_links()); i++) {
     const Link &link = mb[i];
     int parent = link.parent_index;
     const Transform &X_parent = link.X_parent;
