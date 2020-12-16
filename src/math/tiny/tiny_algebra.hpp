@@ -344,12 +344,28 @@ struct TinyAlgebra {
 
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_block(
-      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
-      const Matrix3 &input, Index i, Index j, Index m = 3, Index n = 3,
-      Index input_i = 0, Index input_j = 0) {
+          ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
+          const Matrix3 &input, Index i, Index j, Index m = 3, Index n = 3,
+          Index input_i = 0, Index input_j = 0) {
     for (int ii = 0; ii < m; ++ii) {
       for (int jj = 0; jj < n; ++jj) {
         output(ii + i, jj + j) = input(ii + input_i, jj + input_j);
+      }
+    }
+  }
+
+  template <template <typename, typename> typename ColumnType>
+  TINY_INLINE static void assign_block(
+          ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
+          const Matrix6x3 &input, Index i, Index j, Index m = 6, Index n = 3,
+          Index input_i = 0, Index input_j = 0) {
+    for (int ii = 0; ii < m; ++ii) {
+      for (int jj = 0; jj < n; ++jj) {
+        if (input.m_tranposed){
+          output(jj + j, ii + i) = input(ii + input_i, jj + input_j);
+        }else {
+          output(ii + i, jj + j) = input(ii + input_i, jj + input_j);
+        }
       }
     }
   }
