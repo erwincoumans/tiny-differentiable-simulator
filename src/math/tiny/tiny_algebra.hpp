@@ -412,6 +412,11 @@ struct TinyAlgebra {
       m(i, j) = v[j];
     }
   }
+  TINY_INLINE static void assign_row(Matrix6x3 &m, Index i, const Vector3 &v) {
+    for (int j = 0; j < 3; ++j) {
+      m(i, j) = v[j];
+    }
+  }
   TINY_INLINE static void assign_row(Matrix6 &m, Index i,
                                      const SpatialVector &v) {
     for (int j = 0; j < 6; ++j) {

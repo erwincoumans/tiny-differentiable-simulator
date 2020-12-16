@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
   std::vector<MultiBody*> mbbodies;
   std::vector<int> mbvisuals;
 
-  int num_spheres = 5;
+  int num_spheres = 50;
   int num_multibodies = 1;
 
   std::vector<MatrixX> MassM;
@@ -91,8 +91,11 @@ int main(int argc, char* argv[]) {
     MultiBody* mb = world.create_multi_body();
     init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);
     mb->set_position(Vector3(ii, 0, 0));
-//    Quaternion q0(Algebra::fraction(1, Algebra::sqrt(ii*2)), 0, 0, 1 - Algebra::fraction(1, Algebra::sqrt(ii*2)));
 //    mb->set_orientation(q0);
+    mb->q_[0] = Algebra::sqrt(Algebra::fraction(1, 2));
+//    mb->q_[1] = Algebra::quat_y(q0);
+//    mb->q_[2] = Algebra::quat_z(q0);
+    mb->q_[3] = Algebra::sqrt(Algebra::fraction(1, 2));
     mbbodies.push_back(mb);
     MatrixX M(mb->dof_qd(), mb->dof_qd());
     MassM.push_back(M);
@@ -129,7 +132,7 @@ int main(int argc, char* argv[]) {
 
 // Set some stiffness and/or damping for test purposes
   for (auto &link: mbbodies[0]->links_){
-      link.damping = Algebra::one() * 1.;
+      link.damping = Algebra::one() * 0.5;
 //      link.stiffness = Algebra::one() * 300;
   }
 

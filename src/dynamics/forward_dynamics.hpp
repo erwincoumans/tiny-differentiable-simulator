@@ -102,11 +102,11 @@ void forward_dynamics(MultiBody<Algebra> &mb,
         // Todo: Unused?
 //        auto tmp = link.U * link.invD_3d;
         u_dinv_ut =
-                ArticulatedBodyInertia::mul_transpose(link.U_3d * link.invD_3d, link.U_3d);
+                ArticulatedBodyInertia::mul_transpose(link.U_3d, link.U_3d * link.invD_3d);
         UuD = Algebra::mul_2_force_vector(link.U_3d, (link.invD_3d * link.u_3d));
         //UuD.print("UuD\n");
     }else {
-        link.U = link.abi * link.S;
+      link.U = link.abi * link.S;
         // std::cout << "link.abi.matrix() * link.S:\n" << link.abi.matrix() *
         // link.S << std::endl; std::cout << "link.abi * link.S:\n" << link.abi *
         // link.S << std::endl; std::cout << "\n\n";
@@ -270,6 +270,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
           qdd[link.qd_index + 2] = qdd_val[2];
 
           link.a += Algebra::mul_2_motion_vector(link.S_3d, qdd_val);
+
       } else{
           Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
                                                        : Algebra::one() / link.D;
@@ -278,6 +279,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
           Scalar qdd_val = invD * u_Ut_a;
           assert(!std::isnan(Algebra::to_double(qdd_val)));
           qdd[link.qd_index] = qdd_val;
+
           link.a += link.S * qdd_val;
       }
     }

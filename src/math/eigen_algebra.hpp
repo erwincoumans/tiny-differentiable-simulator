@@ -469,6 +469,11 @@ struct EigenAlgebraT {
     m.block(i, 3, 1, 3) = v.bottom;
   }
 
+  EIGEN_ALWAYS_INLINE static void assign_row(Matrix6x3 &m, Index i,
+                                             const Vector3 &v) {
+    m.row(i) = v;
+  }
+
   EIGEN_ALWAYS_INLINE static void assign_horizontal(MatrixX &mat,
                                                     const VectorX &vec,
                                                     int start_row_index,
@@ -677,6 +682,19 @@ struct EigenAlgebraT {
     return delta;
   }
 
+  EIGEN_ALWAYS_INLINE static Quaternion quat_integrate(const Quaternion &q,
+                                                       const Vector3 &w,
+                                                       const Scalar &dt){
+    auto axang = quaternion_axis_angle(q);
+    axang += w * dt;
+
+    auto ang = norm(axang);
+    auto ax = axang / ang;
+
+    auto aa = Eigen::AngleAxis<Scalar>(ang, ax);
+
+    return Quaternion(aa);
+  }
   EIGEN_ALWAYS_INLINE static void quat_increment(Quaternion &a,
                                                  const Quaternion &b) {
     a.x() += b.x();
