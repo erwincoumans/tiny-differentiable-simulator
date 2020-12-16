@@ -21,22 +21,22 @@ void init_spherical_compound_pendulum(
 
   for (int i = 0; i < num_links; i++) {
     Link l;
-    if (i >= 1) l.set_joint_type(tds::JOINT_SPHERICAL);
+    if (i >= 0) l.set_joint_type(tds::JOINT_SPHERICAL);
     else l.set_joint_type(tds::JOINT_REVOLUTE_X);
 
     l.X_T.rotation = Algebra::eye3();
-    Scalar pos_y = i == 0 ? Algebra::zero()
+    Scalar pos_z = i == 0 ? Algebra::zero()
                           : (!link_lengths.empty() ? link_lengths[i]
                                                    : Algebra::fraction(5, 10));
 
-    l.X_T.translation = Vector3(Algebra::zero(), pos_y, Algebra::zero());
+    l.X_T.translation = Vector3(Algebra::zero(), Algebra::zero(), -pos_z);
     Scalar mass =
         static_cast<int>(masses.size()) > i ? masses[i] : Algebra::one();
     Vector3 com;
     Scalar length =
         !link_lengths.empty() ? link_lengths[i] : Algebra::fraction(5, 10);
 
-    com = Vector3(Algebra::zero(), length, Algebra::zero());
+    com = Vector3(Algebra::zero(), Algebra::zero(), -length);
 
     Scalar radius = Algebra::fraction(15, 100);
     Sphere *sphere = world.create_sphere(radius);

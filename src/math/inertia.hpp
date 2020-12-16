@@ -349,13 +349,13 @@ struct ArticulatedBodyInertia {
      */
     static ArticulatedBodyInertia mul_transpose(const Matrix6x3 &a,
                                                 const Matrix6x3 &b) {
-        // printf("mul_transpose:\n");
-        // Algebra::print("a", a);
-        // Algebra::print("b", b);
-        ArticulatedBodyInertia abi;
-        abi.I = Algebra::top(a) * Algebra::top(b);
-        abi.M = Algebra::bottom(a) * Algebra::bottom(b);
-        Matrix3 Htemp = Algebra::top(a) * Algebra::bottom(b);
+      // printf("mul_transpose:\n");
+      // Algebra::print("a", a);
+      // Algebra::print("b", b);
+      ArticulatedBodyInertia abi;
+      abi.I = Algebra::top(a) * Algebra::top(b).transpose();
+      abi.M = Algebra::bottom(a) * Algebra::bottom(b).transpose();
+      abi.H = Algebra::top(a) * Algebra::bottom(b).transpose();
 
 //#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
 //        abi.H = Htemp.transpose();

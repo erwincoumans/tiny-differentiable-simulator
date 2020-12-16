@@ -166,6 +166,10 @@ struct Link {
         break;
       case JOINT_SPHERICAL:
           Algebra::set_zero(S_3d);
+//          Matrix3 S_top = Algebra::zero3();
+//          Algebra::assign_row(S_3d, 0, Vector3(0., 0., 1.));
+//        Algebra::assign_row(S_3d, 1, Vector3(0., 1., 0. ));
+//        Algebra::assign_row(S_3d, 2, Vector3(1., 0., 0.));
           Algebra::assign_block(S_3d, Algebra::eye3(), 0, 0);
           break;
       case JOINT_FIXED:
