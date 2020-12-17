@@ -91,11 +91,11 @@ int main(int argc, char* argv[]) {
     MultiBody* mb = world.create_multi_body();
     init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);
     mb->set_position(Vector3(ii, 0, 0));
-//    mb->set_orientation(q0);
-    mb->q_[0] = Algebra::sqrt(Algebra::fraction(1, 2));
-//    mb->q_[1] = Algebra::quat_y(q0);
-//    mb->q_[2] = Algebra::quat_z(q0);
-    mb->q_[3] = Algebra::sqrt(Algebra::fraction(1, 2));
+
+    // Set initial orientation and velocity
+    mb->q()[0] = Algebra::sqrt(Algebra::fraction(1, 2));
+    mb->q()[3] = Algebra::sqrt(Algebra::fraction(1, 2));
+    mb->qd()[1] = Algebra::fraction(1, 2);
     mbbodies.push_back(mb);
     MatrixX M(mb->dof_qd(), mb->dof_qd());
     MassM.push_back(M);
@@ -113,22 +113,6 @@ int main(int argc, char* argv[]) {
       int instance = app.m_renderer->register_graphics_instance(sphere_shape, pos, orn, color, scaling);
       mbvisuals.push_back(instance);
   }
-
-//   If this line is uncommented, the initial rotation is set to 90 degrees around the vertical axis and the spherical
-//   joint behaves strange (ends up in some kind of unstable loop)
-//    mb->q()[0] = Algebra::sqrt(0.5); mb->q()[3] = Algebra::sqrt(0.5);
-
-//  If you rotate the base there is no problem
-//  mb->set_orientation(Quaternion(Algebra::zero(), Algebra::zero(), Algebra::sqrt(0.5), Algebra::sqrt(0.5)));
-
-//  mb->qd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
-// Setting an non-zero initial velocity around the y-axis also creates unstable behavior
-//  mb->qd()[2] = .1;
-//  mb->qd()[1] = 2;
-//  mb->qd()[0] = .1;
-
-//  mb->tau() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
-//  mb->qdd() = std::vector<double>(mb->dof_qd(), DoubleUtils::zero());
 
 // Set some stiffness and/or damping for test purposes
   for (auto &link: mbbodies[0]->links_){
@@ -163,7 +147,7 @@ int main(int argc, char* argv[]) {
 
 
         // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
-//        tds::mass_matrix(*mb, &M);
+        tds::mass_matrix(*mb, &MassM[0]);
 
         //M.print("M");
         if (mb->qd()[0] < -1e4) {
