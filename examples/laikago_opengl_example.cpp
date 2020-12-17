@@ -33,10 +33,11 @@
 #include "tiny_visual_instance_generator.h"
 
 using namespace tds;
+using namespace TINY;
+#include "math/tiny/tiny_algebra.hpp"
 
 #ifdef USE_TINY
-#include "math/tiny/tiny_algebra.hpp"
-using namespace TINY;
+
 typedef double TinyDualScalar;
 typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
@@ -235,7 +236,7 @@ int main(int argc, char* argv[]) {
 
   //int sphere_shape = visualizer.m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
   
-#ifdef USE_TINY
+
   {
       std::vector<int> shape_ids;
       std::string plane_filename;
@@ -245,7 +246,7 @@ int main(int argc, char* argv[]) {
       TinyVector3f scaling(1, 1, 1);
       visualizer.load_obj(plane_filename, pos, orn, scaling, shape_ids);
   }
-#endif
+
 
   //int sphere_shape = shape_ids[0];
   //TinyVector3f color = colors[0];
@@ -266,9 +267,8 @@ int main(int argc, char* argv[]) {
   int num_total_threads = 16;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
-  int num_base_instances;
+  int num_base_instances = 0;
   
-#ifdef USE_TINY
   for (int t = 0;t< num_total_threads;t++)
   {
       TinyVector3f pos(0, 0, 0);
@@ -313,7 +313,7 @@ int main(int argc, char* argv[]) {
           num_instances.push_back(num_instances_per_link);
       }
   }
-#endif
+
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
   
