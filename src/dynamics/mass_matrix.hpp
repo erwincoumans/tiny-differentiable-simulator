@@ -73,8 +73,8 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
         } else{
           Vector3 Hij = Algebra::dot(Fi, mb[j].S);
           for (int ii = 0; ii < 3; ii++){
-            (*M)(qd_i + ii, qd_j) = Hij(ii);
-            (*M)(qd_j, qd_i + ii) = Hij(ii);
+            (*M)(qd_i + ii, qd_j) = Hij[ii];
+            (*M)(qd_j, qd_i + ii) = Hij[ii];
           }
         }
       }
@@ -98,8 +98,8 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
         if (mb[j].joint_type == JOINT_SPHERICAL) {
           Vector3 Hij = Algebra::dot(mb[j].S_3d, Fi);
           for (int ii = 0; ii < 3; ii++){
-            (*M)(qd_i + ii, qd_j) = Hij(ii);
-            (*M)(qd_j, qd_i + ii) = Hij(ii);
+            (*M)(qd_i + ii, qd_j) = Hij[ii];
+            (*M)(qd_j, qd_i + ii) = Hij[ii];
           }
         }else{
           (*M)(qd_i, qd_j) = Algebra::dot(Fi, mb[j].S);
