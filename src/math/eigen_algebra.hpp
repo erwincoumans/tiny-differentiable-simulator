@@ -417,8 +417,11 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static void assign_row(MatrixX &m, Index i,
                                              const SpatialVector &v) {
-    m.block(i, 0, 1, 3) = v.top;
-    m.block(i, 3, 1, 3) = v.bottom;
+   
+    m.block<1, 3>(i, 0) = v.top;
+    m.block<1, 3>(i, 3) = v.bottom;
+
+   
   }
 
   EIGEN_ALWAYS_INLINE static void assign_horizontal(MatrixX &mat,
