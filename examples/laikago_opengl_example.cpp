@@ -32,26 +32,40 @@
 #include "urdf/urdf_cache.hpp"
 #include "tiny_visual_instance_generator.h"
 
-using namespace TINY;
 using namespace tds;
+using namespace TINY;
+#include "math/tiny/tiny_algebra.hpp"
+
+#ifdef USE_TINY
 
 typedef double TinyDualScalar;
 typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
-#include "math/tiny/tiny_algebra.hpp"
-typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
-
 typedef TinyVector3<double, DoubleUtils> Vector3;
 typedef TinyQuaternion<double, DoubleUtils> Quaternion;
+typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
+#else
+#include "math/eigen_algebra.hpp"
+typedef EigenAlgebra MyAlgebra;
+typedef typename MyAlgebra::Scalar MyScalar;
+typedef typename MyAlgebra::Vector3 Vector3;
+typedef typename MyAlgebra::Quaternion Quarternion;
+typedef typename MyAlgebra::VectorX VectorX;
+typedef typename MyAlgebra::Matrix3 Matrix3;
+typedef typename MyAlgebra::Matrix3X Matrix3X;
+typedef typename MyAlgebra::MatrixX MatrixX;
+#endif
 
-double knee_angle = -0.5;
-double abduction_angle = 0.2;
-int frameskip_gfx_sync =1;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
 
-double initial_poses[] = {
-    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-};
+
+
+
+#ifdef _DEBUG
+int frameskip_gfx_sync = 1;  // don't skip, we are debugging
+#else
+int frameskip_gfx_sync = 10;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
+#endif
+
 
 bool do_sim = true;
 
@@ -65,79 +79,89 @@ void my_keyboard_callback(int keycode, int state)
     prev_keyboard_callback(keycode, state);
 }
 
+double knee_angle = -0.5;
+double abduction_angle = 0.2;
+
+
+double initial_poses[] = {
+    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+};
 
 
 template <typename Algebra>
-struct ContactSimulation {
+struct LaikagoSimulation {
     using Scalar = typename Algebra::Scalar;
     tds::UrdfCache<Algebra> cache;
     std::string m_urdf_filename;
     tds::World<Algebra> world;
-    tds::MultiBody<Algebra>* mb_ = nullptr;
+    tds::MultiBody<Algebra>* system = nullptr;
 
     int num_timesteps{ 1 };
     Scalar dt{ Algebra::from_double(1e-3) };
 
-    int input_dim() const { return mb_->dof() + mb_->dof_qd(); }
+    int input_dim() const { return system->dof() + system->dof_qd(); }
     int state_dim() const {
-        return mb_->dof() + mb_->dof_qd() + mb_->num_links() * 7;
+        return system->dof() + system->dof_qd() + system->num_links() * 7;
     }
     int output_dim() const { return num_timesteps * state_dim(); }
 
-    ContactSimulation() {
+    LaikagoSimulation() {
         std::string plane_filename;
         tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
         cache.construct(plane_filename, world, false, false);
         tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", m_urdf_filename);
-        mb_ = cache.construct(m_urdf_filename, world, false, true);
-        mb_->base_X_world().translation = Algebra::unit3_z();
+        system = cache.construct(m_urdf_filename, world, false, true);
+        system->base_X_world().translation = Algebra::unit3_z();
     }
 
     std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
         assert(static_cast<int>(v.size()) == input_dim());
-        mb_->initialize();
+        system->initialize();
         //copy input into q, qd
-        for (int i = 0; i < mb_->dof(); ++i) {
-            mb_->q(i) = v[i];
+        for (int i = 0; i < system->dof(); ++i) {
+            system->q(i) = v[i];
         }
-        for (int i = 0; i < mb_->dof_qd(); ++i) {
-            mb_->qd(i) = v[i + mb_->dof()];
+        for (int i = 0; i < system->dof_qd(); ++i) {
+            system->qd(i) = v[i + system->dof()];
         }
         std::vector<Scalar> result(output_dim());
         for (int t = 0; t < num_timesteps; ++t) {
 
+#if 1
             // pd control
             if (1) {
                 // use PD controller to compute tau
-                int qd_offset = mb_->is_floating() ? 6 : 0;
-                int q_offset = mb_->is_floating() ? 7 : 0;
-                int num_targets = mb_->tau_.size() - qd_offset;
+                int qd_offset = system->is_floating() ? 6 : 0;
+                int q_offset = system->is_floating() ? 7 : 0;
+                int num_targets = system->tau_.size() - qd_offset;
                 std::vector<double> q_targets;
-                q_targets.resize(mb_->tau_.size());
+                q_targets.resize(system->tau_.size());
 
-                double kp = 150;
-                double kd = 3;
-                double max_force = 550;
+                Scalar kp = 150;
+                Scalar kd = 3;
+                Scalar max_force = 550;
                 int param_index = 0;
 
-                for (int i = 0; i < mb_->tau_.size(); i++) {
-                    mb_->tau_[i] = 0;
+                for (int i = 0; i < system->tau_.size(); i++) {
+                    system->tau_[i] = 0;
                 }
                 int tau_index = 0;
                 int pose_index = 0;
-                for (int i = 0; i < mb_->links_.size(); i++) {
-                    if (mb_->links_[i].joint_type != JOINT_FIXED) {
-                        double q_desired = initial_poses[pose_index++];
-                        double q_actual = mb_->q_[q_offset];
-                        double qd_actual = mb_->qd_[qd_offset];
-                        double position_error = (q_desired - q_actual);
-                        double desired_velocity = 0;
-                        double velocity_error = (desired_velocity - qd_actual);
-                        double force = kp * position_error + kd * velocity_error;
+                for (int i = 0; i < system->links_.size(); i++) {
+                    if (system->links_[i].joint_type != tds::JOINT_FIXED) {
+                        Scalar q_desired = initial_poses[pose_index++];
+                        Scalar q_actual = system->q_[q_offset];
+                        Scalar qd_actual = system->qd_[qd_offset];
+                        Scalar position_error = (q_desired - q_actual);
+                        Scalar desired_velocity = 0;
+                        Scalar velocity_error = (desired_velocity - qd_actual);
+                        Scalar force = kp * position_error + kd * velocity_error;
 
-                        if (force < -max_force) force = -max_force;
-                        if (force > max_force) force = max_force;
-                        mb_->tau_[tau_index] = force;
+                        force = Algebra::max(force, -max_force);
+                        force = Algebra::min(force, max_force);
+                        
+                        system->tau_[tau_index] = force;
                         q_offset++;
                         qd_offset++;
                         param_index++;
@@ -145,36 +169,36 @@ struct ContactSimulation {
                     }
                 }
             }
+#endif
+            tds::forward_dynamics(*system, world.get_gravity());
+            system->clear_forces();
 
-            tds::forward_dynamics(*mb_, world.get_gravity());
-            mb_->clear_forces();
-
-            integrate_euler_qdd(*mb_, dt);
+            integrate_euler_qdd(*system, dt);
 
             world.step(dt);
-            
-            tds::integrate_euler(*mb_, dt);
+
+            tds::integrate_euler(*system, dt);
 
             //copy q, qd, link world poses (for rendering) to output
             int j = 0;
-            for (int i = 0; i < mb_->dof(); ++i, ++j) {
-                result[j] = mb_->q(i);
+            for (int i = 0; i < system->dof(); ++i, ++j) {
+                result[j] = system->q(i);
             }
-            for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
-                result[j] = mb_->qd(i);
+            for (int i = 0; i < system->dof_qd(); ++i, ++j) {
+                result[j] = system->qd(i);
             }
-            for (const auto link : *mb_) {
+            for (const auto link : *system) {
                 if (link.X_visuals.size())
                 {
-                    Transform visual_X_world = link.X_world * link.X_visuals[0];
+                    tds::Transform visual_X_world = link.X_world * link.X_visuals[0];
                     result[j++] = visual_X_world.translation[0];
                     result[j++] = visual_X_world.translation[1];
                     result[j++] = visual_X_world.translation[2];
-                    auto orn = Algebra::matrix_to_quat(visual_X_world.rotation);
-                    result[j++] = orn[0];
-                    result[j++] = orn[1];
-                    result[j++] = orn[2];
-                    result[j++] = orn[3];
+                    Algebra::Quaternion orn = Algebra::matrix_to_quat(visual_X_world.rotation);
+                    result[j++] = orn.x();
+                    result[j++] = orn.y();
+                    result[j++] = orn.z();
+                    result[j++] = orn.w();
                 }
                 else
                 {
@@ -193,28 +217,28 @@ struct ContactSimulation {
 int main(int argc, char* argv[]) {
   int sync_counter = 0;
   int frame = 0;
-  World<MyAlgebra> world;
+ 
   UrdfParser<MyAlgebra> parser;
 
   // create graphics
   OpenGLUrdfVisualizer<MyAlgebra> visualizer;
-  
-  
-  
   visualizer.delete_all();
-#if 1
-  ContactSimulation<MyAlgebra> contact_sim;
+
+  LaikagoSimulation<MyAlgebra> contact_sim;
   
   int input_dim = contact_sim.input_dim();
   std::vector<MyAlgebra::Scalar> prep_inputs;
   
   std::vector<MyAlgebra::Scalar> prep_outputs;
   prep_inputs.resize(input_dim);
+  //quaternion 'w' = 1
   prep_inputs[3] = 1;
-  prep_inputs[6] = 1;
+  //start height at 0.7
+  prep_inputs[6] = 0.7;
 
   //int sphere_shape = visualizer.m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
   
+
   {
       std::vector<int> shape_ids;
       std::string plane_filename;
@@ -224,6 +248,7 @@ int main(int argc, char* argv[]) {
       TinyVector3f scaling(1, 1, 1);
       visualizer.load_obj(plane_filename, pos, orn, scaling, shape_ids);
   }
+
 
   //int sphere_shape = shape_ids[0];
   //TinyVector3f color = colors[0];
@@ -241,12 +266,11 @@ int main(int argc, char* argv[]) {
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  int num_total_threads = 256;
+  int num_total_threads = 64;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
-  int num_base_instances;
+  int num_base_instances = 0;
   
-
   for (int t = 0;t< num_total_threads;t++)
   {
       TinyVector3f pos(0, 0, 0);
@@ -265,11 +289,11 @@ int main(int argc, char* argv[]) {
               sphere_shape, pos, orn, color, scaling);
           visual_instances.push_back(instance);
           num_instances_per_link++;
-          contact_sim.mb_->visual_instance_uids().push_back(instance);
+          contact_sim.system->visual_instance_uids().push_back(instance);
       }
       num_base_instances = num_instances_per_link;
 
-      for (int i = 0; i < contact_sim.mb_->num_links(); ++i) {
+      for (int i = 0; i < contact_sim.system->num_links(); ++i) {
          
 
           int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
@@ -286,7 +310,7 @@ int main(int argc, char* argv[]) {
               visual_instances.push_back(instance);
               num_instances_per_link++;
 
-              contact_sim.mb_->links_[i].visual_instance_uids.push_back(instance);
+              contact_sim.system->links_[i].visual_instance_uids.push_back(instance);
           }
           num_instances.push_back(num_instances_per_link);
       }
@@ -303,8 +327,10 @@ int main(int argc, char* argv[]) {
 
   for (int i = 0; i < num_total_threads; ++i) {
       parallel_inputs[i] = std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
+      //quaternion 'w' = 1
       parallel_inputs[i][3] = 1;
-      parallel_inputs[i][6] = 1;
+      //start height at 0.7
+      parallel_inputs[i][6] = 0.7;
       
   }
   
@@ -325,14 +351,14 @@ int main(int argc, char* argv[]) {
               bool manual_sync = false;
               if (manual_sync)
               {
-                  visualizer.sync_visual_transforms(contact_sim.mb_);
+                  //visualizer.sync_visual_transforms(contact_sim.system);
               }
               else
               {
                   float sim_spacing = 2;
                   const int square_id = (int)std::sqrt((double)num_total_threads);
                   int instance_index = 0;
-                  int offset = contact_sim.mb_->dof() + contact_sim.mb_->dof_qd();
+                  int offset = contact_sim.system->dof() + contact_sim.system->dof_qd();
                   for (int s = 0; s < num_total_threads; s++)
                   {
                       
@@ -358,7 +384,7 @@ int main(int argc, char* argv[]) {
                           }
                       }
                       
-                      for (int l = 0; l < contact_sim.mb_->links_.size(); l++) {
+                      for (int l = 0; l < contact_sim.system->links_.size(); l++) {
                           for (int v = 0; v < num_instances[l]; v++)
                           {
                               int visual_instance_id = visual_instances[instance_index++];
@@ -384,176 +410,10 @@ int main(int argc, char* argv[]) {
               }
           }
           visualizer.render();
-          std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync* contact_sim.dt));
+          //std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync* contact_sim.dt));
       }
   }
 
-   
-#else
-  std::string plane_file_name;
-  FileUtils::find_file("plane_implicit.urdf", plane_file_name);
-  char plane_search_path[TINY_MAX_EXE_PATH_LEN];
-  FileUtils::extract_path(plane_file_name.c_str(), plane_search_path,
-                              TINY_MAX_EXE_PATH_LEN);
-  MultiBody<MyAlgebra>& plane_mb = *world.create_multi_body();
-  plane_mb.set_floating_base(false);
-  
-  {
-    TinyVisualInstanceGenerator<MyAlgebra> vig(visualizer);
-    UrdfStructures<MyAlgebra> plane_urdf_structures =
-        parser.load_urdf(plane_file_name);
-    std::string texture_path = "checker_purple.png";
-    visualizer.m_path_prefix = plane_search_path;
-    visualizer.convert_visuals(plane_urdf_structures, texture_path);
-
-    UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-        plane_urdf_structures, world, plane_mb, &vig);
-    
-    //
-  }
-  prev_keyboard_callback = visualizer.m_opengl_app.m_window->get_keyboard_callback();
-  visualizer.m_opengl_app.m_window->set_keyboard_callback(my_keyboard_callback);
-
-  char search_path[TINY_MAX_EXE_PATH_LEN];
-  std::string file_name;
-  FileUtils::find_file("laikago/laikago_toes_zup.urdf", file_name);
-  FileUtils::extract_path(file_name.c_str(), search_path,
-                              TINY_MAX_EXE_PATH_LEN);
-
-  std::ifstream ifs(file_name);
-  std::string urdf_string;
-  if (!ifs.is_open()) {
-    std::cout << "Error, cannot open file_name: " << file_name << std::endl;
-    exit(-1);
-  }
-
-  urdf_string = std::string((std::istreambuf_iterator<char>(ifs)),
-                            std::istreambuf_iterator<char>());
-  StdLogger logger;
-  UrdfStructures<MyAlgebra> urdf_structures;
-  int flags = 0;
-  parser.load_urdf_from_string(urdf_string, flags, logger, urdf_structures);
-  // create graphics structures
-  std::string texture_path = "laikago_tex.jpg";
-  visualizer.m_path_prefix = search_path;
-  MultiBody<MyAlgebra>& mb = *world.create_multi_body();
-  bool floating_base = true;
-  visualizer.convert_visuals(urdf_structures, texture_path);
-
-  mb.set_floating_base(true);
-  {
-      TinyVisualInstanceGenerator<MyAlgebra> vig(visualizer);
-      UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-          urdf_structures, world, mb, &vig);
-  }
-  mb.initialize();
-
-  //visualizer.create_visual_instances(mb);
-
-
-
-
-  int start_index = 0;
-  if (floating_base) {
-    start_index = 7;
-    mb.q_[0] = 0;
-    mb.q_[1] = 0;
-    mb.q_[2] = 0;
-    mb.q_[3] = 1;
-
-    mb.q_[4] = 0;
-    mb.q_[5] = 0;
-    mb.q_[6] = 1.5;
-
-    mb.qd_[0] = 0;
-    mb.qd_[1] = 0;
-    mb.qd_[2] = 0;
-    mb.qd_[3] = 0;
-  }
-  if (mb.q_.size() >= 12) {
-    for (int cc = 0; cc < 12; cc++) {
-      mb.q_[start_index + cc] = initial_poses[cc];
-    }
-  }
-  mb.set_position(TinyVector3<double, DoubleUtils>(0., 0., 0.6));
-  mb.set_orientation(TinyQuaternion<double, DoubleUtils>(0.0, 0.0, 0.706825181105366, 0.7073882691671998 ));
-  world.default_friction = 1.0;
-
-  TinyVector3<double, DoubleUtils> grav(DoubleUtils::zero(),
-                                        DoubleUtils::zero(),
-                                        DoubleUtils::fraction(-1000, 100));
-  double dt = 1. / 1000.;
-  
-  while (!visualizer.m_opengl_app.m_window->requested_exit()) {
-    
-      forward_kinematics(mb);
-
-      if (do_sim) {
-          
-
-          forward_dynamics(mb, grav);
-
-
-          integrate_euler_qdd(mb, dt);
-
-          // pd control
-          if (1) {
-              // use PD controller to compute tau
-              int qd_offset = mb.is_floating() ? 6 : 0;
-              int q_offset = mb.is_floating() ? 7 : 0;
-              int num_targets = mb.tau_.size() - qd_offset;
-              std::vector<double> q_targets;
-              q_targets.resize(mb.tau_.size());
-
-              double kp = 150;
-              double kd = 3;
-              double max_force = 550;
-              int param_index = 0;
-
-              for (int i = 0; i < mb.tau_.size(); i++) {
-                  mb.tau_[i] = 0;
-              }
-              int tau_index = 0;
-              int pose_index = 0;
-              for (int i = 0; i < mb.links_.size(); i++) {
-                  if (mb.links_[i].joint_type != JOINT_FIXED) {
-                      double q_desired = initial_poses[pose_index++];
-                      double q_actual = mb.q_[q_offset];
-                      double qd_actual = mb.qd_[qd_offset];
-                      double position_error = (q_desired - q_actual);
-                      double desired_velocity = 0;
-                      double velocity_error = (desired_velocity - qd_actual);
-                      double force = kp * position_error + kd * velocity_error;
-
-                      if (force < -max_force) force = -max_force;
-                      if (force > max_force) force = max_force;
-                      mb.tau_[tau_index] = force;
-                      q_offset++;
-                      qd_offset++;
-                      param_index++;
-                      tau_index++;
-                  }
-              }
-          }
-
-
-
-          world.step(dt);
-
-          integrate_euler(mb, dt);
-
-      }
-      
-    sync_counter++;
-    frame += 1;
-    if (sync_counter > frameskip_gfx_sync) {
-      sync_counter = 0;
-      visualizer.sync_visual_transforms(&mb);
-      visualizer.render();
-      std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync*dt));
-    }
-  }
-#endif
   printf("finished\n");
   return EXIT_SUCCESS;
 

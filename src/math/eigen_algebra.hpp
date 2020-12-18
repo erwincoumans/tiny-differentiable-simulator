@@ -112,72 +112,112 @@ struct EigenAlgebraT {
   }
 
   /**
-   * CppAD-friendly matrix inverse operation that assumes the input matrix is
-   * positive-definite.
-   */
-  static void plain_symmetric_inverse(const MatrixX &mat, MatrixX &mat_inv) {
-    assert(mat.rows() == mat.cols());
-    VectorX diagonal = mat.diagonal();
-    mat_inv = mat;
-    const int n = mat.rows();
-    int i, j, k;
-    Scalar sum;
-    for (i = 0; i < n; i++) {
-      mat_inv(i, i) = one() / diagonal[i];
-      for (j = i + 1; j < n; j++) {
-        sum = zero();
-        for (k = i; k < j; k++) {
-          sum -= mat_inv(j, k) * mat_inv(k, i);
-        }
-        mat_inv(j, i) = sum / diagonal[j];
+         *    main method for Cholesky decomposition.
+         *    input/output  a  Symmetric positive def. matrix
+         *    output        diagonal  vector of resulting diag of a
+         *    inspired by public domain https://math.nist.gov/javanumerics/jama
+         */
+
+  static bool cholesky_decomposition(
+      MatrixX& a,
+      VectorX& diagonal) {
+      int i, j, k;
+      Scalar sum;
+      int n = a.cols();
+      bool is_positive_definite = true;
+      for (i = 0; i < n; i++) {
+          for (j = i; j < n; j++) {
+              sum = a(i,j);
+              for (k = i - 1; k >= 0; k--) {
+                  sum -= a(i,k) * a(j,k);
+              }
+              if (i == j) {
+                  //if (sum <= zero()) {
+                  //    is_positive_definite = false;
+                  //    break;
+                  //}
+                  diagonal(i) = sqrt(sum);
+              }
+              else {
+                  a(j,i) = sum / diagonal[i];
+              }
+          }
       }
-    }
-    for (i = 0; i < n; i++) {
-      for (j = i + 1; j < n; j++) {
-        mat_inv(i, j) = zero();
+      return is_positive_definite;
+  }
+
+
+  static bool inverse_cholesky_decomposition(      const MatrixX& A,
+      MatrixX& a) {
+      int i, j, k;
+      int n = A.rows();
+      Scalar sum;
+      VectorX diagonal(A.rows());
+      for (i = 0; i < n; i++)
+          for (j = 0; j < n; j++) a(i,j) = A(i,j);
+      bool is_positive_definite = cholesky_decomposition(a, diagonal);
+      if (is_positive_definite) {
+          for (i = 0; i < n; i++) {
+              a(i,i) = one() / diagonal[i];
+              for (j = i + 1; j < n; j++) {
+                  sum = zero();
+                  for (k = i; k < j; k++) {
+                      sum -= a(j,k) * a(k,i);
+                  }
+                  a(j,i) = sum / diagonal[j];
+              }
+          }
       }
-    }
-    for (i = 0; i < n; i++) {
-      mat_inv(i, i) = mat_inv(i, i) * mat_inv(i, i);
-      for (k = i + 1; k < n; k++) {
-        mat_inv(i, i) += mat_inv(k, i) * mat_inv(k, i);
+      else
+      {
+          printf("no!\n");
       }
-      for (j = i + 1; j < n; j++) {
-        for (k = j; k < n; k++) {
-          mat_inv(i, j) += mat_inv(k, i) * mat_inv(k, j);
-        }
-      }
-    }
-    for (i = 0; i < n; i++) {
-      for (j = 0; j < i; j++) {
-        mat_inv(i, j) = mat_inv(j, i);
-      }
-    }
+      return is_positive_definite;
   }
 
   /**
-   * Returns true if the matrix `mat` is positive-definite, and assigns
-   * `mat_inv` to the inverse of mat.
-   * `mat` must be a symmetric matrix.
+   *     Inverse of a matrix, using Cholesky decomposition.
+   *
+   *     input    A  Symmetric positive def. matrix
+   *     input    a  storage for the result
+   *     output   boolean is_positive_definite if operation succeeded
    */
-  static bool symmetric_inverse(const MatrixX &mat, MatrixX &mat_inv) {
-    if constexpr (!is_cppad_scalar<Scalar>::value) {
-      Eigen::LLT<MatrixX> llt(mat);
-      if (llt.info() == Eigen::NumericalIssue) {
-        return false;
+    static bool inverse(const MatrixX& A,    MatrixX& a) {
+      assert(a.cols() == A.cols());
+      assert(a.rows() == A.rows());
+
+      bool is_positive_definite = inverse_cholesky_decomposition(A, a);
+      if (is_positive_definite) {
+          int n = A.cols();
+          int i, j, k;
+
+          for (i = 0; i < n; i++) {
+              for (j = i + 1; j < n; j++) {
+                  a(i,j) = zero();
+              }
+          }
+
+          for (i = 0; i < n; i++) {
+              a(i,i) = a(i,i) * a(i,i);
+              for (k = i + 1; k < n; k++) {
+                  a(i,i) += a(k,i) * a(k,i);
+              }
+              for (j = i + 1; j < n; j++) {
+                  for (k = j; k < n; k++) {
+                      a(i,j) += a(k,i) * a(k,j);
+                  }
+              }
+          }
+          for (i = 0; i < n; i++) {
+              for (j = 0; j < i; j++) {
+                  a(i,j) = a(j,i);
+              }
+          }
       }
-      mat_inv = mat.inverse();
-    } else {
-      plain_symmetric_inverse(mat, mat_inv);
-      // // FIXME the atomic op needs to remain in memory but it will fail when
-      // the
-      // // dimensions of the input matrix are not always the same
-      // using InnerScalar = typename Scalar::value_type;
-      // static atomic_eigen_mat_inv<InnerScalar> mat_inv_op;
-      // mat_inv = mat_inv_op.op(mat);
-    }
-    return true;
+      return is_positive_definite;
   }
+
+
 
   /**
    * V = mv(w, v)
@@ -220,7 +260,14 @@ struct EigenAlgebraT {
 
   template <typename T>
   EIGEN_ALWAYS_INLINE static auto normalize(T &v) {
-    v.normalize();
+    Scalar z = v.squaredNorm();
+    //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen    
+    //assert(z > Scalar(0));
+    Scalar invZ = Scalar(1) / sqrt(z);
+    v.x() *= invZ;
+    v.y() *= invZ;
+    v.z() *= invZ;
+    v.w() *= invZ;
     return v;
   }
 
@@ -417,8 +464,11 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static void assign_row(MatrixX &m, Index i,
                                              const SpatialVector &v) {
-    m.block(i, 0, 1, 3) = v.top;
-    m.block(i, 3, 1, 3) = v.bottom;
+   
+    m.block<1, 3>(i, 0) = v.top;
+    m.block<1, 3>(i, 3) = v.bottom;
+
+   
   }
 
   EIGEN_ALWAYS_INLINE static void assign_horizontal(MatrixX &mat,
