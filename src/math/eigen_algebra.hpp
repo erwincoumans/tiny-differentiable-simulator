@@ -220,7 +220,14 @@ struct EigenAlgebraT {
 
   template <typename T>
   EIGEN_ALWAYS_INLINE static auto normalize(T &v) {
-    v.normalize();
+    Scalar z = v.squaredNorm();
+    //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen    
+    //assert(z > Scalar(0));
+    Scalar invZ = Scalar(1) / sqrt(z);
+    v.x() *= invZ;
+    v.y() *= invZ;
+    v.z() *= invZ;
+    v.w() *= invZ;
     return v;
   }
 

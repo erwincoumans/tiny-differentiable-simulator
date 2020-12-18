@@ -1,94 +1,33 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include <streambuf>
-#include <string>
-#include <thread>
-
-//#include "meshcat_urdf_visualizer.h"
-#include "opengl_urdf_visualizer.h"
-
-#include "math/tiny/tiny_double_utils.h"
-#include "utils/file_utils.hpp"
-#include "urdf/urdf_parser.hpp"
-#include "urdf/urdf_to_multi_body.hpp"
+// clang-format off
+#include "utils/differentiation.hpp"
+#include "utils/cuda_codegen.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
-
-#include "urdf/urdf_cache.hpp"
-#include "tiny_visual_instance_generator.h"
-
-using namespace tds;
-using namespace TINY;
 #include "math/tiny/tiny_algebra.hpp"
+#include "urdf/urdf_cache.hpp"
+#include "utils/stopwatch.hpp"
+#include "visualizer/opengl/visualizer.h"
+#include "opengl_urdf_visualizer.h"
+#include "utils/file_utils.hpp"
 
-#ifdef USE_TINY
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
 
-typedef double TinyDualScalar;
-typedef double MyScalar;
-typedef ::TINY::DoubleUtils MyTinyConstants;
-typedef TinyVector3<double, DoubleUtils> Vector3;
-typedef TinyQuaternion<double, DoubleUtils> Quaternion;
-typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
-#else
-#include "math/eigen_algebra.hpp"
-typedef EigenAlgebra MyAlgebra;
-typedef typename MyAlgebra::Scalar MyScalar;
-typedef typename MyAlgebra::Vector3 Vector3;
-typedef typename MyAlgebra::Quaternion Quarternion;
-typedef typename MyAlgebra::VectorX VectorX;
-typedef typename MyAlgebra::Matrix3 Matrix3;
-typedef typename MyAlgebra::Matrix3X Matrix3X;
-typedef typename MyAlgebra::MatrixX MatrixX;
-#endif
-
-
-
-
-
-#ifdef _DEBUG
-int frameskip_gfx_sync = 1;  // don't skip, we are debugging
-#else
-int frameskip_gfx_sync = 10;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
-#endif
-
-
-bool do_sim = true;
-
-
-TinyKeyboardCallback prev_keyboard_callback = 0;
-
-void my_keyboard_callback(int keycode, int state)
-{
-    if (keycode == 's')
-        do_sim = state;
-    prev_keyboard_callback(keycode, state);
-}
+// clang-format on
+using namespace TINY;
 
 double knee_angle = -0.5;
 double abduction_angle = 0.2;
-
-
 double initial_poses[] = {
     abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
     abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
 };
 
-
+// function to be converted to CUDA code
 template <typename Algebra>
 struct LaikagoSimulation {
     using Scalar = typename Algebra::Scalar;
@@ -128,7 +67,7 @@ struct LaikagoSimulation {
         std::vector<Scalar> result(output_dim());
         for (int t = 0; t < num_timesteps; ++t) {
 
-#if 1
+
             // pd control
             if (1) {
                 // use PD controller to compute tau
@@ -160,7 +99,7 @@ struct LaikagoSimulation {
 
                         force = Algebra::max(force, -max_force);
                         force = Algebra::min(force, max_force);
-                        
+
                         system->tau_[tau_index] = force;
                         q_offset++;
                         qd_offset++;
@@ -169,8 +108,9 @@ struct LaikagoSimulation {
                     }
                 }
             }
-#endif
+
             tds::forward_dynamics(*system, world.get_gravity());
+
             system->clear_forces();
 
             integrate_euler_qdd(*system, dt);
@@ -188,7 +128,7 @@ struct LaikagoSimulation {
                 result[j] = system->qd(i);
             }
             for (const auto link : *system) {
-                if (link.X_visuals.size())
+                //assert(link.X_visuals.size());
                 {
                     tds::Transform visual_X_world = link.X_world * link.X_visuals[0];
                     result[j++] = visual_X_world.translation[0];
@@ -200,12 +140,7 @@ struct LaikagoSimulation {
                     result[j++] = orn.z();
                     result[j++] = orn.w();
                 }
-                else
-                {
-                    //check if we have links without visuals
-                    assert(0);
-                    j += 7;
-                }
+                
             }
         }
         return result;
@@ -215,34 +150,91 @@ struct LaikagoSimulation {
 
 
 int main(int argc, char* argv[]) {
-  int sync_counter = 0;
-  int frame = 0;
- 
-  UrdfParser<MyAlgebra> parser;
+  using Scalar = double;
+  using CGScalar = typename CppAD::cg::CG<Scalar>;
+  using Dual = typename CppAD::AD<CGScalar>;
 
-  // create graphics
-  OpenGLUrdfVisualizer<MyAlgebra> visualizer;
-  visualizer.delete_all();
+  using DiffAlgebra =
+      tds::default_diff_algebra<tds::DIFF_CPPAD_CODEGEN_AUTO, 0, Scalar>::type;
 
-  LaikagoSimulation<MyAlgebra> contact_sim;
-  
-  int input_dim = contact_sim.input_dim();
-  std::vector<MyAlgebra::Scalar> prep_inputs;
-  
-  std::vector<MyAlgebra::Scalar> prep_outputs;
-  prep_inputs.resize(input_dim);
+  LaikagoSimulation<DiffAlgebra> simulation;
+
+  // trace function with all zeros as input
+  std::vector<Dual> ax(simulation.input_dim(), Dual(0));
   //quaternion 'w' = 1
-  prep_inputs[3] = 1;
-  //start height at 0.7
-  prep_inputs[6] = 0.7;
-
-  //int sphere_shape = visualizer.m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
+  ax[3] = 1;
+  //height of Laikago at 0.7 meter
+  ax[6] = 0.7;
   
+  CppAD::Independent(ax);
+  std::vector<Dual> ay(simulation.output_dim());
+  std::cout << "Tracing function for code generation...\n";
+  ay = simulation(ax);
+
+  CppAD::ADFun<CGScalar> tape;
+  tape.Dependent(ax, ay);
+  tape.optimize();
+
+  tds::Stopwatch timer;
+  timer.start();
+  std::string model_name = "cuda_model";
+  tds::CudaSourceGen<Scalar> cgen(tape, model_name);
+  cgen.setCreateForwardZero(true);
+
+  tds::CudaLibraryProcessor p(&cgen);
+#if CPPAD_CG_SYSTEM_WIN
+  std::string nvcc_path = tds::exec("where nvcc");
+#else
+  std::string nvcc_path = tds::exec("which nvcc");
+#endif
+  std::cout << "Using [" << nvcc_path << "]" << std::endl;
+  p.nvcc_path() = nvcc_path;
+  p.generate_code();
+  
+  //comment-out to re-use previously build CUDA shared library
+  p.create_library();
+
+  // CppAD::cg::ModelLibraryCSourceGen<Scalar> libcgen(cgen);
+  // libcgen.setVerbose(true);
+  // CppAD::cg::DynamicModelLibraryProcessor<Scalar> p(libcgen);
+  // auto compiler = std::make_unique<CppAD::cg::ClangCompiler<Scalar>>();
+  // compiler->setSourcesFolder("cgen_srcs");
+  // compiler->setSaveToDiskFirst(true);
+  // compiler->addCompileFlag("-O" + std::to_string(1));
+  // p.setLibraryName(model_name);
+  // p.createDynamicLibrary(*compiler, false);
+
+  // create model to load shared library
+  tds::CudaModel<Scalar> model(model_name);
+
+  // how many threads to run on the GPU
+  int num_total_threads = 1024;
+
+  std::vector<std::vector<Scalar>> outputs(
+      num_total_threads, std::vector<Scalar>(simulation.output_dim()));
+
+  std::vector<std::vector<Scalar>> inputs(num_total_threads);
+
+  OpenGLUrdfVisualizer<DiffAlgebra> visualizer;
+  visualizer.delete_all();
+  TinyOpenGL3App& app = visualizer.m_opengl_app;
+  //TinyOpenGL3App app("CUDA Pendulum", 1024, 768);
+  app.m_renderer->init();
+  int upAxis = 2;
+  app.set_up_axis(upAxis);
+  app.m_renderer->get_active_camera()->set_camera_distance(4);
+  app.m_renderer->get_active_camera()->set_camera_pitch(-30);
+  app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
+  // install ffmpeg in path and uncomment, to enable video recording
+  // app.dump_frames_to_video("test.mp4");
+
+
+
 
   {
       std::vector<int> shape_ids;
       std::string plane_filename;
-      FileUtils::find_file("plane100.obj", plane_filename);
+      tds::FileUtils::find_file("plane100.obj", plane_filename);
       TinyVector3f pos(0, 0, 0);
       TinyQuaternionf orn(0, 0, 0, 1);
       TinyVector3f scaling(1, 1, 1);
@@ -250,34 +242,32 @@ int main(int argc, char* argv[]) {
   }
 
 
-  //int sphere_shape = shape_ids[0];
-  //TinyVector3f color = colors[0];
-  // typedef tds::Conversion<DiffAlgebra, tds::TinyAlgebraf> Conversion;
-  
   bool create_instances = false;
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
   tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", file_and_path);
-  auto urdf_structures = contact_sim.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
-  FileUtils::extract_path(file_and_path.c_str(), search_path,
+  auto urdf_structures = simulation.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
+  tds::FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);
   visualizer.m_path_prefix = search_path;
   visualizer.convert_visuals(urdf_structures, texture_path);
+
+
   
-  
-  int num_total_threads = 64;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
   int num_base_instances = 0;
-  
-  for (int t = 0;t< num_total_threads;t++)
+  int sync_counter = 0;
+  int frameskip_gfx_sync = 1;
+
+  for (int t = 0; t < num_total_threads; t++)
   {
       TinyVector3f pos(0, 0, 0);
       TinyQuaternionf orn(0, 0, 0, 1);
       TinyVector3f scaling(1, 1, 1);
       int uid = urdf_structures.base_links[0].urdf_visual_shapes[0].visual_shape_uid;
-      OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+      OpenGLUrdfVisualizer<DiffAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
       int instance = -1;
       int num_instances_per_link = 0;
       for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
@@ -289,15 +279,15 @@ int main(int argc, char* argv[]) {
               sphere_shape, pos, orn, color, scaling);
           visual_instances.push_back(instance);
           num_instances_per_link++;
-          contact_sim.system->visual_instance_uids().push_back(instance);
+          simulation.system->visual_instance_uids().push_back(instance);
       }
       num_base_instances = num_instances_per_link;
 
-      for (int i = 0; i < contact_sim.system->num_links(); ++i) {
-         
+      for (int i = 0; i < simulation.system->num_links(); ++i) {
+
 
           int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
-          OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+          OpenGLUrdfVisualizer<DiffAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
           int instance = -1;
           int num_instances_per_link = 0;
           for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
@@ -310,41 +300,52 @@ int main(int argc, char* argv[]) {
               visual_instances.push_back(instance);
               num_instances_per_link++;
 
-              contact_sim.system->links_[i].visual_instance_uids.push_back(instance);
+              simulation.system->links_[i].visual_instance_uids.push_back(instance);
           }
           num_instances.push_back(num_instances_per_link);
       }
   }
 
-  //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  
+  model.forward_zero.allocate(num_total_threads);
 
-  std::vector<std::vector<MyScalar>> parallel_outputs(
-      num_total_threads, std::vector<MyScalar>(contact_sim.output_dim()));
+  std::vector< TinyVector3f> positions;
+  std::vector<unsigned int> indices;
 
-  std::vector<std::vector<MyScalar>> parallel_inputs(num_total_threads);
-
-  for (int i = 0; i < num_total_threads; ++i) {
-      parallel_inputs[i] = std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
+  TinyVector3f line_color(0.3, 0.3, 0.3);
+  float line_width = 1;
+  const int link_pos_id_offset =
+      simulation.system->dof() + simulation.system->dof_qd();
+  const int square_id = (int)std::sqrt((double)num_total_threads);
+  //sim_spacing is the visual distance between independent parallel simulations
+  const float sim_spacing = 5.f;
+  for (int run = 0; run < 40; ++run) {
+    for (int i = 0; i < num_total_threads; ++i) {
+      inputs[i] = std::vector<Scalar>(simulation.input_dim(), Scalar(0));
       //quaternion 'w' = 1
-      parallel_inputs[i][3] = 1;
-      //start height at 0.7
-      parallel_inputs[i][6] = 0.7;
-      
-  }
-  
-  while (!visualizer.m_opengl_app.m_window->requested_exit()) {
+      inputs[i][3] = 1;
+      //height of Laikago at 0.7 meter
+      inputs[i][6] = 0.7;
+    }
+    for (int t = 0; t < 1000; ++t) {
+
+        positions.resize(0);
+        indices.resize(0);
+
+      timer.start();
+      // call GPU kernel
+      model.forward_zero(&outputs, inputs, 64);
+      timer.stop();
+      std::cout << "Kernel execution took " << timer.elapsed() << " seconds.\n";
 
       for (int i = 0; i < num_total_threads; ++i) {
-          parallel_outputs[i] = contact_sim(parallel_inputs[i]);
-          for (int j = 0; j < contact_sim.input_dim(); ++j) {
-              parallel_inputs[i][j] = parallel_outputs[i][j];
-          }
+        for (int j = 0; j < simulation.input_dim(); ++j) {
+          inputs[i][j] = outputs[i][j];
+        }
       }
 
       sync_counter++;
-      frame += 1;
+      
       if (sync_counter > frameskip_gfx_sync) {
           sync_counter = 0;
           if (1) {
@@ -358,24 +359,24 @@ int main(int argc, char* argv[]) {
                   float sim_spacing = 2;
                   const int square_id = (int)std::sqrt((double)num_total_threads);
                   int instance_index = 0;
-                  int offset = contact_sim.system->dof() + contact_sim.system->dof_qd();
+                  int offset = simulation.system->dof() + simulation.system->dof_qd();
                   for (int s = 0; s < num_total_threads; s++)
                   {
-                      
-                      
+
+
                       for (int v = 0; v < num_base_instances; v++)
                       {
                           int visual_instance_id = visual_instances[instance_index++];
                           if (visual_instance_id >= 0)
                           {
 
-                              ::TINY::TinyVector3f pos(parallel_outputs[s][4 + 0],
-                                  parallel_outputs[s][4 + 1],
-                                  parallel_outputs[s][4 + 2]);
-                              ::TINY::TinyQuaternionf orn(parallel_outputs[s][0],
-                                  parallel_outputs[s][1],
-                                  parallel_outputs[s][2],
-                                  parallel_outputs[s][3]);
+                              ::TINY::TinyVector3f pos(outputs[s][4 + 0],
+                                  outputs[s][4 + 1],
+                                  outputs[s][4 + 2]);
+                              ::TINY::TinyQuaternionf orn(outputs[s][0],
+                                  outputs[s][1],
+                                  outputs[s][2],
+                                  outputs[s][3]);
 
                               pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
                               pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
@@ -383,21 +384,21 @@ int main(int argc, char* argv[]) {
                               visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
                           }
                       }
-                      
-                      for (int l = 0; l < contact_sim.system->links_.size(); l++) {
+
+                      for (int l = 0; l < simulation.system->links_.size(); l++) {
                           for (int v = 0; v < num_instances[l]; v++)
                           {
                               int visual_instance_id = visual_instances[instance_index++];
                               if (visual_instance_id >= 0)
                               {
 
-                                  ::TINY::TinyVector3f pos(parallel_outputs[s][offset + l * 7 + 0],
-                                      parallel_outputs[s][offset + l * 7 + 1],
-                                      parallel_outputs[s][offset + l * 7 + 2]);
-                                  ::TINY::TinyQuaternionf orn(parallel_outputs[s][offset + l * 7 + 3],
-                                      parallel_outputs[s][offset + l * 7 + 4],
-                                      parallel_outputs[s][offset + l * 7 + 5],
-                                      parallel_outputs[s][offset + l * 7 + 6]);
+                                  ::TINY::TinyVector3f pos(outputs[s][offset + l * 7 + 0],
+                                      outputs[s][offset + l * 7 + 1],
+                                      outputs[s][offset + l * 7 + 2]);
+                                  ::TINY::TinyQuaternionf orn(outputs[s][offset + l * 7 + 3],
+                                      outputs[s][offset + l * 7 + 4],
+                                      outputs[s][offset + l * 7 + 5],
+                                      outputs[s][offset + l * 7 + 6]);
 
                                   pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
                                   pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
@@ -405,17 +406,26 @@ int main(int argc, char* argv[]) {
                                   visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
                               }
                           }
-                      }
-                  }
+    }
+  }
               }
           }
           visualizer.render();
           //std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync* contact_sim.dt));
       }
+
+
+    }
   }
 
-  printf("finished\n");
+  model.forward_zero.deallocate();
+
+  for (const auto& thread : outputs) {
+    for (const Scalar& t : thread) {
+      std::cout << t << "  ";
+    }
+    std::cout << std::endl;
+  }
+
   return EXIT_SUCCESS;
-
 }
-
