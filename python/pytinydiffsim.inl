@@ -256,7 +256,7 @@
 
   py::enum_<GeometryTypes>(m, "TinyGeometryTypes")
       .value("SPHERE_TYPE", TINY_SPHERE_TYPE, "SPHERE_TYPE")
-      .value("BOX_TYPE", TINY_PLANE_TYPE, "BOX_TYPE")
+      .value("BOX_TYPE", TINY_BOX_TYPE, "BOX_TYPE")
       .value("PLANE_TYPE", TINY_PLANE_TYPE, "PLANE_TYPE")
       .value("CAPSULE_TYPE", TINY_CAPSULE_TYPE, "CAPSULE_TYPE")
       .value("MESH_TYPE", TINY_MESH_TYPE, "MESH_TYPE")
