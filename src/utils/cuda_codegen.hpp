@@ -419,7 +419,7 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
 
     CudaFunctionSourceGen generator(std::string(this->_name) + "_jacobian",
                                     local_input_dim(), global_input_dim_,
-                                    output_dim(), jac_acc_method_);
+                                    rows.size(), jac_acc_method_);
 
     generator.emit_header(complete);
     generator.emit_kernel(complete, temporary_dim, code);
