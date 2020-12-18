@@ -79,7 +79,7 @@ class UrdfCache {
                                 const std::string& name = "") {
     MultiBody<Algebra>* mb = world.create_multi_body(name);
     const auto& urdf_data = retrieve(urdf_filename, ignore_cache);
-    UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_data, world, *mb);
+    UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_data, world, *mb, 0);
     mb->set_floating_base(is_floating);
     mb->initialize();
     return mb;

@@ -46,7 +46,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
 
   forward_kinematics(mb, q, qd);
 
-  for (int i = static_cast<int>(mb.size()) - 1; i >= 0; i--) {
+  for (int i = static_cast<int>(mb.num_links()) - 1; i >= 0; i--) {
     const Link &link = mb[i];
     int parent = link.parent_index;
     link.U = link.abi * link.S;
@@ -164,15 +164,15 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     //       NEURAL_ASSIGN(base_bias_force[5], "base_bias_force_5");
     // #endif
 
-    // mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
-    mb.base_acceleration() = -MotionVector(
-        Algebra::inverse(mb.base_abi().matrix()) * mb.base_bias_force());
+     mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
+    //mb.base_acceleration() = -MotionVector(
+    //    Algebra::inverse(mb.base_abi().matrix()) * mb.base_bias_force());
 
   } else {
     mb.base_acceleration() = -spatial_gravity;
   }
 
-  for (int i = 0; i < static_cast<int>(mb.size()); i++) {
+  for (int i = 0; i < static_cast<int>(mb.num_links()); i++) {
     const Link &link = mb[i];
     int parent = link.parent_index;
     const Transform &X_parent = link.X_parent;

@@ -50,7 +50,7 @@ void forward_kinematics(
         Algebra::cross(mb.base_velocity(), I0_mul_v0) - mb.base_applied_force();
   }
 
-  for (int i = 0; i < static_cast<int>(mb.size()); i++) {
+  for (int i = 0; i < static_cast<int>(mb.num_links()); i++) {
     const Link &link = mb[i];
     int parent = link.parent_index;
 
@@ -173,13 +173,13 @@ void forward_kinematics_q(
   } else {
     *base_X_world = mb.base_X_world();
   }
-  if (links_X_world) links_X_world->resize(mb.size());
-  if (links_X_base) links_X_base->resize(mb.size());
+  if (links_X_world) links_X_world->resize(mb.num_links());
+  if (links_X_base) links_X_base->resize(mb.num_links());
   Transform x_j;
   Transform x_parent;
   Transform ident;
   ident.set_identity();
-  for (std::size_t i = 0; i < mb.size(); i++) {
+  for (std::size_t i = 0; i < mb.num_links(); i++) {
     const Link &link = mb[i];
     int parent = link.parent_index;
 

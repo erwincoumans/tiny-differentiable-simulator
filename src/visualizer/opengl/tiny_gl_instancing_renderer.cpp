@@ -240,9 +240,9 @@ struct InternalDataRenderer : public GLInstanceRendererInternalData {
         m_shadowMap(0),
         m_shadowTexture(0),
         m_renderFrameBuffer(0),
-        m_shadowMapWidth(4096),
-        m_shadowMapHeight(4096),
-        m_shadowMapWorldSize(10),
+        m_shadowMapWidth(8192),
+        m_shadowMapHeight(8192),
+        m_shadowMapWorldSize(25),
         m_updateShadowMap(true)
 
   {
@@ -916,7 +916,7 @@ int TinyGLInstancingRenderer::register_graphics_instance_internal(
     printf("register_graphics_instance out of range, %d\n", maxElements);
     return -1;
   }
-  return newUid;  // gfxObj->m_numGraphicsInstances;
+   return newUid;  // gfxObj->m_numGraphicsInstances;
 }
 
 int TinyGLInstancingRenderer::register_graphics_instance(
