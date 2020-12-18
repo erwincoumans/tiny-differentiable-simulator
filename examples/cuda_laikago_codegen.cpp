@@ -1,3 +1,4 @@
+#define DEBUG_MODEL
 // clang-format off
 #include "utils/differentiation.hpp"
 #include "utils/cuda_codegen.hpp"
@@ -191,24 +192,15 @@ int main(int argc, char* argv[]) {
   p.nvcc_path() = nvcc_path;
   p.generate_code();
   
-  //comment-out to re-use previously build CUDA shared library
-  p.create_library();
-
-  // CppAD::cg::ModelLibraryCSourceGen<Scalar> libcgen(cgen);
-  // libcgen.setVerbose(true);
-  // CppAD::cg::DynamicModelLibraryProcessor<Scalar> p(libcgen);
-  // auto compiler = std::make_unique<CppAD::cg::ClangCompiler<Scalar>>();
-  // compiler->setSourcesFolder("cgen_srcs");
-  // compiler->setSaveToDiskFirst(true);
-  // compiler->addCompileFlag("-O" + std::to_string(1));
-  // p.setLibraryName(model_name);
-  // p.createDynamicLibrary(*compiler, false);
-
   // create model to load shared library
+#ifndef DEBUG_MODEL
+  //comment-out to re-use previously build CUDA shared library
+  //p.create_library();
   tds::CudaModel<Scalar> model(model_name);
+#endif //DEBUG_MODEL
 
   // how many threads to run on the GPU
-  int num_total_threads = 1024;
+  int num_total_threads = 1;
 
   std::vector<std::vector<Scalar>> outputs(
       num_total_threads, std::vector<Scalar>(simulation.output_dim()));
@@ -306,8 +298,9 @@ int main(int argc, char* argv[]) {
       }
   }
 
-
+#ifndef DEBUG_MODEL
   model.forward_zero.allocate(num_total_threads);
+#endif //DEBUG_MODEL
 
   std::vector< TinyVector3f> positions;
   std::vector<unsigned int> indices;
@@ -334,19 +327,33 @@ int main(int argc, char* argv[]) {
 
       timer.start();
       // call GPU kernel
+#ifndef DEBUG_MODEL
       model.forward_zero(&outputs, inputs, 64);
+#endif //DEBUG_MODEL
+
       timer.stop();
       std::cout << "Kernel execution took " << timer.elapsed() << " seconds.\n";
 
       for (int i = 0; i < num_total_threads; ++i) {
-        for (int j = 0; j < simulation.input_dim(); ++j) {
-          inputs[i][j] = outputs[i][j];
-        }
+#ifdef DEBUG_MODEL
+          for (int xx = 0; xx < simulation.input_dim(); xx++)
+          {
+              ax[xx] = inputs[i][xx];
+          }
+          ay = simulation(ax);
+          for (int yy = 0; yy < simulation.output_dim(); yy++)
+          {
+              outputs[i][yy] = DiffAlgebra::to_double(ay[yy]);
+          }
+#endif //DEBUG_MODEL
+          for (int j = 0; j < simulation.input_dim(); ++j) {
+            inputs[i][j] = outputs[i][j];
+          }
       }
 
       sync_counter++;
       
-      if (sync_counter > frameskip_gfx_sync) {
+      if (sync_counter >= frameskip_gfx_sync) {
           sync_counter = 0;
           if (1) {
               bool manual_sync = false;
@@ -417,8 +424,9 @@ int main(int argc, char* argv[]) {
 
     }
   }
-
+#ifndef DEBUG_MODEL
   model.forward_zero.deallocate();
+#endif //DEBUG_MODEL
 
   for (const auto& thread : outputs) {
     for (const Scalar& t : thread) {
