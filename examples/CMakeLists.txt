@@ -54,6 +54,21 @@ IF(USE_CPPAD)
   if (USE_STAN)
     target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
   endif(USE_STAN)
+  
+  add_executable(cuda_laikago_codegen cuda_laikago_codegen.cpp ${TDS_HDRS})
+  target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD)
+  target_link_libraries(
+    cuda_laikago_codegen
+    PRIVATE
+      ${CMAKE_DL_LIBS}
+      opengl_window
+      tinyxml2
+      Eigen3::Eigen
+      differentiation
+  )
+  if (USE_STAN)
+    target_link_libraries(cuda_laikago_codegen PRIVATE ${STAN_LIBRARIES})
+  endif(USE_STAN)
 ENDIF(USE_CPPAD)
 
 IF(USE_CERES)
