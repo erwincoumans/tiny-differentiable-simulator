@@ -1,4 +1,4 @@
-#define DEBUG_MODEL
+//#define DEBUG_MODEL
 // clang-format off
 #include "utils/differentiation.hpp"
 #include "utils/cuda_codegen.hpp"
@@ -47,6 +47,7 @@ struct LaikagoSimulation {
     int output_dim() const { return num_timesteps * state_dim(); }
 
     LaikagoSimulation() {
+        //world.set_gravity(Algebra::zero3());
         std::string plane_filename;
         tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
         cache.construct(plane_filename, world, false, false);
@@ -67,8 +68,6 @@ struct LaikagoSimulation {
         }
         std::vector<Scalar> result(output_dim());
         for (int t = 0; t < num_timesteps; ++t) {
-
-
             // pd control
             if (1) {
                 // use PD controller to compute tau
@@ -141,12 +140,13 @@ struct LaikagoSimulation {
                     result[j++] = orn.z();
                     result[j++] = orn.w();
                 }
-                
+
             }
         }
         return result;
     }
 };
+
 
 
 
@@ -200,7 +200,13 @@ int main(int argc, char* argv[]) {
 #endif //DEBUG_MODEL
 
   // how many threads to run on the GPU
-  int num_total_threads = 1;
+  int num_total_threads = 2048;
+
+  for (int i = 1; i < argc; i++) {
+      if (!strcmp(argv[i], "-n") && (i + 1 < argc) && argv[i + 1][0] != '-')
+          num_total_threads = atoi(argv[++i]);
+  }
+
 
   std::vector<std::vector<Scalar>> outputs(
       num_total_threads, std::vector<Scalar>(simulation.output_dim()));
@@ -251,7 +257,7 @@ int main(int argc, char* argv[]) {
   std::vector<int> num_instances;
   int num_base_instances = 0;
   int sync_counter = 0;
-  int frameskip_gfx_sync = 1;
+  int frameskip_gfx_sync = 10;
 
   for (int t = 0; t < num_total_threads; t++)
   {
@@ -312,13 +318,13 @@ int main(int argc, char* argv[]) {
   const int square_id = (int)std::sqrt((double)num_total_threads);
   //sim_spacing is the visual distance between independent parallel simulations
   const float sim_spacing = 5.f;
-  for (int run = 0; run < 40; ++run) {
+  while (!visualizer.m_opengl_app.m_window->requested_exit()) {
     for (int i = 0; i < num_total_threads; ++i) {
       inputs[i] = std::vector<Scalar>(simulation.input_dim(), Scalar(0));
       //quaternion 'w' = 1
       inputs[i][3] = 1;
       //height of Laikago at 0.7 meter
-      inputs[i][6] = 0.7;
+      inputs[i][6] = 0.7 + std::rand() * 0.5 / RAND_MAX;
     }
     for (int t = 0; t < 1000; ++t) {
 
@@ -428,12 +434,14 @@ int main(int argc, char* argv[]) {
   model.forward_zero.deallocate();
 #endif //DEBUG_MODEL
 
+#if 0
   for (const auto& thread : outputs) {
     for (const Scalar& t : thread) {
       std::cout << t << "  ";
     }
     std::cout << std::endl;
   }
+#endif
 
   return EXIT_SUCCESS;
 }
