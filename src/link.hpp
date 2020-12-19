@@ -73,7 +73,7 @@ struct Link {
   std::vector<const Geometry<Algebra> *> collision_geometries;
   std::vector<Transform> X_collisions;  // offset of collision geometries
   // (relative to this link frame)
-  std::vector<int> visual_ids;
+  std::vector<int> visual_instance_uids;
   std::vector<Transform>
       X_visuals;  // offset of geometry (relative to this link frame)
 
@@ -104,7 +104,7 @@ struct Link {
     conv.link_name = link_name;
     conv.joint_name = joint_name;
     conv.f_ext = tds::clone<Algebra, AlgebraTo>(f_ext);
-    conv.visual_ids = visual_ids;
+    conv.visual_instance_uids = visual_instance_uids;
     for (const auto &x : X_visuals) {
       conv.X_visuals.push_back(x.template clone<AlgebraTo>());
     }

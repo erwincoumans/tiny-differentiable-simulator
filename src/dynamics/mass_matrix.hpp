@@ -28,7 +28,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
 
   assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
   assert(M != nullptr);
-  int n = static_cast<int>(mb.size());
+  int n = static_cast<int>(mb.num_links());
   // printf("n is %i\n", n);
   assert(Algebra::num_rows(*M) == mb.dof_qd());
   assert(Algebra::num_cols(*M) == mb.dof_qd());

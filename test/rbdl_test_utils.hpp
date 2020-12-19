@@ -259,7 +259,7 @@ bool is_equal(const MultiBody<Algebra> &tds,
   // floating-base models in RBDL have a TranslationXYZ and a spherical joint
   // first
   std::size_t id_offset = tds.is_floating() ? 3 : 1;
-  for (std::size_t j = 0; j < tds.size(); ++j) {
+  for (std::size_t j = 0; j < tds.num_links(); ++j) {
     std::size_t rbdl_j = j + id_offset;
     if (!is_equal<Algebra>(tds[j].X_world, rbdl.X_base[rbdl_j])) {
       fprintf(stderr, "Mismatch in X_base (X_world) at link %i.\n",

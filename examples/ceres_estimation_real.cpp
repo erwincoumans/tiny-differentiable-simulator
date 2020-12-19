@@ -111,7 +111,7 @@ void visualize_trajectory(const std::vector<std::vector<T>> &states,
   std::vector<int> mbvisuals;
   if (visualizer->canSubmitCommand())
   {
-    for (int i = 0; i < mb->size(); i++)
+    for (int i = 0; i < mb->num_links(); i++)
     {
       int sphereId = visualizer->loadURDF("sphere_small.urdf");
       mbvisuals.push_back(sphereId);
@@ -135,7 +135,7 @@ void visualize_trajectory(const std::vector<std::vector<T>> &states,
         std::chrono::duration<double>(Utils::getDouble(dt * 20.)));
     // sync transforms
     int visual_index = 0;
-    for (std::size_t l = 0; l < mb->size(); l++)
+    for (std::size_t l = 0; l < mb->num_links(); l++)
     {
       int sphereId = mbvisuals[visual_index++];
       typename Algebra::Quaternion rot;

@@ -24,7 +24,7 @@ typename Algebra::Matrix3X point_jacobian(
 
 
   assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
-  assert(link_index < static_cast<int>(mb.size()));
+  assert(link_index < static_cast<int>(mb.num_links()));
   Matrix3X jac( 3, mb.dof_qd());
   Algebra::set_zero(jac);
   std::vector<Transform> links_X_world;

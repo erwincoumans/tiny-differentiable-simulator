@@ -22,6 +22,11 @@
 #include "../world.hpp"
 #include "urdf_structures.hpp"
 
+struct VisualInstanceGenerator
+{
+    virtual void create_visual_instance(int shape_uid, std::vector<int>& instances)=0;
+};
+
 namespace tds {
 template <typename Algebra>
 struct UrdfToMultiBody {
@@ -33,7 +38,8 @@ struct UrdfToMultiBody {
 
   static int convert_to_multi_body(const UrdfStructures& urdf_structures,
                                    World<Algebra>& world,
-                                   MultiBody<Algebra>& mb) {
+                                   MultiBody<Algebra>& mb,
+                                   VisualInstanceGenerator* vig) {
     int return_code = kCONVERSION_OK;
 
     // start with base properties
@@ -55,11 +61,13 @@ struct UrdfToMultiBody {
       Matrix3 inertia_C = rot * inertia_diag;
       mb.base_rbi_ = RigidBodyInertia(mass, com, inertia_C);
     }
-
     for (std::size_t i = 0; i < base_link.urdf_visual_shapes.size(); i++) {
       const UrdfVisual<Algebra>& visual_shape = base_link.urdf_visual_shapes[i];
 
-      mb.visual_ids_.push_back(visual_shape.sync_visual_body_uid1);
+      if (vig)
+      {
+          vig->create_visual_instance(visual_shape.visual_shape_uid, mb.visual_instance_uids_);
+      }
       Transform<Algebra> visual_offset;
       visual_offset.translation =
           Vector3(visual_shape.origin_xyz[0], visual_shape.origin_xyz[1],
@@ -174,7 +182,10 @@ struct UrdfToMultiBody {
         for (std::size_t i = 0; i < link.urdf_visual_shapes.size(); i++) {
           const UrdfVisual<Algebra>& visual_shape = link.urdf_visual_shapes[i];
 
-          l.visual_ids.push_back(visual_shape.sync_visual_body_uid1);
+          if (vig)
+          {
+              vig->create_visual_instance(visual_shape.visual_shape_uid, l.visual_instance_uids);
+          }
           Transform<Algebra> visual_offset;
           visual_offset.translation =
               Vector3(visual_shape.origin_xyz[0], visual_shape.origin_xyz[1],

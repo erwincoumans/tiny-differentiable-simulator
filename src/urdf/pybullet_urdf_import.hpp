@@ -150,8 +150,8 @@ struct PyBulletUrdfImport {
 
   static void sync_graphics_transforms(const MultiBody<Algebra>* body,
                                        PyBulletVisualizerAPI* viz_api) {
-    for (std::size_t v = 0; v < body->visual_ids().size(); v++) {
-      int visual_id = body->visual_ids()[v];
+    for (std::size_t v = 0; v < body->visual_instance_uids().size(); v++) {
+      int visual_id = body->visual_instance_uids()[v];
       Transform geom_X_world = body->base_X_world() * body->X_visuals()[v];
       btVector3 base_pos(Algebra::to_double(geom_X_world.translation[0]),
                          Algebra::to_double(geom_X_world.translation[1]),
@@ -165,9 +165,9 @@ struct PyBulletUrdfImport {
       viz_api->resetBasePositionAndOrientation(visual_id, base_pos, base_orn);
     }
 
-    for (std::size_t l = 0; l < body->size(); l++) {
-      for (std::size_t v = 0; v < (*body)[l].visual_ids.size(); v++) {
-        int visual_id = (*body)[l].visual_ids[v];
+    for (std::size_t l = 0; l < body->num_links(); l++) {
+      for (std::size_t v = 0; v < (*body)[l].visual_instance_uids.size(); v++) {
+        int visual_id = (*body)[l].visual_instance_uids[v];
         Transform geom_X_world = (*body)[l].X_world * (*body)[l].X_visuals[v];
         btVector3 base_pos(Algebra::to_double(geom_X_world.translation[0]),
                            Algebra::to_double(geom_X_world.translation[1]),
@@ -396,11 +396,7 @@ struct PyBulletUrdfImport {
           if (vizShape < 0) {
             printf("Couldn't create sphere shape\n");
           }
-          b3RobotSimulatorCreateMultiBodyArgs args2;
-          args2.m_baseVisualShapeIndex = vizShape;
-          args2.m_baseMass = 0;
-          int viz_uid = viz_api->createMultiBody(args2);
-          visual_shape.sync_visual_body_uid1 = viz_uid;
+          visual_shape.visual_shape_uid = vizShape;
           break;
         }
         case TINY_CAPSULE_TYPE: {
@@ -413,11 +409,7 @@ struct PyBulletUrdfImport {
           if (vizShape < 0) {
             printf("Couldn't create capsule shape\n");
           }
-          b3RobotSimulatorCreateMultiBodyArgs args2;
-          args2.m_baseVisualShapeIndex = vizShape;
-          args2.m_baseMass = 0;
-          int viz_uid = viz_api->createMultiBody(args2);
-          visual_shape.sync_visual_body_uid1 = viz_uid;
+          visual_shape.visual_shape_uid = vizShape;
           break;
         }
         case TINY_BOX_TYPE: {
@@ -428,11 +420,7 @@ struct PyBulletUrdfImport {
                                         Algebra::to_double(he[1]),
                                         Algebra::to_double(he[2]));
             int vizShape = viz_api->createVisualShape(GEOM_BOX, args);
-            b3RobotSimulatorCreateMultiBodyArgs args2;
-            args2.m_baseVisualShapeIndex = vizShape;
-            args2.m_baseMass = 0;
-            int viz_uid = viz_api->createMultiBody(args2);
-            visual_shape.sync_visual_body_uid1 = viz_uid;
+            visual_shape.visual_shape_uid = vizShape;
             break;
           }
           case TINY_MESH_TYPE: {
@@ -454,16 +442,8 @@ struct PyBulletUrdfImport {
             args2.m_baseVisualShapeIndex = vizShape;
             args2.m_baseMass = 0;
 
-            int viz_uid = viz_api->createMultiBody(args2);
-            {
-              b3RobotSimulatorChangeVisualShapeArgs args_change;
-              args_change.m_objectUniqueId = viz_uid;
-              args_change.m_linkIndex = -1;
-              args_change.m_hasRgbaColor = true;
-              args_change.m_rgbaColor.setValue(1, 1, 1, 1);
-              viz_api->changeVisualShape(args_change);
-            }
-            visual_shape.sync_visual_body_uid1 = viz_uid;
+            visual_shape.visual_shape_uid = vizShape;
+
             break;
           }
           default: {

@@ -29,7 +29,112 @@ misrepresented as being the original software.
 #include <stdlib.h>
 #include "tiny_win32_internal_window_data.h"
 
+typedef HGLRC WINAPI wglCreateContextAttribsARB_type(HDC hdc, HGLRC hShareContext,
+	const int* attribList);
+wglCreateContextAttribsARB_type* wglCreateContextAttribsARB = 0;
+
+// See https://www.opengl.org/registry/specs/ARB/wgl_create_context.txt for all values
+#define WGL_CONTEXT_MAJOR_VERSION_ARB             0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB             0x2092
+#define WGL_CONTEXT_PROFILE_MASK_ARB              0x9126
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB          0x00000001
+
+typedef BOOL WINAPI wglChoosePixelFormatARB_type(HDC hdc, const int* piAttribIList,
+    const FLOAT* pfAttribFList, UINT nMaxFormats, int* piFormats, UINT* nNumFormats);
+wglChoosePixelFormatARB_type* wglChoosePixelFormatARB = 0;
+
+void fatal_error(const char* msg)
+{
+    printf("Error:%s\n", msg);
+    exit(0);
+}
+
+static void
+init_opengl_extensions(void)
+{
+    // Before we can load extensions, we need a dummy OpenGL context, created using a dummy window.
+    // We use a dummy window because you can only set the pixel format for a window once. For the
+    // real window, we want to use wglChoosePixelFormatARB (so we can potentially specify options
+    // that aren't available in PIXELFORMATDESCRIPTOR), but we can't load and use that before we
+    // have a context.
+    WNDCLASSA window_class;
+    ZeroMemory(&window_class, sizeof(WNDCLASSA));
+
+    window_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+    window_class.lpfnWndProc = DefWindowProcA;
+    window_class.hInstance = GetModuleHandle(0);
+    window_class.lpszClassName = "Dummy_WGL_djuasiodwa";
+
+    if (!RegisterClassA(&window_class)) {
+        fatal_error("Failed to register dummy OpenGL window.");
+    }
+
+    HWND dummy_window = CreateWindowExA(
+        0,
+        window_class.lpszClassName,
+        "Dummy OpenGL Window",
+        0,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        0,
+        0,
+        window_class.hInstance,
+        0);
+
+    if (!dummy_window) {
+        fatal_error("Failed to create dummy OpenGL window.");
+    }
+
+    HDC dummy_dc = GetDC(dummy_window);
+
+    PIXELFORMATDESCRIPTOR pfd;
+    ZeroMemory(&pfd, sizeof(PIXELFORMATDESCRIPTOR));
+    
+    pfd.nSize = sizeof(pfd);
+    pfd.nVersion = 1;
+    pfd.iPixelType = PFD_TYPE_RGBA;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.cColorBits = 32;
+    pfd.cAlphaBits = 8;
+    pfd.iLayerType = PFD_MAIN_PLANE;
+    pfd.cDepthBits = 24;
+    pfd.cStencilBits = 8;
+    
+
+    int pixel_format = ChoosePixelFormat(dummy_dc, &pfd);
+    if (!pixel_format) {
+        fatal_error("Failed to find a suitable pixel format.");
+    }
+    if (!SetPixelFormat(dummy_dc, pixel_format, &pfd)) {
+        fatal_error("Failed to set the pixel format.");
+    }
+
+    HGLRC dummy_context = wglCreateContext(dummy_dc);
+    if (!dummy_context) {
+        fatal_error("Failed to create a dummy OpenGL rendering context.");
+    }
+
+    if (!wglMakeCurrent(dummy_dc, dummy_context)) {
+        fatal_error("Failed to activate dummy OpenGL rendering context.");
+    }
+
+    wglCreateContextAttribsARB = (wglCreateContextAttribsARB_type*)wglGetProcAddress(
+        "wglCreateContextAttribsARB");
+    wglChoosePixelFormatARB = (wglChoosePixelFormatARB_type*)wglGetProcAddress(
+        "wglChoosePixelFormatARB");
+
+    wglMakeCurrent(dummy_dc, 0);
+    wglDeleteContext(dummy_context);
+    ReleaseDC(dummy_window, dummy_dc);
+    DestroyWindow(dummy_window);
+}
+
 void TinyWin32OpenGLWindow::enableOpenGL() {
+
+  init_opengl_extensions();
+
   PIXELFORMATDESCRIPTOR pfd;
   int format;
 
@@ -54,8 +159,30 @@ void TinyWin32OpenGLWindow::enableOpenGL() {
   format = ChoosePixelFormat(m_data->m_hDC, &pfd);
   SetPixelFormat(m_data->m_hDC, format, &pfd);
 
+
+  // Specify that we want to create an OpenGL 3.3 core profile context
+  int gl33_attribs[] = {
+	  WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+	  WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+	  WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+	  0,
+  };
+
+  
+  if (wglCreateContextAttribsARB)
+  {
+	  m_data->m_hRC = wglCreateContextAttribsARB(m_data->m_hDC, 0, gl33_attribs);
+	  if (!m_data->m_hRC) {
+		  printf("Failed to create OpenGL 3.3 context.");
+		  exit(0);
+	  }
+  }
+  else
+  {
+	  m_data->m_hRC = wglCreateContext(m_data->m_hDC);
+  }
+
   // create and enable the render context (RC)
-  m_data->m_hRC = wglCreateContext(m_data->m_hDC);
   wglMakeCurrent(m_data->m_hDC, m_data->m_hRC);
 
   // printGLString("Extensions", GL_EXTENSIONS);
