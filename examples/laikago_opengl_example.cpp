@@ -194,7 +194,7 @@ struct LaikagoSimulation {
                     result[j++] = visual_X_world.translation[0];
                     result[j++] = visual_X_world.translation[1];
                     result[j++] = visual_X_world.translation[2];
-                    Algebra::Quaternion orn = Algebra::matrix_to_quat(visual_X_world.rotation);
+                    auto orn = Algebra::matrix_to_quat(visual_X_world.rotation);
                     result[j++] = orn.x();
                     result[j++] = orn.y();
                     result[j++] = orn.z();
