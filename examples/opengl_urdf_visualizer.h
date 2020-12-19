@@ -50,7 +50,8 @@ struct OpenGLUrdfVisualizer {
     TinyVector3 origin_xyz;
     TinyVector3 inertia_xyz;
     TinyVector3 inertia_rpy;
-    std::vector<int> instance_ids;
+    std::vector<int> visual_shape_uids;
+    std::vector < ::TINY::TinyVector3f> shape_colors;
   };
 
   std::map<std::string, int> m_link_name_to_index;
@@ -64,7 +65,7 @@ struct OpenGLUrdfVisualizer {
 
   TinyOpenGL3App m_opengl_app;
 
-  OpenGLUrdfVisualizer(int width=1024, int height=768, const char* title = "test")
+  OpenGLUrdfVisualizer(int width=1024, int height=768, const char* title = "Tiny Differentiable Simulator")
       : m_uid(1234) ,
       m_opengl_app(title, width, height)
   {
@@ -80,7 +81,8 @@ struct OpenGLUrdfVisualizer {
     //todo
   }
 
-  void load_obj(const std::string& obj_filename, const ::TINY::TinyVector3f& pos, const ::TINY::TinyQuaternionf& orn, const ::TINY::TinyVector3f& scaling, std::vector<int>& instance_ids)
+
+  void load_obj_shapes(const std::string& obj_filename, std::vector<int>& shape_ids, std::vector<::TINY::TinyVector3f>& colors)
   {
       tinyobj::attrib_t attrib;
       std::vector<tinyobj::shape_t> shapes;
@@ -91,12 +93,11 @@ struct OpenGLUrdfVisualizer {
       std::string err;
       char basepath[1024];
       bool triangulate = true;
-      
+
       ::tds::FileUtils::extract_path(obj_filename.c_str(), basepath, 1024);
       bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, obj_filename.c_str(),
           basepath, triangulate);
 
-      
       for (int i = 0; i < shapes.size(); i++)
       {
           std::vector<int> indices;
@@ -121,7 +122,21 @@ struct OpenGLUrdfVisualizer {
               }
           }
           int shape = m_opengl_app.m_renderer->register_shape(&vertices[0].x, vertices.size(), &indices[0], indices.size(), B3_GL_TRIANGLES, textureIndex);
-          int instance_id = m_opengl_app.m_renderer->register_graphics_instance(shape, pos, orn, color, scaling);
+          shape_ids.push_back(shape);
+          colors.push_back(color);
+      }
+  }
+
+  void load_obj(const std::string& obj_filename, const ::TINY::TinyVector3f& pos, const ::TINY::TinyQuaternionf& orn, const ::TINY::TinyVector3f& scaling, std::vector<int>& instance_ids)
+  {
+      std::vector<int> shape_ids;
+      std::vector<::TINY::TinyVector3f> colors;
+      load_obj_shapes(obj_filename, shape_ids, colors);
+      
+      for (int i = 0; i < shape_ids.size(); i++)
+      {
+          int shape = shape_ids[i];
+          int instance_id = m_opengl_app.m_renderer->register_graphics_instance(shape, pos, orn, colors[i], scaling);
           instance_ids.push_back(instance_id);
       }
 
@@ -154,18 +169,35 @@ struct OpenGLUrdfVisualizer {
         if (::tds::FileUtils::find_file(org_obj_filename, obj_filename))
         {
             ::TINY::TinyVector3f pos(0, 0, 0);
-            ::TINY::TinyVector3f scaling(v.geometry.mesh.scale[0], v.geometry.mesh.scale[1], v.geometry.mesh.scale[2]);
+            ::TINY::TinyVector3f scaling(Algebra::to_double(v.geometry.mesh.scale[0]), 
+                Algebra::to_double(v.geometry.mesh.scale[1]), 
+                Algebra::to_double(v.geometry.mesh.scale[2]));
             ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
-            load_obj(obj_filename, pos, orn, scaling, b2v.instance_ids);
+            load_obj_shapes(obj_filename, b2v.visual_shape_uids, b2v.shape_colors);
         }
       }
-      v.sync_visual_body_uid1 = m_uid;
+      v.visual_shape_uid = m_uid;
       m_b2vis[m_uid++] = b2v;
     }
   }
 
-  void convert_visuals(TinyUrdfStructures &urdf,
-                       const std::string &texture_path) {
+#if 0
+  void create_visual_instances(TinyMultiBody& body) {
+	  for (int i = 0; i < b2v.visual_shape_uids.size(); i++) {
+		  int shape = b2v.visual_shape_uids[i];
+		  int instance_id = m_opengl_app.m_renderer->register_graphics_instance(shape, pos, orn, b2v.shape_colors[i], scaling);
+		  if (link_index == -1) {
+			  body.visual_instance_uids().push_back(instance_id);
+		  }
+		  else {
+			  body.links_[link_index].visual_instance_uids.push_back(instance_id);
+		  }
+	  }
+  }
+#endif
+
+  void convert_visuals(TinyUrdfStructures& urdf,
+      const std::string& texture_path) {
     m_link_name_to_index.clear();
     {
       int link_index = -1;
@@ -182,49 +214,39 @@ struct OpenGLUrdfVisualizer {
     }
   }
 
+  
   void sync_visual_transforms(const TinyMultiBody* body) {
       // sync base transform
-      for (int v = 0; v < body->visual_ids().size(); v++) {
-          int visual_id = body->visual_ids()[v];
-          if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-              Quaternion rot;
-              Transform geom_X_world =
-                  body->base_X_world() * body->X_visuals()[v];
+      for (int v = 0; v < body->visual_instance_uids().size(); v++) {
+          int visual_instance_id = body->visual_instance_uids()[v];
+            Quaternion rot;
+            Transform geom_X_world =
+                body->base_X_world() * body->X_visuals()[v];
 
-              const TinyMatrix3& m =
-                  geom_X_world.rotation;
-              m.getRotation(rot);
-              const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
-              for (int i = 0; i < viz.instance_ids.size(); i++)
-              {
-                  int instance_id = viz.instance_ids[i];
-                  ::TINY::TinyVector3f pos(geom_X_world.translation[0], geom_X_world.translation[1], geom_X_world.translation[2]);
-                  ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
-                  m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
-              }
-          }
+            const TinyMatrix3& m =
+                geom_X_world.rotation;
+            m.getRotation(rot);
+            
+            ::TINY::TinyVector3f pos(geom_X_world.translation[0], geom_X_world.translation[1], geom_X_world.translation[2]);
+            ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+            m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
       }
 
       for (int l = 0; l < body->links().size(); l++) {
-          for (int v = 0; v < body->links()[l].visual_ids.size(); v++) {
-              int visual_id = body->links()[l].visual_ids[v];
-              if (m_b2vis.find(visual_id) != m_b2vis.end()) {
+          for (int v = 0; v < body->links()[l].visual_instance_uids.size(); v++) {
+              int visual_instance_id = body->links()[l].visual_instance_uids[v];
+              if (visual_instance_id >= 0)
+              {
                   Quaternion rot;
                   Transform geom_X_world =
                       body->links()[l].X_world * body->links()[l].X_visuals[v];
-                  
+
                   TinyMatrix3& m =
                       geom_X_world.rotation;
-                  const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
                   m.getRotation(rot);
-                  for (int i = 0; i < viz.instance_ids.size(); i++)
-                  {
-                      int instance_id = viz.instance_ids[i];
-                      ::TINY::TinyVector3f pos(geom_X_world.translation[0], geom_X_world.translation[1], geom_X_world.translation[2]);
-                      ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
-                      m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
-                  }
-
+                  ::TINY::TinyVector3f pos(geom_X_world.translation[0], geom_X_world.translation[1], geom_X_world.translation[2]);
+                  ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+                  m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
               }
           }
       }

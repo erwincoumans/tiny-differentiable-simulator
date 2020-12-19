@@ -148,9 +148,7 @@ struct UrdfVisual {
       : origin_rpy(Algebra::zero3()),
         origin_xyz(Algebra::zero3()),
         has_local_material(false),
-        sync_visual_body_uid1(-1),
-        sync_visual_body_uid2(-1)
-
+        visual_shape_uid(-1)
   {}
   Vector3 origin_rpy;
   Vector3 origin_xyz;
@@ -159,8 +157,7 @@ struct UrdfVisual {
   VisualMaterial material;
   std::string visual_name;
   bool has_local_material;
-  int sync_visual_body_uid1;
-  int sync_visual_body_uid2;
+  int visual_shape_uid;
 };
 
 template <typename Algebra>

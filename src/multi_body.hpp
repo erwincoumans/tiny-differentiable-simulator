@@ -65,8 +65,8 @@ class MultiBody {
   mutable ArticulatedBodyInertia base_abi_;  // IA_0
   mutable Transform base_X_world_;
 
-  std::vector<int> visual_ids_;
-  std::vector<int> visual_ids2_;
+  std::vector<int> visual_shape_uids_;
+  std::vector<int> visual_instance_uids_;
   
   // offset of geometry (relative to the base frame)
   std::vector<Transform> X_visuals_;
@@ -98,7 +98,7 @@ public:
       conv.links_.push_back(link.template clone<AlgebraTo>());
     }
     conv.control_indices_ = control_indices_;
-    conv.visual_ids_ = visual_ids_;
+    conv.visual_shape_uids_ = visual_shape_uids_;
     for (const auto &x : X_visuals_) {
       conv.X_visuals_.push_back(x.template clone<AlgebraTo>());
     }
@@ -118,7 +118,7 @@ public:
   const std::string &name() const { return name_; }
 
   TINY_INLINE const LinkCollection &links() const { return links_; }
-  TINY_INLINE std::size_t size() const { return links_.size(); }
+  TINY_INLINE std::size_t num_links() const { return links_.size(); }
   TINY_INLINE const Link &operator[](std::size_t i) const { return links_[i]; }
   TINY_INLINE Link &operator[](std::size_t i) { return links_[i]; }
   TINY_INLINE typename LinkCollection::iterator begin() {
@@ -221,11 +221,11 @@ public:
       return base_X_world_; 
   }
 
-  TINY_INLINE std::vector<int> &visual_ids() { return visual_ids_; }
-  TINY_INLINE const std::vector<int> &visual_ids() const { return visual_ids_; }
+  TINY_INLINE std::vector<int> &visual_shape_ids() { return visual_shape_uids_; }
+  TINY_INLINE const std::vector<int> &visual_shape_ids() const { return visual_shape_uids_; }
 
-  TINY_INLINE std::vector<int>& visual_ids2() { return visual_ids2_; }
-  TINY_INLINE const std::vector<int>& visual_ids2() const { return visual_ids2_; }
+  TINY_INLINE std::vector<int>& visual_instance_uids() { return visual_instance_uids_; }
+  TINY_INLINE const std::vector<int>& visual_instance_uids() const { return visual_instance_uids_; }
 
   TINY_INLINE std::vector<Transform> &X_visuals() { return X_visuals_; }
   TINY_INLINE const std::vector<Transform> &X_visuals() const {

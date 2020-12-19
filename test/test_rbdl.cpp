@@ -36,7 +36,7 @@ void TestOnURDF(std::string filename)
   UrdfStructures<Algebra> urdf_structures =
       parser.load_urdf(full_path);
   UrdfToMultiBody<Algebra>::convert_to_multi_body(
-      urdf_structures, world, mb1);
+      urdf_structures, world, mb1, 0);
   mb1.initialize();
 #endif//USE_BULLET_URDF_PARSER
 
