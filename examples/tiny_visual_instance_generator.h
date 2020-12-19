@@ -14,7 +14,7 @@ struct TinyVisualInstanceGenerator : public VisualInstanceGenerator
     }
     virtual void create_visual_instance(int shape_uid, std::vector<int>& visual_instances )
     {
-        OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = viz_.m_b2vis[shape_uid];
+        OpenGLUrdfVisualizer<Algebra>::TinyVisualLinkInfo& vis_link = viz_.m_b2vis[shape_uid];
         for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
         {
             int visual_shape = vis_link.visual_shape_uids[v];
