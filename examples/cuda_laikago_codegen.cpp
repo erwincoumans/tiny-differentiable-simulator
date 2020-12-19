@@ -77,10 +77,10 @@ struct LaikagoSimulation {
                 std::vector<double> q_targets;
                 q_targets.resize(system->tau_.size());
 
-                Scalar kp = 150;
-                Scalar kd = 3;
-                Scalar max_force = 550;
-                int param_index = 0;
+                Scalar kp (150.);
+                Scalar kd (3.);
+                Scalar max_force (550.);
+                int param_index (0.);
 
                 for (int i = 0; i < system->tau_.size(); i++) {
                     system->tau_[i] = 0;
@@ -89,11 +89,11 @@ struct LaikagoSimulation {
                 int pose_index = 0;
                 for (int i = 0; i < system->links_.size(); i++) {
                     if (system->links_[i].joint_type != tds::JOINT_FIXED) {
-                        Scalar q_desired = initial_poses[pose_index++];
+                        Scalar q_desired = Scalar(initial_poses[pose_index++]);
                         Scalar q_actual = system->q_[q_offset];
                         Scalar qd_actual = system->qd_[qd_offset];
                         Scalar position_error = (q_desired - q_actual);
-                        Scalar desired_velocity = 0;
+                        Scalar desired_velocity (0.);
                         Scalar velocity_error = (desired_velocity - qd_actual);
                         Scalar force = kp * position_error + kd * velocity_error;
 
@@ -134,7 +134,7 @@ struct LaikagoSimulation {
                     result[j++] = visual_X_world.translation[0];
                     result[j++] = visual_X_world.translation[1];
                     result[j++] = visual_X_world.translation[2];
-                    Algebra::Quaternion orn = Algebra::matrix_to_quat(visual_X_world.rotation);
+                    auto orn = Algebra::matrix_to_quat(visual_X_world.rotation);
                     result[j++] = orn.x();
                     result[j++] = orn.y();
                     result[j++] = orn.z();
@@ -195,7 +195,7 @@ int main(int argc, char* argv[]) {
   // create model to load shared library
 #ifndef DEBUG_MODEL
   //comment-out to re-use previously build CUDA shared library
-  //p.create_library();
+  p.create_library();
   tds::CudaModel<Scalar> model(model_name);
 #endif //DEBUG_MODEL
 
