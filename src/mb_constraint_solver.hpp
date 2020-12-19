@@ -191,7 +191,7 @@ class MultiBodyConstraintSolver {
       // } else {
       submit_profile_timing("inverse_mass_matrix_a");
       is_positive_definite_a =
-          Algebra::inverse(mass_matrix_a, mass_matrix_a_inv);
+          Algebra::symmetric_inverse(mass_matrix_a, mass_matrix_a_inv);
       submit_profile_timing("");
       // }
     }
@@ -209,7 +209,7 @@ class MultiBodyConstraintSolver {
       //   is_positive_definite_b = true;
       // } else {
       submit_profile_timing("inverse_mass_matrix_b");
-      is_positive_definite_b = Algebra::inverse(mass_matrix_b, mass_matrix_b_inv);
+      is_positive_definite_b = Algebra::symmetric_inverse(mass_matrix_b, mass_matrix_b_inv);
       submit_profile_timing("");
       // }
     }
