@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  int num_total_threads = 256;
+  int num_total_threads = 16;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
   int num_base_instances;
