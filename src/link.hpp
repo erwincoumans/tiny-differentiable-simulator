@@ -93,7 +93,7 @@ struct Link {
     conv.link_name = link_name;
     conv.joint_name = joint_name;
     conv.f_ext = tds::clone<Algebra, AlgebraTo>(f_ext);
-    conv.visual_ids = visual_ids;
+    conv.visual_instance_uids = visual_instance_uids;
     for (const auto &x : X_visuals) {
       conv.X_visuals.push_back(x.template clone<AlgebraTo>());
     }
