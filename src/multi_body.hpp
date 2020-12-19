@@ -94,7 +94,7 @@ public:
       conv.links_.push_back(link.template clone<AlgebraTo>());
     }
     conv.control_indices_ = control_indices_;
-    conv.visual_shape_ids_ = visual_shape_ids_;
+    conv.visual_shape_uids_ = visual_shape_uids_;
     for (const auto &x : X_visuals_) {
       conv.X_visuals_.push_back(x.template clone<AlgebraTo>());
     }
@@ -212,8 +212,8 @@ public:
       return base_X_world_; 
   }
 
-  TINY_INLINE std::vector<int> &visual_shape_ids() { return visual_shape_ids_; }
-  TINY_INLINE const std::vector<int> &visual_shape_ids() const { return visual_shape_ids_; }
+  TINY_INLINE std::vector<int> &visual_shape_ids() { return visual_shape_uids_; }
+  TINY_INLINE const std::vector<int> &visual_shape_ids() const { return visual_shape_uids_; }
 
   TINY_INLINE std::vector<int>& visual_instance_uids() { return visual_instance_uids_; }
   TINY_INLINE const std::vector<int>& visual_instance_uids() const { return visual_instance_uids_; }

@@ -182,7 +182,7 @@ struct EigenAlgebraT {
    *     input    a  storage for the result
    *     output   boolean is_positive_definite if operation succeeded
    */
-    static bool inverse(const MatrixX& A,    MatrixX& a) {
+    static bool symmetric_inverse(const MatrixX& A,    MatrixX& a) {
       assert(a.cols() == A.cols());
       assert(a.rows() == A.rows());
 
@@ -462,11 +462,11 @@ struct EigenAlgebraT {
     m.row(i) = v;
   }
 
-  EIGEN_ALWAYS_INLINE static void assign_row(MatrixX &m, Index i,
+  EIGEN_ALWAYS_INLINE static void assign_row(MatrixX& m, Index i,
                                              const SpatialVector &v) {
    
-    m.block<1, 3>(i, 0) = v.top;
-    m.block<1, 3>(i, 3) = v.bottom;
+    m.template block<1, 3>(i, 0) = v.top;
+    m.template block<1, 3>(i, 3) = v.bottom;
 
    
   }
