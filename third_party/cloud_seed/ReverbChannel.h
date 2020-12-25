@@ -33,7 +33,7 @@ namespace CloudSeed
 	class ReverbChannel
 	{
 	private:
-		static const int TotalLineCount = 2;
+		static const int TotalLineCount = 12;
 
 		map<Parameter, float> parameters;
 		int samplerate;
@@ -194,7 +194,7 @@ namespace CloudSeed
 				break;
 
 			case Parameter::LineCount:
-				//lineCount = (int)value;
+				lineCount = (int)value;
 				break;
 			case Parameter::LineDelay:
 				UpdateLines();

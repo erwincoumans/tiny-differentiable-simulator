@@ -1,5 +1,3 @@
-//see https://github.com/ValdemarOrn/CloudSeed
-//port to Daisy and App_Dekrispator by Erwin Coumans
 
 #ifndef REVERBCONTROLLER
 #define REVERBCONTROLLER
@@ -20,7 +18,7 @@ namespace CloudSeed
 	class ReverbController
 	{
 	private:
-		static const int bufferSize = 16; // just make it huge by default...
+		static const int bufferSize = 4096; // just make it huge by default...
 		int samplerate;
 
 		ReverbChannel channelL;
@@ -42,9 +40,9 @@ namespace CloudSeed
 			//initFactoryHyperplane();
 			//initFactoryMediumSpace();
 			//initFactoryNoiseInTheHallway();
-			initFactoryRubiKaFields();
+			//initFactoryRubiKaFields();
 			//initFactorySmallRoom();
-			//initFactory90sAreBack();
+			initFactory90sAreBack();
 			//initFactoryThroughTheLookingGlass();
 			
 		}
@@ -475,7 +473,7 @@ namespace CloudSeed
 			parameters[(int)Parameter::DiffusionFeedback] = 0.5450003147125244;
 			parameters[(int)Parameter::LineCount] = 0.7272727489471436;
 			parameters[(int)Parameter::LineDelay] = 0.6849998831748962;
-			parameters[(int)Parameter::LineDecay] = 0.6300000548362732;
+			parameters[(int)Parameter::LineDecay] = 0.9; 0.6300000548362732;
 			parameters[(int)Parameter::LateDiffusionEnabled] = 0;
 			parameters[(int)Parameter::LateDiffusionStages] = 0.2857142984867096;
 			parameters[(int)Parameter::LateDiffusionDelay] = 0.5449999570846558;
