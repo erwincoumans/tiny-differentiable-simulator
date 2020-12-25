@@ -1,3 +1,4 @@
+
 #include "visualizer/opengl/utils/tiny_clock.h"
 #include <fstream>
 #include <iostream>
@@ -15,6 +16,13 @@
 #include <math.h>
 #include "b3ReadWavFile.h"
 #include "b3WriteWavFile.h"
+#include "b3ADSR.h"
+
+#include "Default.h"
+#include "ReverbController.h"
+#include "FastSin.h"
+#include "AudioLib/ValueTables.h"
+#include "AudioLib/MathDefs.h"
 
 //using namespace stk;
 double sampleRate = 48000.0;
@@ -29,6 +37,9 @@ float grain_duration_rand_range = 0.25f;
 float grain_spawn_interval = 0.03f;
 float grain_spawn_interval_rand_range = 0.07f;
 std::vector<float> grain_visualizer;
+
+CloudSeed::ReverbController* reverb = 0;
+
 
 
 //#define USE_WAV_READER
@@ -73,7 +84,7 @@ void spawnGrain()
 int doSpawnGrain = 0;
 
 #endif //USE_WAV_WRITER
-#define MY_BUFFER_SIZE 512//256
+#define MY_BUFFER_SIZE 1024
 static bool animate = true;
 
 struct b3SoundOscillator
@@ -129,6 +140,7 @@ b3SoundOscillator rightOsc;
 b3SoundOscillator leftOsc2;
 b3SoundOscillator rightOsc2;
 b3SoundOscillator lfo;
+b3ADSR envelope;
 
 float wav_data[MY_BUFFER_SIZE];
 
@@ -186,26 +198,36 @@ int tick(void* outputBuffer, void* inputBuffer1, unsigned int nBufferFrames,
         
         for (int i = 0; i < nBufferFrames; i++)
         {
+            
+            float ins[2] = { 0,0 };
 #ifdef USE_WAV_READER     
 #else
             double lfoMod = lfo.sampleSineWaveForm(sampleRate);
-            leftOsc.m_frequency = 420 + 220 * lfoMod;
-            rightOsc.m_frequency = 420 + 120 * lfoMod;
-            samples[index] = leftOsc.sampleSineWaveForm(sampleRate);// +leftOsc2.sampleSineWaveForm(sampleRate));
+            //leftOsc.m_frequency = 420;// +220 * lfoMod;
+            //rightOsc.m_frequency = 420;// +120 * lfoMod;
+            double amp = 0.2*envelope.tick();
+            
+
+            ins[0]= amp*leftOsc.sampleSineWaveForm(sampleRate);
 #endif
-            if (animate)
-            {
-                float scaling = 1;
-                wav_data[i] = scaling * samples[index];
-            }
-            index++;
+            
+            
 #ifdef USE_WAV_READER
 #else
-            samples[index] = rightOsc2.sampleSineWaveForm(sampleRate);
+            ins[1] = amp*rightOsc.sampleSineWaveForm(sampleRate);
 #endif
 
-            index++;
+           
+            float outs[2] = { 0,0 };
+        
+            reverb->Process(ins, outs, 1);
+            
+            samples[i * 2] = outs[0];
+            samples[i * 2+1] = outs[1];
+            double scaling = 1;
+            wav_data[i] = scaling * samples[i * 2];
         }
+
 
         //double data = env * m_data->m_oscillators[osc].m_amplitude * m_data->m_wavFilePtr->tick(frame, &m_data->m_oscillators[osc].m_wavTicker);
     }
@@ -479,16 +501,71 @@ namespace example
 
 
 
+float noteToFreq(int note) {
+    float a = 440.; // frequency of A (coomon value is 440Hz)
+    return (a / 3.) * pow(2., ((note - 9.) / 12.));
+}
+std::map<char, int> key2note = {
+    {'a',0},
+        {'w',1},
+    {'s',2},
+        {'e',3},
+    {'d',4},
+    {'f',5},
+        {'t',6},
+    {'g',7},
+        {'y',8},
+    {'h',9},
+        {'u',10},
+    {'j',11},
+    {'k',12},
+};
+
+int octave = 1;
+
 void MyKeyboardCallback(int keycode, int state)
 {
-    if ((keycode== 'a') && (state == 0))
+#if 0
+    if ((keycode == 'a') && (state == 0))
     {
         releasedA = true;
         //printf("keycode=%d, state=%d\n", keycode, state);
         //printf("key=%d\n", 'a');
     }
+#endif
+    if (state)
+    {
+        if (keycode == 'z')
+        {
+            octave--;
+            if (octave < -3)
+                octave = -3;
+        }
+        if (keycode == 'x')
+        {
+            octave++;
+            if (octave > 7)
+                octave = 7;
+        }
+    }
+    if (key2note.find(keycode) != key2note.end())
+    {
+        if (state)
+        {
+            int note = key2note[keycode];
+            envelope.keyOn(false);
 
+            float mult = pow(2, octave);
+            leftOsc.m_frequency = noteToFreq(note)* mult;
+            rightOsc.m_frequency = leftOsc.m_frequency;
 
+            note++;
+        }
+        else
+        {
+            envelope.keyOff();
+        }
+    }
     ImGuiIO& io = ImGui::GetIO();
     if (state == 1)
         io.KeysDown[keycode] = true;
@@ -533,9 +610,41 @@ void MyKeyboardCallback(int keycode, int state)
 }
 
 
+//std::vector<char> custom_pool;
+#define POOL_SIZE (1024 * 1024 * 16)
+char custom_pool[POOL_SIZE];
+size_t pool_index = 0;
+int allocation_count = 0;
+
+void* custom_pool_allocate(size_t size)
+{
+    printf("================\n");
+    printf("allocation %d\n", allocation_count++);
+    printf("current usage: %d\n", pool_index);
+    printf("allocation: %d\n", size);
+
+    if (pool_index + size >= POOL_SIZE )
+    {
+        printf("Running out of memory!\n");
+        exit(0);
+    }
+    assert(pool_index + size < POOL_SIZE );
+    void* ptr = &custom_pool[pool_index];
+    pool_index += size;
+    return ptr;
+}
+
+
 int main(int argc, char* argv[]) {
 
+    TinyOpenGL3App app("test", 1024, 768);
+    app.m_renderer->init();
     
+    AudioLib::ValueTables::Init();
+    CloudSeed::FastSin::Init();
+    reverb = new CloudSeed::ReverbController(sampleRate);
+    //reverb->initFactory90sAreBack();
+    reverb->ClearBuffers();
 
     void* data1 = 0;
 
@@ -638,8 +747,7 @@ int main(int argc, char* argv[]) {
         TinyClock clock;
         clock.reset();
         double prev_time = clock.get_time_seconds();
-        TinyOpenGL3App app("test", 1024, 768);
-        app.m_renderer->init();
+       
         app.set_up_axis(2);
         app.m_renderer->get_active_camera()->set_camera_distance(4);
         app.m_renderer->get_active_camera()->set_camera_pitch(-30);
