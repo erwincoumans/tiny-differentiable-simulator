@@ -1,10 +1,9 @@
 #pragma once
 
-#include <numeric>
-
 #include <cppad/cg.hpp>
 #include <cppad/cg/arithmetic.hpp>
 #include <cppad/cg/support/cppadcg_eigen.hpp>
+#include <numeric>
 
 #if CPPAD_CG_SYSTEM_WIN
 #include <windows.h>
@@ -355,18 +354,18 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
     this->determineJacobianSparsity();
 
     // size_t m = _fun.Range();
-    std::size_t n = _fun.Domain();
+    std::size_t n = this->_fun.Domain();
 
-    startingJob("'" + jobName + "'", CppAD::cg::JobTimer::GRAPH);
+    this->startingJob("'" + jobName + "'", CppAD::cg::JobTimer::GRAPH);
 
     CppAD::cg::CodeHandler<Base> handler;
-    handler.setJobTimer(_jobTimer);
+    handler.setJobTimer(this->_jobTimer);
 
     std::vector<CGBase> indVars(n);
     handler.makeVariables(indVars);
-    if (_x.size() > 0) {
+    if (this->_x.size() > 0) {
       for (size_t i = 0; i < n; i++) {
-        indVars[i].setValue(_x[i]);
+        indVars[i].setValue(this->_x[i]);
       }
     }
 
@@ -378,19 +377,19 @@ class CudaSourceGen : public CppAD::cg::ModelCSourceGen<Base> {
       // work.color
 
       if (forward) {
-        _fun.SparseJacobianForward(indVars, this->_jacSparsity.sparsity,
-                                   this->_jacSparsity.rows,
-                                   this->_jacSparsity.cols, jac, work);
+        this->_fun.SparseJacobianForward(indVars, this->_jacSparsity.sparsity,
+                                         this->_jacSparsity.rows,
+                                         this->_jacSparsity.cols, jac, work);
       } else {
-        _fun.SparseJacobianReverse(indVars, this->_jacSparsity.sparsity,
-                                   this->_jacSparsity.rows,
-                                   this->_jacSparsity.cols, jac, work);
+        this->_fun.SparseJacobianReverse(indVars, this->_jacSparsity.sparsity,
+                                         this->_jacSparsity.rows,
+                                         this->_jacSparsity.cols, jac, work);
       }
     } else {
-      jac = prepareSparseJacobianWithLoops(handler, indVars, forward);
+      jac = this->prepareSparseJacobianWithLoops(handler, indVars, forward);
     }
 
-    finishedJob();
+    this->finishedJob();
 
     CppAD::cg::LanguageC<Base> langC(this->_baseTypeName);
     langC.setMaxAssignmentsPerFunction(this->_maxAssignPerFunc,
@@ -579,7 +578,7 @@ struct CudaFunction {
   CudaFunctionMetaData meta_data_{};
   bool is_available_{false};
 
-  public:
+ public:
   bool is_available() const { return is_available_; };
 
   /**
@@ -767,7 +766,7 @@ struct CudaFunction {
     }
     assert(send_local_fun_);
     auto num_total_threads =
-        static_cast<int>(thread_inputs.size() / meta_data_.input_dim);
+        static_cast<int>(thread_inputs.size() / meta_data_.local_input_dim);
     return send_local_fun_(num_total_threads, thread_inputs.data());
   }
 
