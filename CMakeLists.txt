@@ -307,7 +307,6 @@ IF(USE_CERES)
 	    add_definitions(-DUSE_CERES)
 	    message("FOUND CERES!")
     ELSE()
-#    add_definitions(-DUSE_CERES)
 #      ExternalProject_Add(glog-Project
 #          PREFIX glog
 #          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
@@ -331,21 +330,20 @@ IF(USE_CERES)
     ENDIF()
 ENDIF(USE_CERES)
 
-
-# set(MINIGLOG ON)
-# set(BUILD_TESTING OFF)
-# set(BUILD_EXAMPLES OFF)
-
-OPTION(USE_CERES "Use Ceres" OFF)
 #IF(USE_CERES)
 #  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
 #  SET(CERES_LIBRARIES Ceres::ceres)
 #ENDIF()
 
+
+# set(MINIGLOG ON)
+# set(BUILD_TESTING OFF)
+# set(BUILD_EXAMPLES OFF)
+
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
-#add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/cxxopts)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/cxxopts)
 #add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/fmt)
 
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)

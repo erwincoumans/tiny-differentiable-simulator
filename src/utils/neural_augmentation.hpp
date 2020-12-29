@@ -2,6 +2,7 @@
 #define NEURAL_AUGMENTATION_H
 
 #include "math/tiny/neural_algebra.hpp"
+#include "math/eigen_algebra.hpp"
 #include "parameter.hpp"
 
 namespace tds {

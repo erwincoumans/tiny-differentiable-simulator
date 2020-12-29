@@ -16,3 +16,6 @@
 [submodule "third_party/bullet3"]
 	path = third_party/bullet3
 	url = https://github.com/bulletphysics/bullet3
+[submodule "third_party/cxxopts"]
+	path = third_party/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
