@@ -2,6 +2,7 @@
 
 #include "geometry.hpp"
 #include "math/conditionals.hpp"
+#include <cassert>
 
 namespace tds {
 template <typename Algebra>

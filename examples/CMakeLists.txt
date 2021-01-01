@@ -137,5 +137,5 @@ target_link_libraries(meshcat_zmq_example ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
 add_executable(laikago_tds_sim whole_body_control/laikago_tds_sim.cpp ${TDS_HDRS})
-target_link_libraries(laikago_tds_sim tinyxml2 ${MESHCAT_LIBRARIES})
+target_link_libraries(laikago_tds_sim tinyxml2 ${MESHCAT_LIBRARIES} ${TORCH_LIBRARIES})
 target_include_directories(laikago_tds_sim PRIVATE ../third_party ../third_party/nlohmann/include ../src whole_body_control)

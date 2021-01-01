@@ -24,6 +24,10 @@
 #include <random>
 #include <vector>
 
+#ifdef USE_TORCH
+#include <torch/script.h>
+#endif
+
 #include "math/conditionals.hpp"
 
 namespace tds {
@@ -378,6 +382,63 @@ class NeuralNetwork : public NeuralNetworkSpecification {
   explicit NeuralNetwork(const NeuralNetworkSpecification& spec)
       : NeuralNetworkSpecification(spec) {}
 
+#ifdef USE_TORCH
+  // Constructs a NeuralNetwork with the given torch script module's weights,
+  // biases, layer sizes and activation functions.
+  NeuralNetwork(const torch::jit::script::Module& module) {
+    std::vector<tds::NeuralNetworkActivation> activations;
+    GetActivationsFromTorch(module, activations);
+
+    std::vector<int> layer_sizes;
+    bool input_dim_set = false;
+    for (const auto& pair: module.named_parameters()) {
+      int layer_size = pair.value.size(0);
+      torch::Tensor tensor = pair.value.flatten();
+      auto accessor = tensor.accessor<double, 1>();
+
+      if (pair.name.find(".weight") != std::string::npos) {
+        if (!input_dim_set) {
+          // Input layer
+          layers_[0] = pair.value.size(1);
+          input_dim_set = true;
+        }
+        layer_sizes.push_back(layer_size);
+        weights.reserve(weights.size() + accessor.size(0));
+        for (int i = 0; i < accessor.size(0); i++) {
+          weights.push_back(accessor[i]);
+        }
+      } else if (pair.name.find(".bias") != std::string::npos) {
+        biases.reserve(biases.size() + accessor.size(0));
+        for (int i = 0; i < accessor.size(0); i++) {
+          biases.push_back(accessor[i]);
+        }
+      }
+    }
+
+    use_bias_[0] = false;
+    assert(activations.size() <= layer_sizes.size());
+    for (size_t i = 0; i < layer_sizes.size(); i++) {
+      if (i >= activations.size()) {
+        add_linear_layer(NN_ACT_IDENTITY, layer_sizes[i], true);
+      } else {
+        add_linear_layer(activations[i], layer_sizes[i], true);
+      }
+    }
+    std::cout << "Model loaded from torch script: " << std::endl;
+    std::cout << "Layer sizes: ";
+    for(auto i: layers_) {
+      std::cout << i << ", ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "Activations: ";
+    for(auto i: activations_) {
+      std::cout << i << ", ";
+    }
+    std::cout << std::endl;
+  }
+#endif
+
   void initialize(NeuralNetworkInitialization init_method = NN_INIT_XAVIER) {
     this->template initialize<Algebra>(weights, biases, init_method);
   }
@@ -410,6 +471,46 @@ class NeuralNetwork : public NeuralNetworkSpecification {
         ->template save_graphviz<Algebra>(filename, input_names, output_names,
                                           weights, biases);
   }
+ private:
+#ifdef USE_TORCH
+  // Extracts the activation function types from a torch script module and
+  // converts them to TDS activation functions.
+  void GetActivationsFromTorch(const torch::jit::script::Module& module,
+       std::vector<tds::NeuralNetworkActivation>& activations) {
+    for (const auto& n: module.get_method("forward").graph()->nodes()) {
+      for (const auto& o: n->outputs()) {
+        std::stringstream type;
+        type << *o->type();
+        NeuralNetworkActivation
+            activation = MapTorchActivationTypeToTdsType(type.str());
+        if (activation != tds::NN_ACT_IDENTITY) {
+          activations.push_back(activation);
+          std::cout
+          << "Torch activation function type loaded: " << activation
+          << std::endl;
+        }
+      }
+    }
+}
+
+  // Returns a NeuralNetworkActivation given a torch activation function
+  // type.
+  NeuralNetworkActivation MapTorchActivationTypeToTdsType(const std::string& type) {
+    if (type.find("ReLU") != std::string::npos) {
+      return tds::NN_ACT_RELU;
+    } else if (type.find("Tanh") != std::string::npos) {
+      return tds::NN_ACT_TANH;
+    } else if (type.find("ELU") != std::string::npos) {
+      return tds::NN_ACT_ELU;
+    } else if (type.find("Sigmoid") != std::string::npos) {
+      return tds::NN_ACT_SIGMOID;
+    } else if (type.find("Softsign") != std::string::npos) {
+      return tds::NN_ACT_SOFTSIGN;
+    } else {
+      return tds::NN_ACT_IDENTITY;
+    }
+  }
+#endif
 };
 
 }  // namespace tds
