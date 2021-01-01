@@ -113,7 +113,7 @@ ENDIF()
 
 ENDIF()
 
-add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
+add_executable(opengl_test opengl_test.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc ${TDS_HDRS})
 target_include_directories(opengl_test PRIVATE ../third_party/tinyobjloader)
 target_include_directories(opengl_test PRIVATE ../third_party ../src)
 target_link_libraries(opengl_test opengl_window ${CMAKE_DL_LIBS})
@@ -123,16 +123,19 @@ target_link_libraries(tiny_urdf_parser_example tinyxml2)
 target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../src)
 
 
-set(MESHCAT_LIBRARIES crossguid cpp_base64 zmq )
-IF(WIN32)
+set(MESHCAT_LIBRARIES crossguid cpp_base64 zmq)
+IF (WIN32)
     set(MESHCAT_LIBRARIES ${MESHCAT_LIBRARIES} ws2_32 Winmm iphlpapi)
-ENDIF()
+ENDIF ()
 
-add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS}) 
-target_link_libraries(tiny_urdf_parser_meshcat_example  tinyxml2 ${MESHCAT_LIBRARIES}) 
+add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS})
+target_link_libraries(tiny_urdf_parser_meshcat_example tinyxml2 ${MESHCAT_LIBRARIES})
 target_include_directories(tiny_urdf_parser_meshcat_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
 add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
-target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
+target_link_libraries(meshcat_zmq_example ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
+add_executable(laikago_tds_sim whole_body_control/laikago_tds_sim.cpp ${TDS_HDRS})
+target_link_libraries(laikago_tds_sim tinyxml2 ${MESHCAT_LIBRARIES})
+target_include_directories(laikago_tds_sim PRIVATE ../third_party ../third_party/nlohmann/include ../src whole_body_control)

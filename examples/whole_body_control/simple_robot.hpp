@@ -1,0 +1,267 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#pragma once
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <regex>
+#include <cassert>
+
+#include "world.hpp"
+#include "mb_constraint_solver.hpp"
+#include "math/tiny/tiny_algebra.hpp"
+#include "math/tiny/tiny_double_utils.h"
+#include "visualizer/meshcat/meshcat_urdf_visualizer.h"
+#include "utils/file_utils.hpp"
+#include "urdf/urdf_parser.hpp"
+#include "urdf/urdf_to_multi_body.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
+
+namespace tds {
+
+class SimpleRobot {
+  typedef double MyScalar;
+  typedef ::TINY::DoubleUtils MyTinyConstants;
+  typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
+
+  double knee_angle = -0.5;
+  double abduction_angle = 0.2;
+  std::vector<double> initial_poses = {
+      abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+      abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+  };
+  std::regex toe_name_pattern = std::regex("jtoe.*");
+
+ public:
+  SimpleRobot() {}
+  explicit SimpleRobot(double time_step,
+                       MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz,
+                       int num_legs = 4)
+      : time_step_(time_step),
+        num_legs_(num_legs) {
+    world_.default_friction = 10.0;
+
+    SetupPlane(meshcat_viz);
+    SetupLaikago(meshcat_viz);
+
+    forward_kinematics(robot_mb_);
+    step_counter_ = 0;
+
+//    while (1) {
+//
+//      meshcat_viz.sync_visual_transforms(&robot_mb_);
+//    }
+  }
+
+  // Returns the linear velocity of the robot's base.
+  std::vector<MyScalar> GetBaseVelocity() {
+    return {robot_mb_.q(3), robot_mb_.q(4), robot_mb_.q(5)};
+  }
+
+  // Returns the angular velocity of the robot's base.
+  std::vector<MyScalar> GetBaseAngularVelocity() {
+    return {robot_mb_.qd(0), robot_mb_.qd(1), robot_mb_.qd(2)};
+  }
+
+  // Returns the orientation of the robot's base in quaternion.
+  std::vector<MyScalar> GetBaseOrientation() {
+    MyAlgebra::Quaternion rn = robot_mb_.get_orientation();
+    return {rn[0], rn[1], rn[2], rn[3]};
+  }
+
+  // Returns the orientation of the robot's base in euler angle.
+  std::vector<MyScalar> GetBaseRollPitchYaw() {
+    return TinyVector3ToVector(robot_mb_.get_orientation().get_euler_rpy());
+  }
+
+  // Returns the orientation of the robot's base in euler angle.
+  std::vector<MyScalar> GetBaseRollPitchYawRate() {
+    return TransfromAngularVelocityToLocalFrame(GetBaseAngularVelocity(),
+                                                GetBaseOrientation());
+  }
+
+  // Given the angular velocity of the robot in world frame, returns
+  // the angular velocity based on the given orientation in local (robot's)
+  // frame.
+  std::vector<MyScalar> TransfromAngularVelocityToLocalFrame
+      (std::vector<MyScalar> angular_velocity,
+       std::vector<MyScalar> orientation) {
+    Transform<MyAlgebra> tr;
+    tr.translation = TINY::TinyVector3<MyScalar, MyTinyConstants>
+        (MyTinyConstants::zero(),
+         MyTinyConstants::zero(),
+         MyTinyConstants::zero());
+    auto orn = TINY::TinyQuaternion<MyScalar, MyTinyConstants>(
+        orientation[0], orientation[1], orientation[2], orientation[3]
+    );
+    tr.rotation.setRotation(orn);
+    auto rel_vel = tr.apply_inverse(TINY::TinyVector3<MyScalar, MyTinyConstants>
+                                        (angular_velocity[0],
+                                         angular_velocity[0],
+                                         angular_velocity[0]));
+    return TinyVector3ToVector(rel_vel);
+  }
+
+  // Returns the robot's foot positions in the base frame in a flattened vector.
+  std::vector<MyScalar> GetFootPositionsInBaseFrame() {
+    assert(foot_link_ids_.size() == num_legs_);
+    std::vector<MyScalar> foot_positions;
+    for (int foot_id: foot_link_ids_) {
+      for (auto item: GetLinkPosInBaseFrame(foot_id)) {
+        foot_positions.push_back(item);
+      }
+    }
+    return foot_positions;
+  }
+
+  double GetTimeSinceReset() {
+    return step_counter_ * time_step_;
+  }
+
+  int GetNumLegs() {
+    return num_legs_;
+  }
+
+  std::vector<bool> GetFootContacts() {
+    return {false, false, false, false};
+  }
+
+ private:
+  double time_step_;
+  int num_legs_, step_counter_;
+  World<MyAlgebra> world_;
+  MultiBodyConstraintSolver<MyAlgebra> mb_solver_;
+  UrdfParser<MyAlgebra> parser_;
+  MultiBody<MyAlgebra> plane_mb_, robot_mb_;
+  std::vector<int> foot_link_ids_;
+
+  // Loads the plane urdf, adds the multi_body to world_, and sets up
+  // visualization.
+  void SetupPlane(MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz) {
+    std::string plane_file_name;
+    FileUtils::find_file("plane_implicit.urdf", plane_file_name);
+    char plane_search_path[TINY_MAX_EXE_PATH_LEN];
+    FileUtils::extract_path(plane_file_name.c_str(), plane_search_path,
+                            TINY_MAX_EXE_PATH_LEN);
+    plane_mb_ = *world_.create_multi_body();
+    plane_mb_.set_floating_base(false);
+    {
+      UrdfStructures<MyAlgebra> plane_urdf_structures =
+          parser_.load_urdf(plane_file_name);
+      UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
+          plane_urdf_structures, world_, plane_mb_, 0);
+      std::string texture_path = "checker_purple.png";
+      meshcat_viz.m_path_prefix = plane_search_path;
+      meshcat_viz.convert_visuals(plane_urdf_structures,
+                                  texture_path, 0);
+    }
+  }
+
+  // Loads the laikago urdf, adds the multi_body to world_, and sets up
+  // visualization.
+  void SetupLaikago(MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz) {
+    char robot_search_path[TINY_MAX_EXE_PATH_LEN];
+    std::string robot_file_name;
+    FileUtils::find_file("laikago/laikago_toes_zup_joint_order.urdf",
+                         robot_file_name);
+    FileUtils::extract_path(robot_file_name.c_str(), robot_search_path,
+                            TINY_MAX_EXE_PATH_LEN);
+
+    std::ifstream ifs(robot_file_name);
+    std::string urdf_string;
+    if (!ifs.is_open()) {
+      std::cout << "Error, cannot open file_name: " << robot_file_name
+                << std::endl;
+      exit(-1);
+    }
+
+    urdf_string = std::string((std::istreambuf_iterator<char>(ifs)),
+                              std::istreambuf_iterator<char>());
+    StdLogger logger;
+    UrdfStructures<MyAlgebra> urdf_structures;
+    int flags = 0;
+    parser_.load_urdf_from_string(urdf_string, flags, logger,
+                                  urdf_structures);
+    // create graphics structures
+    std::string texture_path = "laikago_tex.jpg";
+    meshcat_viz.m_path_prefix = robot_search_path;
+
+    bool floating_base = true;
+    robot_mb_ = *world_.create_multi_body();
+    robot_mb_.set_floating_base(true);
+    UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
+        urdf_structures, world_, robot_mb_, 0);
+    robot_mb_.initialize();
+    meshcat_viz.convert_visuals(urdf_structures, texture_path, &robot_mb_);
+    int start_index = 0;
+    if (floating_base) {
+      start_index = 7;
+      robot_mb_.q_[0] = 0;
+      robot_mb_.q_[1] = 0;
+      robot_mb_.q_[2] = 0;
+      robot_mb_.q_[3] = 1;
+
+      robot_mb_.q_[4] = 0;
+      robot_mb_.q_[5] = 0;
+      robot_mb_.q_[6] = 1.5;
+
+      robot_mb_.qd_[0] = 0;
+      robot_mb_.qd_[1] = 0;
+      robot_mb_.qd_[2] = 0;
+      robot_mb_.qd_[3] = 0;
+    }
+    if (robot_mb_.q_.size() >= 12) {
+      for (int cc = 0; cc < 12; cc++) {
+        robot_mb_.q_[start_index + cc] = initial_poses[cc];
+      }
+    }
+    robot_mb_.set_position(TINY::TinyVector3<double, TINY::DoubleUtils>(
+        0., 0., 0.6));
+
+    BuildUrdfIds(urdf_structures);
+  }
+
+  void BuildUrdfIds(const UrdfStructures<MyAlgebra>& urdf_structures) {
+    int num_joints = urdf_structures.joints.size();
+    for (int joint_id = 0; joint_id < num_joints; joint_id++) {
+      auto joint = urdf_structures.joints[joint_id];
+      if (std::regex_match(joint.joint_name, toe_name_pattern)) {
+        foot_link_ids_.push_back(joint_id);
+      }
+    }
+  }
+
+  // Computes the link's local position in the robot frame.
+  std::vector<MyScalar> GetLinkPosInBaseFrame(int link_id) {
+    Transform<MyAlgebra> base_X_world;
+    std::vector<Transform<MyAlgebra> > links_X_world;
+    std::vector<Transform<MyAlgebra> > links_X_base;
+
+    forward_kinematics_q(robot_mb_, robot_mb_.q(), &base_X_world,
+                         &links_X_world,
+                         &links_X_base);
+    return TinyVector3ToVector(links_X_base[link_id].translation);
+  }
+
+  static std::vector<MyScalar> TinyVector3ToVector(const TINY::TinyVector3<
+      MyScalar,
+      MyTinyConstants>& tiny_vector3) {
+    return {tiny_vector3[0], tiny_vector3[1], tiny_vector3[2]};
+  }
+
+};
+
+} // namespace tds
