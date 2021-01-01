@@ -40,11 +40,11 @@ class MovingWindowFilter {
       // pass
     } else {
       // The left most value needs to be subtracted from the moving sum first.
-      GetNeumaierSum(-value_deque_.front());
+      UpdateNeumaierSum(-value_deque_.front());
       value_deque_.pop_front();
     }
     // Add the new value.
-    GetNeumaierSum(new_value);
+    UpdateNeumaierSum(new_value);
     value_deque_.push_back(new_value);
 
     return (sum_ + correction_) / double(window_size_);
@@ -58,7 +58,7 @@ class MovingWindowFilter {
   //
   // For more details please refer to:
   // https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements
-  double GetNeumaierSum(double value) {
+  void UpdateNeumaierSum(double value) {
     double new_sum = sum_ + value;
     if (std::abs(sum_) >= std::abs(value)) {
       // If previous sum is bigger, low-order digits of value are lost.
