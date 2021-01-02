@@ -61,9 +61,9 @@ class OpenloopGaitGenerator {
       contact_detection_phase_threshold_(contact_detection_phase_threshold) {
     CheckInputs();
 
-    swing_duration_.reserve(robot_.GetNumLegs());
-    next_leg_state_.reserve(robot_.GetNumLegs());
-    initial_state_ratio_in_cycle_.reserve(robot_.GetNumLegs());
+    swing_duration_.resize(robot_.GetNumLegs());
+    next_leg_state_.resize(robot_.GetNumLegs());
+    initial_state_ratio_in_cycle_.resize(robot_.GetNumLegs());
     for (size_t leg_id = 0; leg_id < robot_.GetNumLegs(); leg_id++) {
       swing_duration_[leg_id] =
           stance_duration_[leg_id] / duty_factor_[leg_id] -

@@ -57,48 +57,53 @@ class SimpleRobot {
     SetupPlane(meshcat_viz);
     SetupLaikago(meshcat_viz);
 
-    forward_kinematics(robot_mb_);
+    forward_kinematics(*robot_mb_);
   }
 
   void Step(std::vector<MyScalar> action,
             MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz) {
-    forward_kinematics(robot_mb_, robot_mb_.q(), robot_mb_.qd());
-    assert(action.size() == robot_mb_.tau().size());
+    printf("\n");
+    robot_mb_->print_state();
+    forward_kinematics(*robot_mb_, robot_mb_->q(), robot_mb_->qd());
+    assert(action.size() == robot_mb_->tau().size());
     for (size_t i = 0; i < action.size(); i++) {
-      robot_mb_.tau_[i] = action[i];
+      robot_mb_->tau_[i] = action[i];
     }
-    forward_dynamics(robot_mb_,
+    forward_dynamics(*robot_mb_,
                      TINY::TinyVector3<
                          MyScalar, MyTinyConstants>(TINY::DoubleUtils::zero(),
                                                     TINY::DoubleUtils::zero(),
                                                     TINY::DoubleUtils::fraction(
                                                         -981, 100)));
-    integrate_euler_qdd(robot_mb_, time_step_);
+    integrate_euler_qdd(*robot_mb_, time_step_);
     world_.step(time_step_);
-    integrate_euler(robot_mb_, time_step_);
-    meshcat_viz.sync_visual_transforms(&robot_mb_);
+    integrate_euler(*robot_mb_, time_step_);
+
+    printf("\n");
+    robot_mb_->print_state();
+    meshcat_viz.sync_visual_transforms(robot_mb_);
     step_counter_++;
   }
 
   // Returns the linear velocity of the robot's base.
   std::vector<MyScalar> GetBaseVelocity() {
-    return {robot_mb_.q(3), robot_mb_.q(4), robot_mb_.q(5)};
+    return {robot_mb_->q(3), robot_mb_->q(4), robot_mb_->q(5)};
   }
 
   // Returns the angular velocity of the robot's base.
   std::vector<MyScalar> GetBaseAngularVelocity() {
-    return {robot_mb_.qd(0), robot_mb_.qd(1), robot_mb_.qd(2)};
+    return {robot_mb_->qd(0), robot_mb_->qd(1), robot_mb_->qd(2)};
   }
 
   // Returns the orientation of the robot's base in quaternion.
   std::vector<MyScalar> GetBaseOrientation() {
-    MyAlgebra::Quaternion rn = robot_mb_.get_orientation();
+    MyAlgebra::Quaternion rn = robot_mb_->get_orientation();
     return {rn[0], rn[1], rn[2], rn[3]};
   }
 
   // Returns the orientation of the robot's base in euler angle.
   std::vector<MyScalar> GetBaseRollPitchYaw() {
-    return TinyVector3ToVector(robot_mb_.get_orientation().get_euler_rpy());
+    return TinyVector3ToVector(robot_mb_->get_orientation().get_euler_rpy());
   }
 
   // Returns the orientation of the robot's base in euler angle.
@@ -161,7 +166,7 @@ class SimpleRobot {
   World<MyAlgebra> world_;
   MultiBodyConstraintSolver<MyAlgebra> mb_solver_;
   UrdfParser<MyAlgebra> parser_;
-  MultiBody<MyAlgebra> plane_mb_, robot_mb_;
+  MultiBody<MyAlgebra> *plane_mb_, *robot_mb_;
   std::vector<int> foot_link_ids_;
 
   // Loads the plane urdf, adds the multi_body to world_, and sets up
@@ -172,13 +177,13 @@ class SimpleRobot {
     char plane_search_path[TINY_MAX_EXE_PATH_LEN];
     FileUtils::extract_path(plane_file_name.c_str(), plane_search_path,
                             TINY_MAX_EXE_PATH_LEN);
-    plane_mb_ = *world_.create_multi_body();
-    plane_mb_.set_floating_base(false);
+    plane_mb_ = world_.create_multi_body();
+    plane_mb_->set_floating_base(false);
     {
       UrdfStructures<MyAlgebra> plane_urdf_structures =
           parser_.load_urdf(plane_file_name);
       UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-          plane_urdf_structures, world_, plane_mb_, 0);
+          plane_urdf_structures, world_, *plane_mb_, 0);
       std::string texture_path = "checker_purple.png";
       meshcat_viz.m_path_prefix = plane_search_path;
       meshcat_viz.convert_visuals(plane_urdf_structures, texture_path, 0);
@@ -215,38 +220,41 @@ class SimpleRobot {
     meshcat_viz.m_path_prefix = robot_search_path;
 
     bool floating_base = true;
-    robot_mb_ = *world_.create_multi_body();
-    robot_mb_.set_floating_base(true);
+    robot_mb_ = world_.create_multi_body();
+    robot_mb_->set_floating_base(true);
     UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-        urdf_structures, world_, robot_mb_, 0);
-    robot_mb_.initialize();
-    meshcat_viz.convert_visuals(urdf_structures, texture_path, &robot_mb_);
+        urdf_structures, world_, *robot_mb_, 0);
+    robot_mb_->initialize();
+    meshcat_viz.convert_visuals(urdf_structures, texture_path, robot_mb_);
     int start_index = 0;
     if (floating_base) {
       start_index = 7;
-      robot_mb_.q_[0] = 0;
-      robot_mb_.q_[1] = 0;
-      robot_mb_.q_[2] = 0;
-      robot_mb_.q_[3] = 1;
+      robot_mb_->q_[0] = 0;
+      robot_mb_->q_[1] = 0;
+      robot_mb_->q_[2] = 0;
+      robot_mb_->q_[3] = 1;
 
-      robot_mb_.q_[4] = 0;
-      robot_mb_.q_[5] = 0;
-      robot_mb_.q_[6] = 1.5;
+      robot_mb_->q_[4] = 0;
+      robot_mb_->q_[5] = 0;
+      robot_mb_->q_[6] = 1.5;
 
-      robot_mb_.qd_[0] = 0;
-      robot_mb_.qd_[1] = 0;
-      robot_mb_.qd_[2] = 0;
-      robot_mb_.qd_[3] = 0;
+      robot_mb_->qd_[0] = 0;
+      robot_mb_->qd_[1] = 0;
+      robot_mb_->qd_[2] = 0;
+      robot_mb_->qd_[3] = 0;
     }
-    if (robot_mb_.q_.size() >= 12) {
+    if (robot_mb_->q_.size() >= 12) {
       for (int cc = 0; cc < 12; cc++) {
-        robot_mb_.q_[start_index + cc] = initial_poses[cc];
+        robot_mb_->q_[start_index + cc] = initial_poses[cc];
       }
     }
-    robot_mb_.set_position(TINY::TinyVector3<double, TINY::DoubleUtils>(
+    robot_mb_->set_position(TINY::TinyVector3<double, TINY::DoubleUtils>(
         0., 0., 0.6));
 
     BuildUrdfIds(urdf_structures);
+
+    printf("\n");
+    robot_mb_->print_state();
   }
 
   void BuildUrdfIds(const UrdfStructures<MyAlgebra>& urdf_structures) {
@@ -265,7 +273,7 @@ class SimpleRobot {
     std::vector<Transform<MyAlgebra> > links_X_world;
     std::vector<Transform<MyAlgebra> > links_X_base;
 
-    forward_kinematics_q(robot_mb_, robot_mb_.q(), &base_X_world,
+    forward_kinematics_q(*robot_mb_, robot_mb_->q(), &base_X_world,
                          &links_X_world,
                          &links_X_base);
     return TinyVector3ToVector(links_X_base[link_id].translation);
