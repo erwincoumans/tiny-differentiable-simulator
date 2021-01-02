@@ -58,12 +58,26 @@ class SimpleRobot {
     SetupLaikago(meshcat_viz);
 
     forward_kinematics(robot_mb_);
-    step_counter_ = 0;
+  }
 
-//    while (1) {
-//
-//      meshcat_viz.sync_visual_transforms(&robot_mb_);
-//    }
+  void Step(std::vector<MyScalar> action,
+            MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz) {
+    forward_kinematics(robot_mb_, robot_mb_.q(), robot_mb_.qd());
+    assert(action.size() == robot_mb_.tau().size());
+    for (size_t i = 0; i < action.size(); i++) {
+      robot_mb_.tau_[i] = action[i];
+    }
+    forward_dynamics(robot_mb_,
+                     TINY::TinyVector3<
+                         MyScalar, MyTinyConstants>(TINY::DoubleUtils::zero(),
+                                                    TINY::DoubleUtils::zero(),
+                                                    TINY::DoubleUtils::fraction(
+                                                        -981, 100)));
+    integrate_euler_qdd(robot_mb_, time_step_);
+    world_.step(time_step_);
+    integrate_euler(robot_mb_, time_step_);
+    meshcat_viz.sync_visual_transforms(&robot_mb_);
+    step_counter_++;
   }
 
   // Returns the linear velocity of the robot's base.
@@ -141,7 +155,9 @@ class SimpleRobot {
 
  private:
   double time_step_;
-  int num_legs_, step_counter_;
+  int step_counter_ = 0;
+  int num_legs_ = 4;
+  int num_motors_ = 12;
   World<MyAlgebra> world_;
   MultiBodyConstraintSolver<MyAlgebra> mb_solver_;
   UrdfParser<MyAlgebra> parser_;
@@ -165,8 +181,7 @@ class SimpleRobot {
           plane_urdf_structures, world_, plane_mb_, 0);
       std::string texture_path = "checker_purple.png";
       meshcat_viz.m_path_prefix = plane_search_path;
-      meshcat_viz.convert_visuals(plane_urdf_structures,
-                                  texture_path, 0);
+      meshcat_viz.convert_visuals(plane_urdf_structures, texture_path, 0);
     }
   }
 
@@ -257,8 +272,7 @@ class SimpleRobot {
   }
 
   static std::vector<MyScalar> TinyVector3ToVector(const TINY::TinyVector3<
-      MyScalar,
-      MyTinyConstants>& tiny_vector3) {
+      MyScalar, MyTinyConstants>& tiny_vector3) {
     return {tiny_vector3[0], tiny_vector3[1], tiny_vector3[2]};
   }
 
