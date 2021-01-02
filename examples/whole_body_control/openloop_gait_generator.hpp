@@ -43,6 +43,7 @@ std::vector<double> _INITIAL_LEG_PHASE = {0.0, 0.0, 0.0, 0.0};
 class OpenloopGaitGenerator {
 
  public:
+  std::vector<LegState> desired_leg_state_;
   OpenloopGaitGenerator(const SimpleRobot& robot,
                         std::vector<double> stance_duration =
                         _NOMINAL_STANCE_DURATION,
@@ -122,12 +123,12 @@ class OpenloopGaitGenerator {
     }
   }
 
+
  private:
   SimpleRobot robot_;
   std::vector<double> stance_duration_, duty_factor_, initial_leg_phase_,
       swing_duration_, initial_state_ratio_in_cycle_, normalized_phase_;
-  std::vector<LegState> initial_leg_state_, next_leg_state_, leg_state_,
-      desired_leg_state_;
+  std::vector<LegState> initial_leg_state_, next_leg_state_, leg_state_;
   double contact_detection_phase_threshold_;
 
   void CheckInputs() {
