@@ -4,7 +4,7 @@
 #include "simple_robot.hpp"
 #include "com_velocity_estimator.hpp"
 #include "openloop_gait_generator.hpp"
-#include <torch/script.h>
+//#include <torch/script.h>
 
 #include "math/neural_network.hpp"
 
@@ -67,22 +67,23 @@ vector<MyScalar> GetMpcInput(const vector<MyScalar>& desired_speed,
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
-    std::cerr
-        << "usage: laikago_tds_sim <path-to-exported-script-module>\n";
-    return -1;
-  }
-  torch::jit::script::Module module;
-  try {
-    // Deserialize the ScriptModule from a file using torch::jit::load().
-    module = torch::jit::load(argv[1]);
-  }
-  catch (const c10::Error& e) {
-    std::cerr << "error loading the model\n" << e.msg() << std::endl;
-    return -1;
-  }
+  //if (argc != 2) {
+  //  std::cerr
+  //      << "usage: laikago_tds_sim <path-to-exported-script-module>\n";
+  //  return -1;
+  //}
+  //torch::jit::script::Module module;
+  //try {
+  //  // Deserialize the ScriptModule from a file using torch::jit::load().
+  //  module = torch::jit::load(argv[1]);
+  //}
+  //catch (const c10::Error& e) {
+  //  std::cerr << "error loading the model\n" << e.msg() << std::endl;
+  //  return -1;
+  //}
   std::cout << "Torch model loaded\n";
-  tds::NeuralNetwork<MyAlgebra> net(module);
+  tds::NeuralNetwork<MyAlgebra> net;
+  //(module);
 
   MeshcatUrdfVisualizer<MyAlgebra> meshcat_viz;
   std::cout << "Waiting for meshcat server" << std::endl;
@@ -90,6 +91,7 @@ int main(int argc, char* argv[]) {
 
   double time_step = 1. / 1000.;
   tds::SimpleRobot robot(time_step, meshcat_viz);
+  
   tds::COMVelocityEstimator com_velocity_estimator(robot);
   tds::OpenloopGaitGenerator openloop_gait_generator(robot);
   while (1) {
