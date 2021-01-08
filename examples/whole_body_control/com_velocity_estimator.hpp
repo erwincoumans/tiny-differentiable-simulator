@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#pragma once
+
 #include <cassert>
 #include <iostream>
 #include <utility>
@@ -78,7 +80,7 @@ class COMVelocityEstimator {
 
  public:
   std::vector<MyScalar> com_velocity_world_frame, com_velocity_body_frame;
-  explicit COMVelocityEstimator(const SimpleRobot& robot, int window_size = 20)
+  explicit COMVelocityEstimator(SimpleRobot* robot, int window_size = 20)
       : robot_(robot), window_size_(window_size) {
     Reset();
   }
@@ -96,18 +98,29 @@ class COMVelocityEstimator {
   }
 
   void Update() {
-    std::vector<MyScalar> velocity = robot_.GetBaseVelocity();
+    std::vector<MyScalar> velocity = robot_->GetBaseVelocity();
+//    std::cout << "com velocity=\n";
+//    std::cout << velocity[0] << ", " << velocity[1] << ", " <<
+//    velocity[2] <<
+//              ", " << std::endl;
     double vx = velocity_filter_x_.CalculateAverage(velocity[0]);
     double vy = velocity_filter_y_.CalculateAverage(velocity[1]);
     double vz = velocity_filter_z_.CalculateAverage(velocity[2]);
-
-    std::vector<MyScalar> base_orientation = robot_.GetBaseOrientation();
-    com_velocity_body_frame = robot_.TransfromAngularVelocityToLocalFrame
+//    std::cout << vx << ", " << vy << ", " << vz << ", " << std::endl;
+    std::vector<MyScalar> base_orientation = robot_->GetBaseOrientation();
+//    std::cout << base_orientation[0] << ", " << base_orientation[1] << ", "
+//              << base_orientation[2] <<
+//              ", " << base_orientation[3] << std::endl;
+    com_velocity_body_frame = robot_->TransfromAngularVelocityToLocalFrame
         ({vx, vy, vz}, base_orientation);
+//    std::cout << com_velocity_body_frame[0] << ", "
+//              << com_velocity_body_frame[1] << ", "
+//              << com_velocity_body_frame[2] <<
+//              ", " << std::endl;
   }
 
  private:
-  SimpleRobot robot_;
+  SimpleRobot* robot_;
   int window_size_;
   MovingWindowFilter velocity_filter_x_, velocity_filter_y_, velocity_filter_z_;
 };

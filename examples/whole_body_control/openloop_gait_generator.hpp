@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#pragma once
 
 #include <utility>
 #include <vector>
@@ -33,8 +34,8 @@ std::vector<LegState> LAIKAGO_TROTTING = {
 };
 double _NOMINAL_CONTACT_DETECTION_PHASE = 0.1;
 std::vector<double> _NOMINAL_STANCE_DURATION = {0.3, 0.3, 0.3, 0.3};
-std::vector<double> _NOMINAL_DUTY_FACTOR = {0.5, 0.5, 0.5, 0.5};
-std::vector<double> _INITIAL_LEG_PHASE = {0.0, 0.0, 0.0, 0.0};
+std::vector<double> _NOMINAL_DUTY_FACTOR = {0.6, 0.6, 0.6, 0.6};
+std::vector<double> _INITIAL_LEG_PHASE = {0.9, 0.0, 0.0, 0.9};
 
 // A flexible open-loop gait generator. Each leg has its own cycle and duty
 // factor. And the state of each leg alternates between stance and swing. One
@@ -43,8 +44,7 @@ std::vector<double> _INITIAL_LEG_PHASE = {0.0, 0.0, 0.0, 0.0};
 class OpenloopGaitGenerator {
 
  public:
-  std::vector<LegState> desired_leg_state_;
-  OpenloopGaitGenerator(const SimpleRobot& robot,
+  OpenloopGaitGenerator(SimpleRobot* robot,
                         std::vector<double> stance_duration =
                         _NOMINAL_STANCE_DURATION,
                         std::vector<double> duty_factor = _NOMINAL_DUTY_FACTOR,
@@ -61,10 +61,10 @@ class OpenloopGaitGenerator {
       contact_detection_phase_threshold_(contact_detection_phase_threshold) {
     CheckInputs();
 
-    swing_duration_.resize(robot_.GetNumLegs());
-    next_leg_state_.resize(robot_.GetNumLegs());
-    initial_state_ratio_in_cycle_.resize(robot_.GetNumLegs());
-    for (size_t leg_id = 0; leg_id < robot_.GetNumLegs(); leg_id++) {
+    swing_duration_.resize(robot_->GetNumLegs());
+    next_leg_state_.resize(robot_->GetNumLegs());
+    initial_state_ratio_in_cycle_.resize(robot_->GetNumLegs());
+    for (size_t leg_id = 0; leg_id < robot_->GetNumLegs(); leg_id++) {
       swing_duration_[leg_id] =
           stance_duration_[leg_id] / duty_factor_[leg_id] -
               stance_duration_[leg_id];
@@ -82,21 +82,25 @@ class OpenloopGaitGenerator {
   }
 
   void Reset() {
-    normalized_phase_ = std::vector<double>(robot_.GetNumLegs(), 0.0);
+    normalized_phase_ = std::vector<double>(robot_->GetNumLegs(), 0.0);
     leg_state_ = initial_leg_state_;
     desired_leg_state_ = initial_leg_state_;
   }
 
   void Update(double current_time) {
-    std::vector<bool> contact_state = robot_.GetFootContacts();
-    for (size_t leg_id = 0; leg_id < robot_.GetNumLegs(); leg_id++) {
+//    std::cout << "\ncurrent_time: " << current_time << std::endl;
+    std::vector<bool> contact_state = robot_->GetFootContacts();
+    for (size_t leg_id = 0; leg_id < robot_->GetNumLegs(); leg_id++) {
       double full_cycle_period = stance_duration_[leg_id] /
           duty_factor_[leg_id];
+//      std::cout << "full_cycle_period: " << full_cycle_period << std::endl;
       double augmented_time = current_time + initial_leg_phase_[leg_id] *
           full_cycle_period;
+//      std::cout << "augmented_time: " << augmented_time << std::endl;
       double phase_in_full_cycle = std::fmod(augmented_time,
                                              full_cycle_period)
           / full_cycle_period;
+//      std::cout << "phase_in_full_cycle: " << phase_in_full_cycle << std::endl;
       double ratio = initial_state_ratio_in_cycle_[leg_id];
       if (phase_in_full_cycle < ratio) {
         desired_leg_state_[leg_id] = initial_leg_state_[leg_id];
@@ -123,19 +127,35 @@ class OpenloopGaitGenerator {
     }
   }
 
+  std::vector<LegState> GetDesiredLegState() {
+    return desired_leg_state_;
+  }
+
+  std::vector<LegState> GetLegState() {
+    return leg_state_;
+  }
+
+  std::vector<double> GetStanceDuration() {
+    return stance_duration_;
+  }
+
+  std::vector<double> GetNormalizedPhase() {
+    return normalized_phase_;
+  }
 
  private:
-  SimpleRobot robot_;
+  SimpleRobot* robot_;
   std::vector<double> stance_duration_, duty_factor_, initial_leg_phase_,
       swing_duration_, initial_state_ratio_in_cycle_, normalized_phase_;
-  std::vector<LegState> initial_leg_state_, next_leg_state_, leg_state_;
+  std::vector<LegState> desired_leg_state_, leg_state_, initial_leg_state_,
+      next_leg_state_;
   double contact_detection_phase_threshold_;
 
   void CheckInputs() {
-    assert(stance_duration_.size() == robot_.GetNumLegs());
-    assert(duty_factor_.size() == robot_.GetNumLegs());
-    assert(initial_leg_phase_.size() == robot_.GetNumLegs());
-    assert(initial_leg_state_.size() == robot_.GetNumLegs());
+    assert(stance_duration_.size() == robot_->GetNumLegs());
+    assert(duty_factor_.size() == robot_->GetNumLegs());
+    assert(initial_leg_phase_.size() == robot_->GetNumLegs());
+    assert(initial_leg_state_.size() == robot_->GetNumLegs());
   }
 };
 
