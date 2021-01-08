@@ -177,26 +177,41 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   controller.reset()
   
   current_time = robot.GetTimeSinceReset()
-  
+
+  cnt = 0
+
+  np.set_printoptions(precision=8)
+
   while current_time < max_time:
+    print('\niteration ', cnt)
     
     # Updates the controller behavior parameters.
-    lin_speed, ang_speed = _generate_example_linear_angular_speed(current_time)
+    # TODO: change back
+    # lin_speed, ang_speed = _generate_example_linear_angular_speed(current_time)
     #lin_speed, ang_speed = (0., 0., 0.), 0.
+    lin_speed, ang_speed = (0., 0., 0.), 0.0
     _update_controller_params(controller, lin_speed, ang_speed)
 
     # Needed before every call to get_action().
     controller.update()
     hybrid_action, info = controller.get_action()
-    
+
+    # print("before step state ", "\nq=", robot.mb.q, "\nqd=", robot.mb.qd, "\ntau=", robot.mb.tau)
     robot.Step(hybrid_action)
+    # print("after step state ", "\nq=", robot.mb.q, "\nqd=", robot.mb.qd, "\ntau=", robot.mb.tau)
+
+
+    cnt += 1
+    if cnt == 305:
+        break
+
     
     #if record_video:
-    time.sleep(0.003)
+    # time.sleep(0.003)
     current_time = robot.GetTimeSinceReset()
-  
+
   timestr = time.strftime("%Y%m%d-%H%M%S")
-  controller._stance_leg_controller.dump("mpc_"+timestr)
+  # controller._stance_leg_controller.dump("mpc_"+timestr)
 
 def main(argv):
   del argv

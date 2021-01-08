@@ -29,21 +29,46 @@
 #include "urdf/urdf_to_multi_body.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
+#include "tiny_inverse_kinematics.h"
 
 namespace tds {
+
+enum MotorControlMode {
+  MOTOR_CONTROL_POSITION = 0,
+  MOTOR_CONTROL_TORQUE,
+  MOTOR_CONTROL_HYBRID
+};
 
 class SimpleRobot {
   typedef double MyScalar;
   typedef ::TINY::DoubleUtils MyTinyConstants;
   typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
+  typedef Transform<MyAlgebra> TinySpatialTransform;
 
   double knee_angle = -0.5;
   double abduction_angle = 0.2;
-  std::vector<double> initial_poses = {
+  std::vector<MyScalar> initial_poses = {
       abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
       abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
   };
   std::regex toe_name_pattern = std::regex("jtoe.*");
+  double laikago_default_abduction_angle = 0.0;
+  double laikago_default_hip_angle = 0.07;
+  double laikago_default_knee_angle = -1.25 + 0.66;
+  std::vector<MyScalar> init_motor_angles = {
+      laikago_default_abduction_angle, laikago_default_hip_angle,
+      laikago_default_knee_angle, laikago_default_abduction_angle,
+      laikago_default_hip_angle,
+      laikago_default_knee_angle, laikago_default_abduction_angle,
+      laikago_default_hip_angle,
+      laikago_default_knee_angle, laikago_default_abduction_angle,
+      laikago_default_hip_angle,
+      laikago_default_knee_angle,
+  };
+  std::vector<std::vector<double>> default_hip_positions = {
+      {0.21, -0.1157, 0}, {0.21, 0.1157, 0},
+      {-0.21, -0.1157, 0}, {-0.21, 0.1157, 0},
+  };
 
  public:
   SimpleRobot() {}
@@ -58,36 +83,45 @@ class SimpleRobot {
     SetupLaikago(meshcat_viz);
 
     forward_kinematics(*robot_mb_);
+    meshcat_viz.sync_visual_transforms(robot_mb_);
+
+    std::cout << "start settle down\n";
+    SettleDownForReset(meshcat_viz);
+    std::cout << "done settle down\n";
   }
 
-  void Step(std::vector<MyScalar> action,
+  void Reset() {
+    step_counter_ = 0;
+  }
+
+  void Step(const std::vector<MyScalar>& action,
+            const MotorControlMode& mode,
             MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz) {
-    printf("\n");
-    robot_mb_->print_state();
     forward_kinematics(*robot_mb_, robot_mb_->q(), robot_mb_->qd());
-    assert(action.size() == robot_mb_->tau().size());
-    for (size_t i = 0; i < action.size(); i++) {
-      robot_mb_->tau_[i] = action[i];
-    }
     forward_dynamics(*robot_mb_,
                      TINY::TinyVector3<
                          MyScalar, MyTinyConstants>(TINY::DoubleUtils::zero(),
                                                     TINY::DoubleUtils::zero(),
                                                     TINY::DoubleUtils::fraction(
-                                                        -981, 100)));
+                                                        -980, 100)));
+    ApplyAction(action, mode);
+
     integrate_euler_qdd(*robot_mb_, time_step_);
     world_.step(time_step_);
     integrate_euler(*robot_mb_, time_step_);
 
-    printf("\n");
-    robot_mb_->print_state();
-    meshcat_viz.sync_visual_transforms(robot_mb_);
+    skip_simulation_sync_cnt_--;
+    if (skip_simulation_sync_cnt_ <= 0) {
+      skip_simulation_sync_cnt_ = 16;
+      meshcat_viz.sync_visual_transforms(robot_mb_);
+    }
+
     step_counter_++;
   }
 
   // Returns the linear velocity of the robot's base.
   std::vector<MyScalar> GetBaseVelocity() {
-    return {robot_mb_->q(3), robot_mb_->q(4), robot_mb_->q(5)};
+    return {robot_mb_->qd(3), robot_mb_->qd(4), robot_mb_->qd(5)};
   }
 
   // Returns the angular velocity of the robot's base.
@@ -116,9 +150,9 @@ class SimpleRobot {
   // the angular velocity based on the given orientation in local (robot's)
   // frame.
   std::vector<MyScalar> TransfromAngularVelocityToLocalFrame
-      (std::vector<MyScalar> angular_velocity,
-       std::vector<MyScalar> orientation) {
-    Transform<MyAlgebra> tr;
+      (const std::vector<MyScalar>& angular_velocity,
+       const std::vector<MyScalar>& orientation) {
+    TinySpatialTransform tr;
     tr.translation = TINY::TinyVector3<MyScalar, MyTinyConstants>
         (MyTinyConstants::zero(),
          MyTinyConstants::zero(),
@@ -129,8 +163,8 @@ class SimpleRobot {
     tr.rotation.setRotation(orn);
     auto rel_vel = tr.apply_inverse(TINY::TinyVector3<MyScalar, MyTinyConstants>
                                         (angular_velocity[0],
-                                         angular_velocity[0],
-                                         angular_velocity[0]));
+                                         angular_velocity[1],
+                                         angular_velocity[2]));
     return TinyVector3ToVector(rel_vel);
   }
 
@@ -146,6 +180,27 @@ class SimpleRobot {
     return foot_positions;
   }
 
+  void ComputeMotorAnglesFromFootLocalPosition(
+      int leg_id, const std::vector<double>& foot_position,
+      std::vector<int>& joint_position_idxs, std::vector<double>&
+  joint_angles) {
+    assert(foot_link_ids_.size() == num_legs_);
+    int toe_id = foot_link_ids_[leg_id];
+    int motors_per_leg = num_motors_ / num_legs_;
+    joint_position_idxs.clear();
+    joint_position_idxs.resize(motors_per_leg);
+    for (size_t i = 0; i < motors_per_leg; i++) {
+      joint_position_idxs[i] = leg_id * motors_per_leg + i;
+    }
+
+    joint_angles = GetJointAnglesFromLinkPosition
+        (foot_position, toe_id, joint_position_idxs);
+  }
+
+  std::vector<std::vector<MyScalar>> GetHipPositionsinBaseFrame() {
+    return default_hip_positions;
+  }
+
   double GetTimeSinceReset() {
     return step_counter_ * time_step_;
   }
@@ -154,19 +209,30 @@ class SimpleRobot {
     return num_legs_;
   }
 
+  int GetNumMotors() {
+    return num_motors_;
+  }
+
   std::vector<bool> GetFootContacts() {
     return {false, false, false, false};
   }
 
+  void PrintRobotState() {
+    robot_mb_->print_state();
+  }
+
  private:
   double time_step_;
-  int step_counter_ = 0;
+  int step_counter_;
   int num_legs_ = 4;
   int num_motors_ = 12;
+  int skip_simulation_sync_cnt_ = 0;
+  double kp_ = 220.0;
+  double kd_ = 2.0;
   World<MyAlgebra> world_;
   MultiBodyConstraintSolver<MyAlgebra> mb_solver_;
   UrdfParser<MyAlgebra> parser_;
-  MultiBody<MyAlgebra> *plane_mb_, *robot_mb_;
+  MultiBody<MyAlgebra>* plane_mb_, * robot_mb_;
   std::vector<int> foot_link_ids_;
 
   // Loads the plane urdf, adds the multi_body to world_, and sets up
@@ -249,12 +315,11 @@ class SimpleRobot {
       }
     }
     robot_mb_->set_position(TINY::TinyVector3<double, TINY::DoubleUtils>(
-        0., 0., 0.6));
+        1.5, -2.0, 0.5));
+    robot_mb_->set_orientation(TINY::TinyQuaternion<MyScalar, MyTinyConstants>(
+        0.0, 0.0, 0.0, 1.0));
 
     BuildUrdfIds(urdf_structures);
-
-    printf("\n");
-    robot_mb_->print_state();
   }
 
   void BuildUrdfIds(const UrdfStructures<MyAlgebra>& urdf_structures) {
@@ -263,6 +328,48 @@ class SimpleRobot {
       auto joint = urdf_structures.joints[joint_id];
       if (std::regex_match(joint.joint_name, toe_name_pattern)) {
         foot_link_ids_.push_back(joint_id);
+      }
+    }
+  }
+
+  void SettleDownForReset(MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz) {
+    printf("before settle down\n");
+    robot_mb_->print_state();
+    for (size_t i = 0; i < 1500; i++) {
+      Step(init_motor_angles, MOTOR_CONTROL_POSITION, meshcat_viz);
+    }
+    printf("after settle down\n");
+    robot_mb_->print_state();
+  }
+
+  void ApplyAction(const std::vector<MyScalar>& action,
+                   const MotorControlMode& mode) {
+    if (mode == MOTOR_CONTROL_TORQUE) {
+      assert(action.size() == num_motors_);
+      for (size_t i = 0; i < action.size(); i++) {
+        robot_mb_->tau_[i] = action[i];
+      }
+    } else if (mode == MOTOR_CONTROL_POSITION) {
+      assert(action.size() == num_motors_);
+      for (size_t i = 0; i < action.size(); i++) {
+        robot_mb_->tau_[i] =
+            -1 * (kp_ * (robot_mb_->q(i + 7) - action[i])) - kd_ *
+                robot_mb_->qd(i + 6);
+      }
+    } else if (mode == MOTOR_CONTROL_HYBRID) {
+      assert(action.size() == 5 * num_motors_);
+      for (size_t motor_id = 0; motor_id < num_motors_; motor_id++) {
+        double desired_motor_angle = action[motor_id * 5];
+        double kp = action[motor_id * 5 + 1];
+        double desried_motor_velocity = action[motor_id * 5 + 2];
+        double kd = action[motor_id * 5 + 3];
+        double additional_torque = action[motor_id * 5 + 4];
+        double torque =
+            -1 * (kp * (robot_mb_->q(motor_id + 7) - desired_motor_angle))
+                - kd *
+                    (robot_mb_->qd(motor_id + 6) - desried_motor_velocity)
+                + additional_torque;
+        robot_mb_->tau_[motor_id] = torque;
       }
     }
   }
@@ -282,6 +389,56 @@ class SimpleRobot {
   static std::vector<MyScalar> TinyVector3ToVector(const TINY::TinyVector3<
       MyScalar, MyTinyConstants>& tiny_vector3) {
     return {tiny_vector3[0], tiny_vector3[1], tiny_vector3[2]};
+  }
+
+  // Uses Inverse Kinematics to calculate joint angles.
+  std::vector<double> GetJointAnglesFromLinkPosition(
+      const std::vector<double>& link_position,
+      int link_id,
+      const std::vector<int>& joint_ids) {
+    Transform base_world_tr = robot_mb_->get_world_transform(-1);
+    TinySpatialTransform local_base_tr;
+    local_base_tr.translation =
+        TINY::TinyVector3<MyScalar, MyTinyConstants>(TINY::DoubleUtils::zero(),
+                                                     TINY::DoubleUtils::zero(),
+                                                     TINY::DoubleUtils::zero());
+    local_base_tr.rotation.setRotation(
+        TINY::TinyQuaternion<MyScalar, MyTinyConstants>(
+            0.0, 0.0, 0.0, 1.0));
+    Transform world_tr = base_world_tr * local_base_tr;
+    TinySpatialTransform local_link_tr;
+    local_link_tr.rotation.set_identity();
+    local_link_tr.translation =
+        TINY::TinyVector3<MyScalar, MyTinyConstants>(link_position[0],
+                                                     link_position[1],
+                                                     link_position[2]);
+    Transform link_tr = world_tr * local_link_tr;
+    std::vector<double> world_link_pos = {link_tr.translation[0], link_tr
+        .translation[1], link_tr.translation[2]};
+    TINY::TinyVector3<MyScalar, MyTinyConstants> target_world_pos(
+        world_link_pos[0], world_link_pos[1], world_link_pos[2]
+    );
+
+    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_PINV>
+        inverse_kinematics;
+    inverse_kinematics.weight_reference = MyTinyConstants::fraction(0, 10);
+    // step size
+    inverse_kinematics.alpha = MyTinyConstants::fraction(3, 10);
+    inverse_kinematics.targets.emplace_back(link_id, target_world_pos);
+    inverse_kinematics.q_reference = robot_mb_->q();
+    MyAlgebra::VectorX all_joint_angles2;
+    inverse_kinematics.compute(*robot_mb_, robot_mb_->q(), all_joint_angles2);
+
+    std::vector<MyScalar> vec;
+    for (size_t i = 0; i < all_joint_angles2.size() - 7; i++) {
+      vec.push_back(all_joint_angles2[i + 7]);
+    }
+    // Extract the relevant joint angles.
+    std::vector<double> joint_angles;
+    for (int joint_id : joint_ids) {
+      joint_angles.push_back(vec[joint_id]);
+    }
+    return joint_angles;
   }
 
 };
