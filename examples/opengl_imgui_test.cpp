@@ -630,7 +630,7 @@ uint16_t reverb_buffer[65536];
 int main(int argc, char* argv[]) {
     
     
-    TinyOpenGL3App app("test", 1500, 1200);// 1024, 768);
+    TinyOpenGL3App app("test", 1024, 768);
     app.m_renderer->init();
     
     TinyChromeUtilsStartTimings();
@@ -723,12 +723,14 @@ int main(int argc, char* argv[]) {
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    float SCALE = 2.0f;
-    ImFontConfig cfg;
-    cfg.SizePixels = 13 * SCALE;
-    ImGui::GetIO().Fonts->AddFontDefault(&cfg)->DisplayOffset.y = SCALE;
-    ImGui::GetStyle().ScaleAllSizes(2);
-    
+    if (0)
+    {
+      float SCALE = 2.0f;
+      ImFontConfig cfg;
+      cfg.SizePixels = 13 * SCALE;
+      ImGui::GetIO().Fonts->AddFontDefault(&cfg)->DisplayOffset.y = SCALE;
+      ImGui::GetStyle().ScaleAllSizes(2);
+    }
     //ImGui::StyleColorsClassic();
     const char* glsl_version = "#version 330";
 
