@@ -36,7 +36,7 @@ target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_part
 target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party ../src)
 
 add_executable(opengl_imgui_test opengl_imgui_test.cpp ../third_party/dear_imgui/opengl3/imgui_impl_opengl3.cpp  ${TDS_HDRS})
-target_link_libraries(opengl_imgui_test opengl_window dear_imgui TinyAudio CloudSeed ${CMAKE_DL_LIBS})
+target_link_libraries(opengl_imgui_test opengl_window dear_imgui  ${CMAKE_DL_LIBS})
 target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../third_party/dear_imgui ../src)
 
 IF(USE_CPPAD)
