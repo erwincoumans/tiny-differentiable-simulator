@@ -18,6 +18,7 @@ struct Transform {
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
   using Matrix6 = typename Algebra::Matrix6;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
   using RigidBodyInertia = tds::RigidBodyInertia<Algebra>;
   using ArticulatedBodyInertia = tds::ArticulatedBodyInertia<Algebra>;
   typedef tds::MotionVector<Algebra> MotionVector;
@@ -271,6 +272,29 @@ struct Transform {
     outVec.top = E * (n - Algebra::cross(translation, f));
     outVec.bottom = E * f;
     return outVec;
+  }
+
+  /**
+   * F = fv(n, f)
+   * X^* F = fv(E(n - rxf), Ef)
+   */
+  inline Matrix6x3 apply(const Matrix6x3 &inMat) const {
+#if RIGHT_ASSOCIATIVE_TRANSFORMS
+    const Matrix3 &Et = rotation;
+#else
+    Matrix3 Et = Algebra::transpose(rotation);
+#endif
+
+    Matrix6x3 outMat;
+    Matrix3 top = Et * Algebra::top(inMat);
+    Matrix3 bottom = Et * Algebra::bottom(inMat);
+
+    top += Algebra::cross_matrix(translation) * bottom;
+
+    Algebra::assign_block(outMat, top, 0, 0);
+    Algebra::assign_block(outMat, bottom, 3, 0);
+
+    return outMat;
   }
 
   /**

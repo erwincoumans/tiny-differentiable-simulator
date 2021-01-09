@@ -22,12 +22,13 @@ void forward_kinematics(
     const typename Algebra::VectorX &qdd = typename Algebra::VectorX()) {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
+  using VectorX = typename Algebra::VectorX;
   typedef tds::Transform<Algebra> Transform;
   typedef tds::MotionVector<Algebra> MotionVector;
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::Link<Algebra> Link;
 
-  assert(Algebra::size(q) == mb.dof());
+  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
   assert(Algebra::size(qd) == 0 || Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == 0 || Algebra::size(qdd) == mb.dof_qd());
 
@@ -55,8 +56,10 @@ void forward_kinematics(
     int parent = link.parent_index;
 
     // update joint transforms, joint velocity (if available)
-    Scalar q_val = mb.get_q_for_link(q, i);
-    Scalar qd_val = mb.get_qd_for_link(qd, i);
+//    Scalar q_val = mb.get_q_for_link(q, i);
+//    Scalar qd_val = mb.get_qd_for_link(qd, i);
+    VectorX q_val = mb.get_q_for_link(q, i);
+    VectorX qd_val = mb.get_qd_for_link(qd, i);
     link.jcalc(q_val, qd_val);
 
     // std::cout << "Link " << i << " transform: " << link.X_parent <<
@@ -159,12 +162,13 @@ void forward_kinematics_q(
     std::vector<tds::Transform<Algebra>> *links_X_base = nullptr) {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
+  using VectorX = typename Algebra::VectorX;
   typedef tds::Transform<Algebra> Transform;
   typedef tds::MotionVector<Algebra> MotionVector;
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::Link<Algebra> Link;
 
-  assert(Algebra::size(q) == mb.dof());
+  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
   assert(base_X_world != nullptr);
 
   if (mb.is_floating()) {
@@ -183,7 +187,8 @@ void forward_kinematics_q(
     const Link &link = mb[i];
     int parent = link.parent_index;
 
-    Scalar q_val = mb.get_q_for_link(q, i);
+//    Scalar q_val = mb.get_q_for_link(q, i);
+    VectorX q_val = mb.get_q_for_link(q, i);
     link.jcalc(q_val, &x_j, &x_parent);
 
     if (parent >= 0 || mb.is_floating()) {

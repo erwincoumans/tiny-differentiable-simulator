@@ -12,18 +12,27 @@ add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_eigen_gui opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_eigen_gui PRIVATE ../src)
 
-add_executable(laikago_opengl_eigen_example laikago_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS}) 
-target_link_libraries(laikago_opengl_eigen_example  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS}) 
+add_executable(spherical_joint_test_eigen spherical_joint_test.cpp  ${TDS_HDRS})
+target_link_libraries(spherical_joint_test_eigen opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
+target_include_directories(spherical_joint_test_eigen PRIVATE ../src)
+
+add_executable(laikago_opengl_eigen_example laikago_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
+target_link_libraries(laikago_opengl_eigen_example  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(laikago_opengl_eigen_example PRIVATE ../third_party/tinyobjloader)
 target_include_directories(laikago_opengl_eigen_example PRIVATE ../third_party ../src)
 
-add_executable(laikago_opengl_tiny_example laikago_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS}) 
-target_link_libraries(laikago_opengl_tiny_example  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS}) 
+add_executable(laikago_opengl_tiny_example laikago_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
+target_link_libraries(laikago_opengl_tiny_example  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(laikago_opengl_tiny_example PRIVATE ../third_party/tinyobjloader)
 target_include_directories(laikago_opengl_tiny_example PRIVATE ../third_party ../src)
 target_compile_definitions(laikago_opengl_tiny_example PRIVATE USE_TINY )
 
 endif()
+
+add_executable(spherical_joint_test spherical_joint_test.cpp  ${TDS_HDRS})
+target_link_libraries(spherical_joint_test opengl_window ${CMAKE_DL_LIBS})
+target_compile_definitions(spherical_joint_test PRIVATE USE_TINY )
+target_include_directories(spherical_joint_test PRIVATE ../src)
 
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
@@ -54,7 +63,7 @@ IF(USE_CPPAD)
   if (USE_STAN)
     target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
   endif(USE_STAN)
-  
+
   add_executable(cuda_laikago_codegen cuda_laikago_codegen.cpp ${TDS_HDRS})
   target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD)
   target_link_libraries(

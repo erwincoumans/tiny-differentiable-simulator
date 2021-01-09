@@ -5,6 +5,7 @@
 #include "../spatial_vector.hpp"
 #include "tiny_matrix3x3.h"
 #include "tiny_matrix6x6.h"
+#include "tiny_matrix6x3.h"
 #include "tiny_matrix_x.h"
 #include "tiny_quaternion.h"
 #include "tiny_vector3.h"
@@ -22,6 +23,7 @@ struct TinyAlgebra {
   using Matrix3 = ::TINY::TinyMatrix3x3<TinyScalar, TinyConstants>;
   using Matrix6 = ::TINY::TinyMatrix6x6<TinyScalar, TinyConstants>;
   using Matrix3X = ::TINY::TinyMatrix3xX<TinyScalar, TinyConstants>;
+  using Matrix6x3 = ::TINY::TinyMatrix6x3<TinyScalar, TinyConstants>;
   using MatrixX = ::TINY::TinyMatrixXxX<TinyScalar, TinyConstants>;
   using Quaternion = ::TINY::TinyQuaternion<TinyScalar, TinyConstants>;
   using SpatialVector = tds::SpatialVector<TinyAlgebra>;
@@ -122,20 +124,61 @@ struct TinyAlgebra {
   TINY_INLINE static Scalar dot(const ForceVector &a, const MotionVector &b) {
     return dot(b, a);
   }
+  /**
+   * Multiplication of a matrix6x3 with a force/motion vector handles the operation as a multiplication with the
+   * transpose of the matrix.
+   * @param a [6x3] matrix
+   * @param b MotionVector or ForceVector
+   * @return Vector3
+   */
+  TINY_INLINE static Vector3 dot(const Matrix6x3 &a,
+                                 const ForceVector &b) {
+    Vector3 res;
+    res = a.m_top.transpose() * b.top + a.m_bottom.transpose() * b.bottom;
+    return res;
+  }
+  TINY_INLINE static Vector3 dot(const Matrix6x3 &a,
+                                 const MotionVector &b) {
+    Vector3 res;
+    res = a.m_top.transpose() * b.top + a.m_bottom.transpose() * b.bottom;
+    return res;
+  }
 
   template <typename T1, typename T2>
   TINY_INLINE static auto dot(const T1 &vector_a, const T2 &vector_b) {
     return vector_a.dot(vector_b);
   }
 
-  template <template <typename, typename> typename ColumnType>
-  TINY_INLINE static VectorX mul_transpose(
-      const ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &mat,
-      const ColumnType<TinyScalar, TinyConstants> &vec) {
-    return mat.mul_transpose(vec);
-  }
+    template <template <typename, typename> typename ColumnType>
+    TINY_INLINE static VectorX mul_transpose(
+            const ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &mat,
+            const ColumnType<TinyScalar, TinyConstants> &vec) {
+        return mat.mul_transpose(vec);
+    }
+/**
+     * Multiplication of a 6x3 matrix with a Vector3 returns a force vector
+     * @param a
+     * @param b
+     * @return
+     */
+    TINY_INLINE static ForceVector mul_2_force_vector(
+            const Matrix6x3 &mat,
+            const Vector3 &vec) {
+        ForceVector res;
+        res.top = mat.m_top * vec;
+        res.bottom = mat.m_bottom * vec;
+        return res;
+    }
+    TINY_INLINE static MotionVector mul_2_motion_vector(
+            const Matrix6x3 &mat,
+            const Vector3 &vec) {
+        MotionVector res;
+        res.top = mat.m_top * vec;
+        res.bottom = mat.m_bottom * vec;
+        return res;
+    }
 
-  TINY_INLINE static Scalar norm(const MotionVector &v) {
+    TINY_INLINE static Scalar norm(const MotionVector &v) {
     return TinyConstants::sqrt1(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] +
                                 v[3] * v[3] + v[4] * v[4] + v[5] * v[5]);
   }
@@ -229,6 +272,14 @@ struct TinyAlgebra {
     return mat.block(start_row_index, start_col_index, rows, cols);
   }
 
+  TINY_INLINE static Matrix3 top(const Matrix6x3 &mat) {
+    return mat.m_top;
+  }
+
+  TINY_INLINE static Matrix3 bottom(const Matrix6x3 &mat) {
+    return mat.m_bottom;
+  }
+
   template <template <typename, typename> typename VectorType>
   TINY_INLINE static void assign_horizontal(
       MatrixX &mat, const VectorType<TinyScalar, TinyConstants> &vec,
@@ -280,14 +331,41 @@ struct TinyAlgebra {
     }
   }
 
+  TINY_INLINE static void assign_block(Matrix6x3 &output, const Matrix3 &input,
+                                       Index i, Index j, Index m = 3,
+                                       Index n = 3, Index input_i = 0,
+                                       Index input_j = 0) {
+      if (i == 0) {
+          output.m_top = input;
+      } else {
+          output.m_bottom = input;
+      }
+  }
+
   template <template <typename, typename> typename ColumnType>
   TINY_INLINE static void assign_block(
-      ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
-      const Matrix3 &input, Index i, Index j, Index m = 3, Index n = 3,
-      Index input_i = 0, Index input_j = 0) {
+          ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
+          const Matrix3 &input, Index i, Index j, Index m = 3, Index n = 3,
+          Index input_i = 0, Index input_j = 0) {
     for (int ii = 0; ii < m; ++ii) {
       for (int jj = 0; jj < n; ++jj) {
         output(ii + i, jj + j) = input(ii + input_i, jj + input_j);
+      }
+    }
+  }
+
+  template <template <typename, typename> typename ColumnType>
+  TINY_INLINE static void assign_block(
+          ::TINY::TinyMatrixXxX_<TinyScalar, TinyConstants, ColumnType> &output,
+          const Matrix6x3 &input, Index i, Index j, Index m = 6, Index n = 3,
+          Index input_i = 0, Index input_j = 0) {
+    for (int ii = 0; ii < m; ++ii) {
+      for (int jj = 0; jj < n; ++jj) {
+        if (input.m_tranposed){
+          output(jj + j, ii + i) = input(ii + input_i, jj + input_j);
+        }else {
+          output(ii + i, jj + j) = input(ii + input_i, jj + input_j);
+        }
       }
     }
   }
@@ -350,6 +428,11 @@ struct TinyAlgebra {
       m(i, j) = v[j];
     }
   }
+  TINY_INLINE static void assign_row(Matrix6x3 &m, Index i, const Vector3 &v) {
+    for (int j = 0; j < 3; ++j) {
+      m(i, j) = v[j];
+    }
+  }
   TINY_INLINE static void assign_row(Matrix6 &m, Index i,
                                      const SpatialVector &v) {
     for (int j = 0; j < 6; ++j) {
@@ -386,6 +469,23 @@ struct TinyAlgebra {
     Quaternion quat;
     quat.setRotation(axis, angle);
     return quat;
+  }
+  TINY_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
+      Vector3 qv(quat.getX(), quat.getY(), quat.getZ());
+      Scalar qv_norm = qv.length();
+      Scalar theta = two() * TinyConstants::atan2(qv_norm, quat.getW());
+
+      if (qv_norm < pow(Scalar(std::numeric_limits<double>::epsilon()), fraction(1, 4))){
+          return one()/(half() + theta*theta*fraction(1, 48)) * qv;
+      }
+
+      return (theta / qv_norm) * qv;
+  }
+  TINY_INLINE static Scalar quaternion_angle(const Quaternion quat) {
+      Vector3 qv(quat.getX(), quat.getY(), quat.getZ());
+      Scalar qv_norm = qv.length();
+      Scalar theta = two() * TinyConstants::atan2(qv_norm, quat.getW());
+      return theta;
   }
   TINY_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {
     Matrix3 m;
@@ -451,6 +551,7 @@ struct TinyAlgebra {
   }
 
   TINY_INLINE static void set_zero(Matrix3 &m) { m.set_zero(); }
+  TINY_INLINE static void set_zero(Matrix6x3 &m) { m.set_zero(); }
   template <typename S, typename U,
             template <typename, typename> typename ColumnType>
   TINY_INLINE static void set_zero(::TINY::TinyMatrixXxX_<S, U, ColumnType> &m) {

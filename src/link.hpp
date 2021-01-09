@@ -16,6 +16,7 @@ enum JointType {
   JOINT_REVOLUTE_Y,
   JOINT_REVOLUTE_Z,
   JOINT_REVOLUTE_AXIS,
+  JOINT_SPHERICAL,
   JOINT_INVALID,
 };
 
@@ -28,7 +29,10 @@ struct Link {
   typedef tds::ArticulatedBodyInertia<Algebra> ArticulatedBodyInertia;
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
+  using VectorX = typename Algebra::VectorX;
+  using Quaternion = typename Algebra::Quaternion;
   using Matrix3 = typename Algebra::Matrix3;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
 
   JointType joint_type{JOINT_REVOLUTE_Z};
 
@@ -52,6 +56,13 @@ struct Link {
   mutable Scalar D;       // temp var in ABA, page 130
   mutable Scalar u;       // temp var in ABA, page 130
   mutable ForceVector f;  // temp var in RNEA, page 183
+
+  /// Multi DoF variables
+  Matrix6x3 S_3d;          // 3 DoF joint motion subspace (spatial joint axis/matrix)
+  mutable Matrix6x3 U_3d;  // temp var in ABA, page 130, for 3 DoF joints
+  mutable Matrix3 D_3d;       // temp var in ABA, page 130, for 3 DoF joints
+  mutable Matrix3 invD_3d;    // Create a container for the inverse of D to avoid recalculating the inverse
+  mutable Vector3 u_3d;       // temp var in ABA, page 130, for 3 DoF joints
 
   ForceVector f_ext;  // user-defined external force in world frame
 
@@ -113,7 +124,9 @@ struct Link {
   void set_joint_type(JointType type,
                       const Vector3 &axis = Algebra::unit3_x()) {
     joint_type = type;
-    S.set_zero();
+    if (joint_type != JOINT_SPHERICAL) {
+        S.set_zero();
+    }
     switch (joint_type) {
       case JOINT_PRISMATIC_X:
         S.bottom[0] = Algebra::one();
@@ -151,6 +164,14 @@ struct Link {
         }
         S.top = axis;
         break;
+      case JOINT_SPHERICAL:
+          Algebra::set_zero(S_3d);
+//          Matrix3 S_top = Algebra::zero3();
+//          Algebra::assign_row(S_3d, 0, Vector3(0., 0., 1.));
+//        Algebra::assign_row(S_3d, 1, Vector3(0., 1., 0. ));
+//        Algebra::assign_row(S_3d, 2, Vector3(1., 0., 0.));
+          Algebra::assign_block(S_3d, Algebra::eye3(), 0, 0);
+          break;
       case JOINT_FIXED:
         break;
       default:
@@ -158,8 +179,7 @@ struct Link {
                 "Error: unknown joint type encountered in " __FILE__ ":%i\n",
                 __LINE__);
     }
-
-    if (joint_type != JOINT_FIXED)
+    if (joint_type != JOINT_FIXED && joint_type != JOINT_SPHERICAL)
     {
         if (Algebra::norm(S) == Algebra::zero()) {
             fprintf(stderr,
@@ -171,6 +191,148 @@ struct Link {
     }
   }
 
+  // Updated jcalc functions for multi DoF joints
+  inline void jcalc(const Quaternion &q, Transform *X_J, Transform *X_parent) const {
+      X_J->set_identity();
+      X_parent->set_identity();
+
+      switch (joint_type) {
+          case JOINT_SPHERICAL:
+              X_J->rotation = Algebra::quat_to_matrix(q);
+              break;
+          default:
+              fprintf(stderr,
+                      "Error: unknown joint type encountered in " __FILE__ ":%i\n",
+                      __LINE__);
+      }
+
+#if SWAP_TRANSFORM_ASSOCIATIVITY
+      *X_parent = (*X_J) * X_T;
+#else
+      *X_parent = X_T * (*X_J);
+#endif
+  }
+
+  inline void jcalc(const Vector3 &qd, MotionVector *v_J) const {
+        switch (joint_type) {
+            case JOINT_SPHERICAL:
+                v_J->top = qd;
+                break;
+            default:
+                fprintf(stderr,
+                        "Error: unknown joint type encountered in " __FILE__ ":%i\n",
+                        __LINE__);
+        }
+    }
+
+  void jcalc(const VectorX &q, Transform *X_J, Transform *X_parent) const {
+        X_J->set_identity();
+        X_parent->set_identity();
+        switch (joint_type) {
+            case JOINT_PRISMATIC_X:
+                X_J->translation[0] = q[0];
+                break;
+            case JOINT_PRISMATIC_Y:
+                X_J->translation[1] = q[0];
+                break;
+            case JOINT_PRISMATIC_Z:
+                X_J->translation[2] = q[0];
+                break;
+            case JOINT_PRISMATIC_AXIS: {
+                const Vector3 &axis = S.bottom;
+                X_J->translation = axis * q[0];
+                break;
+            }
+            case JOINT_REVOLUTE_X:
+                X_J->rotation = Algebra::rotation_x_matrix(q[0]);
+                break;
+            case JOINT_REVOLUTE_Y:
+                X_J->rotation = Algebra::rotation_y_matrix(q[0]);
+                break;
+            case JOINT_REVOLUTE_Z:
+                X_J->rotation = Algebra::rotation_z_matrix(q[0]);
+                break;
+            case JOINT_REVOLUTE_AXIS: {
+                const Vector3 &axis = S.top;
+                const auto quat = Algebra::axis_angle_quaternion(axis, q[0]);
+                X_J->rotation = Algebra::quat_to_matrix(quat);
+                break;
+            }
+            case JOINT_SPHERICAL: {
+                const auto quat = Algebra::quat_from_xyzw(q[0], q[1], q[2], q[3]);
+                X_J->rotation = Algebra::quat_to_matrix(quat);
+                break;
+            }
+            case JOINT_FIXED:
+                // Transform is set to identity in its constructor already
+                // and never changes.
+                break;
+            default:
+                fprintf(stderr,
+                        "Error: Unknown joint type encountered in " __FILE__ ":%i\n",
+                        __LINE__);
+        }
+#if SWAP_TRANSFORM_ASSOCIATIVITY
+        *X_parent = (*X_J) * X_T;
+#else
+
+
+        //X_T.print("X_T");
+        //X_J->print("X_J");
+        *X_parent = X_T * (*X_J);
+        //X_parent->print("X_parent");
+
+#endif
+    }
+
+  inline void jcalc(const VectorX &qd, MotionVector *v_J) const {
+        switch (joint_type) {
+            case JOINT_PRISMATIC_X:
+                v_J->bottom[0] = qd[0];
+                break;
+            case JOINT_PRISMATIC_Y:
+                v_J->bottom[1] = qd[0];
+                break;
+            case JOINT_PRISMATIC_Z:
+                v_J->bottom[2] = qd[0];
+                break;
+            case JOINT_PRISMATIC_AXIS: {
+                const Vector3 &axis = S.bottom;
+                v_J->bottom = axis * qd[0];
+                break;
+            }
+            case JOINT_REVOLUTE_X:
+                v_J->top[0] = qd[0];
+                break;
+            case JOINT_REVOLUTE_Y:
+                v_J->top[1] = qd[0];
+                break;
+            case JOINT_REVOLUTE_Z:
+                v_J->top[2] = qd[0];
+                break;
+            case JOINT_REVOLUTE_AXIS: {
+                const Vector3 &axis = S.top;
+                v_J->top = axis * qd[0];
+                break;
+            }
+            case JOINT_SPHERICAL:
+                v_J->top = Vector3(qd[0], qd[1], qd[2]);
+                break;
+            case JOINT_FIXED:
+                break;
+            default:
+                fprintf(stderr,
+                        "Error: Unknown joint type encountered in " __FILE__ ":%i\n",
+                        __LINE__);
+        }
+    }
+    inline void jcalc(const VectorX &q) const { jcalc(q, &X_J, &X_parent); }
+    inline void jcalc(const VectorX &q, const VectorX &qd) const {
+        jcalc(q);
+        jcalc(qd, &vJ);
+    }
+
+  // Old jcalc functions
   inline void jcalc1(Scalar q) { jcalc(q, &X_J, &X_parent); }
 
   void jcalc(const Scalar &q, Transform *X_J, Transform *X_parent) const {
