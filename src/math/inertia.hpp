@@ -97,6 +97,7 @@ struct ArticulatedBodyInertia {
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
   using Matrix6 = typename Algebra::Matrix6;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
   typedef tds::MotionVector<Algebra> MotionVector;
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::RigidBodyInertia<Algebra> RigidBodyInertia;
@@ -201,11 +202,19 @@ struct ArticulatedBodyInertia {
    * Ia*v = mv(Iw + Hv, Mv + H^T w)
    */
   ForceVector operator*(const MotionVector &v) const {
-    ForceVector result;
-    result.top = I * v.top + H * v.bottom;
-    result.bottom = M * v.bottom + Algebra::transpose(H) * v.top;
-    return result;
+      ForceVector result;
+      result.top = I * v.top + H * v.bottom;
+      result.bottom = M * v.bottom + Algebra::transpose(H) * v.top;
+      return result;
   }
+    Matrix6x3 operator*(const Matrix6x3 &v) const {
+        Matrix6x3 result;
+        Matrix3 temp = I * Algebra::top(v) + H * Algebra::bottom(v);
+        Algebra::assign_block(result, temp, 0, 0);
+        temp = M * Algebra::bottom(v) + Algebra::transpose(H) * Algebra::top(v);
+        Algebra::assign_block(result, temp, 3, 0);
+        return result;
+    }
 
   ForceVector mul_org(const MotionVector &v) const {
     ForceVector result;
@@ -334,6 +343,27 @@ struct ArticulatedBodyInertia {
     }
     return abi;
   }
+
+    /**
+     * Multiplies Matrix6x3 a and b as a * b^T, resulting in a 6x6 matrix.
+     */
+    static ArticulatedBodyInertia mul_transpose(const Matrix6x3 &a,
+                                                const Matrix6x3 &b) {
+      // printf("mul_transpose:\n");
+      // Algebra::print("a", a);
+      // Algebra::print("b", b);
+      ArticulatedBodyInertia abi;
+      abi.I = Algebra::top(a) * Algebra::top(b).transpose();
+      abi.M = Algebra::bottom(a) * Algebra::bottom(b).transpose();
+      abi.H = Algebra::top(a) * Algebra::bottom(b).transpose();
+
+//#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+//        abi.H = Htemp.transpose();
+//#else
+//        abi.H = Htemp;
+//#endif
+        return abi;
+    }
 
   void print(const char *name) const {
     printf("%s\n", name);
