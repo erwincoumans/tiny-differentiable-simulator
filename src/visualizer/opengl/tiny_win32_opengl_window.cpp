@@ -133,7 +133,7 @@ init_opengl_extensions(void)
 
 void TinyWin32OpenGLWindow::enableOpenGL() {
 
-  init_opengl_extensions();
+  //init_opengl_extensions();
 
   PIXELFORMATDESCRIPTOR pfd;
   int format;
