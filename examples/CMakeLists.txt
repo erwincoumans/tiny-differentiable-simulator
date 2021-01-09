@@ -8,6 +8,7 @@ target_compile_definitions(pendulum_example_tiny_gui PRIVATE USE_TINY )
 target_include_directories(pendulum_example_tiny_gui PRIVATE ../src )
 
 if (Eigen3_FOUND)
+message("YES")
 add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_eigen_gui opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_eigen_gui PRIVATE ../src)
@@ -29,11 +30,13 @@ target_compile_definitions(laikago_opengl_tiny_example PRIVATE USE_TINY )
 
 endif()
 
-add_executable(spherical_joint_test spherical_joint_test.cpp  ${TDS_HDRS})
-target_link_libraries(spherical_joint_test opengl_window ${CMAKE_DL_LIBS})
-target_compile_definitions(spherical_joint_test PRIVATE USE_TINY )
-target_include_directories(spherical_joint_test PRIVATE ../src)
-
+# spherical_joint_test using Tiny is broken
+IF(0)
+    add_executable(spherical_joint_test spherical_joint_test.cpp  ${TDS_HDRS})
+    target_link_libraries(spherical_joint_test opengl_window ${CMAKE_DL_LIBS})
+    target_compile_definitions(spherical_joint_test PRIVATE USE_TINY )
+    target_include_directories(spherical_joint_test PRIVATE ../src)
+ENDIF()
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(billiard_opt_example_gui PRIVATE ../src)
