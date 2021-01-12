@@ -88,19 +88,15 @@ class OpenloopGaitGenerator {
   }
 
   void Update(double current_time) {
-//    std::cout << "\ncurrent_time: " << current_time << std::endl;
     std::vector<bool> contact_state = robot_->GetFootContacts();
     for (size_t leg_id = 0; leg_id < robot_->GetNumLegs(); leg_id++) {
       double full_cycle_period = stance_duration_[leg_id] /
           duty_factor_[leg_id];
-//      std::cout << "full_cycle_period: " << full_cycle_period << std::endl;
       double augmented_time = current_time + initial_leg_phase_[leg_id] *
           full_cycle_period;
-//      std::cout << "augmented_time: " << augmented_time << std::endl;
       double phase_in_full_cycle = std::fmod(augmented_time,
                                              full_cycle_period)
           / full_cycle_period;
-//      std::cout << "phase_in_full_cycle: " << phase_in_full_cycle << std::endl;
       double ratio = initial_state_ratio_in_cycle_[leg_id];
       if (phase_in_full_cycle < ratio) {
         desired_leg_state_[leg_id] = initial_leg_state_[leg_id];

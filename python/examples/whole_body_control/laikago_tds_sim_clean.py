@@ -34,8 +34,8 @@ MPC_BODY_HEIGHT = 0.42
 
 MPC_VELOCITY_MULTIPLIER = 1.0
 
-# TODO: change back to 10
-ACTION_REPEAT = 1
+
+ACTION_REPEAT = 10
 
 _IDENTITY_ORIENTATION=[0,0,0,1]
 CHASSIS_NAME_PATTERN = re.compile(r"\w+_chassis_\w+")
@@ -318,7 +318,10 @@ class SimpleRobot(object):
     dp.forward_kinematics(self.mb, self.mb.q, self.mb.qd)
     meshcat_utils_dp.sync_visual_transforms(self.mb, self.b2vis, self.vis)
     
+    
     self._SettleDownForReset(reset_time=1.0)
+    
+
     
   def ResetPose(self):
     pass
@@ -331,7 +334,6 @@ class SimpleRobot(object):
       self._StepInternal(
           INIT_MOTOR_ANGLES,
           motor_control_mode=MOTOR_CONTROL_POSITION)
-    print("after settle down", "\nq=", self.mb.q, "\nqd=", self.mb.qd, "\ntau=", self.mb.tau, "\n")
         
   def _GetMotorNames(self):
     return MOTOR_NAMES
@@ -655,7 +657,7 @@ class SimpleRobot(object):
     """
     
     dp.forward_kinematics(self.mb, self.mb.q, self.mb.qd)
-    dp.forward_dynamics(self.mb, dp.TinyVector3(0.,0.,-9.8))
+    dp.forward_dynamics(self.mb, dp.TinyVector3(0.,0.,-10.))
 
     mb_q = vecx_to_np(self.mb.q)[7:]
     mb_qd = vecx_to_np(self.mb.qd)[6:]

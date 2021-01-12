@@ -333,8 +333,6 @@ class SimpleRobot {
   }
 
   void SettleDownForReset(MeshcatUrdfVisualizer<MyAlgebra>& meshcat_viz) {
-    printf("before settle down\n");
-    robot_mb_->print_state();
     for (size_t i = 0; i < 1500; i++) {
       Step(init_motor_angles, MOTOR_CONTROL_POSITION, meshcat_viz);
     }
