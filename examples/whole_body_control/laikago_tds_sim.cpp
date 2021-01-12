@@ -69,20 +69,6 @@ vector<MyScalar> GetMpcInput(const vector<MyScalar>& desired_speed,
   ExtendVector(mpc_input, desired_com_roll_pitch_yaw);
   ExtendVector(mpc_input, desired_com_angular_velocity);
 
-  std::cout << "\ncom_vel= ";
-  PrintVector(com_vel);
-  std::cout << "\ncom_roll_pitch_yaw= ";
-  PrintVector(com_roll_pitch_yaw);
-  std::cout << "\ncom_angular_velocity= ";
-  PrintVector(com_angular_velocity);
-//  PrintVector(foot_contact_state);
-//  PrintVector(foot_positions_base_frame);
-//  PrintVector(friction_coeffs);
-//  PrintVector(desired_com_position);
-//  PrintVector(desired_com_velocity);
-//  PrintVector(desired_com_roll_pitch_yaw);
-//  PrintVector(desired_com_angular_velocity);
-
   return mpc_input;
 }
 
@@ -113,7 +99,6 @@ int main(int argc, char* argv[]) {
   double time_step = 0.001;
   tds::SimpleRobot robot(time_step, meshcat_viz);
   robot.PrintRobotState();
-//  return 1;
   tds::COMVelocityEstimator com_velocity_estimator(&robot);
   tds::OpenloopGaitGenerator openloop_gait_generator(&robot);
   tds::RaibertSwingLegController
@@ -121,16 +106,14 @@ int main(int argc, char* argv[]) {
                                    &com_velocity_estimator);
 
   robot.Reset();
-  com_velocity_estimator.Reset();
   openloop_gait_generator.Reset();
+  com_velocity_estimator.Reset();
   raibert_swing_leg_controller.Reset();
-
-  int cnt = 0;
 
   while (1) {
     std::this_thread::sleep_for(std::chrono::duration<double>(0.003));
 
-    vector<MyScalar> desired_speed = {0.0, 0.0, 0.0};
+    vector<MyScalar> desired_speed = {0.6, 0.0, 0.0};
     double desired_twisting_speed = 0.0;
 
     raibert_swing_leg_controller.SetDesiredSpeed(desired_speed);
@@ -147,63 +130,25 @@ int main(int argc, char* argv[]) {
                                              com_velocity_estimator,
                                              openloop_gait_generator);
 
-    std::cout << "\n\niteration: " << cnt << std::endl;
-    std::cout << "mpc iutput=\n";
-    PrintVector(mpc_input);
-
     vector<MyScalar> mpc_stance_torque_output;
     net.compute(mpc_input, mpc_stance_torque_output);
-    std::cout << "\n\nstance action=";
-    PrintVector(mpc_stance_torque_output);
-
     auto swing_action = raibert_swing_leg_controller.GetAction();
 
     std::vector<double> hybrid_action;
     for (size_t joint_id = 0; joint_id < robot.GetNumMotors(); joint_id++) {
-//      if (swing_action.find(joint_id) != swing_action.end()) {
-//        std::vector<double> command = swing_action[joint_id];
-//        for (double item: command) {
-//          hybrid_action.push_back(item);
-//        }
-//      } else {
+      if (swing_action.find(joint_id) != swing_action.end()) {
+        std::vector<double> command = swing_action[joint_id];
+        for (double item: command) {
+          hybrid_action.push_back(item);
+        }
+      } else {
         for (size_t i = 0; i < 4; i++) {
           hybrid_action.push_back(0.0);
         }
         hybrid_action.push_back(mpc_stance_torque_output[joint_id]);
-//      }
+      }
     }
-
-    // TODO: check stance input, what's building up this error?
-
-//    if (cnt >= 0) {
-//      std::cout << "\n\nstance action=";
-//      PrintVector(mpc_stance_torque_output);
-//      std::cout << "\n\nswing action=";
-//      for (auto item: swing_action) {
-//        std::cout << "key= " << item.first;
-//        PrintVector(item.second);
-//      }
-//      std::cout << "\n\nfinal action=";
-//      PrintVector(hybrid_action);
-//      printf("\nbefore step\n");
-//      robot.PrintRobotState();
-//    }
-//    printf("\nbefore step\n");
-//    robot.PrintRobotState();
 
     robot.Step(hybrid_action, tds::MOTOR_CONTROL_HYBRID, meshcat_viz);
-//    printf("\nafter step\n");
-//    robot.PrintRobotState();
-
-//    if (!swing_action.empty()) {
-//      std::cout << "found non-empty swing action!!!" << std::endl;
-//      exit(1);
-//    }
-
-    if (cnt == 305) {
-      break;
-    }
-
-    cnt++;
   }
 }

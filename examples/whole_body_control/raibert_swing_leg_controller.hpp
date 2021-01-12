@@ -56,17 +56,6 @@ class RaibertSwingLegController {
             GetUnflattenedFootPositionsInBaseFrame()[leg_id];
       }
     }
-//    std::cout << "\nnew leg state=";
-//    for (auto i: new_leg_state) {
-//      std::cout << i << ",";
-//    }
-//    std::cout << "\nphase_switch_foot_local_position_ state=\n";
-//    for (auto vec: phase_switch_foot_local_position_) {
-//      for (auto i: vec) {
-//        std::cout << i << ",";
-//      }
-//      std::cout << std::endl;
-//    }
 
     last_leg_state_ = new_leg_state;
   }
@@ -76,25 +65,11 @@ class RaibertSwingLegController {
         state_estimator_->com_velocity_body_frame;
     com_velocity[2] = 0.0;
 
-//    std::cout << "\ncom_velocity=";
-//    for (auto i: com_velocity) {
-//      std::cout << i << ",";
-//    }
-
     double yaw_dot = robot_->GetBaseRollPitchYawRate()[2];
-//    std::cout << "\nGetBaseRollPitchYawRate=";
-//    for (auto i: robot_->GetBaseRollPitchYawRate()) {
-//      std::cout << i << ",";
-//    }
     std::vector<std::vector<double>> hip_positions =
         robot_->GetHipPositionsinBaseFrame();
 
     std::vector<LegState> leg_states = gait_generator_->GetLegState();
-
-    std::cout << "\nnew leg_states state=";
-    for (auto i: leg_states) {
-      std::cout << i << ",";
-    }
     for (size_t leg_id = 0; leg_id < leg_states.size(); leg_id++) {
       LegState leg_state = leg_states[leg_id];
       if ((leg_state == STANCE) || (leg_state == EARLY_CONTACT)) {
@@ -105,30 +80,18 @@ class RaibertSwingLegController {
       std::vector<double> twisting_vector = {
           -hip_offset[1], hip_offset[0], 0.0
       };
-//      std::cout << "\ntwisting_vector=";
-//      for (auto i: twisting_vector) {
-//        std::cout << i << ",";
-//      }
+
       std::vector<double> hip_horizontal_velocity(3);
       for (size_t i = 0; i < 3; i++) {
         hip_horizontal_velocity[i] = com_velocity[i] + yaw_dot *
             twisting_vector[i];
       }
-//      std::cout << "\nhip_horizontal_velocity=";
-//      for (auto i: hip_horizontal_velocity) {
-//        std::cout << i << ",";
-//      }
-
 
       std::vector<double> target_hip_horizontal_velocity(3);
       for (size_t i = 0; i < 3; i++) {
         target_hip_horizontal_velocity[i] =
             desired_speed_[i] + desired_twisting_speed_ * twisting_vector[i];
       }
-//      std::cout << "\ntarget_hip_horizontal_velocity=";
-//      for (auto i: target_hip_horizontal_velocity) {
-//        std::cout << i << ",";
-//      }
 
       std::vector<double> foot_target_position(3);
       for (size_t i = 0; i < 3; i++) {
@@ -142,34 +105,14 @@ class RaibertSwingLegController {
       foot_target_position[1] += hip_offset[1];
       foot_target_position[2] -= desired_height_;
 
-//      std::cout << "\nfoot_target_position=";
-//      for (auto i: foot_target_position) {
-//        std::cout << i << ",";
-//      }
-
       std::vector<double> foot_position = GetSwingFootTrajectory
           (gait_generator_->GetNormalizedPhase()[leg_id],
            phase_switch_foot_local_position_[leg_id], foot_target_position);
-
-//      std::cout << "\nfoot_position=";
-//      for (auto i: foot_position) {
-//        std::cout << i << ",";
-//      }
 
       std::vector<int> joint_ids;
       std::vector<double> joint_angles;
       robot_->ComputeMotorAnglesFromFootLocalPosition(leg_id, foot_position,
                                                       joint_ids, joint_angles);
-
-//      std::cout << "\njoint_ids=";
-//      for (auto i: joint_ids) {
-//        std::cout << i << ",";
-//      }
-//
-//      std::cout << "\njoint_angles=";
-//      for (auto i: joint_angles) {
-//        std::cout << i << ",";
-//      }
 
       assert(joint_ids.size() == joint_angles.size());
       for (size_t i = 0; i < joint_ids.size(); i++) {
@@ -217,11 +160,11 @@ class RaibertSwingLegController {
     if (input_phase <= 0.5) {
       phase = 0.8 * sin(input_phase * M_PI);
     } else {
-      phase = 0.8 * (input_phase - 0.5) * 0.4;
+      phase = 0.8 + (input_phase - 0.5) * 0.4;
     }
 
-    double x = (1 - phase) * start_pos[0] + phase * end_pos[0];
-    double y = (1 - phase) * start_pos[1] + phase * end_pos[1];
+    double x = (1.0 - phase) * start_pos[0] + phase * end_pos[0];
+    double y = (1.0 - phase) * start_pos[1] + phase * end_pos[1];
     double max_clearance = 0.1;
     double mid = std::max(end_pos[2], start_pos[2]) + max_clearance;
     double z = GenParabola(phase, start_pos[2], mid, end_pos[2]);

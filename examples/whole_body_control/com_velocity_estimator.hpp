@@ -51,6 +51,10 @@ class MovingWindowFilter {
 
     return (sum_ + correction_) / double(window_size_);
   }
+
+  std::deque<double> GetValueQueue() {
+    return value_deque_;
+  }
  private:
   int window_size_;
   double sum_, correction_;
@@ -99,24 +103,12 @@ class COMVelocityEstimator {
 
   void Update() {
     std::vector<MyScalar> velocity = robot_->GetBaseVelocity();
-//    std::cout << "com velocity=\n";
-//    std::cout << velocity[0] << ", " << velocity[1] << ", " <<
-//    velocity[2] <<
-//              ", " << std::endl;
     double vx = velocity_filter_x_.CalculateAverage(velocity[0]);
     double vy = velocity_filter_y_.CalculateAverage(velocity[1]);
     double vz = velocity_filter_z_.CalculateAverage(velocity[2]);
-//    std::cout << vx << ", " << vy << ", " << vz << ", " << std::endl;
     std::vector<MyScalar> base_orientation = robot_->GetBaseOrientation();
-//    std::cout << base_orientation[0] << ", " << base_orientation[1] << ", "
-//              << base_orientation[2] <<
-//              ", " << base_orientation[3] << std::endl;
     com_velocity_body_frame = robot_->TransfromAngularVelocityToLocalFrame
         ({vx, vy, vz}, base_orientation);
-//    std::cout << com_velocity_body_frame[0] << ", "
-//              << com_velocity_body_frame[1] << ", "
-//              << com_velocity_body_frame[2] <<
-//              ", " << std::endl;
   }
 
  private:

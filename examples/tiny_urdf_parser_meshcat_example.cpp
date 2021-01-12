@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
 
           if (force < -max_force) force = -max_force;
           if (force > max_force) force = max_force;
-          mb.tau_[tau_index] = 0.5;
+          mb.tau_[tau_index] = force;
           q_offset++;
           qd_offset++;
           param_index++;
