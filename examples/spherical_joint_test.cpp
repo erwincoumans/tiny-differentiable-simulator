@@ -26,6 +26,9 @@
 #include "utils/pendulum_spherical_joints.hpp"
 
 
+#include "urdf/urdf_cache.hpp"
+#include "urdf/urdf_parser.hpp"
+#include "urdf/urdf_to_multi_body.hpp"
 #include "math/tiny/tiny_double_utils.h"
 #include "utils/file_utils.hpp"
 #include "multi_body.hpp"
@@ -61,7 +64,11 @@ int main(int argc, char* argv[]) {
   typedef tds::MultiBodyContactPoint<Algebra> MultiBodyContactPoint;
   typedef tds::Transform<Algebra> Transform;
 
-  TinyOpenGL3App app("pendulum_example_gui", 1024, 768);
+#ifdef USE_TINY
+  TinyOpenGL3App app("spherical_joint_tiny", 1024, 768);
+#else
+  TinyOpenGL3App app("spherical_joint_eigen", 1024, 768);
+#endif
   app.m_renderer->init();
   app.set_up_axis(2);
   app.m_renderer->get_active_camera()->set_camera_distance(4);
@@ -83,22 +90,34 @@ int main(int argc, char* argv[]) {
   std::vector<MultiBody*> mbbodies;
   std::vector<int> mbvisuals;
 
-  int num_spheres = 50;
+  int num_spheres = 5;
   int num_multibodies = 1;
 
   std::vector<MatrixX> MassM;
+  tds::UrdfCache<Algebra> cache;
   for (int ii = 0; ii < num_multibodies; ii++){
+
+#define USE_URDF
+#ifdef USE_URDF
+    
+    std::string urdf_filename;
+    tds::FileUtils::find_file("pendulum5spherical.urdf", urdf_filename);
+    MultiBody* mb = cache.construct(urdf_filename, world, false, false);
+    mb->qd()[2] = Algebra::fraction(1, 2);
+#else
     MultiBody* mb = world.create_multi_body();
     init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);
-    mb->set_position(Vector3(ii, 0, 0));
-
     // Set initial orientation and velocity
     mb->q()[0] = Algebra::sqrt(Algebra::fraction(1, 2));
     mb->q()[3] = Algebra::sqrt(Algebra::fraction(1, 2));
     mb->qd()[1] = Algebra::fraction(1, 2);
+#endif
+    mb->set_position(Vector3(ii, 0, 0));
+
+    
     mbbodies.push_back(mb);
-    MatrixX M(mb->dof_qd(), mb->dof_qd());
-    MassM.push_back(M);
+    //MatrixX M(mb->dof_qd(), mb->dof_qd());
+    //MassM.push_back(M);
   }
 
   int sphere_shape = app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
@@ -124,9 +143,12 @@ int main(int argc, char* argv[]) {
 
   int fps = 480;
   double dt = 1. / fps;
-  app.set_mp4_fps(fps);
+  //app.set_mp4_fps(fps);
   int upAxis = 2;
-  int count = 0;
+  
+  int sync_counter = 0;
+  int frameskip_gfx_sync = 10;
+
   while (!app.m_window->requested_exit()) 
   {
     app.m_renderer->update_camera(upAxis);
@@ -147,7 +169,7 @@ int main(int argc, char* argv[]) {
 
 
         // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
-        tds::mass_matrix(*mb, &MassM[0]);
+        //tds::mass_matrix(*mb, &MassM[0]);
 
         //M.print("M");
         if (mb->qd()[0] < -1e4) {
@@ -157,52 +179,57 @@ int main(int argc, char* argv[]) {
     }
 
     
-    std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+    //std::this_thread::sleep_for(std::chrono::duration<double>(dt));
     // sync transforms
     int visual_index = 0;
     TinyVector3f prev_pos(0,0,0);
     TinyVector3f color(0,0,1);
     float line_width = 1;
 
-    if (!mbvisuals.empty()) {
-    for (int b = 0; b < mbbodies.size(); b++) {
-        for (int l = 0; l<mbbodies[b]->links().size();l++) {
-        const MultiBody* body = mbbodies[b];
-        if (body->links()[l].X_visuals.empty()) continue;
+    sync_counter++;
 
-        int sphereId = mbvisuals[visual_index++];
+    if (!mbvisuals.empty() && (sync_counter > frameskip_gfx_sync)) {
+        sync_counter = 0;
+        for (int b = 0; b < mbbodies.size(); b++) {
+            for (int l = 0; l<mbbodies[b]->links().size();l++) {
+                const MultiBody* body = mbbodies[b];
+                if (body->links()[l].X_visuals.empty()) continue;
 
-        Quaternion rot;
-        const Transform& geom_X_world = 
-               body->links()[l].X_world * body->links()[l].X_visuals[0];
+                int sphereId = mbvisuals[visual_index++];
 
-        TinyVector3f base_pos(geom_X_world.translation.x(),
-                            geom_X_world.translation.y(),
-                            geom_X_world.translation.z());
-        rot = Algebra::matrix_to_quat(geom_X_world.rotation);
-        TinyQuaternionf base_orn(rot.x(), rot.y(), rot.z(),
-                                rot.w());
-        if (l == 0){
-          prev_pos = TinyVector3f(b, 0, 0);
-          app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
+                Quaternion rot;
+                const Transform& geom_X_world = 
+                       body->links()[l].X_world * body->links()[l].X_visuals[0];
+
+                TinyVector3f base_pos(geom_X_world.translation.x(),
+                                    geom_X_world.translation.y(),
+                                    geom_X_world.translation.z());
+                rot = Algebra::matrix_to_quat(geom_X_world.rotation);
+                TinyQuaternionf base_orn(rot.x(), rot.y(), rot.z(),
+                                        rot.w());
+                if (l == 0){
+                  prev_pos = TinyVector3f(b, 0, 0);
+                  app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
+                }
+                else if (l>0)
+                {
+                  //printf("b=%d\n",b);
+                  app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
+                }
+                else
+	            {
+		            printf("!! b=%d\n",b);
+	            }
+                prev_pos = base_pos;
+                app.m_renderer->write_single_instance_transform_to_cpu(base_pos, base_orn, sphereId);
+            }
         }
-        else if (l>0)
-        {
-          //printf("b=%d\n",b);
-          app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
-        }
-        else
-	{
-		printf("!! b=%d\n",b);
-	}
-        prev_pos = base_pos;
-        app.m_renderer->write_single_instance_transform_to_cpu(base_pos, base_orn, sphereId);
-        }
+        app.m_renderer->write_transforms();
+        app.m_renderer->render_scene();
+        
+        app.swap_buffer();
     }
-    }
-    app.m_renderer->render_scene();
-    app.m_renderer->write_transforms();
-    app.swap_buffer();
+   
   }
 
   

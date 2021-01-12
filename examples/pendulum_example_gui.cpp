@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
   MatrixX M(mb->links().size(), mb->links().size());
 
   double dt = 1. / 480.;
-  app.set_mp4_fps(1./dt);
+  //app.set_mp4_fps(1./dt);
   int upAxis = 2;
   while (!app.m_window->requested_exit()) 
   {
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
     
 
       // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
-      tds::mass_matrix(*mb, &M);
+      //tds::mass_matrix(*mb, &M);
       
       //M.print("M");
       if (mb->qd()[0] < -1e4) {
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
     }
 
     
-    std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+    //std::this_thread::sleep_for(std::chrono::duration<double>(dt));
     // sync transforms
     int visual_index = 0;
     TinyVector3f prev_pos(0,0,0);
