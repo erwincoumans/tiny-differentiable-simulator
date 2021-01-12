@@ -26,6 +26,9 @@
 #include "utils/pendulum_spherical_joints.hpp"
 
 
+#include "urdf/urdf_cache.hpp"
+#include "urdf/urdf_parser.hpp"
+#include "urdf/urdf_to_multi_body.hpp"
 #include "math/tiny/tiny_double_utils.h"
 #include "utils/file_utils.hpp"
 #include "multi_body.hpp"
@@ -91,15 +94,27 @@ int main(int argc, char* argv[]) {
   int num_multibodies = 1;
 
   std::vector<MatrixX> MassM;
+  tds::UrdfCache<Algebra> cache;
   for (int ii = 0; ii < num_multibodies; ii++){
+
+#define USE_URDF
+#ifdef USE_URDF
+    
+    std::string urdf_filename;
+    tds::FileUtils::find_file("pendulum5spherical.urdf", urdf_filename);
+    MultiBody* mb = cache.construct(urdf_filename, world, false, false);
+    mb->qd()[2] = Algebra::fraction(1, 2);
+#else
     MultiBody* mb = world.create_multi_body();
     init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);
-    mb->set_position(Vector3(ii, 0, 0));
-
     // Set initial orientation and velocity
     mb->q()[0] = Algebra::sqrt(Algebra::fraction(1, 2));
     mb->q()[3] = Algebra::sqrt(Algebra::fraction(1, 2));
     mb->qd()[1] = Algebra::fraction(1, 2);
+#endif
+    mb->set_position(Vector3(ii, 0, 0));
+
+    
     mbbodies.push_back(mb);
     //MatrixX M(mb->dof_qd(), mb->dof_qd());
     //MassM.push_back(M);
