@@ -552,11 +552,7 @@ struct UrdfParser {
     }
 
     std::string type_str = type_char;
-    if (type_str == "spherical") {
-      joint.joint_type = JOINT_INVALID;
-      logger.report_error("spherical joints not supported");
-      return false;
-    } else if (type_str == "planar") {
+    if (type_str == "planar") {
       joint.joint_type = JOINT_INVALID;
       logger.report_error("planar joints not supported");
       return false;
@@ -564,6 +560,8 @@ struct UrdfParser {
       joint.joint_type = JOINT_INVALID;
       logger.report_error("floating joints not supported");
       return false;
+    } else if (type_str == "spherical") {
+      joint.joint_type = JOINT_SPHERICAL;
     } else if (type_str == "revolute") {
       joint.joint_type = JOINT_REVOLUTE_AXIS;
     } else if (type_str == "continuous") {
