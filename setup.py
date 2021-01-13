@@ -91,7 +91,7 @@ CXX_FLAGS += '-fpermissive '
 # libraries += [current_python]
 
 libraries = []
-include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
+include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include', 'third_party/CppAD/include']
 
 pytinyopengl3_libraries = []
 pytinyopengl3_include_dirs = ['src', 'third_party/tinyobjloader']
@@ -228,6 +228,15 @@ pytinydiffsim_dual_ext = Extension(
     include_dirs=include_dirs + ["."])
 
 extensions.append(pytinydiffsim_dual_ext)
+
+pytinydiffsim_ad_ext = Extension(
+    "pytinydiffsim_ad",
+    sources=sources+["python/pytinydiffsim_ad.cc"],
+    libraries=libraries,
+    extra_compile_args=CXX_FLAGS.split(),
+    include_dirs=include_dirs + ["."])
+
+extensions.append(pytinydiffsim_ad_ext)
 
 pytinyopengl3_ext = Extension(
     "pytinyopengl3",
