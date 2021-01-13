@@ -20,11 +20,14 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include <cppad/cg.hpp>
+//#include <cppad/cg.hpp>
+#include <vector>
 #include <cppad/cppad.hpp>
 #include <string>
 
 #include "math.h"
+
+using std::vector;
 
 /**
  * Supporting functions for automatic differentiation with CppAD.
@@ -33,8 +36,8 @@
 template <typename InnerScalar = double>
 struct CppADUtils {
   typedef typename CppAD::AD<InnerScalar> Scalar;
-  static const bool is_codegen =
-      std::is_same_v<InnerScalar, CppAD::cg::CG<double>>;
+  static const bool is_codegen = false;
+     // std::is_same_v<InnerScalar, CppAD::cg::CG<double>>;
 
   static Scalar zero() { return Scalar(0.); }
   static Scalar one() { return Scalar(1.); }
@@ -90,6 +93,12 @@ struct CppADUtils {
   static T atan2(const T& dy, const T& dx) {
     using std::atan2;
     return atan2(dy, dx);
+  }
+  
+  template<class T>
+  static T asin(const T& z)
+  {
+     return CppAD::asin(z);
   }
 
   template <class T>
@@ -149,6 +158,10 @@ struct CppADUtils {
     return Scalar(double(num) / double(denom));
   }
 
+  static Scalar copy(Scalar v) {
+      return Scalar(v);
+  }
+
   static void FullAssert(bool a) {
     if (!a) {
       printf("!");
@@ -156,6 +169,34 @@ struct CppADUtils {
       exit(0);
     }
   }
+  
 };
+
+namespace TinyAD 
+{
+  /* Auto diff functions */ 
+  template <typename Scalar = double>
+  inline vector<CppAD::AD<Scalar>> independent(vector<CppAD::AD<Scalar>>& v) {
+    CppAD::Independent(v);
+    return v; // You need to return v for Python
+  }
+
+  template <typename Scalar = double>
+  inline vector<Scalar> jacobian(const vector<CppAD::AD<Scalar>>& x, const vector<CppAD::AD<Scalar>>& y) {
+    size_t nx = x.size();
+    size_t ny = y.size();
+
+    vector<Scalar> vx(nx);
+    for (int i = 0; i < nx; i++) {
+      vx[i] = CppAD::Value(x[i]);
+    }
+
+    CppAD::ADFun<Scalar> f(x, y);
+    vector<Scalar> jac(nx * ny);
+    jac = f.Jacobian(vx);
+    return jac;
+  }
+
+} 
 
 #endif  // CPPAD_UTILS_H

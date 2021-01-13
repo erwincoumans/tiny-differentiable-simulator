@@ -70,10 +70,12 @@ ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 
 
 
+
 ADD_LIBRARY(pytinydiffsim SHARED pytinydiffsim.cc ${TDS_HDRS})
 
 
 ADD_LIBRARY(pytinydiffsim_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
+ADD_LIBRARY(pytinydiffsim_ad SHARED pytinydiffsim_ad.cc ${TDS_HDRS})
 
 
 
@@ -85,8 +87,9 @@ ADD_LIBRARY(pytinydiffsim_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
 #SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES DEBUG_POSTFIX "_d")
 
 
-TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2 Eigen3::Eigen)
-TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2 Eigen3::Eigen)
+TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2 Eigen3::Eigen CppADCodeGen)
+TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2 Eigen3::Eigen CppADCodeGen)
+TARGET_LINK_LIBRARIES(pytinydiffsim_ad tinyxml2 Eigen3::Eigen CppADCodeGen)
 
 IF (WIN32)
   TARGET_COMPILE_OPTIONS(pytinydiffsim PUBLIC -bigobj)
@@ -111,6 +114,19 @@ IF (WIN32)
 ELSEIF (APPLE)
   SET_TARGET_PROPERTIES(pytinydiffsim_dual PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 ENDIF ()
+
+
+IF (WIN32)
+  TARGET_COMPILE_OPTIONS(pytinydiffsim_ad PUBLIC -bigobj)
+  
+  GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
+  
+  target_link_directories (pytinydiffsim_ad PUBLIC "${PYTHON_LIBRARY_DIR}")
+  TARGET_LINK_LIBRARIES(pytinydiffsim_ad ${PYTHON_LIBRARIES})
+ELSEIF (APPLE)
+  SET_TARGET_PROPERTIES(pytinydiffsim_ad PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+ENDIF ()
+
 
 
 INCLUDE_DIRECTORIES( 
