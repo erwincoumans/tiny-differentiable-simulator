@@ -174,6 +174,7 @@ struct CppADUtils {
 
 namespace TinyAD 
 {
+
   /* Auto diff functions */ 
   template <typename Scalar = double>
   inline vector<CppAD::AD<Scalar>> independent(vector<CppAD::AD<Scalar>>& v) {
@@ -182,7 +183,7 @@ namespace TinyAD
   }
 
   template <typename Scalar = double>
-  inline vector<Scalar> jacobian(const vector<CppAD::AD<Scalar>>& x, const vector<CppAD::AD<Scalar>>& y) {
+  inline vector<Scalar> compute_jacobian(const vector<CppAD::AD<Scalar>>& x, const vector<CppAD::AD<Scalar>>& y) {
     size_t nx = x.size();
     size_t ny = y.size();
 

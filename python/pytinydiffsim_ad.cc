@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+#include <vector>
 #include <cppad/cppad.hpp>
 
 #include "math/tiny/cppad_utils.h"
@@ -29,11 +29,14 @@ typedef double InnerScalar; // define underlying data type
 typedef CppAD::AD<InnerScalar> MyScalar; // wrap in Cpp::AD
 typedef CppADUtils<InnerScalar> MyTinyConstants; // Utis struct with functions
 typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra; // Algebra
+typedef CppAD::ADFun<InnerScalar, InnerScalar> ADFun; // CppAD ADFun
+typedef std::vector<InnerScalar> BaseVector; // Vector of CppAD base types
 
 #include "pytinydiffsim_includes.h"
 
 using namespace TINY;
 using namespace tds;
+using std::vector;
 
 namespace py = pybind11;
 
@@ -69,11 +72,24 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
             })
         ;
     
+    /* Convenience functions */
     m.def("independent", &TinyAD::independent<InnerScalar>);
-    m.def("compute_jacobian", &TinyAD::jacobian<InnerScalar>);
+    m.def("compute_jacobian", &TinyAD::compute_jacobian<InnerScalar>);
+    
+    /* ADFun class */
+    py::class_<ADFun>(m, "ADFun")
+        .def(py::init([](vector<MyScalar>& x, vector<MyScalar>& y) {
+            return std::unique_ptr<ADFun>(new CppAD::ADFun<InnerScalar>(x, y));
+        }))
+        .def("Forward", [](ADFun& adfun, size_t q, const BaseVector& xq) {
+            // We have to use a lambda function because of default argument std::cout
+            return adfun.Forward(q, xq, std::cout);            
+        })
+        .def("Reverse", &ADFun::Reverse<BaseVector>)
+        .def("Jacobian", &ADFun::Jacobian<BaseVector>)
+        ;
 
+    
 #include "pytinydiffsim.inl"
 
 }
-
-
