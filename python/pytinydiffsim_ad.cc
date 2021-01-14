@@ -66,6 +66,9 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
         .def(py::self /= py::self)
         .def(py::self /= InnerScalar())
         .def(-py::self)
+        .def("value", [](const MyScalar& a) {
+                return CppAD::Value(a);
+            })
         .def("__repr__",
             [](const MyScalar& a) {
                 return std::to_string(CppAD::Value(a));
