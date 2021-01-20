@@ -180,20 +180,20 @@ struct OpenGLUrdfVisualizer {
               }
               break;
           }
-          case TINY_SPHERE_TYPE:
+          case ::tds::TINY_SPHERE_TYPE:
           {
               //int shape_id = m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
               int up_axis = 2;
-              int shape_id = m_opengl_app.register_graphics_capsule_shape(v.geometry.sphere.radius,0,up_axis,-1);
+              int shape_id = m_opengl_app.register_graphics_capsule_shape(Algebra::to_double(v.geometry.sphere.radius),0.,up_axis,-1);
               b2v.visual_shape_uids.push_back(shape_id);
               ::TINY::TinyVector3f color(1,1,1);
               b2v.shape_colors.push_back(color);
               break;
           }
-          case TINY_CAPSULE_TYPE:
+          case ::tds::TINY_CAPSULE_TYPE:
           {
-              float radius = v.geometry.capsule.radius;
-              float half_height = (v.geometry.capsule.length)*0.5;
+              float radius = Algebra::to_double(v.geometry.capsule.radius);
+              float half_height = Algebra::to_double(v.geometry.capsule.length)*0.5;
               int up_axis = 2;
               int shape_id = m_opengl_app.register_graphics_capsule_shape(radius,half_height,up_axis,-1);
               b2v.visual_shape_uids.push_back(shape_id);
@@ -201,11 +201,11 @@ struct OpenGLUrdfVisualizer {
               b2v.shape_colors.push_back(color);
               break;
           }
-          case TINY_BOX_TYPE:
+          case ::tds::TINY_BOX_TYPE:
           {
-              float half_extentsx = 0.5*v.geometry.box.extents[0];
-              float half_extents_y = 0.5*v.geometry.box.extents[1];
-              float half_extents_z = 0.5*v.geometry.box.extents[2];
+              float half_extentsx = 0.5*Algebra::to_double(v.geometry.box.extents[0]);
+              float half_extents_y = 0.5*Algebra::to_double(v.geometry.box.extents[1]);
+              float half_extents_z = 0.5*Algebra::to_double(v.geometry.box.extents[2]);
               int shape_id = m_opengl_app.register_cube_shape(half_extentsx,half_extents_y,half_extents_z);
               b2v.visual_shape_uids.push_back(shape_id);
               ::TINY::TinyVector3f color(1,1,1);
