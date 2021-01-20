@@ -114,6 +114,7 @@ public:
   const std::string &name() const { return name_; }
 
   TINY_INLINE const LinkCollection &links() const { return links_; }
+  TINY_INLINE LinkCollection &links() { return links_; }
   TINY_INLINE std::size_t size() const { return links_.size(); }
   TINY_INLINE const Link &operator[](std::size_t i) const { return links_[i]; }
   TINY_INLINE Link &operator[](std::size_t i) { return links_[i]; }

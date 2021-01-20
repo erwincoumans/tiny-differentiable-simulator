@@ -105,7 +105,7 @@ struct OpenGLUrdfVisualizer {
           TinyMeshUtils::extract_shape(attrib, shapes[i], materials, indices, vertices, textureIndex);
           textureIndex = -1;
           ::TINY::TinyVector3f color(1, 1, 1);
-          if (shapes[i].mesh.material_ids.size())
+          if (!materials.empty() && shapes[i].mesh.material_ids.size())
           {
               const tinyobj::material_t& mat = materials[shapes[i].mesh.material_ids[0]];
               color.setValue(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
@@ -187,20 +187,25 @@ struct OpenGLUrdfVisualizer {
       for (int v = 0; v < body->visual_ids().size(); v++) {
           int visual_id = body->visual_ids()[v];
           if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-              Quaternion rot;
               Transform geom_X_world =
                   body->base_X_world() * body->X_visuals()[v];
 
               const TinyMatrix3& m =
-                  geom_X_world.rotation;
-              m.getRotation(rot);
+                  geom_X_world.rotation;              
+              Quaternion rot = Algebra::matrix_to_quat(m);
               const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
               for (int i = 0; i < viz.instance_ids.size(); i++)
               {
                   int instance_id = viz.instance_ids[i];
-                  ::TINY::TinyVector3f pos(geom_X_world.translation[0], geom_X_world.translation[1], geom_X_world.translation[2]);
-                  ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
-                  m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
+                ::TINY::TinyVector3f pos(geom_X_world.translation[0],
+                                         geom_X_world.translation[1],
+                                         geom_X_world.translation[2]);
+                ::TINY::TinyQuaternionf orn(
+                    Algebra::quat_x(rot), Algebra::quat_y(rot),
+                    Algebra::quat_z(rot), Algebra::quat_w(rot));
+                  m_opengl_app.m_renderer
+                      ->write_single_instance_transform_to_cpu(pos, orn,
+                                                               instance_id);
               }
           }
       }
@@ -209,19 +214,22 @@ struct OpenGLUrdfVisualizer {
           for (int v = 0; v < body->links()[l].visual_ids.size(); v++) {
               int visual_id = body->links()[l].visual_ids[v];
               if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-                  Quaternion rot;
                   Transform geom_X_world =
                       body->links()[l].X_world * body->links()[l].X_visuals[v];
                   
                   TinyMatrix3& m =
                       geom_X_world.rotation;
                   const TinyVisualLinkInfo& viz = m_b2vis.at(visual_id);
-                  m.getRotation(rot);
+              Quaternion rot = Algebra::matrix_to_quat(m);
                   for (int i = 0; i < viz.instance_ids.size(); i++)
                   {
                       int instance_id = viz.instance_ids[i];
-                      ::TINY::TinyVector3f pos(geom_X_world.translation[0], geom_X_world.translation[1], geom_X_world.translation[2]);
-                      ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+                    ::TINY::TinyVector3f pos(geom_X_world.translation[0],
+                                             geom_X_world.translation[1],
+                                             geom_X_world.translation[2]);
+                    ::TINY::TinyQuaternionf orn(
+                        Algebra::quat_x(rot), Algebra::quat_y(rot),
+                        Algebra::quat_z(rot), Algebra::quat_w(rot));
                       m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, instance_id);
                   }
 
