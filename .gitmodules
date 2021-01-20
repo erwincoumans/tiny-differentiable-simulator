@@ -22,3 +22,6 @@
 	path = third_party/bullet3
 	url = https://github.com/bulletphysics/bullet3
 	ignore = all
+[submodule "third_party/pagmo2"]
+	path = third_party/pagmo2
+	url = https://github.com/esa/pagmo2.git
