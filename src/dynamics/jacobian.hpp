@@ -23,7 +23,7 @@ typename Algebra::Matrix3X point_jacobian(
   typedef tds::Link<Algebra> Link;
 
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q)  == mb.dof());
   assert(link_index < static_cast<int>(mb.num_links()));
   Matrix3X jac( 3, mb.dof_qd());
   Algebra::set_zero(jac);

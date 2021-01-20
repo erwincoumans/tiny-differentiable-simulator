@@ -37,12 +37,7 @@ class MultiBody {
    */
   int dof_{0};
 
-  /**
-   * A container to store the nr of spherical joints to account for the discrepancy between the size of the coordinate
-   * vector and the nr of DoF
-   */
-  int spherical_joints_{0};
-
+  
   /**
    * Whether this system is floating or fixed to the world frame.
    */
@@ -139,11 +134,7 @@ public:
   }
   TINY_INLINE bool empty() const { return links_.empty(); }
 
-  /**
-   * Return the number of spherical joints in the system (to account for the difference between DoF and length of q_
-   */
-  TINY_INLINE int spherical_joints() const {return spherical_joints_;}
-
+  
   /**
    * Dimensionality of joint positions q (including 7-DoF floating-base
    * coordinates if this system is floating-base).
@@ -305,7 +296,7 @@ public:
     int q_index = is_floating_ ? 7 : 0;
     int qd_index = is_floating_ ? 6 : 0;
     dof_ = 0;  // excludes floating-base DOF
-    spherical_joints_ = 0;
+    
     for (Link &link : links_) {
       assert(link.index >= 0);
       link.q_index = q_index;
@@ -313,8 +304,8 @@ public:
       if (link.joint_type == JOINT_SPHERICAL) {
           q_index += 4;
           qd_index += 3;
-          dof_ += 3;
-          ++spherical_joints_;
+          dof_ += 4;
+    
       } else if(link.joint_type != JOINT_FIXED) {
         ++q_index;
         ++qd_index;
@@ -581,8 +572,8 @@ public:
       // assert(Algebra::norm(link.S) > Algebra::zero());
       link.q_index = dof();
       link.qd_index = dof_qd();
-      dof_ += 3;
-      ++spherical_joints_;
+      dof_ += 4;
+      
       // not sure about this:
       if (is_controllable) {
         if (control_indices_.empty()) {

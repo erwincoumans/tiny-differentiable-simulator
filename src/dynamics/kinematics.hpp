@@ -28,7 +28,7 @@ void forward_kinematics(
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::Link<Algebra> Link;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q)  == mb.dof());
   assert(Algebra::size(qd) == 0 || Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == 0 || Algebra::size(qdd) == mb.dof_qd());
 
@@ -168,7 +168,7 @@ void forward_kinematics_q(
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::Link<Algebra> Link;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q)  == mb.dof());
   assert(base_X_world != nullptr);
 
   if (mb.is_floating()) {

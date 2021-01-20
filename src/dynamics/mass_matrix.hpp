@@ -26,7 +26,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
   typedef tds::RigidBodyInertia<Algebra> RigidBodyInertia;
   typedef tds::ArticulatedBodyInertia<Algebra> ArticulatedBodyInertia;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q) == mb.dof());
   assert(M != nullptr);
   int n = static_cast<int>(mb.num_links());
   // printf("n is %i\n", n);
