@@ -26,6 +26,8 @@
 #include "tiny_obj_loader.h"
 #include "utils/file_utils.hpp"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
+
+#define STB_IMAGE_STATIC
 #include "stb_image/stb_image.h"
 
 using namespace TINY;

@@ -63,7 +63,7 @@ class UrdfCache {
   }
   #endif
 
-  const UrdfStructures& retrieve(const std::string& urdf_filename,
+  UrdfStructures& retrieve(const std::string& urdf_filename,
                                  bool ignore_cache = false) {
     if (ignore_cache || data_.find(urdf_filename) == data_.end()) {
       printf("Loading URDF \"%s\".\n", urdf_filename.c_str());
@@ -72,6 +72,7 @@ class UrdfCache {
     }
     return data_[urdf_filename];
   }
+
   MultiBody<Algebra>* construct(const std::string& urdf_filename,
                                 World<Algebra>& world,
                                 bool ignore_cache = false,

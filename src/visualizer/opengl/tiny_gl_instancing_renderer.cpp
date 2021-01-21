@@ -98,6 +98,7 @@ struct caster2 {
 #include "Shaders/linesPS.h"
 #include "Shaders/linesVS.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image/stb_image_write.h"
 #include "tiny_gl_render_to_texture.h"
 

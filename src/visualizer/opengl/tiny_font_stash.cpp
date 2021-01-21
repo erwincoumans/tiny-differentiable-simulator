@@ -32,7 +32,8 @@
 #define BORDER_Y_BOTTOM 2
 #define ADDITIONAL_HEIGHT 2
 
-#define STB_TRUETYPE_IMPLEMENTATION
+// #define STB_TRUETYPE_IMPLEMENTATION
+#define STBTT_STATIC
 #define STBTT_malloc(x, u) malloc(x)
 #define STBTT_free(x, u) free(x)
 #include "stb_image/stb_truetype.h"

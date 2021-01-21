@@ -52,9 +52,9 @@ IF(BUILD_EGL)
     SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}  ../../../third_party/glad/egl.c)
 ENDIF(BUILD_EGL)
 
-SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}
-    ../../../third_party/stb_image/stb_image_write.cpp
-    ../../../third_party/stb_image/stb_image.cpp)
+#SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}
+#    ../../../third_party/stb_image/stb_image_write.cpp
+#    ../../../third_party/stb_image/stb_image.cpp)
 
 MESSAGE("OpenGLWindow_SRCS=${OpenGLWindow_SRCS}")
 
