@@ -18,15 +18,15 @@
 #define TINY_INVERSE_KINEMATICS_H
 
 #include "multi_body.hpp"
-#include "math/tiny/tiny_algebra.hpp"
+//#include "math/tiny/tiny_algebra.hpp"
 
 #include "math/tiny/tiny_eigen_helper.h"
 
 
 namespace TINY {
-    template <typename Scalar, typename Utils>
+    template <typename Scalar, typename Utils, typename Algebra>
     struct TinyIKTarget {
-        typedef ::TINY::TinyVector3<Scalar, Utils> TinyVector3;
+        typedef typename Algebra::Vector3 Vector3;
 
         /**
          * Index of the link that should reach a given target.
@@ -35,15 +35,15 @@ namespace TINY {
         /**
          * Target position in world coordinates.
          */
-        TinyVector3 position;
+        Vector3 position;
         /**
          * Position relative to the link which is supposed to achieve the target
          * position.
          */
-        TinyVector3 body_point{
-            TinyVector3(Utils::zero(), Utils::zero(), Utils::zero()) };
+        Vector3 body_point{
+            Vector3(Utils::zero(), Utils::zero(), Utils::zero()) };
 
-        TinyIKTarget(int link_index, const TinyVector3& position)
+        TinyIKTarget(int link_index, const Vector3& position)
             : link_index(link_index), position(position) {}
     };
 
@@ -73,7 +73,7 @@ namespace TINY {
      * The implementation has been inspired from the Rigid Body Dynamics Library
      * (RBDL) by Martin Felis.
      */
-    template <typename Scalar, typename Utils,
+    template <typename Scalar, typename Utils, typename Algebra,
         TinyIKMethod Method = IK_JAC_TRANSPOSE>
         struct TinyInverseKinematics {
 #ifdef USE_EIGEN
@@ -88,13 +88,13 @@ namespace TINY {
 #endif
 
         static const TinyIKMethod kMethod = Method;
-        typedef ::TINY::TinyIKTarget<Scalar, Utils> Target;
-        typedef ::tds::MultiBody<TinyAlgebra<Scalar, Utils> > MultiBody;
-        typedef ::TINY::TinyVector3<Scalar, Utils> Vector3;
-        typedef ::TINY::TinyVectorX<Scalar, Utils> VectorX;
-        typedef ::TINY::TinyMatrix3x3<Scalar, Utils> Matrix3;
-        typedef ::TINY::TinyMatrixXxX<Scalar, Utils > MatrixXxX;
-        typedef ::tds::Transform<TinyAlgebra<Scalar, Utils> > SpatialTransform;
+        typedef ::TINY::TinyIKTarget<Scalar, Utils, Algebra> Target;
+        typedef ::tds::MultiBody<Algebra> MultiBody;
+        typedef typename Algebra::Vector3 Vector3;
+        typedef typename Algebra::VectorX VectorX;
+        typedef typename Algebra::Matrix3 Matrix3;
+        typedef typename Algebra::MatrixX MatrixXxX;
+        typedef ::tds::Transform<Algebra> SpatialTransform;
 
         std::vector<Target> targets;
 
@@ -154,21 +154,21 @@ namespace TINY {
             
 
             for (result.iter = 0; result.iter < max_iterations; result.iter++) {
-                ::tds::forward_kinematics_q< TinyAlgebra < Scalar, Utils> >(mb, q, &base_X_world, &links_X_world, &links_X_base);
+                ::tds::forward_kinematics_q< Algebra>(mb, q, &base_X_world, &links_X_world, &links_X_base);
                 for (int k = 0; k < static_cast<int>(targets.size()); ++k) {
                     const Target& target = targets[k];
                     bool is_local_point = true;
                     Vector3 local_point_in_base_frame = links_X_base[target.link_index].apply(target.body_point);
-                    auto G = ::tds::point_jacobian<TinyAlgebra<Scalar, Utils> >(mb, q, target.link_index, local_point_in_base_frame, is_local_point);
+                    auto G = ::tds::point_jacobian<Algebra>(mb, q, target.link_index, local_point_in_base_frame, is_local_point);
 
                     if (mb.is_floating())
                     {
                         Matrix3 cr;
-                        cr.set_zero();
-                        TinyAlgebra<Scalar, Utils>::assign_block(G, cr, 0, 0);
-                        G(0, 3) = TinyAlgebra<Scalar, Utils>::zero();
-                        G(1, 4) = TinyAlgebra<Scalar, Utils>::zero();
-                        G(2, 5) = TinyAlgebra<Scalar, Utils>::zero();
+                        Algebra::set_zero(cr);
+                        Algebra::assign_block(G, cr, 0, 0);
+                        G(0, 3) = Algebra::zero();
+                        G(1, 4) = Algebra::zero();
+                        G(2, 5) = Algebra::zero();
                     }
                     Vector3 local_actual_pos = links_X_base[target.link_index].apply(target.body_point);
                     Vector3 local_target_pos = base_X_world.apply_inverse(target.position);
@@ -184,7 +184,7 @@ namespace TINY {
                     }
                 }
 
-                result.residual = e.length();
+                result.residual = Algebra::norm(e);
                 // abort if we are getting "close"
                 if (result.residual < target_tolerance) {
                     result.ik_status = IK_RESULT_REACHED;
@@ -193,7 +193,7 @@ namespace TINY {
 
                 VectorX delta_theta;
                 if constexpr (kMethod == IK_JAC_TRANSPOSE) {
-                    delta_theta = J.mul_transpose(e);
+                    delta_theta = Algebra::mul_transpose(J, e);
                 }
                 if constexpr (kMethod == IK_JAC_PINV) {
                     auto J_pinv = pseudo_inverse(J);
@@ -220,7 +220,7 @@ namespace TINY {
                     Scalar delta = delta_theta[i + qd_offset];
                     Scalar& qi = q[i + q_offset];
                     qi += alpha * delta;
-                    if (!q_reference.empty()) {
+                    if (Algebra::size(q_reference) != 0) {
                         qi += weight_reference * (q_reference[i + q_offset] - qi);
                     }
                     sq_length += delta * delta;

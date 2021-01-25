@@ -12,6 +12,210 @@
 
     )pbdoc";
 
+  /* Define Algebra independent Vectors and Matrices */
+  typedef typename MyAlgebra::VectorX VectorX;
+  py::class_<VectorX>(m, "VectorX")
+      .def(py::init<int>())
+      .def("set_zero", [](VectorX& a) {
+          MyAlgebra::set_zero(a);
+      })
+      .def("size",
+      [](const VectorX& a) {
+          return MyAlgebra::size(a);
+      })
+      .def("__getitem__", [](const VectorX& a, int i) { return a[i]; })
+      .def("__setitem__", [](VectorX& a, int i, MyScalar v) { a[i] = v; })
+      .def("__setitem__", [](VectorX& a, int i, double v) { a[i] = MyAlgebra::from_double(v); })
+      .def("__repr__",
+      [](const VectorX& a) {
+          std::string values;
+          for (int i = 0; i < a.size(); i++)
+          {
+              values += std::to_string(MyAlgebra::to_double(a[i])) + ",";
+          }
+          return "[" + values + "]";
+      })
+      ;
+      
+  typedef typename MyAlgebra::Vector3 Vector3;
+  py::class_<Vector3>(m, "Vector3")
+      .def(py::init([](MyScalar x, MyScalar y, MyScalar z) {
+          return std::unique_ptr<Vector3>(new Vector3(x, y, z));
+      }))
+      .def("set_zero", [](Vector3& a) {
+          MyAlgebra::set_zero(a);
+      })
+      .def("sqnorm", [](Vector3& a) { return MyAlgebra::sqnorm(a); })
+      .def_property("x", 
+          [](Vector3& a) {
+              return a[0];
+          },
+          [](Vector3& a, MyScalar v) {
+              a[0] = v;
+          }
+      )
+      .def_property("y", 
+          [](Vector3& a) {
+              return a[1];
+          },
+          [](Vector3& a, MyScalar v) {
+              a[1] = v;
+          }
+      )
+      .def_property("z", 
+          [](Vector3& a) {
+              return a[2];
+          },
+          [](Vector3& a, MyScalar v) {
+              a[2] = v;
+          }
+      )
+      .def(py::self + py::self)
+      .def(py::self - py::self)
+      .def(py::self += py::self)
+      .def(py::self -= py::self)
+      .def(-py::self)
+      .def("__getitem__", [](const Vector3& a, int i) { return a[i]; })
+      .def("__setitem__", [](Vector3& a, int i, MyScalar v) { a[i] = v; })
+      .def("__setitem__", [](Vector3& a, int i, double v) { a[i] = MyAlgebra::from_double(v); })
+      .def("__repr__",
+      [](const Vector3& a) {
+          std::string values;
+          for (int i = 0; i < 3; i++)
+          {
+              values += std::to_string(MyAlgebra::to_double(a[i])) + ",";
+          }
+          return "[" + values + "]";
+      })
+      ;
+      
+  typedef typename MyAlgebra::Quaternion Quaternion;
+  py::class_<Quaternion>(m, "Quaternion")
+      .def(py::init([](const MyScalar x, const MyScalar y, const MyScalar z, const MyScalar w) {
+          return MyAlgebra::quat_from_xyzw(x, y, z, w);
+      }))
+      .def("set_identity", [](Quaternion &q) {
+          MyAlgebra::set_identity(q);
+      })
+      //.def("get_euler_rpy", &TinyQuaternion<MyScalar, MyTinyConstants>::get_euler_rpy)
+      //.def("get_euler_rpy2",
+      //     &TinyQuaternion<MyScalar, MyTinyConstants>::get_euler_rpy2)
+      //.def("set_euler_rpy", &TinyQuaternion<MyScalar, MyTinyConstants>::set_euler_rpy)
+
+  //    .def_readwrite("x", &TinyQuaternion<MyScalar, MyTinyConstants>::m_x)
+  //    .def_readwrite("y", &TinyQuaternion<MyScalar, MyTinyConstants>::m_y)
+ //     .def_readwrite("z", &TinyQuaternion<MyScalar, MyTinyConstants>::m_z)
+   //   .def_readwrite("w", &TinyQuaternion<MyScalar, MyTinyConstants>::m_w)
+      .def_property_readonly("x", [](const Quaternion &q) { return q.x(); })
+      .def_property_readonly("y", [](const Quaternion &q) { return q.y(); })
+      .def_property_readonly("z", [](const Quaternion &q) { return q.z(); })
+      .def_property_readonly("w", [](const Quaternion &q) { return q.w(); })
+      .def("__repr__",
+           [](const Quaternion &q) {
+             return "[x=" + std::to_string(MyTinyConstants::getDouble(q.x())) + 
+                    " y=" + std::to_string(MyTinyConstants::getDouble(q.y())) +
+                    " z=" + std::to_string(MyTinyConstants::getDouble(q.z())) + 
+                    " w=" + std::to_string(MyTinyConstants::getDouble(q.w())) + "]";
+           })
+      ;
+
+  typedef typename MyAlgebra::MatrixX Matrix;
+  py::class_<Matrix>(m, "Matrix")
+      .def(py::init<int, int>())
+//      .def("inversed", [](const Matrix& a) {  // Inconsisten API between Eigen and Tiny.
+//          MyAlgebra::inverse(a);
+//      })
+      .def("set_zero", [](Matrix& a) {
+          MyAlgebra::set_zero(a);
+      })
+//      .def("print", [](const Matrix& a, const std::string &title) {
+//          MyAlgebra::print(title, a);
+//      })
+      .def("__getitem__", [](const Matrix& a, py::tuple t) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          return a(row, col);
+      })
+      .def("__setitem__", [](Matrix& a, py::tuple t, MyScalar v) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          a(row, col) = v;
+      })
+      .def_property_readonly("num_rows", [](const Matrix& a) {
+          return MyAlgebra::num_rows(a);
+      })
+      .def_property_readonly("num_columns", [](const Matrix& a) {
+          return MyAlgebra::num_cols(a);
+      })
+      ;
+
+  
+  typedef typename MyAlgebra::Matrix3 Matrix3;
+  py::class_<Matrix3>(m, "Matrix3")
+      .def(py::init<>())
+      .def(py::init([](const Quaternion &quat) {
+          return std::unique_ptr<Matrix3>(new Matrix3(quat));
+      }))
+//      .def(py::init<MyScalar, MyScalar, MyScalar, 
+//          MyScalar, MyScalar, MyScalar, 
+//          MyScalar, MyScalar, MyScalar>())
+//      .def("get_at", [](const Matrix& a, const int row, const int col) {
+//          return a(col, row);
+///      })
+      .def("__getitem__", [](const Matrix3& a, py::tuple t) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          return a(row, col);
+      })
+      .def("__setitem__", [](Matrix3& a, py::tuple t, MyScalar v) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          a(row, col) = v;
+      })
+//      .def("set_at", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_at)
+      .def("get_row", [](const Matrix3& a, const int row) {
+          return MyAlgebra::get_row(a, row);
+      })
+//      .def("transposed", &TinyMatrix3x3<MyScalar, MyTinyConstants>::transpose)
+//      .def("set_identity", &TinyMatrix3x3<MyScalar, MyTinyConstants>::set_identity)
+//      .def("setRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::setRotation)
+//      .def("getRotation", &TinyMatrix3x3<MyScalar, MyTinyConstants>::getRotation2)
+      ;
+
+  typedef typename MyAlgebra::Matrix3X Matrix3X;
+  py::class_<Matrix3X>(m, "Matrix3X")
+      .def(py::init<>())
+      .def_property_readonly("num_rows", [](const Matrix3X& a) {
+          return MyAlgebra::num_rows(a);
+      })
+      .def_property_readonly("num_columns", [](const Matrix3X& a) {
+          return MyAlgebra::num_cols(a);
+      })
+      //.def("print", &Matrix3X::print)
+      .def("__getitem__", [](const Matrix3X& a, py::tuple t) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          return a(row, col);
+      })
+      .def("__setitem__", [](Matrix3X& a, py::tuple t, MyScalar v) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          a(row, col) = v;
+      })
+      ;
+/*
   py::class_<TinyVectorX<MyScalar, MyTinyConstants>>(m, "TinyVectorX")
       .def(py::init<int>())
       .def("set_zero", &TinyVectorX<MyScalar, MyTinyConstants>::set_zero)
@@ -32,7 +236,6 @@
       })
       ;
 
-  
 
   py::class_<TinyVector3<MyScalar, MyTinyConstants>>(m, "TinyVector3")
       .def(py::init<MyScalar, MyScalar, MyScalar>())
@@ -57,6 +260,7 @@
       .def("__setitem__", [](TinyVector3<MyScalar, MyTinyConstants> &a, int i,
           MyScalar v) { a[i] = v; });
 
+*/
 
   py::class_<Geometry<MyAlgebra>,
              std::unique_ptr<Geometry<MyAlgebra>>>
@@ -112,7 +316,7 @@
       .def("clear_forces", &RigidBody<MyAlgebra>::clear_forces)
       .def("integrate", &RigidBody<MyAlgebra>::integrate);
 
-
+/*
   py::class_<TinyMatrixXxX<MyScalar, MyTinyConstants>>(m, "TinyMatrixXxX")
       .def(py::init<int, int>())
       .def("inversed", &TinyMatrixXxX<MyScalar, MyTinyConstants>::inversed)
@@ -125,6 +329,7 @@
       .def_readonly("num_columns", &TinyMatrixXxX<MyScalar, MyTinyConstants>::m_cols)
       
       ;
+
 
 
   py::class_<TinyMatrix3x3<MyScalar, MyTinyConstants>>(m, "TinyMatrix3x3")
@@ -172,10 +377,11 @@
                              int i) { return a[i]; })
       .def("__setitem__", [](TinyQuaternion<MyScalar, MyTinyConstants> &a, int i,
                              MyScalar v) { a[i] = v; });
+*/
 
   py::class_<Pose<MyAlgebra>>(m, "TinyPose")
-      .def(py::init<TinyVector3<MyScalar, MyTinyConstants>,
-                    TinyQuaternion<MyScalar, MyTinyConstants>>())
+      .def(py::init<MyAlgebra::Vector3,
+                    MyAlgebra::Quaternion>())
       .def_readwrite("position", &Pose<MyAlgebra>::position_)
       .def_readwrite("orientation",
                      &Pose<MyAlgebra>::orientation_)
@@ -364,7 +570,7 @@
       .def("num_biases", &NeuralNetworkSpecification::num_biases)
       .def("num_parameters", &NeuralNetworkSpecification::num_parameters)
       .def("num_layers", &NeuralNetworkSpecification::num_layers)
-      .def("print_states", &NeuralNetworkSpecification::print_states< TinyAlgebra< MyScalar, MyTinyConstants>>)
+      .def("print_states", &NeuralNetworkSpecification::print_states<MyAlgebra>)
 
 
       ;
@@ -517,12 +723,12 @@
       .def_readwrite("collider_index",
                      &TinyRaycastResult<MyScalar, MyTinyConstants>::m_collider_index);
 
-  py::class_<TinyRaycast<MyScalar, MyTinyConstants>>(m, "TinyRaycast")
+  py::class_<TinyRaycast<MyScalar, MyTinyConstants, MyAlgebra>>(m, "TinyRaycast")
       .def(py::init<>())
-      .def("cast_rays", &TinyRaycast<MyScalar, MyTinyConstants>::cast_rays)
-      .def("volume", &TinyRaycast<MyScalar, MyTinyConstants>::volume)
+      .def("cast_rays", &TinyRaycast<MyScalar, MyTinyConstants, MyAlgebra>::cast_rays)
+      .def("volume", &TinyRaycast<MyScalar, MyTinyConstants, MyAlgebra>::volume)
       .def("intersection_volume",
-           &TinyRaycast<MyScalar, MyTinyConstants>::intersection_volume);
+           &TinyRaycast<MyScalar, MyTinyConstants, MyAlgebra>::intersection_volume);
 
   ///////////////////////////////////////////////////////////////////////////////////////////
 

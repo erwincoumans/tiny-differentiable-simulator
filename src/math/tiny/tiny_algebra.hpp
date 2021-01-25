@@ -549,6 +549,27 @@ struct TinyAlgebra {
                                                      const Scalar &w) {
     return Quaternion(x, y, z, w);
   }
+  
+  /**@brief Set the quaternion using euler angles, compatible with PyBullet/ROS/Gazebo
+   * @param yaw Angle around Z
+   * @param pitch Angle around Y
+   * @param roll Angle around X */
+  TINY_INLINE static const Quaternion quat_from_euler_rpy(const Vector3& rpy) {
+    Scalar phi, the, psi;
+    Scalar roll = rpy[0];
+    Scalar pitch = rpy[1];
+    Scalar yaw = rpy[2];
+    phi = roll * half();
+    the = pitch * half();
+    psi = yaw * half();
+    Quaternion q = quat_from_xyzw(
+                 sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi), // x
+                 cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi), // y
+                 cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi), // z
+                 cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi)); // w
+    q.normalize();
+    return q;
+  }
 
   TINY_INLINE static void set_zero(Matrix3 &m) { m.set_zero(); }
   TINY_INLINE static void set_zero(Matrix6x3 &m) { m.set_zero(); }
@@ -568,6 +589,8 @@ struct TinyAlgebra {
     v.top.set_zero();
     v.bottom.set_zero();
   }
+  
+  TINY_INLINE static const Vector3 get_row(const Matrix3 &m, const int i) { return m.getRow(i); }
 
   /**
    * Non-differentiable comparison operator.
