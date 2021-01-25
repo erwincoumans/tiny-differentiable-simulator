@@ -121,9 +121,9 @@ inline MyAlgebra::VectorX MyInverseKinematics(tds::MultiBody<MyAlgebra>& mb, int
 {
     MyAlgebra::VectorX q_target;
 #ifdef USE_IK_JAC_TRANSPOSE
-    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_TRANSPOSE> inverse_kinematics;
+    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, MyAlgebra, TINY::IK_JAC_TRANSPOSE> inverse_kinematics;
 #else    
-    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_PINV> inverse_kinematics;
+    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, MyAlgebra, TINY::IK_JAC_PINV> inverse_kinematics;
 #endif
 
     inverse_kinematics.weight_reference = MyTinyConstants::fraction(0,10);

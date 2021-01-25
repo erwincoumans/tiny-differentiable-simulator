@@ -20,10 +20,10 @@ bool TinyRaycastResultComparison(
   return (i1.m_hit_fraction < i2.m_hit_fraction);
 };
 
-template <typename TinyScalar, typename TinyConstants>
+template <typename TinyScalar, typename TinyConstants, typename TinyAlgebra>
 struct TinyRaycast {
   typedef ::TINY::TinyRaycastResult<TinyScalar, TinyConstants> TinyRaycastResult;
-  typedef ::TINY::TinyVector3<TinyScalar, TinyConstants> TinyVector3;
+  typedef typename TinyAlgebra::Vector3 TinyVector3;
   typedef ::tds::UrdfCollision<MyAlgebra> TinyUrdfCollision;
 
   bool ray_box(const TinyVector3 &ray_from_local,
@@ -31,7 +31,7 @@ struct TinyRaycast {
                TinyRaycastResult &hit0, TinyRaycastResult &hit1) {
     TinyScalar exit_fraction = TinyConstants::one();
     TinyScalar enter_fraction = -TinyConstants::one();
-    TinyVector3 cur_hit_normal = TinyVector3::zero();
+    TinyVector3 cur_hit_normal = TinyAlgebra::zero3();
     int num_faces = 6;
 
     TinyVector3 faces[6] = {
@@ -130,9 +130,11 @@ struct TinyRaycast {
           }
           case ::tds::TINY_BOX_TYPE: {
             // transform ray to local coordinates
-            TinyQuaternion<TinyScalar, TinyConstants> orn;
-            orn.set_euler_rpy(collider.origin_rpy);
-            tds::Pose< TinyAlgebra<TinyScalar, TinyConstants>> pose(collider.origin_xyz, orn);
+            typename TinyAlgebra::Quaternion orn;
+            orn = TinyAlgebra::quat_from_euler_rpy(collider.origin_rpy);
+            //typename TinyAlgebra::Quaternion orn;
+            //orn.set_euler_rpy(collider.origin_rpy);
+            tds::Pose<TinyAlgebra> pose(collider.origin_xyz, orn);
             TinyVector3 ray_from_local = pose.inverse_transform(ray_from);
             TinyVector3 ray_to_local = pose.inverse_transform(ray_to);
             TinyRaycastResult hit0, hit1;

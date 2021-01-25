@@ -13,11 +13,11 @@
 // limitations under the License.
 
 #include <vector>
+#include <cppad/cg/cppadcg.hpp>
 #include <cppad/cppad.hpp>
+#define USE_CPPAD
 
 #include "math/tiny/cppad_utils.h"
-#include "math/tiny/tiny_algebra.hpp"
-#include "math/eigen_algebra.hpp"
 #include "dynamics/mass_matrix.hpp"
 #include "dynamics/kinematics.hpp"
 #include "dynamics/forward_dynamics.hpp"
@@ -28,9 +28,18 @@
 typedef double InnerScalar; // define underlying data type
 typedef CppAD::AD<InnerScalar> MyScalar; // wrap in Cpp::AD
 typedef CppADUtils<InnerScalar> MyTinyConstants; // Utis struct with functions
-typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra; // Algebra
 typedef CppAD::ADFun<InnerScalar, InnerScalar> ADFun; // CppAD ADFun
 typedef std::vector<InnerScalar> BaseVector; // Vector of CppAD base types
+
+// Switch between Eigen and Tiny Algebra.
+#if 1
+#include "math/eigen_algebra.hpp"
+typedef tds::EigenAlgebraT<MyScalar> MyAlgebra; 
+#else
+#include "math/tiny/tiny_algebra.hpp"
+typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra;
+#endif
+
 
 #include "pytinydiffsim_includes.h"
 
@@ -68,14 +77,14 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
         .def(-py::self)
         .def("value", [](const MyScalar& a) {
                 return CppAD::Value(a);
-            })
+        })
         .def("__repr__",
             [](const MyScalar& a) {
                 return std::to_string(CppAD::Value(a));
-            })
+        })
         ;
     
-    /* Convenience functions */
+    /* Convenience CppAD functions */
     m.def("independent", &TinyAD::independent<InnerScalar>);
     m.def("compute_jacobian", &TinyAD::compute_jacobian<InnerScalar>);
     
@@ -92,6 +101,8 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
         .def("Jacobian", &ADFun::Jacobian<BaseVector>)
         ;
 
+    /* Algebra functions */
+    m.def("quat_from_euler_rpy", &MyAlgebra::quat_from_euler_rpy);
     
 #include "pytinydiffsim.inl"
 

@@ -331,7 +331,7 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Matrix3 eye3() { return Matrix3::Identity(); }
   EIGEN_ALWAYS_INLINE static void set_identity(Quaternion &quat) {
-    quat = Quaternion(Scalar(1.), Scalar(0.), Scalar(0.), Scalar(0.));
+    quat.setIdentity();
   }
 
   EIGEN_ALWAYS_INLINE static Scalar zero() { return Scalar(0); }
@@ -767,12 +767,34 @@ struct EigenAlgebraT {
     // Eigen specific constructor coefficient order
     return Quaternion(w, x, y, z);
   }
+  
+  /**@brief Set the quaternion using euler angles, compatible with PyBullet/ROS/Gazebo
+   * @param yaw Angle around Z
+   * @param pitch Angle around Y
+   * @param roll Angle around X */
+  EIGEN_ALWAYS_INLINE static const Quaternion quat_from_euler_rpy(const Vector3& rpy) {
+    Scalar phi, the, psi;
+    Scalar roll = rpy[0];
+    Scalar pitch = rpy[1];
+    Scalar yaw = rpy[2];
+    phi = roll * Scalar(0.5);
+    the = pitch * Scalar(0.5);
+    psi = yaw * Scalar(0.5);
 
+    Quaternion q = quat_from_xyzw(
+                 sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi), // x
+                 cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi), // y
+                 cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi), // z
+                 cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi)); // w
+    q.normalize();
+    return q;
+  }
+
+  EIGEN_ALWAYS_INLINE static void set_zero(Matrix3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3X &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix6x3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Vector3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(VectorX &m) { m.setZero(); }
-
   EIGEN_ALWAYS_INLINE static void set_zero(MatrixX &m) { m.setZero(); }
   template <int Size1, int Size2 = 1>
   EIGEN_ALWAYS_INLINE static void set_zero(
@@ -828,6 +850,8 @@ struct EigenAlgebraT {
   EIGEN_ALWAYS_INLINE static bool equals(const Scalar &a, const Scalar &b) {
     return a == b;
   }
+  
+  EIGEN_ALWAYS_INLINE static const Vector3 get_row(const Matrix3 &m, const int i) { return Vector3(m.row(i)); }
 
 #ifdef USE_STAN
   template <typename InnerScalar>
@@ -889,62 +913,102 @@ struct EigenAlgebraT {
 
   template <typename T>
   TINY_INLINE static auto sin(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::sin(s);
+#else
     using std::sin;
     return sin(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto cos(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::cos(s);
+#else
     using std::cos;
     return cos(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto tan(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::tan(s);
+#else
     using std::tan;
     return tan(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto atan2(const T &dy, const T &dx) {
+#ifdef USE_CPPAD
+    return CppAD::atan2(dy, dx);
+#else
     using std::atan2;
     return atan2(dy, dx);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto abs(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::abs(s);
+#else
     using std::abs;
     return abs(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto sqrt(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::sqrt(s);
+#else
     using std::sqrt;
     return sqrt(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto tanh(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::tanh(s);
+#else
     using std::tanh;
     return tanh(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto pow(const T &s, const T &e) {
+#ifdef USE_CPPAD
+    return CppAD::pow(s, e);
+#else
     using std::pow;
     return pow(s, e);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto exp(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::exp(s);
+#else
     using std::exp;
     return exp(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto log(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::log(s);
+#else
     using std::log;
     return log(s);
+#endif
   }
 
   template <typename T>
