@@ -27,6 +27,10 @@ struct EstimationParameter {
     return minimum + (double(std::rand()) / RAND_MAX * (maximum - minimum));
   };
 
+  bool has_limits() const {
+    return !std::isinf(minimum) && !std::isinf(maximum);
+  }
+
   /**
    * Compute loss contribution of this parameter given its actual value used in
    * the loss function.
