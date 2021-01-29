@@ -42,6 +42,9 @@
       .def(py::init([](MyScalar x, MyScalar y, MyScalar z) {
           return std::unique_ptr<Vector3>(new Vector3(x, y, z));
       }))
+      .def(py::init([](InnerScalar x, InnerScalar y, InnerScalar z) {
+          return std::unique_ptr<Vector3>(new Vector3(MyScalar(x), MyScalar(y), MyScalar(z)));
+      }))
       .def("set_zero", [](Vector3& a) {
           MyAlgebra::set_zero(a);
       })
@@ -93,6 +96,9 @@
   py::class_<Quaternion>(m, "Quaternion")
       .def(py::init([](const MyScalar x, const MyScalar y, const MyScalar z, const MyScalar w) {
           return MyAlgebra::quat_from_xyzw(x, y, z, w);
+      }))
+      .def(py::init([](const InnerScalar x, const InnerScalar y, const InnerScalar z, const InnerScalar w) {
+          return MyAlgebra::quat_from_xyzw(MyScalar(x), MyScalar(y), MyScalar(z), MyScalar(w));
       }))
       .def("set_identity", [](Quaternion &q) {
           MyAlgebra::set_identity(q);

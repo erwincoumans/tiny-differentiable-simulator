@@ -285,7 +285,7 @@ struct EigenAlgebraT {
   template <typename T>
   EIGEN_ALWAYS_INLINE static auto normalize(T &v) {
     Scalar z = v.squaredNorm();
-    //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen    
+    //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen
     //assert(z > Scalar(0));
     Scalar invZ = Scalar(1) / sqrt(z);
     v.x() *= invZ;
@@ -512,11 +512,11 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static void assign_row(MatrixX& m, Index i,
                                              const SpatialVector &v) {
-   
+
     m.template block<1, 3>(i, 0) = v.top;
     m.template block<1, 3>(i, 3) = v.bottom;
 
-   
+
   }
 
   EIGEN_ALWAYS_INLINE static void assign_horizontal(MatrixX &mat,
@@ -709,8 +709,17 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Vector3 rotate(const Quaternion &q,
-                                            const Vector3 &v) {
-    return q * v;
+                                            const Vector3 &w) {
+    /* Rotating with an all zero quaternion results in
+       a rotation with the identity quaternion in Eigen.
+       However in TinyAlgebra this returns a zero vector.
+       This function mimics the TinyAlgebra implementation. */
+    Quaternion q2(q.w() * w[0] + q.y() * w[2] - q.z() * w[1],
+                  q.w() * w[1] + q.z() * w[0] - q.x() * w[2],
+                  q.w() * w[2] + q.x() * w[1] - q.y() * w[0],
+                 -q.x() * w[0] - q.y() * w[1] - q.z() * w[2]);
+    q2 *= q.inverse();
+    return Vector3(q2.x(), q2.y(), q2.z());
   }
 
   /**
@@ -767,7 +776,7 @@ struct EigenAlgebraT {
     // Eigen specific constructor coefficient order
     return Quaternion(w, x, y, z);
   }
-  
+
   /**@brief Set the quaternion using euler angles, compatible with PyBullet/ROS/Gazebo
    * @param yaw Angle around Z
    * @param pitch Angle around Y
@@ -850,7 +859,7 @@ struct EigenAlgebraT {
   EIGEN_ALWAYS_INLINE static bool equals(const Scalar &a, const Scalar &b) {
     return a == b;
   }
-  
+
   EIGEN_ALWAYS_INLINE static const Vector3 get_row(const Matrix3 &m, const int i) { return Vector3(m.row(i)); }
 
 #ifdef USE_STAN
@@ -870,7 +879,7 @@ struct EigenAlgebraT {
     } else
 #endif
 #ifdef USE_CPPAD
-        if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
+    if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
                                      CppAD::AD<CppAD::cg::CG<double>>>) {
       return CppAD::Value(CppAD::Var2Par(s)).getValue();
     } else if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
@@ -890,22 +899,83 @@ struct EigenAlgebraT {
   template <int Size1, int Size2>
   static void print(const std::string &title,
                     const Eigen::Matrix<Scalar, Size1, Size2> &m) {
-    std::cout << title << "\n" << m << std::endl;
+    printf("%s\n", title.c_str());
+    int rows = num_rows(m);
+    int cols = num_cols(m);
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            Scalar s = m(r, c);
+            double v = to_double(s);
+            printf("%2.3f, ", v);
+        }
+        printf("\n");
+    }
   }
   template <int Size1, int Size2 = 1>
   static void print(const std::string &title,
                     const Eigen::Array<Scalar, Size1, Size2> &v) {
-    std::cout << title << "\n" << v << std::endl;
+    printf("%s\n", title.c_str());
+    for (int r = 0; r < v.rows(); r++) {
+        for (int c = 0; c < v.cols(); c++) {
+            Scalar s = v[r, c];
+            double d = to_double(s);
+            printf("%2.3f, ", d);
+        }
+        printf("\n");
+    }
   }
   static void print(const std::string &title, const Scalar &v) {
     std::cout << title << "\n" << to_double(v) << std::endl;
   }
   static void print(const std::string &title, const Vector3 &v) {
-    std::cout << title << "\n" << v << std::endl;
+    printf("%s\n", title.c_str());
+    for (int c = 0; c < 3; c++) {
+        Scalar val = v[c];
+        double v = to_double(val);
+        printf("%f, ", v);
+    }
+    printf("\n");
+  }
+  static void print(const std::string &title, const VectorX &v) {
+    printf("%s\n", title.c_str());
+    for (int c = 0; c < size(v); c++) {
+        Scalar val = v[c];
+        double v = to_double(val);
+        printf("%f, ", v);
+    }
+    printf("\n");
+  }
+  static void print(const std::string &title, const Quaternion &q) {
+    printf("%s (xyzw): \t", title.c_str());
+    printf("%.6f  %.6f  %.6f  %.6f\n", to_double(q.x()),
+        to_double(q.y()), to_double(q.z()), to_double(q.w()));
   }
   static void print(const std::string &title, const Matrix3 &m) {
-    std::cout << title << "\n" << m << std::endl;
+    printf("%s\n", title.c_str());
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            Scalar s = m(r, c);
+            double v = to_double(s);
+            printf("%2.3f, ", v);
+        }
+        printf("\n");
+    }
   }
+  static void print(const std::string &title,
+                    const Matrix3X &m) {
+    printf("%s\n", title.c_str());
+    int rows = num_rows(m);
+    int cols = num_cols(m);
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            Scalar s = m(r, c);
+            double v = to_double(s);
+            printf("%2.3f, ", v);
+        }
+        printf("\n");
+    }
+  }
+
   template <typename T>
   static void print(const std::string &title, const T &abi) {
     abi.print(title.c_str());
