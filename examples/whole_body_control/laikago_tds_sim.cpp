@@ -9,7 +9,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
-#include "math/neural_network.hpp"
+#include "neural_network_from_json.hpp"
 #include "simple_robot.hpp"
 #include "com_velocity_estimator.hpp"
 #include "openloop_gait_generator.hpp"
@@ -19,7 +19,7 @@ typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
 typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
-using tds::NeuralNetwork;
+using tds::NeuralNetworkFromJson;
 using std::vector;
 
 namespace {
@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
   weights_json_file >> data;
   std::cout << "Json model loaded\n";
 
-  NeuralNetwork<TinyAlgebra<double, TINY::DoubleUtils>> net(data);
+  NeuralNetworkFromJson<TinyAlgebra<double, TINY::DoubleUtils>> net(data);
 
   MeshcatUrdfVisualizer<MyAlgebra> meshcat_viz;
   std::cout << "Waiting for meshcat server" << std::endl;
