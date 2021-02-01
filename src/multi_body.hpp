@@ -37,7 +37,11 @@ class MultiBody {
    */
   int dof_{0};
 
- 
+  /**
+   * A container to store the nr of spherical joints to account for the discrepancy between the size of the coordinate
+   * vector and the nr of DoF
+   */
+  int spherical_joints_{0};
 
   /**
    * Whether this system is floating or fixed to the world frame.
@@ -134,6 +138,11 @@ public:
     return links_.cend();
   }
   TINY_INLINE bool empty() const { return links_.empty(); }
+
+  /**
+   * Return the number of spherical joints in the system (to account for the difference between DoF and length of q_
+   */
+  TINY_INLINE int spherical_joints() const {return spherical_joints_;}
 
   /**
    * Dimensionality of joint positions q (including 7-DoF floating-base
@@ -270,10 +279,10 @@ public:
   void set_orientation(const Quaternion& initial_orientation) {
       base_X_world_.rotation = Algebra::quat_to_matrix(initial_orientation);
       if (is_floating_) {
-          q_[0] = initial_orientation[0];
-          q_[1] = initial_orientation[1];
-          q_[2] = initial_orientation[2];
-          q_[3] = initial_orientation[3];
+          q_[0] = Algebra::quat_x(initial_orientation);
+          q_[1] = Algebra::quat_y(initial_orientation);
+          q_[2] = Algebra::quat_z(initial_orientation);
+          q_[3] = Algebra::quat_w(initial_orientation);
       }
   }
 
@@ -296,11 +305,17 @@ public:
     int q_index = is_floating_ ? 7 : 0;
     int qd_index = is_floating_ ? 6 : 0;
     dof_ = 0;  // excludes floating-base DOF
+    spherical_joints_ = 0;
     for (Link &link : links_) {
       assert(link.index >= 0);
       link.q_index = q_index;
       link.qd_index = qd_index;
-      if (link.joint_type != JOINT_FIXED) {
+      if (link.joint_type == JOINT_SPHERICAL) {
+          q_index += 4;
+          qd_index += 3;
+          dof_ += 3;
+          ++spherical_joints_;
+      } else if(link.joint_type != JOINT_FIXED) {
         ++q_index;
         ++qd_index;
         ++dof_;
@@ -310,7 +325,13 @@ public:
       }
     }
 
-    q_ = Algebra::zerox(dof());
+    q_ = Algebra::zerox(q_index);
+    // Initialize the quaternions for spherical joints
+    for (Link &link : links_) {
+        if (link.joint_type == JOINT_SPHERICAL) {
+            q_[link.q_index + 3] = Algebra::one();
+        }
+    }
     qd_ = Algebra::zerox(dof_qd());
     qdd_ = Algebra::zerox(dof_qd());
     tau_ = Algebra::zerox(dof_actuated());
@@ -433,43 +454,89 @@ public:
       q_ = q;
   }
 
-  TINY_INLINE Scalar get_q_for_link(const VectorX &q, int link_index) const {
-    if (Algebra::size(q) == 0) return Algebra::zero();
-    const Link &link = links_[link_index];
-    return link.joint_type == JOINT_FIXED ? Algebra::zero() : q[link.q_index];
-  }
-  TINY_INLINE Scalar get_q_for_link(int link_index) const {
-    get_q_for_link(q_, link_index);
-  }
+//  TINY_INLINE Scalar get_q_for_link(const VectorX &q, int link_index) const {
+//    if (Algebra::size(q) == 0) return Algebra::zero();
+//    const Link &link = links_[link_index];
+//    return link.joint_type == JOINT_FIXED ? Algebra::zero() : q[link.q_index];
+//  }
+//  TINY_INLINE Scalar get_q_for_link(int link_index) const {
+//    get_q_for_link(q_, link_index);
+//  }
+    TINY_INLINE VectorX get_q_for_link(const VectorX &q, int link_index) const {
+        const Link &link = links_[link_index];
 
-  TINY_INLINE Scalar get_qd_for_link(const VectorX &qd, int link_index) const {
-    if (Algebra::size(qd) == 0) return Algebra::zero();
-    const Link &link = links_[link_index];
-    return link.joint_type == JOINT_FIXED ? Algebra::zero() : qd[link.qd_index];
-  }
-  TINY_INLINE Scalar get_qd_for_link(int link_index) const {
-    return get_qd_for_link(qd_, link_index);
-  }
+        if (Algebra::size(q) == 0 || link.joint_type == JOINT_FIXED){
+            return link.joint_type == JOINT_SPHERICAL ? Algebra::zerox(4) : Algebra::zerox(1);
+        }
 
-  TINY_INLINE Scalar get_qdd_for_link(const VectorX &qdd,
-                                      int link_index) const {
-    return get_qd_for_link(qdd, link_index);
-  }
-  TINY_INLINE Scalar get_qdd_for_link(int link_index) const {
-    return get_qdd_for_link(qdd_, link_index);
-  }
+        return link.joint_type == JOINT_SPHERICAL ? q.segment(link.q_index, 4) : q.segment(link.q_index, 1);
+    }
+    TINY_INLINE VectorX get_q_for_link(int link_index) const {
+        get_q_for_link(q_, link_index);
+    }
 
-  TINY_INLINE Scalar get_tau_for_link(const VectorX &tau,
-                                      int link_index) const {
-    if (Algebra::size(tau) == 0) return Algebra::zero();
-    const Link &link = links_[link_index];
-    int offset = is_floating_ ? -6 : 0;
-    return link.joint_type == JOINT_FIXED ? Algebra::zero()
-                                          : tau[link.qd_index + offset];
-  }
-  TINY_INLINE Scalar get_tau_for_link(int link_index) const {
-    return get_tau_for_link(tau_, link_index);
-  }
+//  TINY_INLINE Scalar get_qd_for_link(const VectorX &qd, int link_index) const {
+//    if (Algebra::size(qd) == 0) return Algebra::zero();
+//    const Link &link = links_[link_index];
+//    return link.joint_type == JOINT_FIXED ? Algebra::zero() : qd[link.qd_index];
+//  }
+//  TINY_INLINE Scalar get_qd_for_link(int link_index) const {
+//    return get_qd_for_link(qd_, link_index);
+//  }
+
+    TINY_INLINE VectorX get_qd_for_link(const VectorX &qd, int link_index) const {
+        const Link &link = links_[link_index];
+
+        if (Algebra::size(qd) == 0 || link.joint_type == JOINT_FIXED){
+            return link.joint_type == JOINT_SPHERICAL ? Algebra::zerox(3) : Algebra::zerox(1);
+        }
+
+        return link.joint_type == JOINT_SPHERICAL ? qd.segment(link.qd_index, 3) : qd.segment(link.qd_index, 1);
+    }
+    TINY_INLINE VectorX get_qd_for_link(int link_index) const {
+        return get_qd_for_link(qd_, link_index);
+    }
+
+    TINY_INLINE VectorX get_qdd_for_link(const VectorX &qdd,
+                                        int link_index) const {
+        return get_qd_for_link(qdd, link_index);
+    }
+    TINY_INLINE VectorX get_qdd_for_link(int link_index) const {
+        return get_qdd_for_link(qdd_, link_index);
+    }
+//  TINY_INLINE Scalar get_qdd_for_link(const VectorX &qdd,
+//                                      int link_index) const {
+//    return get_qd_for_link(qdd, link_index);
+//  }
+//  TINY_INLINE Scalar get_qdd_for_link(int link_index) const {
+//    return get_qdd_for_link(qdd_, link_index);
+//  }
+
+//  TINY_INLINE Scalar get_tau_for_link(const VectorX &tau,
+//                                      int link_index) const {
+//    if (Algebra::size(tau) == 0) return Algebra::zero();
+//    const Link &link = links_[link_index];
+//    int offset = is_floating_ ? -6 : 0;
+//    return link.joint_type == JOINT_FIXED ? Algebra::zero()
+//                                          : tau[link.qd_index + offset];
+//  }
+//  TINY_INLINE Scalar get_tau_for_link(int link_index) const {
+//    return get_tau_for_link(tau_, link_index);
+//  }
+    TINY_INLINE VectorX get_tau_for_link(const VectorX &tau,
+                                        int link_index) const {
+        const Link &link = links_[link_index];
+
+        if (Algebra::size(tau) == 0 || link.joint_type == JOINT_FIXED){
+            return link.joint_type == JOINT_SPHERICAL ? Algebra::zerox(3) : Algebra::zerox(1);
+        }
+        int offset = is_floating_ ? -6 : 0;
+
+        return link.joint_type == JOINT_SPHERICAL ? tau.segment(link.qd_index + offset, 3) : tau.segment(link.qd_index + offset, 1);
+    }
+    TINY_INLINE VectorX  get_tau_for_link(int link_index) const {
+        return get_tau_for_link(tau_, link_index);
+    }
 
   /**
    * Set joint torques and external forces in all links and the base to zero.
@@ -509,8 +576,29 @@ public:
     assert(parent_index < sz);
     link.index = sz;
     link.parent_index = parent_index;
-    if (link.joint_type != JOINT_FIXED) {
+    if (link.joint_type == JOINT_SPHERICAL) {
+      // How to do this assertion?
+      // assert(Algebra::norm(link.S) > Algebra::zero());
+      link.q_index = dof();
+      link.qd_index = dof_qd();
+      dof_ += 3;
+      ++spherical_joints_;
+      // not sure about this:
+      if (is_controllable) {
+        if (control_indices_.empty()) {
+          control_indices_.push_back(0);
+          control_indices_.push_back(control_indices_.back() + 1);
+          control_indices_.push_back(control_indices_.back() + 1);
+        } else {
+          control_indices_.push_back(control_indices_.back() + 1);
+          control_indices_.push_back(control_indices_.back() + 1);
+          control_indices_.push_back(control_indices_.back() + 1);
+        }
+      }
+    }else if (link.joint_type != JOINT_FIXED) {
       assert(Algebra::norm(link.S) > Algebra::zero());
+      // Is this redundant? Or can a multibody be created used without a call to initialize()? If redundant, delete?
+      // Else, how to fix now that dof != length q_?
       link.q_index = dof();
       link.qd_index = dof_qd();
       dof_++;

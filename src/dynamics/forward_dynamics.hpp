@@ -27,7 +27,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
   typedef tds::RigidBodyInertia<Algebra> RigidBodyInertia;
   typedef tds::ArticulatedBodyInertia<Algebra> ArticulatedBodyInertia;
 
-  assert(Algebra::size(q) == mb.dof());
+  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
   assert(Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == mb.dof_qd());
   assert(Algebra::size(tau) == mb.dof_actuated());
@@ -49,39 +49,96 @@ void forward_dynamics(MultiBody<Algebra> &mb,
   for (int i = static_cast<int>(mb.num_links()) - 1; i >= 0; i--) {
     const Link &link = mb[i];
     int parent = link.parent_index;
-    link.U = link.abi * link.S;
-    // std::cout << "link.abi.matrix() * link.S:\n" << link.abi.matrix() *
-    // link.S << std::endl; std::cout << "link.abi * link.S:\n" << link.abi *
-    // link.S << std::endl; std::cout << "\n\n";
-    link.D = Algebra::dot(link.S, link.U);
-    Scalar tau_val = mb.get_tau_for_link(tau, i);
-    // apply linear joint stiffness and damping
-    // see Eqns. (2.76), (2.78) in Rigid Body Dynamics Notes
-    // by Shinjiro Sueda
-    // https://github.com/sueda/redmax/blob/master/notes.pdf
-    // TODO consider nonzero resting position of joint for stiffness?
-    tau_val -= link.stiffness * mb.get_q_for_link(q, i);
-    tau_val -= link.damping * mb.get_qd_for_link(qd, i);
 
-    // #ifdef NEURAL_SIM
-    //       NEURAL_ASSIGN(tau_val, "tau_" + std::to_string(i));
-    // #endif
+    ArticulatedBodyInertia u_dinv_ut;
+    ForceVector UuD;
+    if (link.joint_type == JOINT_SPHERICAL){
+        link.U_3d = link.abi * link.S_3d;
 
-    link.u = tau_val - Algebra::dot(link.S, link.pA);
+        link.D_3d = Algebra::transpose(link.S_3d) * link.U_3d;
+
+        VectorX tau_temp = mb.get_tau_for_link(tau, i);
+
+        // apply linear joint stiffness and damping
+        // see Eqns. (2.76), (2.78) in Rigid Body Dynamics Notes
+        // by Shinjiro Sueda
+        // https://github.com/sueda/redmax/blob/master/notes.pdf
+        // TODO implement joint stiffness for spherical joints
+        // TODO consider nonzero resting position of joint for stiffness?
+        // TODO consider non-scalar joint damping and stiffness?
+        VectorX quat = mb.get_q_for_link(q, i);
+        Vector3 Axes_angle = Algebra::quaternion_axis_angle(Quaternion(quat[0], quat[1], quat[2], quat[3]));
+        tau_temp -= link.stiffness * Axes_angle;
+        tau_temp -= link.damping * mb.get_qd_for_link(qd, i);
+
+        Vector3 tau_val(tau_temp[0], tau_temp[1], tau_temp[2]);
+        link.u_3d = tau_val - Algebra::dot(link.S_3d, link.pA);
 
 #ifdef DEBUG
-    Algebra::print("ABI", link.abi);
-    Algebra::print("S", link.S);
-    Algebra::print("U", link.U);
-    printf("links[%d].D=", i);
-    double d1 = Algebra::to_double(link.D);
-    printf("%.24f\n", d1);
-    printf("links[%d].u=", i);
-    double u = Algebra::to_double(link.u);
-    assert(!std::isnan(u));
-    printf("%.24f\n", u);
+        Algebra::print("ABI", link.abi);
+        Algebra::print("S", link.S);
+        Algebra::print("U", link.U);
+        printf("links[%d].D=", i);
+        double d1 = Algebra::to_double(link.D);
+        printf("%.24f\n", d1);
+        printf("links[%d].u=", i);
+        double u = Algebra::to_double(link.u);
+        assert(!std::isnan(u));
+        printf("%.24f\n", u);
 
-    printf("LINK  %i\n", i);
+        printf("LINK  %i\n", i);
+#endif
+        assert(link.D_3d.determinant() != Algebra::zero());
+//        assert(link.joint_type == JOINT_FIXED ||
+//               Algebra::abs(link.D) > Algebra::zero());
+//        Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
+//                                                     : Algebra::one() / link.D;
+
+        // I made this a member to avoid double calculation of the inverse: it is used again at line 256
+        link.invD_3d = link.D_3d.inverse();
+#ifdef DEBUG
+        printf("invD[%d]=%f\n", i, Algebra::to_double(invD));
+#endif
+        // Todo: Unused?
+//        auto tmp = link.U * link.invD_3d;
+        u_dinv_ut =
+                ArticulatedBodyInertia::mul_transpose(link.U_3d, link.U_3d * link.invD_3d);
+        UuD = Algebra::mul_2_force_vector(link.U_3d, (link.invD_3d * link.u_3d));
+        //UuD.print("UuD\n");
+    }else {
+      link.U = link.abi * link.S;
+        // std::cout << "link.abi.matrix() * link.S:\n" << link.abi.matrix() *
+        // link.S << std::endl; std::cout << "link.abi * link.S:\n" << link.abi *
+        // link.S << std::endl; std::cout << "\n\n";
+        link.D = Algebra::dot(link.S, link.U);
+        VectorX tau_val = mb.get_tau_for_link(tau, i);
+        // apply linear joint stiffness and damping
+        // see Eqns. (2.76), (2.78) in Rigid Body Dynamics Notes
+        // by Shinjiro Sueda
+        // https://github.com/sueda/redmax/blob/master/notes.pdf
+        // TODO consider nonzero resting position of joint for stiffness?
+        tau_val -= link.stiffness * mb.get_q_for_link(q, i);
+        tau_val -= link.damping * mb.get_qd_for_link(qd, i);
+
+        // #ifdef NEURAL_SIM
+        //       NEURAL_ASSIGN(tau_val, "tau_" + std::to_string(i));
+        // #endif
+
+        link.u = Scalar(tau_val[0]) - Algebra::dot(link.S, link.pA);
+
+#ifdef DEBUG
+        Algebra::print("ABI", link.abi);
+        Algebra::print("S", link.S);
+        Algebra::print("U", link.U);
+        printf("links[%d].D=", i);
+        double d1 = Algebra::to_double(link.D);
+        printf("%.24f\n", d1);
+        printf("links[%d].u=", i);
+        double u = Algebra::to_double(link.u);
+        assert(!std::isnan(u));
+        printf("%.24f\n", u);
+
+        printf("LINK  %i\n", i);
 #endif
 
     if constexpr (is_cppad_scalar<Scalar>::value) {
@@ -96,9 +153,13 @@ void forward_dynamics(MultiBody<Algebra> &mb,
 #ifdef DEBUG
     printf("invD[%d]=%f\n", i, Algebra::to_double(invD));
 #endif
-    auto tmp = link.U * invD;
-    auto u_dinv_ut =
-        ArticulatedBodyInertia::mul_transpose(link.U, link.U * invD);
+        // Todo: Unused?
+//        auto tmp = link.U * invD;
+        u_dinv_ut =
+                ArticulatedBodyInertia::mul_transpose(link.U, link.U * invD);
+        UuD = link.U * (link.u * invD);
+        //UuD.print("UuD\n");
+    }
 
     //u_dinv_ut.print("u_dinv_ut\n");
     //link.abi.print("link.abi\n");
@@ -107,8 +168,6 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     //ForceVector Ia_c = Ia.mul_inv(link.c);
     ForceVector Ia_c = Ia * link.c;
     //Ia_c.print("Ia_c\n");
-    ForceVector UuD = link.U * (link.u * invD);
-    //UuD.print("UuD\n");
     ForceVector pa = link.pA + Ia_c + UuD;
 #ifdef DEBUG
     Algebra::print("u_dinv_ut", u_dinv_ut);
@@ -197,14 +256,32 @@ void forward_dynamics(MultiBody<Algebra> &mb,
       Algebra::print("x_a", x_a);
       Algebra::print("a'", link.a);
 #endif
-      Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
-                                                   : Algebra::one() / link.D;
-      Scalar Ut_a = Algebra::dot(link.U, link.a);
-      Scalar u_Ut_a = link.u - Ut_a;
-      Scalar qdd_val = invD * u_Ut_a;
-      assert(!std::isnan(Algebra::to_double(qdd_val)));
-      qdd[link.qd_index] = qdd_val;
-      link.a += link.S * qdd_val;
+      if (link.joint_type == JOINT_SPHERICAL){
+          Vector3 Ut_a_vec = link.U_3d * link.a;
+          Vector3 u_Ut_a = link.u_3d - Ut_a_vec;
+          Vector3 qdd_val = link.invD_3d * u_Ut_a;
+
+
+          assert(!std::isnan(Algebra::to_double(qdd_val[0])));
+          assert(!std::isnan(Algebra::to_double(qdd_val[1])));
+          assert(!std::isnan(Algebra::to_double(qdd_val[2])));
+          qdd[link.qd_index] = qdd_val[0];
+          qdd[link.qd_index + 1] = qdd_val[1];
+          qdd[link.qd_index + 2] = qdd_val[2];
+
+          link.a += Algebra::mul_2_motion_vector(link.S_3d, qdd_val);
+
+      } else{
+          Scalar invD = link.joint_type == JOINT_FIXED ? Algebra::zero()
+                                                       : Algebra::one() / link.D;
+          Scalar Ut_a = Algebra::dot(link.U, link.a);
+          Scalar u_Ut_a = link.u - Ut_a;
+          Scalar qdd_val = invD * u_Ut_a;
+          assert(!std::isnan(Algebra::to_double(qdd_val)));
+          qdd[link.qd_index] = qdd_val;
+
+          link.a += link.S * qdd_val;
+      }
     }
 #if DEBUG
     Algebra::print("a", link.a);
