@@ -153,7 +153,6 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
         else {
             if (link.joint_type != JOINT_FIXED) {
                 qd[qdindex] += qdd[qdindex] * dt;
-                q[qindex] += qd[qdindex] * dt;
             }
         }
     }
