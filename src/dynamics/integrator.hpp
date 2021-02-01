@@ -14,11 +14,11 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
   using Vector3 = typename Algebra::Vector3;
   using Quaternion = typename Algebra::Quaternion;
 
-  assert(Algebra::size(q) == mb.dof());
+  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
   assert(Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == mb.dof_qd());
 
-  int q_offset, qd_offset;
+
   if (mb.is_floating()) {
     mb.base_acceleration().top = Vector3(qdd[0], qdd[1], qdd[2]);
     mb.base_acceleration().bottom = Vector3(qdd[3], qdd[4], qdd[5]);
@@ -54,19 +54,49 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
     q[1] = Algebra::quat_y(base_rot);
     q[2] = Algebra::quat_z(base_rot);
     q[3] = Algebra::quat_w(base_rot);
-    q_offset = 4;
-    qd_offset = 3;
-  } else {
-    q_offset = 0;
-    qd_offset = 0;
+    int q_offset = 4, qd_offset = 3;
+
+    //update the linear degree of freedom of a floating base
+    for (int i = 0; i < 3; i++) {
+        int qindex = i + q_offset;
+        int qdindex = i + qd_offset;
+        qd[qdindex] += qdd[qdindex] * dt;
+        q[qindex] += qd[qdindex] * dt;
+    }
+
   }
 
-  for (int i = 0; i < mb.dof_qd() - qd_offset; i++) {
-    int qindex = i + q_offset;
-    int qdindex = i + qd_offset;
-    qd[qdindex] += qdd[qdindex] * dt;
-    q[qindex] += qd[qdindex] * dt;
+  for (auto &link: mb.links()){
+      int qindex = link.q_index;
+      int qdindex = link.qd_index;
+      if (link.joint_type == JOINT_SPHERICAL){
+        qd[qdindex] += qdd[qdindex] * dt;
+        qd[qdindex + 1] += qdd[qdindex + 1] * dt;
+        qd[qdindex + 2] += qdd[qdindex + 2] * dt;
+
+//        auto q_now = mb.get_q_for_link(q, qindex);
+//        auto base_rot = Algebra::quat_from_xyzw(q_now[0], q_now[1], q_now[2], q_now[3]);
+        auto base_rot = Algebra::quat_from_xyzw(q[qindex + 0], q[qindex + 1], q[qindex + 2], q[qindex + 3]);
+
+        Algebra::quat_increment(
+                  base_rot, Algebra::quat_velocity(base_rot, Vector3(qd[qdindex], qd[qdindex + 1], qd[qdindex + 2]), dt));
+
+        base_rot = Algebra::normalize(base_rot);
+//        base_rot = Algebra::quat_integrate(base_rot, Vector3(qd[qdindex], qd[qdindex + 1], qd[qdindex + 2]), dt);
+        q[qindex + 0] = Algebra::quat_x(base_rot);
+        q[qindex + 1] = Algebra::quat_y(base_rot);
+        q[qindex + 2] = Algebra::quat_z(base_rot);
+        q[qindex + 3] = Algebra::quat_w(base_rot);
+
+      } else{
+          if (link.joint_type != JOINT_FIXED) {
+              qd[qdindex] += qdd[qdindex] * dt;
+              q[qindex] += qd[qdindex] * dt;
+          }
+
+      }
   }
+
 }
 
 /**
@@ -86,7 +116,6 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
     assert(Algebra::size(qd) == mb.dof_qd());
     assert(Algebra::size(qdd) == mb.dof_qd());
 
-    int q_offset, qd_offset;
     if (mb.is_floating()) {
         mb.base_acceleration().top = Vector3(qdd[0], qdd[1], qdd[2]);
         mb.base_acceleration().bottom = Vector3(qdd[3], qdd[4], qdd[5]);
@@ -103,18 +132,30 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
         qd[0] = mb.base_velocity().top[0];
         qd[1] = mb.base_velocity().top[1];
         qd[2] = mb.base_velocity().top[2];
-        q_offset = 4;
-        qd_offset = 3;
-    }
-    else {
-        q_offset = 0;
-        qd_offset = 0;
+        int q_offset = 4, qd_offset = 3;
+		//update the linear degree of freedom of a floating base
+        for (int i = 0; i < 3; i++) {
+		    int qdindex = i + qd_offset;
+		    qd[qdindex] += qdd[qdindex] * dt;
+		    
+		}
+
     }
 
-    for (int i = 0; i < mb.dof_qd() - qd_offset; i++) {
-        int qindex = i + q_offset;
-        int qdindex = i + qd_offset;
-        qd[qdindex] += qdd[qdindex] * dt;
+    for (auto& link : mb.links()) {
+        int qindex = link.q_index;
+        int qdindex = link.qd_index;
+        if (link.joint_type == JOINT_SPHERICAL) {
+            qd[qdindex] += qdd[qdindex] * dt;
+            qd[qdindex + 1] += qdd[qdindex + 1] * dt;
+            qd[qdindex + 2] += qdd[qdindex + 2] * dt;
+        }
+        else {
+            if (link.joint_type != JOINT_FIXED) {
+                qd[qdindex] += qdd[qdindex] * dt;
+                q[qindex] += qd[qdindex] * dt;
+            }
+        }
     }
 }
 

@@ -8,9 +8,14 @@ target_compile_definitions(pendulum_example_tiny_gui PRIVATE USE_TINY )
 target_include_directories(pendulum_example_tiny_gui PRIVATE ../src )
 
 if (Eigen3_FOUND)
+message("YES")
 add_executable(pendulum_example_eigen_gui pendulum_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(pendulum_example_eigen_gui opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS})
 target_include_directories(pendulum_example_eigen_gui PRIVATE ../src)
+
+add_executable(spherical_joint_test_eigen spherical_joint_test.cpp  ${TDS_HDRS})
+target_link_libraries(spherical_joint_test_eigen opengl_window tinyxml2  Eigen3::Eigen ${CMAKE_DL_LIBS})
+target_include_directories(spherical_joint_test_eigen PRIVATE ../src)
 
 add_executable(laikago_opengl_eigen_example laikago_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
 target_link_libraries(laikago_opengl_eigen_example  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
@@ -25,6 +30,13 @@ target_compile_definitions(laikago_opengl_tiny_example PRIVATE USE_TINY )
 
 endif()
 
+# spherical_joint_test using Tiny is broken
+IF(0)
+    add_executable(spherical_joint_test spherical_joint_test.cpp  ${TDS_HDRS})
+    target_link_libraries(spherical_joint_test opengl_window tinyxml2  ${CMAKE_DL_LIBS})
+    target_compile_definitions(spherical_joint_test PRIVATE USE_TINY )
+    target_include_directories(spherical_joint_test PRIVATE ../src)
+ENDIF()
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(billiard_opt_example_gui PRIVATE ../src)
@@ -36,7 +48,7 @@ target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_part
 target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party ../src)
 
 add_executable(opengl_imgui_test opengl_imgui_test.cpp ../third_party/dear_imgui/opengl3/imgui_impl_opengl3.cpp  ${TDS_HDRS})
-target_link_libraries(opengl_imgui_test opengl_window dear_imgui TinyAudio ${CMAKE_DL_LIBS})
+target_link_libraries(opengl_imgui_test opengl_window dear_imgui  ${CMAKE_DL_LIBS})
 target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../third_party/dear_imgui ../src)
 
 IF(USE_CPPAD)

@@ -151,6 +151,11 @@ struct UrdfToMultiBody {
           joint_conversion_ok = true;
           break;
         }
+        case JOINT_SPHERICAL: {
+            joint_conversion_ok = true;
+            l.set_joint_type(JOINT_SPHERICAL);
+            break;
+        }
         default: {
           return_code = kCONVERSION_JOINT_FAILED;
         }

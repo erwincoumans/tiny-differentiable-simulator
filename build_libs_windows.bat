@@ -3,28 +3,6 @@
 
 git submodule update --init --recursive
 
-
-pushd third_party\glog
-mkdir build_cmake
-cd build_cmake
-cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%\third_party\glog\build_cmake\local_install ..
-cmake  --build .  --target ALL_BUILD  --config Debug
-cmake  --build .  --target INSTALL  --config Release
-mkdir local_install\lib\Release
-mkdir local_install\lib\Debug
-
-copy  lib\Release local_install\lib\Release
-copy  lib\Debug local_install\lib\Debug
-
-popd
-cd %ROOT%
-
-
-pushd third_party\cppadcodegen
-git apply ..\patches\CppADCodeGen.diff
-popd
-cd %ROOT%
-
 pushd third_party\gflags
 mkdir build_cmake
 cd build_cmake
@@ -39,6 +17,30 @@ copy  lib\Debug local_install\lib\Debug
 
 popd
 cd %ROOT%
+
+
+
+pushd third_party\glog
+mkdir build_cmake
+cd build_cmake
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%\third_party\glog\build_cmake\local_install ..
+cmake  --build .  --target ALL_BUILD  --config Debug
+cmake  --build .  --target INSTALL  --config Release
+mkdir local_install\lib\Release
+mkdir local_install\lib\Debug
+
+copy  Release local_install\lib\Release
+copy  Debug local_install\lib\Debug
+
+popd
+cd %ROOT%
+
+
+pushd third_party\cppadcodegen
+git apply ..\patches\CppADCodeGen.diff
+popd
+cd %ROOT%
+
 
 
 
