@@ -24,8 +24,6 @@
 #include <random>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
 #include "math/conditionals.hpp"
 
 namespace tds {
@@ -51,7 +49,7 @@ enum NeuralNetworkInitialization {
  * Statically sized NN specification with a predefined number of layers so that
  * the number of parameters can be statically inferred at compile time.
  */
-template<std::size_t NumLayers>
+template <std::size_t NumLayers>
 struct StaticNeuralNetworkSpecification {
   static const inline std::size_t kNumLayers = NumLayers;
 
@@ -114,7 +112,7 @@ class NeuralNetworkSpecification {
     }
   }
 
-  template<std::size_t NumLayers>
+  template <std::size_t NumLayers>
   NeuralNetworkSpecification(
       const StaticNeuralNetworkSpecification<NumLayers>& spec) {
     activations_.resize(NumLayers);
@@ -157,7 +155,7 @@ class NeuralNetworkSpecification {
   int num_parameters() const { return num_weights() + num_biases(); }
   int num_layers() const { return static_cast<int>(layers_.size()); }
 
-  template<typename Algebra>
+  template <typename Algebra>
   static void print_states(
       const std::vector<typename Algebra::Scalar>& numbers) {
     for (const auto& n : numbers) {
@@ -169,7 +167,7 @@ class NeuralNetworkSpecification {
   /**
    * Initializes the weights and biases using the given method.
    */
-  template<typename Algebra>
+  template <typename Algebra>
   void initialize(
       std::vector<typename Algebra::Scalar>& weights,
       std::vector<typename Algebra::Scalar>& biases,
@@ -184,11 +182,14 @@ class NeuralNetworkSpecification {
     for (std::size_t i = 1; i < layers_.size(); ++i) {
       double std;
       switch (init_method) {
-        case NN_INIT_ZERO:break;
-        case NN_INIT_HE:std = std::sqrt(2. / layers_[i - 1]);
+        case NN_INIT_ZERO:
+          break;
+        case NN_INIT_HE:
+          std = std::sqrt(2. / layers_[i - 1]);
           break;
         default:
-        case NN_INIT_XAVIER:std = std::sqrt(2. / (layers_[i - 1] + layers_[i]));
+        case NN_INIT_XAVIER:
+          std = std::sqrt(2. / (layers_[i - 1] + layers_[i]));
       }
       std::normal_distribution<double> d{0., std * std};
       for (int ci = 0; ci < layers_[i]; ++ci) {
@@ -213,7 +214,7 @@ class NeuralNetworkSpecification {
    * Infers the output of the neural network for the given input, and the
    * provided weights and biases.
    */
-  template<typename Algebra>
+  template <typename Algebra>
   void compute(const std::vector<typename Algebra::Scalar>& weights,
                const std::vector<typename Algebra::Scalar>& biases,
                const std::vector<typename Algebra::Scalar>& input,
@@ -247,15 +248,17 @@ class NeuralNetworkSpecification {
           current[ci] += previous[pi] * weights[weight_i];
         }
         switch (activations_[i - 1]) {
-          case NN_ACT_TANH:current[ci] = Algebra::tanh(current[ci]);
+          case NN_ACT_TANH:
+            current[ci] = Algebra::tanh(current[ci]);
             break;
-          case NN_ACT_SIN:current[ci] = Algebra::sin(current[ci]);
+          case NN_ACT_SIN:
+            current[ci] = Algebra::sin(current[ci]);
             break;
-          case NN_ACT_RELU:current[ci] = Algebra::max(zero, current[ci]);
+          case NN_ACT_RELU:
+            current[ci] = Algebra::max(zero, current[ci]);
             break;
           case NN_ACT_SOFT_RELU:
-            current[ci] = Algebra::log(
-                one + Algebra::exp(current[ci]));
+            current[ci] = Algebra::log(one + Algebra::exp(current[ci]));
             break;
           case NN_ACT_ELU:
             current[ci] = tds::where_ge(current[ci], zero, current[ci],
@@ -267,11 +270,11 @@ class NeuralNetworkSpecification {
             break;
           }
           case NN_ACT_SOFTSIGN:
-            current[ci] = current[ci]
-                / (one + Algebra::abs(current[ci]));
+            current[ci] = current[ci] / (one + Algebra::abs(current[ci]));
             break;
           case NN_ACT_IDENTITY:
-          default:break;
+          default:
+            break;
         }
       }
       previous = current;
@@ -279,7 +282,7 @@ class NeuralNetworkSpecification {
     output = current;
   }
 
-  template<typename Algebra>
+  template <typename Algebra>
   void save_graphviz(const std::string& filename,
                      const std::vector<std::string>& input_names = {},
                      const std::vector<std::string>& output_names = {},
@@ -303,7 +306,7 @@ class NeuralNetworkSpecification {
         if (i == 0 && j < input_names.size()) {
           file << "\"" << input_names[j] << "\"";
         } else if (i == static_cast<int>(layers_.size()) - 1 &&
-            j < output_names.size()) {
+                   j < output_names.size()) {
           file << "\"" << output_names[j] << "\"";
         } else {
           file << "\"\"";
@@ -340,8 +343,8 @@ class NeuralNetworkSpecification {
           if (!weights.empty()) {
             file << "[penwidth="
                  << std::to_string(
-                     std::abs(Algebra::from_double(weights[weight_i])) /
-                         max_weight * 3.0)
+                        std::abs(Algebra::from_double(weights[weight_i])) /
+                        max_weight * 3.0)
                  << "]";
           }
           file << ";\n";
@@ -357,7 +360,7 @@ class NeuralNetworkSpecification {
  * Implements a fully-connected neural network consisting of linear layers with
  * weights and optional biases to be stored internally.
  */
-template<typename Algebra>
+template <typename Algebra>
 class NeuralNetwork : public NeuralNetworkSpecification {
  public:
   std::vector<typename Algebra::Scalar> weights;
@@ -374,68 +377,6 @@ class NeuralNetwork : public NeuralNetworkSpecification {
                                    learn_bias) {}
   explicit NeuralNetwork(const NeuralNetworkSpecification& spec)
       : NeuralNetworkSpecification(spec) {}
-
-  // Constructs a NeuralNetwork with the given json model state file's weights,
-  // biases, layer sizes and activation functions.
-  NeuralNetwork(const nlohmann::json& json) {
-    std::vector<tds::NeuralNetworkActivation> activations;
-    std::vector<int> layer_sizes;
-    bool input_dim_set = false;
-
-    for (auto&[key, value]: json.items()) {
-      if (key.find(".activation") != std::string::npos) {
-        NeuralNetworkActivation
-            activation = MapTorchActivationTypeToTdsType(value);
-        if (activation != tds::NN_ACT_IDENTITY) {
-          activations.push_back(activation);
-          std::cout
-              << "Activation function type loaded: " << activation
-              << std::endl;
-        }
-      } else if (key.find(".weight") != std::string::npos) {
-        if (!input_dim_set) {
-          // Input layer
-          layers_[0] = value[0].size();
-          input_dim_set = true;
-        }
-        int layer_size = value.size();
-        layer_sizes.push_back(layer_size);
-        weights.reserve(weights.size() + layer_size * value[0].size());
-        for (const auto& vec: value) {
-          for (double value: vec) {
-            weights.push_back(value);
-          }
-        }
-      } else if (key.find(".bias") != std::string::npos) {
-        biases.reserve(biases.size() + value.size());
-        for (double i: value) {
-            biases.push_back(i);
-        }
-      }
-    }
-
-    use_bias_[0] = false;
-    assert(activations.size() <= layer_sizes.size());
-    for (size_t i = 0; i < layer_sizes.size(); i++) {
-      if (i >= activations.size()) {
-        add_linear_layer(NN_ACT_IDENTITY, layer_sizes[i], true);
-      } else {
-        add_linear_layer(activations[i], layer_sizes[i], true);
-      }
-    }
-    std::cout << "Model loaded from torch script: " << std::endl;
-    std::cout << "Layer sizes: ";
-    for (auto i: layers_) {
-      std::cout << i << ", ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "Activations: ";
-    for (auto i: activations_) {
-      std::cout << i << ", ";
-    }
-    std::cout << std::endl;
-  }
 
   void initialize(NeuralNetworkInitialization init_method = NN_INIT_XAVIER) {
     this->template initialize<Algebra>(weights, biases, init_method);
@@ -469,26 +410,7 @@ class NeuralNetwork : public NeuralNetworkSpecification {
         ->template save_graphviz<Algebra>(filename, input_names, output_names,
                                           weights, biases);
   }
- private:
-    // Returns a NeuralNetworkActivation given a torch activation function
-    // type.
-    NeuralNetworkActivation MapTorchActivationTypeToTdsType(const std::string& type) {
-      if (type.find("ReLU") != std::string::npos) {
-        return tds::NN_ACT_RELU;
-      } else if (type.find("Tanh") != std::string::npos) {
-        return tds::NN_ACT_TANH;
-      } else if (type.find("ELU") != std::string::npos) {
-        return tds::NN_ACT_ELU;
-      } else if (type.find("Sigmoid") != std::string::npos) {
-        return tds::NN_ACT_SIGMOID;
-      } else if (type.find("Softsign") != std::string::npos) {
-        return tds::NN_ACT_SOFTSIGN;
-      } else {
-        return tds::NN_ACT_IDENTITY;
-      }
-    }
-
-  };
+};
 
 }  // namespace tds
 

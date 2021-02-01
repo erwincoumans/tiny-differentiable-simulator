@@ -359,7 +359,6 @@ SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/dear_imgui)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/crossguid)
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/zeromq)
 #SUBDIRS(third_party/nlohmann)
-include_directories(tds/third_party/nlohmann/include)
 
 add_library(differentiation INTERFACE)
 target_link_directories(differentiation INTERFACE Eigen3::Eigen)
