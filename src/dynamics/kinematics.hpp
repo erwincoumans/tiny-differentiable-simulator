@@ -33,6 +33,8 @@ void forward_kinematics(
   assert(Algebra::size(qdd) == 0 || Algebra::size(qdd) == mb.dof_qd());
 
   if (mb.is_floating()) {
+    // if this assert fires too early, tune/lower the constant (999)
+    assert((q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]) > Algebra::fraction(999,1000));
     // update base-world transform from q, and update base velocity from qd
     mb.base_X_world().rotation =
         Algebra::quat_to_matrix(q[0], q[1], q[2], q[3]);
