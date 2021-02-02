@@ -89,15 +89,17 @@ int main(int argc, char* argv[]) {
 
   int num_spheres = 5;
 
-
-  MultiBody* planemb = world.create_multi_body();
-  planemb->set_floating_base(false);
-  Transform base_X_geom;
-  base_X_geom.set_identity();
-  tds::Plane<Algebra>* plane = new tds::Plane<Algebra>();
-  planemb->collision_geometries().push_back(plane);
-  planemb->collision_transforms(-1).push_back(base_X_geom);
-
+  bool add_plane = false;
+  if(add_plane)
+  {
+      MultiBody* planemb = world.create_multi_body();
+      planemb->set_floating_base(false);
+      Transform base_X_geom;
+      base_X_geom.set_identity();
+      tds::Plane<Algebra>* plane = new tds::Plane<Algebra>();
+      planemb->collision_geometries().push_back(plane);
+      planemb->collision_transforms(-1).push_back(base_X_geom);
+  }
 
   MultiBody* mb = world.create_multi_body();
     init_compound_pendulum<Algebra>(*mb, world, num_spheres);
