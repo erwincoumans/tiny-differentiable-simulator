@@ -342,10 +342,12 @@ public:
     base_abi_ = base_rbi_;
 
     if (is_floating_ && !base_abi_.is_invertible()) {
+      
       fprintf(stderr,
               "Error: floating-base inertia matrix (ABI) is not invertible. "
               "Are you sure the model should be floating-base?\n");
       // requires to_double, which breaks Algebra::print("Floating-base ABI", base_abi_);
+      assert(0);
       exit(1);
     }
   }
