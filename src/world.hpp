@@ -219,7 +219,7 @@ class World {
             const Transform& local_a = mb_a->collision_transforms(ii)[iii];
             Transform tr_a = world_transform_a * local_a;
             pose_a.position_ = tr_a.translation;
-            tr_a.rotation = Algebra::quat_to_matrix(pose_a.orientation_);
+            pose_a.orientation_ = Algebra::matrix_to_quat(tr_a.rotation);
 
             for (int jj = -1; jj < num_links_b; jj++) {
               const Transform& world_transform_b =
@@ -233,7 +233,7 @@ class World {
                     mb_b->collision_transforms(jj)[jjj];
                 Transform tr_b = world_transform_b * local_b;
                 pose_b.position_ = tr_b.translation;
-                Algebra::matrix_to_quat(tr_b.rotation);
+                pose_b.orientation_ = Algebra::matrix_to_quat(tr_b.rotation);
 
                 // printf("\tworld_transform_b: %.3f  %.3f  %.3f\n",
                 // world_transform_b.translation[0],
