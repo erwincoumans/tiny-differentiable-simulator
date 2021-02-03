@@ -23,7 +23,7 @@ cd %ROOT%
 pushd third_party\glog
 mkdir build_cmake
 cd build_cmake
-cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%\third_party\glog\build_cmake\local_install ..
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="" -DINSTALL_LIBS=ON -Dgflags_DIR=%ROOT%/third_party/gflags/build_cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%\third_party\glog\build_cmake\local_install ..
 cmake  --build .  --target ALL_BUILD  --config Debug
 cmake  --build .  --target INSTALL  --config Release
 mkdir local_install\lib\Release
