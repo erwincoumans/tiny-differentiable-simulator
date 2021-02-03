@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
   int num_multibodies = 1;
 
 
-  bool add_plane = false;
+  bool add_plane = true;
   if(add_plane)
   {
       MultiBody* planemb = world.create_multi_body();
