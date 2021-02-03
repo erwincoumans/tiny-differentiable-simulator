@@ -91,13 +91,9 @@ vector<MyScalar> GetMpcInput(const vector<MyScalar>& desired_speed,
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
-    std::cerr
-        << "usage: load_pytorch_network <path-to-exported-script-module>\n";
-    return -1;
-  }
+  
   std::string nn_json_filename;
-  tds::FileUtils::find_file(argv[1],
+  tds::FileUtils::find_file("mpc_ffn_model.json",
                             nn_json_filename);
   std::ifstream weights_json_file(nn_json_filename);
   nlohmann::json data;
@@ -124,7 +120,7 @@ int main(int argc, char* argv[]) {
   raibert_swing_leg_controller.Reset();
 
   auto start_time = std::chrono::high_resolution_clock::now();
-  int secs_since_start;
+  int secs_since_start=0;
   while (secs_since_start < TOTAL_SECS) {
     std::this_thread::sleep_for(std::chrono::duration<double>(0.003));
     auto current_time = std::chrono::high_resolution_clock::now();

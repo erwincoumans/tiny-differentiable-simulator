@@ -191,7 +191,7 @@ class CollisionDispatcher {
             auto tmp = contactsOut[i].world_point_on_a;
             contactsOut[i].world_point_on_a = contactsOut[i].world_point_on_b;
             contactsOut[i].world_point_on_b = tmp;
-            contactsOut[i].world_normal_on_b *= -1;
+            contactsOut[i].world_normal_on_b = -contactsOut[i].world_normal_on_b;
         }
       return num_contacts;
     }
