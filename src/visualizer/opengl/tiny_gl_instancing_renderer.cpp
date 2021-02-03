@@ -21,6 +21,8 @@ misrepresented as being the original software.
 /// todo: make this configurable in the gui
 bool useShadowMap = true;
 
+#include <iostream>
+
 #include <assert.h>
 #include <stdio.h>
 #include <algorithm>  // std::sort
@@ -654,6 +656,9 @@ void TinyGLInstancingRenderer::write_single_instance_transform_to_gpu(
 }
 
 void TinyGLInstancingRenderer::write_transforms() {
+  if (glGetError() != GL_NO_ERROR) {
+    std::cerr << "GL Error: " << glGetError() << std::endl;
+  }
   { assert(glGetError() == GL_NO_ERROR); }
   { glBindBuffer(GL_ARRAY_BUFFER, m_data->m_vbo); }
 

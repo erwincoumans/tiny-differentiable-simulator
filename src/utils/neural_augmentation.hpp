@@ -1,9 +1,10 @@
 #ifndef NEURAL_AUGMENTATION_H
 #define NEURAL_AUGMENTATION_H
 
-#include "math/tiny/neural_algebra.hpp"
 #include "math/eigen_algebra.hpp"
+#include "math/tiny/neural_algebra.hpp"
 #include "parameter.hpp"
+
 
 namespace tds {
 
@@ -27,22 +28,22 @@ struct NeuralAugmentation {
 
   typedef tds::EigenAlgebra DoubleAlgebra;
 
-  NeuralNetworkSpecification &add_wiring(
-      const std::string &output, const std::vector<std::string> &inputs,
-      int hidden_layers = default_hidden_layers,
-      int hidden_units = default_hidden_units,
-      NeuralNetworkActivation output_fn = NN_ACT_IDENTITY) {
+  NeuralNetworkSpecification &
+  add_wiring(const std::string &output, const std::vector<std::string> &inputs,
+             int hidden_layers = default_hidden_layers,
+             int hidden_units = default_hidden_units,
+             NeuralNetworkActivation output_fn = NN_ACT_IDENTITY) {
     return add_wiring(std::vector<std::string>{output}, inputs, hidden_layers,
                       hidden_units, output_fn);
   }
 
-  NeuralNetworkSpecification &add_wiring(
-      const std::vector<std::string> &outputs,
-      const std::vector<std::string> &inputs,
-      int hidden_layers = default_hidden_layers,
-      int hidden_units = default_hidden_units, bool input_bias = false,
-      bool output_bias = false,
-      NeuralNetworkActivation output_fn = NN_ACT_IDENTITY) {
+  NeuralNetworkSpecification &
+  add_wiring(const std::vector<std::string> &outputs,
+             const std::vector<std::string> &inputs,
+             int hidden_layers = default_hidden_layers,
+             int hidden_units = default_hidden_units, bool input_bias = false,
+             bool output_bias = false,
+             NeuralNetworkActivation output_fn = NN_ACT_IDENTITY) {
     NeuralNetworkSpecification spec(static_cast<int>(inputs.size()),
                                     input_bias);
     // define overparameterized NN
@@ -57,10 +58,10 @@ struct NeuralAugmentation {
     return specs.back();
   }
 
-  NeuralNetworkSpecification &add_wiring(
-      const std::vector<std::string> &outputs,
-      const std::vector<std::string> &inputs,
-      const NeuralNetworkSpecification &spec) {
+  NeuralNetworkSpecification &
+  add_wiring(const std::vector<std::string> &outputs,
+             const std::vector<std::string> &inputs,
+             const NeuralNetworkSpecification &spec) {
     assert(spec.input_dim() == static_cast<int>(inputs.size()));
     assert(spec.output_dim() == static_cast<int>(outputs.size()));
     output_inputs.push_back(std::make_pair(outputs, inputs));
@@ -97,6 +98,53 @@ struct NeuralAugmentation {
       NAlgebra::Scalar::add_blueprint(output_inputs[i].first,
                                       output_inputs[i].second, net);
       pi += net_size;
+    }
+  }
+
+  /**
+   * Assigns the names and l1, l2 loss coefficients on the parameters to match
+   * the architectures of the defined networks.
+   */
+  void assign_estimation_parameters(
+      std::vector<EstimationParameter> &params,
+      std::size_t param_index_offset = 0,
+      NeuralNetworkInitialization init_method = NN_INIT_XAVIER) const {
+    std::size_t pi = param_index_offset;
+    for (std::size_t i = 0; i < specs.size(); ++i) {
+      std::string output_name = "net";
+      for (const auto &output : output_inputs[i].first) {
+        output_name += "_" + output;
+      }
+      std::string net_prefix = output_name + "_";
+      // create sensible initialization for network weights
+      std::vector<double> init_weights, init_biases;
+      specs[i].template initialize<DoubleAlgebra>(init_weights, init_biases,
+                                                  init_method);
+
+      specs[i].template save_graphviz<DoubleAlgebra>(
+          "init_net_" + std::to_string(i) + ".dot", output_inputs[i].second,
+          output_inputs[i].first, init_weights, init_biases);
+
+      int num_first_layer_weights =
+          specs[i].num_units(1) * specs[i].input_dim();
+      for (int wi = 0; wi < specs[i].num_weights(); ++wi, ++pi) {
+        params[pi].name = net_prefix + "w_" + std::to_string(wi);
+        params[pi].minimum = -weight_limit;
+        params[pi].maximum = weight_limit;
+        params[pi].value = init_weights[wi];
+        if (wi < num_first_layer_weights) {
+          // L1 lasso on input weights encourages input sparsity
+          params[pi].l1_regularization = input_lasso_regularization;
+        }
+        // L2 regularization of weights in upper layers
+        params[pi].l2_regularization = upper_l2_regularization;
+      }
+      for (int bi = 0; bi < specs[i].num_biases(); ++bi, ++pi) {
+        params[pi].name = net_prefix + "b_" + std::to_string(bi);
+        params[pi].minimum = -bias_limit;
+        params[pi].maximum = bias_limit;
+        params[pi].value = init_biases[bi];
+      }
     }
   }
 
@@ -224,6 +272,6 @@ struct NeuralAugmentation {
   }
 };
 
-}  // namespace tds
+} // namespace tds
 
-#endif  // NEURAL_AUGMENTATION_H
+#endif // NEURAL_AUGMENTATION_H
