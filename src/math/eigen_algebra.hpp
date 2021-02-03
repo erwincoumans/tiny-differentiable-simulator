@@ -798,6 +798,65 @@ struct EigenAlgebraT {
     q.normalize();
     return q;
   }
+  
+  EIGEN_ALWAYS_INLINE static const Quaternion inverse(const Quaternion &q) {
+    return q.normalized().inverse();
+  }
+  
+  EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
+    const Quaternion q2 = q.normalized();
+  
+    // From tiny_quaternion.h
+    Scalar m00, m01, m02;
+    Scalar m10, m11, m12;
+    Scalar m20, m21, m22;
+    const Scalar tx = two() * q2.x();
+    const Scalar ty = two() * q2.y();
+    const Scalar tz = two() * q2.z();
+    const Scalar twx = tx * q2.w();
+    const Scalar twy = ty * q2.w();
+    const Scalar twz = tz * q2.w();
+    const Scalar txx = tx * q2.x();
+    const Scalar txy = ty * q2.x();
+    const Scalar txz = tz * q2.x();
+    const Scalar tyy = ty * q2.y();
+    const Scalar tyz = tz * q2.y();
+    const Scalar tzz = tz * q2.z();
+    m00 = one() - (tyy + tzz);
+    m01 = txy - twz;
+    m02 = txz + twy;
+    m10 = txy + twz;
+    m11 = one() - (txx + tzz);
+    m12 = tyz - twx;
+    m20 = txz - twy;
+    m21 = tyz + twx;
+    m22 = one() - (txx + tyy);
+
+    // Next extract Euler angles
+    Vector3 rpy;
+
+    rpy[0] = atan2(m12, m22);
+    Scalar c2 = sqrt(m00 * m00 + m01 * m01);
+    
+    rpy[0] = tds::where_gt(rpy[0], zero(), -pi(), rpy[0]);
+    rpy[1] = tds::where_gt(rpy[0], zero(), -atan2(-m02, -c2), -atan2(-m02, c2));
+    
+    /*
+    if (rpy[0] > zero()) {
+        rpy[0] -= pi();
+        rpy[1] = -atan2(-m02, -c2);
+    }
+    else {
+        rpy[1] = -atan2(-m02, c2);
+    }
+    */
+    Scalar s1 = sin(rpy[0]);
+    Scalar c1 = cos(rpy[0]);
+    rpy[0] = -rpy[0];
+    rpy[2] = -atan2(s1 * m20 - c1 * m10, c1 * m11 - s1 * m21);
+
+    return rpy;
+  }
 
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3X &m) { m.setZero(); }
