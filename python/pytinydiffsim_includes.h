@@ -157,4 +157,16 @@ MyScalar MySin(MyScalar v)
     return MyAlgebra::sin(v);
 }
 
+MyScalar MyMax(MyScalar a, MyScalar b)
+{
+    return MyAlgebra::max(a, b);
+}
 
+MyScalar MyMin(MyScalar a, MyScalar b)
+{
+    return MyAlgebra::min(a, b);
+}
+
+MyScalar MyClip(MyScalar v, MyScalar low, MyScalar high) {
+    return MyAlgebra::max(MyAlgebra::min(v, high), low);
+}

@@ -570,6 +570,10 @@ struct TinyAlgebra {
     q.normalize();
     return q;
   }
+  
+  TINY_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
+    return q.get_euler_rpy2();
+  }
 
   TINY_INLINE static void set_zero(Matrix3 &m) { m.set_zero(); }
   TINY_INLINE static void set_zero(Matrix6x3 &m) { m.set_zero(); }

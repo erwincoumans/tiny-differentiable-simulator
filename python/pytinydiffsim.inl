@@ -103,15 +103,13 @@
       .def("set_identity", [](Quaternion &q) {
           MyAlgebra::set_identity(q);
       })
-      //.def("get_euler_rpy", &TinyQuaternion<MyScalar, MyTinyConstants>::get_euler_rpy)
-      //.def("get_euler_rpy2",
-      //     &TinyQuaternion<MyScalar, MyTinyConstants>::get_euler_rpy2)
-      //.def("set_euler_rpy", &TinyQuaternion<MyScalar, MyTinyConstants>::set_euler_rpy)
-
-  //    .def_readwrite("x", &TinyQuaternion<MyScalar, MyTinyConstants>::m_x)
-  //    .def_readwrite("y", &TinyQuaternion<MyScalar, MyTinyConstants>::m_y)
- //     .def_readwrite("z", &TinyQuaternion<MyScalar, MyTinyConstants>::m_z)
-   //   .def_readwrite("w", &TinyQuaternion<MyScalar, MyTinyConstants>::m_w)
+      .def("inverse", [](const Quaternion &q) {
+          return MyAlgebra::inverse(q);
+      })
+      .def("get_rpy", [](const Quaternion &q) {
+          return MyAlgebra::get_euler_rpy2(q);
+      })
+      .def(py::self * py::self)
       .def_property_readonly("x", [](const Quaternion &q) { return q.x(); })
       .def_property_readonly("y", [](const Quaternion &q) { return q.y(); })
       .def_property_readonly("z", [](const Quaternion &q) { return q.z(); })
@@ -464,6 +462,7 @@
       .value("JOINT_REVOLUTE_Z", JOINT_REVOLUTE_Z, "JOINT_REVOLUTE_Z")
       .value("JOINT_REVOLUTE_AXIS", JOINT_REVOLUTE_AXIS, "JOINT_REVOLUTE_AXIS")
       .value("JOINT_INVALID", JOINT_INVALID, "JOINT_INVALID")
+      .value("JOINT_SPHERICAL", JOINT_SPHERICAL, "JOINT_SPHERICAL")
       .export_values();
 
   py::enum_<GeometryTypes>(m, "TinyGeometryTypes")
@@ -523,6 +522,7 @@
 #endif
       .def("world_to_body", &MultiBody<MyAlgebra>::world_to_body)
       .def("body_to_world", &MultiBody<MyAlgebra>::body_to_world)
+      .def("clear_forces", &MultiBody<MyAlgebra>::clear_forces)
       .def_property_readonly("num_dofs", &MultiBody<MyAlgebra>::dof)
       //.def_property_readonly("num_dofs_qd", &MultiBody<MyAlgebra>::dof_qd)
       .def_readwrite("q", &MultiBody<MyAlgebra>::q_)
@@ -545,11 +545,14 @@
   m.def("inverse_kinematics", &MyInverseKinematics);
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
   m.def("find_file", &MyFindFile);
+
   m.def("pi", &MyPi);
   m.def("cos", &MyCos);
   m.def("sin", &MySin);
+  m.def("max", &MyMax);
+  m.def("min", &MyMin);
+  m.def("clip", &MyClip);
 
-  
   
   py::class_<NeuralNetwork<MyAlgebra>>(      m, "NeuralNetwork")
       .def(py::init<int, bool>())
