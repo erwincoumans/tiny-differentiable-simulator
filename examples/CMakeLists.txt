@@ -42,8 +42,8 @@ target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(billiard_opt_example_gui PRIVATE ../src)
 
 
-add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS}) 
-target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window ${CMAKE_DL_LIBS}) 
+add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
+target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party/tinyobjloader)
 target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party ../src)
 
@@ -92,8 +92,8 @@ target_link_libraries(ceres_estimation_real pybullet_visualizer_api  glog::glog 
 # We want to link against ceres-debug.lib in Debug builds and Release/ceres.lib in optimized/Release builds.
 if (WIN32)
     target_link_libraries(ceres_estimation_real  Opengl32)
-    target_link_libraries( ceres_estimation_real 
-      debug ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Debug/ceres-debug.lib 
+    target_link_libraries( ceres_estimation_real
+      debug ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Debug/ceres-debug.lib
       optimized  ${PROJECT_SOURCE_DIR}/third_party/ceres-solver/build_cmake/local_install/lib/Release/ceres.lib)
     target_include_directories( ceres_estimation_real PRIVATE  ../third_party/glog/build_cmake/local_install/include ../third_party/ceres-solver/build_cmake/local_install/include )
 
@@ -125,7 +125,7 @@ ENDIF()
 
 ENDIF()
 
-add_executable(opengl_test opengl_test.cpp  ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
+add_executable(opengl_test opengl_test.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc ${TDS_HDRS})
 target_include_directories(opengl_test PRIVATE ../third_party/tinyobjloader)
 target_include_directories(opengl_test PRIVATE ../third_party ../src)
 target_link_libraries(opengl_test opengl_window ${CMAKE_DL_LIBS})
@@ -135,16 +135,20 @@ target_link_libraries(tiny_urdf_parser_example tinyxml2)
 target_include_directories(tiny_urdf_parser_example PRIVATE ../third_party ../src)
 
 
-set(MESHCAT_LIBRARIES crossguid cpp_base64 zmq )
-IF(WIN32)
+set(MESHCAT_LIBRARIES crossguid cpp_base64 zmq)
+IF (WIN32)
     set(MESHCAT_LIBRARIES ${MESHCAT_LIBRARIES} ws2_32 Winmm iphlpapi)
-ENDIF()
+ENDIF ()
 
-add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS}) 
-target_link_libraries(tiny_urdf_parser_meshcat_example  tinyxml2 ${MESHCAT_LIBRARIES}) 
+add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS})
+target_link_libraries(tiny_urdf_parser_meshcat_example tinyxml2 ${MESHCAT_LIBRARIES})
 target_include_directories(tiny_urdf_parser_meshcat_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
 add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
-target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
+target_link_libraries(meshcat_zmq_example ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
+add_executable(laikago_tds_sim whole_body_control/laikago_tds_sim.cpp)
+target_link_libraries(laikago_tds_sim tinyxml2 ${MESHCAT_LIBRARIES}
+        Eigen3::Eigen)
+target_include_directories(laikago_tds_sim PRIVATE ../third_party ../third_party/nlohmann/include ../src whole_body_control)
