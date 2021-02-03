@@ -46,7 +46,7 @@ typedef TinyQuaternion<double, DoubleUtils> Quaternion;
 
 double knee_angle = -0.5;
 double abduction_angle = 0.2;
-int frameskip_gfx_sync =1;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
+int frameskip_gfx_sync =10;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
 
 double initial_poses[] = {
     abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  int num_total_threads = 16;
+  int num_total_threads = 2;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
   int num_base_instances;
