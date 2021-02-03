@@ -93,6 +93,19 @@ int main(int argc, char* argv[]) {
   int num_spheres = 5;
   int num_multibodies = 1;
 
+
+  bool add_plane = false;
+  if(add_plane)
+  {
+      MultiBody* planemb = world.create_multi_body();
+      planemb->set_floating_base(false);
+      Transform base_X_geom;
+      base_X_geom.set_identity();
+      tds::Plane<Algebra>* plane = new tds::Plane<Algebra>();
+      planemb->collision_geometries().push_back(plane);
+      planemb->collision_transforms(-1).push_back(base_X_geom);
+  }
+
   std::vector<MatrixX> MassM;
   tds::UrdfCache<Algebra> cache;
   for (int ii = 0; ii < num_multibodies; ii++){
@@ -103,7 +116,8 @@ int main(int argc, char* argv[]) {
     std::string urdf_filename;
     tds::FileUtils::find_file("pendulum5spherical.urdf", urdf_filename);
     MultiBody* mb = cache.construct(urdf_filename, world, false, false);
-    mb->qd()[2] = Algebra::fraction(1, 2);
+    
+    //mb->qd()[2] = Algebra::fraction(1, 2);
 #else
     MultiBody* mb = world.create_multi_body();
     init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);
@@ -112,7 +126,7 @@ int main(int argc, char* argv[]) {
     mb->q()[3] = Algebra::sqrt(Algebra::fraction(1, 2));
     mb->qd()[1] = Algebra::fraction(1, 2);
 #endif
-    mb->set_position(Vector3(ii, 0, 0));
+    mb->set_position(Vector3(ii, 0, 2));
 
     
     mbbodies.push_back(mb);
@@ -208,7 +222,9 @@ int main(int argc, char* argv[]) {
                 TinyQuaternionf base_orn(rot.x(), rot.y(), rot.z(),
                                         rot.w());
                 if (l == 0){
-                  prev_pos = TinyVector3f(b, 0, 0);
+                    prev_pos.setValue(body->get_world_transform(-1).translation[0],
+                        body->get_world_transform(-1).translation[1],
+                        body->get_world_transform(-1).translation[2]);
                   app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
                 }
                 else if (l>0)
