@@ -152,3 +152,8 @@ add_executable(laikago_tds_sim whole_body_control/laikago_tds_sim.cpp)
 target_link_libraries(laikago_tds_sim tinyxml2 ${MESHCAT_LIBRARIES}
         Eigen3::Eigen)
 target_include_directories(laikago_tds_sim PRIVATE ../third_party ../third_party/nlohmann/include ../src whole_body_control)
+
+IF(USE_PAGMO2)
+  add_executable(pagmo2_example pagmo2_example.cpp )
+  target_link_libraries(pagmo2_example Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
+ENDIF()
