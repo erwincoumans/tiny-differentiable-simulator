@@ -571,6 +571,10 @@ struct TinyAlgebra {
     return q;
   }
   
+  TINY_INLINE static const Vector3 get_euler_rpy(const Quaternion &q) {
+    return q.get_euler_rpy();
+  }
+  
   TINY_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
     return q.get_euler_rpy2();
   }

@@ -106,7 +106,10 @@
       .def("inverse", [](const Quaternion &q) {
           return MyAlgebra::inverse(q);
       })
-      .def("get_rpy", [](const Quaternion &q) {
+      .def("get_euler_rpy", [](const Quaternion &q) {
+          return MyAlgebra::get_euler_rpy(q);
+      })
+      .def("get_euler_rpy2", [](const Quaternion &q) {
           return MyAlgebra::get_euler_rpy2(q);
       })
       .def(py::self * py::self)
