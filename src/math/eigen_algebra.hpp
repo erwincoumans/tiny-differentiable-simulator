@@ -339,6 +339,7 @@ struct EigenAlgebraT {
   EIGEN_ALWAYS_INLINE static Scalar two() { return Scalar(2); }
   EIGEN_ALWAYS_INLINE static Scalar half() { return Scalar(0.5); }
   EIGEN_ALWAYS_INLINE static Scalar pi() { return Scalar(M_PI); }
+  EIGEN_ALWAYS_INLINE static Scalar half_pi() { return Scalar(M_PI / 2.0); }
   EIGEN_ALWAYS_INLINE static Scalar fraction(int a, int b) {
     return (Scalar(a)) / b;
   }
@@ -535,12 +536,12 @@ struct EigenAlgebraT {
   }
 
   template <int Rows, int Cols>
-  TINY_INLINE static VectorX mul_transpose(
+  EIGEN_ALWAYS_INLINE static VectorX mul_transpose(
       const Eigen::Matrix<Scalar, Rows, Cols> &mat,
       const Eigen::Matrix<Scalar, Cols, 1> &vec) {
     return mat.transpose() * vec;
   }
-  TINY_INLINE static VectorX mul_transpose(const MatrixX &mat,
+  EIGEN_ALWAYS_INLINE static VectorX mul_transpose(const MatrixX &mat,
                                            const VectorX &vec) {
     return mat.transpose() * vec;
   }
@@ -803,6 +804,44 @@ struct EigenAlgebraT {
     return q.normalized().inverse();
   }
   
+  EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy(const Quaternion &q) {
+    const Quaternion q2 = q.normalized();
+  
+    // From tiny_quaternion.h
+    Vector3 rpy;
+    Scalar sarg;
+    Scalar sqx = q2.x() * q2.x();
+    Scalar sqy = q2.y() * q2.y();
+    Scalar sqz = q2.z() * q2.z();
+    Scalar squ = q2.w() * q2.w();
+    sarg = -two() * (q2.x() * q2.z() - q2.w() * q2.y());
+
+    // If the pitch angle is PI/2 or -PI/2, we can only compute
+    // the sum roll + yaw.  However, any combination that gives
+    // the right sum will produce the correct orientation, so we
+    // set rollX = 0 and compute yawZ.
+    
+    // Compute results if -0.999 < sarg < 0.999 
+    rpy[0] = atan2(two() * (q2.y() * q2.z() + q2.w() * q2.x()), squ - sqx - sqy + sqz);
+    rpy[1] = asin(sarg);
+    rpy[2] = atan2(two() * (q2.x() * q2.y() + q2.w() * q2.z()), squ + sqx - sqy - sqz);
+    
+    // Check if sarg <= -0.9999, if so apply fix
+    const Scalar thres1 = fraction(-99999, 100000);
+    rpy[0] = tds::where_le(sarg, thres1, zero(), rpy[0]);
+    rpy[1] = tds::where_le(sarg, thres1, half_pi(), rpy[1]);
+    rpy[2] = tds::where_le(sarg, thres1, two() * atan2(q2.x(), -q2.y()), rpy[2]);
+    
+    // Check if sarg >= 0.9999, if so apply fix
+    const Scalar thres2 = fraction(99999, 100000);
+    rpy[0] = tds::where_ge(sarg, thres2, zero(), rpy[0]);
+    rpy[1] = tds::where_ge(sarg, thres2, half_pi(), rpy[1]);
+    rpy[2] = tds::where_ge(sarg, thres2, two() * atan2(-q2.x(), q2.y()), rpy[2]);
+    
+    return rpy;
+
+  }
+  
   EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
     const Quaternion q2 = q.normalized();
   
@@ -1047,6 +1086,16 @@ struct EigenAlgebraT {
 #else
     using std::sin;
     return sin(s);
+#endif
+  }
+  
+  template <typename T>
+  TINY_INLINE static auto asin(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::asin(s);
+#else
+    using std::asin;
+    return asin(s);
 #endif
   }
 
