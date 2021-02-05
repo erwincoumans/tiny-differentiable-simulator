@@ -156,4 +156,7 @@ target_include_directories(laikago_tds_sim PRIVATE ../third_party ../third_party
 IF(USE_PAGMO2)
   add_executable(pagmo2_example pagmo2_example.cpp )
   target_link_libraries(pagmo2_example Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
+IF (WIN32)
+  target_compile_definitions(pagmo2_example PRIVATE -D_CPPUNWIND)
+ENDIF()
 ENDIF()

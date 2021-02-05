@@ -162,20 +162,64 @@ struct OpenGLUrdfVisualizer {
       b2v.inertia_rpy = link.urdf_inertial.origin_rpy;
       int color_rgb = 0xffffff;
       double world_pos[3] = {0, 0, 0};
-      if (v.geometry.geom_type == ::tds::TINY_MESH_TYPE) {
-        // printf("mesh filename=%s\n", v.geom_meshfilename.c_str());
-        std::string obj_filename;
-        std::string org_obj_filename = m_path_prefix + v.geometry.mesh.file_name;
-        if (::tds::FileUtils::find_file(org_obj_filename, obj_filename))
-        {
-            ::TINY::TinyVector3f pos(0, 0, 0);
-            ::TINY::TinyVector3f scaling(Algebra::to_double(v.geometry.mesh.scale[0]), 
-                Algebra::to_double(v.geometry.mesh.scale[1]), 
-                Algebra::to_double(v.geometry.mesh.scale[2]));
-            ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
-            load_obj_shapes(obj_filename, b2v.visual_shape_uids, b2v.shape_colors);
-        }
+      switch(v.geometry.geom_type)
+      {
+        case ::tds::TINY_MESH_TYPE: 
+          {
+              // printf("mesh filename=%s\n", v.geom_meshfilename.c_str());
+              std::string obj_filename;
+              std::string org_obj_filename = m_path_prefix + v.geometry.mesh.file_name;
+              if(::tds::FileUtils::find_file(org_obj_filename,obj_filename))
+              {
+                  ::TINY::TinyVector3f pos(0,0,0);
+                  ::TINY::TinyVector3f scaling(Algebra::to_double(v.geometry.mesh.scale[0]),
+                      Algebra::to_double(v.geometry.mesh.scale[1]),
+                      Algebra::to_double(v.geometry.mesh.scale[2]));
+                  ::TINY::TinyQuaternionf orn(0,0,0,1);
+                  load_obj_shapes(obj_filename,b2v.visual_shape_uids,b2v.shape_colors);
+              }
+              break;
+          }
+          case ::tds::TINY_SPHERE_TYPE:
+          {
+              //int shape_id = m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
+              int up_axis = 2;
+              int shape_id = m_opengl_app.register_graphics_capsule_shape(Algebra::to_double(v.geometry.sphere.radius),0.,up_axis,-1);
+              b2v.visual_shape_uids.push_back(shape_id);
+              ::TINY::TinyVector3f color(1,1,1);
+              b2v.shape_colors.push_back(color);
+              break;
+          }
+          case ::tds::TINY_CAPSULE_TYPE:
+          {
+              float radius = Algebra::to_double(v.geometry.capsule.radius);
+              float half_height = Algebra::to_double(v.geometry.capsule.length)*0.5;
+              int up_axis = 2;
+              int shape_id = m_opengl_app.register_graphics_capsule_shape(radius,half_height,up_axis,-1);
+              b2v.visual_shape_uids.push_back(shape_id);
+              ::TINY::TinyVector3f color(1,1,1);
+              b2v.shape_colors.push_back(color);
+              break;
+          }
+          case ::tds::TINY_BOX_TYPE:
+          {
+              float half_extentsx = 0.5*Algebra::to_double(v.geometry.box.extents[0]);
+              float half_extents_y = 0.5*Algebra::to_double(v.geometry.box.extents[1]);
+              float half_extents_z = 0.5*Algebra::to_double(v.geometry.box.extents[2]);
+              int shape_id = m_opengl_app.register_cube_shape(half_extentsx,half_extents_y,half_extents_z);
+              b2v.visual_shape_uids.push_back(shape_id);
+              ::TINY::TinyVector3f color(1,1,1);
+              b2v.shape_colors.push_back(color);
+
+              break;
+          }
+          default:
+          {
+              std::cout << "Unsupported shape type" << std::endl;
+          }
       }
+
+      
       v.visual_shape_uid = m_uid;
       m_b2vis[m_uid++] = b2v;
     }
@@ -261,6 +305,7 @@ struct OpenGLUrdfVisualizer {
     m_opengl_app.m_renderer->set_light_specular_intensity(specular);
     DrawGridData data;
     data.upAxis = 2;
+    data.drawAxis = true;
     m_opengl_app.draw_grid(data);
     //const char* bla = "3d label";
     //m_opengl_app.draw_text_3d(bla, 0, 0, 1, 1);
