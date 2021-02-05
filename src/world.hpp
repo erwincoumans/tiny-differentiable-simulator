@@ -26,8 +26,10 @@
 #include "rigid_body.hpp"
 
 namespace tds {
-template <typename Algebra>
-class World {
+template <typename Algebra> class World {
+  template <typename OtherAlgebra>
+  friend class World;
+
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
@@ -43,23 +45,24 @@ class World {
   typedef tds::Sphere<Algebra> Sphere;
   typedef tds::Plane<Algebra> Plane;
 
-  std::vector<RigidBody*> rigid_bodies_;
-  std::vector<MultiBody*> multi_bodies_;
+  // std::list because the references/iterators remain stable
+  std::list<RigidBody> rigid_bodies_;
+  std::list<MultiBody> multi_bodies_;
 
   Vector3 gravity_acceleration_;
 
-  std::vector<Geometry*> geoms_;
+  std::vector<Geometry *> geoms_;
 
   SubmitProfileTiming profile_timing_func_{nullptr};
 
   CollisionDispatcher<Algebra> dispatcher_;
-  RigidBodyConstraintSolver<Algebra>* rb_constraint_solver_{nullptr};
-  MultiBodyConstraintSolver<Algebra>* mb_constraint_solver_{nullptr};
+  RigidBodyConstraintSolver<Algebra> *rb_constraint_solver_{nullptr};
+  MultiBodyConstraintSolver<Algebra> *mb_constraint_solver_{nullptr};
 
   std::vector<RigidBodyContactPoint> rb_contacts_;
   std::vector<std::vector<MultiBodyContactPoint>> mb_contacts_;
 
- public:
+public:
   int num_solver_iterations{50};
 
   // default contact settings
@@ -71,17 +74,66 @@ class World {
         rb_constraint_solver_(new RigidBodyConstraintSolver<Algebra>),
         mb_constraint_solver_(new MultiBodyConstraintSolver<Algebra>) {}
 
+  // The default copy constructor and assignment operator will remove the RHS
+  // world and thereby its constructor will call clear which deletes the geoms
+  // etc.,, so that the new object will have invalid pointers to geoms etc.
+  // Instead, use the provided clone function to explicitly make a copy of the
+  // world and all its owned objects/pointers to the t arget pointer.
+  World(const World&) = delete;
+  World& operator=(const World&) = delete;
+
   virtual ~World() { clear(); }
 
-  inline void submit_profile_timing(const std::string& name) const {
+  template <typename AlgebraTo = Algebra>
+  void clone(World<AlgebraTo>* conv) const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    typedef tds::Geometry<AlgebraTo>* GeomPtr;
+    conv->gravity_acceleration_ = C::convert(gravity_acceleration_);
+    conv->num_solver_iterations = num_solver_iterations;
+    conv->default_friction = C::convert(default_friction);
+    conv->default_restitution = C::convert(default_restitution);
+    for (const auto& rb : rigid_bodies_) {
+      tds::RigidBody<AlgebraTo> cpy = tds::clone<Algebra, AlgebraTo>(rb);
+      conv->rigid_bodies_.push_back(cpy);
+      // world manages geom pointers
+      conv->geoms_.push_back(const_cast<GeomPtr>(cpy.geometry()));
+    }
+    for (const auto& mb : multi_bodies_) {
+      tds::MultiBody<AlgebraTo> cpy = tds::clone<Algebra, AlgebraTo>(mb);
+      conv->multi_bodies_.push_back(cpy);
+      // world manages geom pointers
+      for (auto* geom : cpy.collision_geometries()) {
+        conv->geoms_.push_back(const_cast<GeomPtr>(geom));
+      }
+      for (auto& link : cpy) {
+        for (auto* geom : link.collision_geometries) {
+          conv->geoms_.push_back(const_cast<GeomPtr>(geom));
+        }
+      }
+    }
+    *(conv->rb_constraint_solver_) =
+        tds::clone<Algebra, AlgebraTo>(*rb_constraint_solver_);
+    *(conv->mb_constraint_solver_) =
+        tds::clone<Algebra, AlgebraTo>(*mb_constraint_solver_);
+  }
+
+  inline void submit_profile_timing(const std::string &name) const {
     if (profile_timing_func_) {
       profile_timing_func_(name);
     }
   }
 
-  void set_mb_constraint_solver(MultiBodyConstraintSolver<Algebra>* solver) {
-    if (mb_constraint_solver_) delete mb_constraint_solver_;
+  void set_mb_constraint_solver(MultiBodyConstraintSolver<Algebra> *solver) {
+    if (mb_constraint_solver_)
+      delete mb_constraint_solver_;
     mb_constraint_solver_ = solver;
+  }
+
+  MultiBodyConstraintSolver<Algebra> *mb_constraint_solver() {
+    return mb_constraint_solver_;
+  }
+  const MultiBodyConstraintSolver<Algebra> *mb_constraint_solver() const {
+    return mb_constraint_solver_;
   }
 
   void clear() {
@@ -90,90 +142,98 @@ class World {
     }
     geoms_.clear();
 
-    for (std::size_t i = 0; i < rigid_bodies_.size(); i++) {
-      delete rigid_bodies_[i];
-    }
     rigid_bodies_.clear();
-
-    for (std::size_t i = 0; i < multi_bodies_.size(); i++) {
-      delete multi_bodies_[i];
-    }
     multi_bodies_.clear();
 
     if (rb_constraint_solver_) {
       delete rb_constraint_solver_;
       rb_constraint_solver_ = nullptr;
     }
+    if (mb_constraint_solver_) {
+      delete mb_constraint_solver_;
+      mb_constraint_solver_ = nullptr;
+    }
   }
 
-  const Vector3& get_gravity() const { return gravity_acceleration_; }
+  const Vector3 &get_gravity() const { return gravity_acceleration_; }
+  void set_gravity(const Vector3 &gravity) { gravity_acceleration_ = gravity; }  
 
-  void set_gravity(const Vector3& gravity) { 
-      gravity_acceleration_ =       gravity; 
-  }
+  std::vector<RigidBody>& rigid_bodies() { return rigid_bodies_; }
+  const std::vector<RigidBody>& rigid_bodies() const { return rigid_bodies_; }
 
-  // ConstraintSolver<Algebra>* get_constraint_solver() {
-  //   return constraint_solver;
-  // }
+  std::vector<MultiBody>& multi_bodies() { return multi_bodies_; }
+  const std::vector<MultiBody>& multi_bodies() const { return multi_bodies_; }
 
-  Capsule* create_capsule(const Scalar& radius, const Scalar& length) {
-    Capsule* capsule = new Capsule(radius, length);
+  Capsule *create_capsule(const Scalar &radius, const Scalar &length) {
+    Capsule *capsule = new Capsule(radius, length);
     geoms_.push_back(capsule);
     return capsule;
   }
 
-  Plane* create_plane() {
-    Plane* plane = new Plane();
+  Plane *create_plane() {
+    Plane *plane = new Plane();
     geoms_.push_back(plane);
     return plane;
   }
 
-  Sphere* create_sphere(const Scalar& radius) {
-    Sphere* sphere = new Sphere(radius);
+  Sphere *create_sphere(const Scalar &radius) {
+    Sphere *sphere = new Sphere(radius);
     geoms_.push_back(sphere);
     return sphere;
   }
 
-   CollisionDispatcher<Algebra>
-   get_collision_dispatcher() {
-     return dispatcher_;
-   }
-
-  RigidBody* create_rigid_body(const Scalar& mass, const Geometry* geom) {
-    RigidBody* body = new RigidBody(mass, geom);
-    rigid_bodies_.push_back(body);
-    return body;
+  CollisionDispatcher<Algebra> get_collision_dispatcher() {
+    return dispatcher_;
   }
 
-  MultiBody* create_multi_body(const std::string& name="") {
-    MultiBody* body = new MultiBody();
-    body->name() = name;
+  RigidBody* create_rigid_body(const Scalar& mass, const Geometry* geom) {
+    RigidBody body(mass, geom);
+    rigid_bodies_.push_back(body);
+    return &rigid_bodies_.back();
+  }
+
+  MultiBody* create_multi_body(const std::string& name = "") {
+    MultiBody body;
+    body.name() = name;
     multi_bodies_.push_back(body);
-    return body;
+    return &multi_bodies_.back();
+  }
+
+  MultiBody* get_multi_body(const std::string& name) {
+    for (auto& mb : multi_bodies_) {
+      if (mb.name() == name) {
+        return &mb;
+      }
+    }
+    return nullptr;
   }
 
   std::vector<ContactPoint<Algebra>> contacts;
 
   static void compute_contacts_rigid_body_internal(
-      std::vector<RigidBody*> bodies, CollisionDispatcher<Algebra>* dispatcher,
+      std::list<RigidBody>& bodies, CollisionDispatcher<Algebra>* dispatcher,
       std::vector<RigidBodyContactPoint>& contactsOut,
       const Scalar& restitution, const Scalar& friction) {
     std::vector<ContactPoint<Algebra>> contacts;
     {
-      for (std::size_t i = 0; i < bodies.size(); i++) {
-        for (std::size_t j = i + 1; j < bodies.size(); j++) {
+      typedef typename std::list<RigidBody>::iterator iter;
+      for (iter i = bodies.begin(); i != bodies.end(); ++i) {
+        for (iter j = std::next(i); j != bodies.end(); j++) {
           contacts.reserve(1);
           contacts.resize(0);
 
+          RigidBody& rb_i = *i;
+          RigidBody& rb_j = *j;
+
           int numContacts = dispatcher->compute_contacts(
-              bodies[i]->geometry(), bodies[i]->world_pose(),
-              bodies[j]->geometry(), bodies[j]->world_pose(), contacts);
+              rb_i.geometry(), rb_i.world_pose(), rb_j.geometry(),
+              rb_j.world_pose(), contacts);
           for (int c = 0; c < numContacts; c++) {
             RigidBodyContactPoint rb_pt;
             ContactPoint<Algebra>& pt = rb_pt;
             pt = contacts[c];
-            rb_pt.rigid_body_a = bodies[i];
-            rb_pt.rigid_body_b = bodies[j];
+            rb_pt.rigid_body_a = &rb_i;
+            rb_pt.rigid_body_b = &rb_j;
             // TODO(erwincoumans): combine friction and restitution based on
             // material properties of the two touching bodies
             rb_pt.restitution = restitution;
@@ -186,8 +246,7 @@ class World {
   }
 
   std::vector<RigidBodyContactPoint> compute_contacts_rigid_body(
-      std::vector<RigidBody*> bodies,
-      CollisionDispatcher<Algebra>* dispatcher) {
+      std::list<RigidBody>& bodies, CollisionDispatcher<Algebra>* dispatcher) {
     std::vector<RigidBodyContactPoint> contactsOut;
     compute_contacts_rigid_body_internal(bodies, dispatcher, contactsOut,
                                          default_restitution, default_friction);
@@ -195,42 +254,38 @@ class World {
   }
 
   static void compute_contacts_multi_body_internal(
-      std::vector<MultiBody*> multi_bodies_,
+      std::list<MultiBody>& multi_bodies,
       CollisionDispatcher<Algebra>* dispatcher,
       std::vector<std::vector<MultiBodyContactPoint>>& contacts_out,
       const Scalar& restitution, const Scalar& friction) {
-    int num_multi_bodies_ = multi_bodies_.size();
-    for (int i = 0; i < num_multi_bodies_; i++) {
-      MultiBody* mb_a = multi_bodies_[i];
-      int num_links_a = mb_a->links().size();
-      for (int j = i + 1; j < multi_bodies_.size(); j++) {
-        std::vector<ContactPoint<Algebra>> contacts;
-
-        MultiBody* mb_b = multi_bodies_[j];
-        int num_links_b = mb_b->links().size();
+    typedef typename std::list<MultiBody>::iterator iter;
+    std::vector<ContactPoint<Algebra>> contacts;
+    for (iter i = multi_bodies.begin(); i != multi_bodies.end(); ++i) {
+      MultiBody& mb_a = *i;
+      auto num_links_a = static_cast<int>(mb_a.size());
+      for (iter j = std::next(i); j != multi_bodies.end(); ++j) {
+        MultiBody& mb_b = *j;
+        auto num_links_b = static_cast<int>(mb_b.size());
         std::vector<MultiBodyContactPoint> contacts_ab;
-        for (int ii = -1; ii < num_links_a; ii++) {
-          const Transform& world_transform_a = mb_a->get_world_transform(ii);
+        for (int ii = -1; ii < num_links_a; ++ii) {
+          const Transform& world_transform_a = mb_a.get_world_transform(ii);
 
-          int num_geoms__a = mb_a->collision_geometries(ii).size();
-          for (int iii = 0; iii < num_geoms__a; iii++) {
-            const Geometry* geom_a = mb_a->collision_geometries(ii)[iii];
+          std::size_t num_geoms_a = mb_a.collision_geometries(ii).size();
+          for (std::size_t iii = 0; iii < num_geoms_a; ++iii) {
+            const Geometry* geom_a = mb_a.collision_geometries(ii)[iii];
             Pose pose_a;
-            const Transform& local_a = mb_a->collision_transforms(ii)[iii];
+            const Transform& local_a = mb_a.collision_transforms(ii)[iii];
             Transform tr_a = world_transform_a * local_a;
             pose_a.position_ = tr_a.translation;
             tr_a.rotation = Algebra::quat_to_matrix(pose_a.orientation_);
 
-            for (int jj = -1; jj < num_links_b; jj++) {
-              const Transform& world_transform_b =
-                  mb_b->get_world_transform(jj);
-              int num_geoms__b = mb_b->collision_geometries(jj).size();
-              for (int jjj = 0; jjj < num_geoms__b; jjj++) {
-                const Geometry* geom_b =
-                    mb_b->collision_geometries(jj)[jjj];
+            for (int jj = -1; jj < num_links_b; ++jj) {
+              const Transform& world_transform_b = mb_b.get_world_transform(jj);
+              std::size_t num_geoms_b = mb_b.collision_geometries(jj).size();
+              for (std::size_t jjj = 0; jjj < num_geoms_b; ++jjj) {
+                const Geometry* geom_b = mb_b.collision_geometries(jj)[jjj];
                 Pose pose_b;
-                const Transform& local_b =
-                    mb_b->collision_transforms(jj)[jjj];
+                const Transform& local_b = mb_b.collision_transforms(jj)[jjj];
                 Transform tr_b = world_transform_b * local_b;
                 pose_b.position_ = tr_b.translation;
                 Algebra::matrix_to_quat(tr_b.rotation);
@@ -250,8 +305,8 @@ class World {
                   MultiBodyContactPoint mb_pt;
                   ContactPoint<Algebra>& pt = mb_pt;
                   pt = contacts[c];
-                  mb_pt.multi_body_a = multi_bodies_[i];
-                  mb_pt.multi_body_b = multi_bodies_[j];
+                  mb_pt.multi_body_a = &mb_a;
+                  mb_pt.multi_body_b = &mb_b;
                   mb_pt.link_a = ii;
                   mb_pt.link_b = jj;
                   // TODO(erwincoumans): combine friction and restitution
@@ -273,7 +328,7 @@ class World {
   }
 
   std::vector<std::vector<MultiBodyContactPoint>> compute_contacts_multi_body(
-      std::vector<MultiBody*> bodies,
+      const std::list<MultiBody>& bodies,
       CollisionDispatcher<Algebra>* dispatcher) {
     std::vector<std::vector<MultiBodyContactPoint>> contactsOut;
     compute_contacts_multi_body_internal(bodies, dispatcher, contactsOut,
@@ -281,46 +336,31 @@ class World {
     return contactsOut;
   }
 
+ public:
   void step(const Scalar& dt) {
     {
-      
-
       rb_contacts_.reserve(1024);
-      
 
       rb_contacts_.resize(0);
-      
 
       mb_contacts_.reserve(1024);
       mb_contacts_.resize(0);
       submit_profile_timing("apply forces");
-      for (std::size_t i = 0; i < rigid_bodies_.size(); i++) {
-        RigidBody* b = rigid_bodies_[i];
-        
-
-        b->apply_gravity(gravity_acceleration_);
-        
-
-        b->apply_force_impulse(dt);
-        
-
-        b->clear_forces();
-        
-
+      for (RigidBody& b : rigid_bodies_) {
+        b.apply_gravity(gravity_acceleration_);
+        b.apply_force_impulse(dt);
+        b.clear_forces();
       }
       submit_profile_timing("");
     }
-
     {
       submit_profile_timing("compute contacts");
-      
 
       compute_contacts_rigid_body_internal(rigid_bodies_, &dispatcher_,
                                            rb_contacts_, default_restitution,
                                            default_friction);
       submit_profile_timing("");
     }
-
     {
       submit_profile_timing("compute multi body contacts");
       compute_contacts_multi_body_internal(multi_bodies_, &dispatcher_,
@@ -336,8 +376,6 @@ class World {
       submit_profile_timing("solve constraints");
       for (int i = 0; i < num_solver_iterations; i++) {
         for (std::size_t c = 0; c < rb_contacts_.size(); c++) {
-          
-
           rb_constraint_solver_->resolve_collision(rb_contacts_[c], dt);
         }
       }
@@ -361,11 +399,18 @@ class World {
 
     {
       submit_profile_timing("integrate");
-      for (RigidBody* rb : rigid_bodies_) {
-        rb->integrate(dt);
+      for (RigidBody& rb : rigid_bodies_) {
+        rb.integrate(dt);
       }
       submit_profile_timing("");
     }
   }
 };
-}  // namespace tds
+
+template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
+static TINY_INLINE World<AlgebraTo>* clone(const World<AlgebraFrom>& world) {
+  auto* new_world = new World<AlgebraTo>;
+  world.template clone<AlgebraTo>(new_world);
+  return new_world;
+}
+} // namespace tds
