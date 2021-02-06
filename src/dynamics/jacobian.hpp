@@ -16,6 +16,7 @@ typename Algebra::Matrix3X point_jacobian(
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
+  using Matrix6x3 = typename Algebra::Matrix6x3;
   using Matrix3X = typename Algebra::Matrix3X;
   typedef tds::Transform<Algebra> Transform;
   typedef tds::MotionVector<Algebra> MotionVector;
@@ -62,7 +63,12 @@ typename Algebra::Matrix3X point_jacobian(
     const Link *body = &mb[link_index];
     while (true) {
       int i = body->index;
-      if (body->joint_type != JOINT_FIXED) {
+      if (body->joint_type == JOINT_SPHERICAL){
+        Matrix6x3 st = is_local_point ? links_X_base[i].apply_inverse(body->S_3d, false) : links_X_world[i].apply_inverse(body->S_3d, false);
+        Matrix6x3 xs = point_tf.apply(st, false);
+        Algebra::assign_block(jac, Algebra::bottom(xs), 0, body->qd_index);
+      }
+      else if (body->joint_type != JOINT_FIXED) {
         MotionVector st = is_local_point ? links_X_base[i].apply_inverse(body->S) : links_X_world[i].apply_inverse(body->S);
         MotionVector xs = point_tf.apply(st);
         Algebra::assign_column(jac, body->qd_index, xs.bottom);
