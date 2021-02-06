@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<robot name="urdf_robot">
+  <link name="base_link">
+    <visual>
+				 <origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<capsule length="0.1" radius="0.02"/>
+			</geometry>
+		</visual>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+       <mass value=".1"/>
+       <inertia ixx="0.00018" ixy="0" ixz="0" iyy="0.00018" iyz="0" izz="0.00003"/>
+    </inertial>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+	 	<capsule length="0.1" radius="0.02"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
+
+
+
