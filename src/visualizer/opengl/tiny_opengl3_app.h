@@ -42,6 +42,9 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                                   float textureScaling = 1);
   virtual int register_graphics_unit_sphere_shape(EnumSphereLevelOfDetail lod,
                                                   int textureId = -1);
+
+  virtual int register_graphics_capsule_shape(float radius,float half_height,int up_axis,int textureId);
+
   virtual void register_grid(int xres, int yres, const ::TINY::TinyVector3f& color0,
                              const ::TINY::TinyVector3f& color1);
   void dump_next_frame_to_png(const char* pngFilename);
