@@ -112,7 +112,7 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
     using Vector3 = typename Algebra::Vector3;
     using Quaternion = typename Algebra::Quaternion;
 
-    assert(Algebra::size(q) == mb.dof());
+    assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
     assert(Algebra::size(qd) == mb.dof_qd());
     assert(Algebra::size(qdd) == mb.dof_qd());
 
