@@ -110,7 +110,7 @@ struct LaikagoSimulation {
         std::string plane_filename;
         tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
         cache.construct(plane_filename, world, false, false);
-        tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", m_urdf_filename);
+        tds::FileUtils::find_file("humanoid_updated_inertia.urdf", m_urdf_filename);
         system = cache.construct(m_urdf_filename, world, false, true);
         system->base_X_world().translation = Algebra::unit3_z();
     }
@@ -130,7 +130,7 @@ struct LaikagoSimulation {
 
 #if 1
             // pd control
-            if (1) {
+            if (0) {
                 // use PD controller to compute tau
                 int qd_offset = system->is_floating() ? 6 : 0;
                 int q_offset = system->is_floating() ? 7 : 0;
@@ -266,11 +266,13 @@ int main(int argc, char* argv[]) {
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  int num_total_threads = 2;
+  int num_total_threads = 1;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
   int num_base_instances = 0;
   
+  std::vector<int> spherical_indices;
+
   for (int t = 0;t< num_total_threads;t++)
   {
       TinyVector3f pos(0, 0, 0);
@@ -296,6 +298,19 @@ int main(int argc, char* argv[]) {
       for (int i = 0; i < contact_sim.system->num_links(); ++i) {
          
 
+          if(t==0)
+          {
+              auto link = contact_sim.system->links()[i];
+              if(link.joint_type==JOINT_SPHERICAL)
+              {
+                  spherical_indices.push_back(link.q_index);
+              }
+              else
+              {
+                  printf("?\n");
+              }
+          }
+
           int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
           OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
           int instance = -1;
@@ -318,7 +333,10 @@ int main(int argc, char* argv[]) {
 
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  
+  MyAlgebra::Quaternion orn;
+  orn.setIdentity();//.set_euler_rpy(Vector3(0,1.7/2,0));
+  float height_z = 2;
+
 
   std::vector<std::vector<MyScalar>> parallel_outputs(
       num_total_threads, std::vector<MyScalar>(contact_sim.output_dim()));
@@ -327,10 +345,16 @@ int main(int argc, char* argv[]) {
 
   for (int i = 0; i < num_total_threads; ++i) {
       parallel_inputs[i] = std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
-      //quaternion 'w' = 1
-      parallel_inputs[i][3] = 1;
-      //start height at 0.7
-      parallel_inputs[i][6] = 0.7;
+      parallel_inputs[i][0] = orn.x();
+      parallel_inputs[i][1] = orn.y();
+      parallel_inputs[i][2] = orn.z();
+      parallel_inputs[i][3] = orn.w();
+      parallel_inputs[i][6] = height_z;
+
+      for(int s=0;s<spherical_indices.size();s++)
+      {
+          parallel_inputs[i][spherical_indices[s]+3]=1.;
+      }
       
   }
   
