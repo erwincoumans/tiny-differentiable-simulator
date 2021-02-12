@@ -2,6 +2,7 @@
 
 #include "geometry.hpp"
 #include "math/conditionals.hpp"
+#include <cassert>
 
 namespace tds {
 template <typename Algebra>
@@ -182,7 +183,17 @@ class CollisionDispatcher {
     }
     contact_func g = contactFuncs[geomB->get_type()][geomA->get_type()];
     if (g) {
-      return g(geomB, poseB, geomA, poseA, contactsOut);
+        int prev_contacts = contactsOut.size();
+        int num_contacts = g(geomB,poseB,geomA,poseA,contactsOut);
+        //swap normal and points a,b
+        for(int i=prev_contacts;i<num_contacts;i++)
+        {
+            auto tmp = contactsOut[i].world_point_on_a;
+            contactsOut[i].world_point_on_a = contactsOut[i].world_point_on_b;
+            contactsOut[i].world_point_on_b = tmp;
+            contactsOut[i].world_normal_on_b = -contactsOut[i].world_normal_on_b;
+        }
+      return num_contacts;
     }
     return 0;
   }

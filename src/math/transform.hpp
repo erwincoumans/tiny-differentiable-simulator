@@ -274,11 +274,16 @@ struct Transform {
     return outVec;
   }
 
+  Matrix6x3 apply(const Matrix6x3 &inMat, bool is_force) const {
+    if (is_force) return apply_to_3d_force(inMat);
+    else return apply_to_3d_motion(inMat);
+  }
+
   /**
    * F = fv(n, f)
-   * X^* F = fv(E(n - rxf), Ef)
+   * XT*F = fv(ETn + rxETf, ETf)
    */
-  inline Matrix6x3 apply(const Matrix6x3 &inMat) const {
+  inline Matrix6x3 apply_to_3d_force(const Matrix6x3 &inMat) const{
 #if RIGHT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
 #else
@@ -291,6 +296,78 @@ struct Transform {
 
     top += Algebra::cross_matrix(translation) * bottom;
 
+    Algebra::assign_block(outMat, top, 0, 0);
+    Algebra::assign_block(outMat, bottom, 3, 0);
+
+    return outMat;
+  }
+
+  /**
+   * V = mv(w, v)
+   * X*V = mv(E*w, E*(v - r x w))
+   */
+  inline Matrix6x3 apply_to_3d_motion(const Matrix6x3 &inMat) const{
+#if RIGHT_ASSOCIATIVE_TRANSFORMS
+    Matrix3 E = Algebra::transpose(rotation);
+#else
+    const Matrix3 &E = rotation;
+#endif
+
+    Matrix6x3 outMat;
+    Matrix3 top = Algebra::top(inMat);
+    Matrix3 bottom = Algebra::bottom(inMat);
+
+    Matrix3 rxw = Algebra::cross_matrix(translation) * top;
+    Matrix3 v_rxw = bottom - rxw;
+
+    Algebra::assign_block(outMat, E * top, 0, 0);
+    Algebra::assign_block(outMat, E * v_rxw, 3, 0);
+    return outMat;
+  }
+
+  inline Matrix6x3 apply_inverse(const Matrix6x3 &inMat, bool is_force) const {
+    if (is_force) return apply_inverse_to_3d_force(inMat);
+    else return apply_inverse_to_3d_motion(inMat);
+  }
+
+  /**
+  * F = fv(n, f)
+  * X^* F = fv(E(n - rxf), Ef)
+  */
+  inline Matrix6x3 apply_inverse_to_3d_force(const Matrix6x3 &inMat) const {
+#if RIGHT_ASSOCIATIVE_TRANSFORMS
+    Matrix3 E = Algebra::transpose(rotation);
+#else
+    const Matrix3 &E = rotation;
+#endif
+
+    Matrix6x3 outMat;
+    Matrix3 top = Algebra::top(inMat);
+    Matrix3 bottom = Algebra::bottom(inMat);
+
+    top -= Algebra::cross_matrix(translation) * bottom;
+
+    Algebra::assign_block(outMat, E * top, 0, 0);
+    Algebra::assign_block(outMat, E * bottom, 3, 0);
+
+    return outMat;
+  }
+
+  /**
+  * V = mv(w, v)
+  * inv(X)*V = mv(ET*w, ET*v + r x (ET*w))
+  */
+  inline Matrix6x3 apply_inverse_to_3d_motion(const Matrix6x3 &inMat) const {
+#if RIGHT_ASSOCIATIVE_TRANSFORMS
+    const Matrix3 &Et = rotation;
+#else
+    Matrix3 Et = Algebra::transpose(rotation);
+#endif
+
+    Matrix6x3 outMat;
+    Matrix3 top = Et * Algebra::top(inMat);
+    Matrix3 bottom = Et * Algebra::bottom(inMat);
+    bottom = Et * bottom + Algebra::cross_matrix(translation) * top;
     Algebra::assign_block(outMat, top, 0, 0);
     Algebra::assign_block(outMat, bottom, 3, 0);
 
