@@ -906,6 +906,97 @@ int TinyOpenGL3App::register_graphics_unit_sphere_shape(
   return graphicsShapeIndex;
 }
 
+
+int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_height, int up_axis, int textureId) {
+    int red = 0;
+    int green = 255;
+    int blue = 0;  // 0;// 128;
+    if(textureId < 0) {
+        if(m_data->m_textureId < 0) {
+            int texWidth = 1024;
+            int texHeight = 1024;
+            std::vector<unsigned char> texels;
+            texels.resize(texWidth * texHeight * 3);
+            for(int i = 0; i < texWidth * texHeight * 3; i++) texels[i] = 255;
+
+            for(int i = 0; i < texWidth; i++) {
+                for(int j = 0; j < texHeight; j++) {
+                    int a = i < texWidth / 2 ? 1 : 0;
+                    int b = j < texWidth / 2 ? 1 : 0;
+
+                    if(a == b) {
+                        texels[(i + j * texWidth) * 3 + 0] = red;
+                        texels[(i + j * texWidth) * 3 + 1] = green;
+                        texels[(i + j * texWidth) * 3 + 2] = blue;
+                    }
+                    /*else
+                    {
+                    texels[i*3+0+j*texWidth] = 255;
+                    texels[i*3+1+j*texWidth] = 255;
+                    texels[i*3+2+j*texWidth] = 255;
+                    }
+                    */
+                }
+            }
+
+            m_data->m_textureId = m_instancingRenderer->register_texture(
+                &texels[0],texWidth,texHeight);
+        }
+        textureId = m_data->m_textureId;
+    }
+
+    int strideInBytes = 9 * sizeof(float);
+
+    int graphicsShapeIndex = -1;
+
+    
+    
+    int numVertices =
+        sizeof(textured_detailed_sphere_vertices) / strideInBytes;
+    int numIndices = sizeof(textured_detailed_sphere_indices) / sizeof(int);
+    //scale and transform
+
+    std::vector<float> transformedVertices;
+
+    {
+        
+        int numVertices = sizeof(textured_detailed_sphere_vertices) / strideInBytes;
+        transformedVertices.resize(numVertices * 9);
+        for(int i = 0; i < numVertices; i++)
+        {
+            TinyVector3f vert;
+            vert.setValue(textured_detailed_sphere_vertices[i * 9 + 0],
+                textured_detailed_sphere_vertices[i * 9 + 1],
+                textured_detailed_sphere_vertices[i * 9 + 2]);
+
+            TinyVector3f trVer = (2 *radius * vert);
+            if(trVer[up_axis] > 0)
+                trVer[up_axis] += half_height;
+            else
+                trVer[up_axis] -= half_height;
+
+            transformedVertices[i * 9 + 0] = trVer[0];
+            transformedVertices[i * 9 + 1] = trVer[1];
+            transformedVertices[i * 9 + 2] = trVer[2];
+            transformedVertices[i * 9 + 3] = textured_detailed_sphere_vertices[i * 9 + 3];
+            transformedVertices[i * 9 + 4] = textured_detailed_sphere_vertices[i * 9 + 4];
+            transformedVertices[i * 9 + 5] = textured_detailed_sphere_vertices[i * 9 + 5];
+            transformedVertices[i * 9 + 6] = textured_detailed_sphere_vertices[i * 9 + 6];
+            transformedVertices[i * 9 + 7] = textured_detailed_sphere_vertices[i * 9 + 7];
+            transformedVertices[i * 9 + 8] = textured_detailed_sphere_vertices[i * 9 + 8];
+        }
+    }
+
+
+    graphicsShapeIndex = m_instancingRenderer->register_shape(
+        &transformedVertices[0],numVertices,
+        textured_detailed_sphere_indices,numIndices,B3_GL_TRIANGLES,
+        textureId);
+    
+    return graphicsShapeIndex;
+}
+
+
 void TinyOpenGL3App::draw_grid(DrawGridData data) {
   int gridSize = data.gridSize;
   float upOffset = data.upOffset;

@@ -18,7 +18,7 @@
 #include <chrono>  // std::chrono::seconds
 #include <thread>  // std::this_thread::sleep_for
 
-
+#include "geometry.hpp"
 #include "math/tiny/fix64_scalar.h"
 #include "dynamics/kinematics.hpp"
 #include "dynamics/forward_dynamics.hpp"
@@ -89,8 +89,22 @@ int main(int argc, char* argv[]) {
 
   int num_spheres = 5;
 
+  bool add_plane = false;
+  if(add_plane)
+  {
+      MultiBody* planemb = world.create_multi_body();
+      planemb->set_floating_base(false);
+      Transform base_X_geom;
+      base_X_geom.set_identity();
+      tds::Plane<Algebra>* plane = new tds::Plane<Algebra>();
+      planemb->collision_geometries().push_back(plane);
+      planemb->collision_transforms(-1).push_back(base_X_geom);
+  }
+
   MultiBody* mb = world.create_multi_body();
     init_compound_pendulum<Algebra>(*mb, world, num_spheres);
+
+    mb->set_position(Vector3(0,0,2));
 
   mbbodies.push_back(mb);
 
@@ -174,7 +188,13 @@ int main(int argc, char* argv[]) {
         rot = Algebra::matrix_to_quat(geom_X_world.rotation);
         TinyQuaternionf base_orn(rot.x(), rot.y(), rot.z(),
                                 rot.w());
-        if (l>=0)
+        if(l==0)
+        {
+            prev_pos.setValue(body->get_world_transform(-1).translation[0],
+                body->get_world_transform(-1).translation[1],
+                body->get_world_transform(-1).translation[2]);
+            app.m_renderer->draw_line(prev_pos,base_pos,color,line_width);
+        } else if (l>0)
         {
           //printf("b=%d\n",b);
           app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
