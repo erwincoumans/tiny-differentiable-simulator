@@ -61,7 +61,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
 
       int j = i;
       while (mb[j].parent_index != -1) {
-        Fi = mb[j].X_parent.apply(Fi);
+        Fi = mb[j].X_parent.apply(Fi, true);
         j = mb[j].parent_index;
         if (mb[j].joint_type == JOINT_FIXED) continue;
         int qd_j = mb[j].qd_index;
@@ -79,7 +79,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
         }
       }
       if (mb.is_floating()) {
-        Fi = mb[j].X_parent.apply(Fi);
+        Fi = mb[j].X_parent.apply(Fi, true);
         Algebra::assign_block(*M, Fi, 0, qd_i, 6, 3);
         Algebra::assign_block(*M, Algebra::transpose(Fi), qd_i, 0, 6, 3);
       }

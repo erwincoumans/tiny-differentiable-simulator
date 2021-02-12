@@ -1,0 +1,61 @@
+diff --git a/cmake_modules/yacma/YACMACompilerLinkerSettings.cmake b/cmake_modules/yacma/YACMACompilerLinkerSettings.cmake
+index 7d7aa1bf..b8f1d1e7 100644
+--- a/cmake_modules/yacma/YACMACompilerLinkerSettings.cmake
++++ b/cmake_modules/yacma/YACMACompilerLinkerSettings.cmake
+@@ -176,12 +176,12 @@ if(NOT _YACMACompilerLinkerSettingsRun)
+     endif()
+ 
+     # MSVC setup.
+-    if(YACMA_COMPILER_IS_MSVC AND NOT YACMA_COMPILER_IS_CLANGXX)
+-        # Enable higher warning level than usual.
+-        _YACMA_CHECK_ENABLE_DEBUG_CXX_FLAG(/W4)
+-        # Treat warnings as errors.
+-        _YACMA_CHECK_ENABLE_DEBUG_CXX_FLAG(/WX)
+-    endif()
++    #if(YACMA_COMPILER_IS_MSVC AND NOT YACMA_COMPILER_IS_CLANGXX)
++    #    # Enable higher warning level than usual.
++    #    _YACMA_CHECK_ENABLE_DEBUG_CXX_FLAG(/W4)
++    #    # Treat warnings as errors.
++    #    _YACMA_CHECK_ENABLE_DEBUG_CXX_FLAG(/WX)
++    #endif()
+ 
+     # Set the cache variables.
+     set(YACMA_CXX_FLAGS "${_YACMA_CXX_FLAGS}" CACHE INTERNAL "")
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 96653bac..fc42841a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -15,6 +15,8 @@ endif()
+ 
+ project(pagmo VERSION 2.16.1 LANGUAGES CXX C)
+ 
++set(CMAKE_DEBUG_POSTFIX _debug)
++
+ # Setup module path.
+ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/yacma")
+ 
+@@ -152,15 +154,15 @@ include(PagmoFindBoost)
+ # so in the future we should definitely migrate to that approach:
+ #
+ # https://cmake.org/cmake/help/git-master/prop_tgt/MSVC_RUNTIME_LIBRARY.html
+-if(YACMA_COMPILER_IS_MSVC AND PAGMO_BUILD_STATIC_LIBRARY)
+-    foreach(flag_var
+-            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+-            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+-        if(${flag_var} MATCHES "/MD")
+-            string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+-        endif()
+-    endforeach()
+-endif()
++#if(YACMA_COMPILER_IS_MSVC AND PAGMO_BUILD_STATIC_LIBRARY)
++#    foreach(flag_var
++#            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
++#            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
++#        if(${flag_var} MATCHES "/MD")
++#            string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
++#        endif()
++#    endforeach()
++#endif()
+ 
+ # List of source files.
+ set(PAGMO_SRC_FILES
