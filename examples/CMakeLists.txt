@@ -148,10 +148,13 @@ add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
 target_link_libraries(meshcat_zmq_example ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
+find_package(osqp REQUIRED)
 add_executable(laikago_tds_sim whole_body_control/laikago_tds_sim.cpp)
 target_link_libraries(laikago_tds_sim tinyxml2 ${MESHCAT_LIBRARIES}
-        Eigen3::Eigen)
-target_include_directories(laikago_tds_sim PRIVATE ../third_party ../third_party/nlohmann/include ../src whole_body_control)
+        Eigen3::Eigen osqp::osqp /usr/local/lib/libqpOASES.a)
+target_include_directories(laikago_tds_sim PRIVATE
+    ../third_party ../third_party/nlohmann/include ../src whole_body_control
+    ../third_party/qpOASES/include, ../third_party/osqp)
 
 IF(USE_PAGMO2)
   add_executable(pagmo2_example pagmo2_example.cpp )
