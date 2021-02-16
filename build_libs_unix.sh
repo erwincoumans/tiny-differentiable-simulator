@@ -75,7 +75,7 @@ cd $ROOT
 pushd third_party/pagmo2
 mkdir build_cmake
 cd build_cmake
-cmake -DCMAKE_INSTALL_PREFIX:PATH=local_install -DPAGMO_WITH_EIGEN3=ON -DBoost_DIR:PATH=$ROOT/third_party/boost/stage/lib/cmake/Boost-1.75.0 -DEigen3_DIR:PATH=$ROOT/third_party/eigen/build_cmake -DTBB_VERSION=2021.1.0 -DPAGMO_BUILD_STATIC_LIBRARY=OFF -DTBB_ROOT=$ROOT/third_party/oneTBB/build_cmake/local_install ..
+cmake -DCMAKE_INSTALL_PREFIX:PATH=local_install -DPAGMO_WITH_EIGEN3=ON -DBoost_DIR:PATH=$ROOT/third_party/boost/stage/lib/cmake/Boost-1.75.0 -DEigen3_DIR=$ROOT/third_party/eigen/build_cmake -DTBB_VERSION=2021.1.0 -DPAGMO_BUILD_STATIC_LIBRARY=OFF -DTBB_ROOT=$ROOT/third_party/oneTBB/build_cmake/local_install ..
 
 make -j4
 make install
