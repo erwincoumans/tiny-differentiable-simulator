@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Switch between Eigen and Tiny Algebra.
+#if 1
 #include <vector>
 #include <cppad/cg/cppadcg.hpp>
-#include <cppad/cppad.hpp>
+#include <cppad/example/cppad_eigen.hpp>
 #define USE_CPPAD
 
 #include "math/tiny/cppad_utils.h"
@@ -22,6 +24,7 @@
 #include "dynamics/kinematics.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
+#include "math/eigen_algebra.hpp"
 
 #define USE_IK_JAC_TRANSPOSE
 
@@ -30,13 +33,28 @@ typedef CppAD::AD<InnerScalar> MyScalar; // wrap in Cpp::AD
 typedef CppADUtils<InnerScalar> MyTinyConstants; // Utis struct with functions
 typedef CppAD::ADFun<InnerScalar, InnerScalar> ADFun; // CppAD ADFun
 typedef std::vector<InnerScalar> BaseVector; // Vector of CppAD base types
-
-// Switch between Eigen and Tiny Algebra.
-#if 1
-#include "math/eigen_algebra.hpp"
 typedef tds::EigenAlgebraT<MyScalar> MyAlgebra; 
+
 #else
+
+#include <vector>
+#include <cppad/cg/cppadcg.hpp>
+#define USE_CPPAD
+
+#include "math/tiny/cppad_utils.h"
+#include "dynamics/mass_matrix.hpp"
+#include "dynamics/kinematics.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
 #include "math/tiny/tiny_algebra.hpp"
+
+#define USE_IK_JAC_TRANSPOSE
+
+typedef double InnerScalar; // define underlying data type
+typedef CppAD::AD<InnerScalar> MyScalar; // wrap in Cpp::AD
+typedef CppADUtils<InnerScalar> MyTinyConstants; // Utis struct with functions
+typedef CppAD::ADFun<InnerScalar, InnerScalar> ADFun; // CppAD ADFun
+typedef std::vector<InnerScalar> BaseVector; // Vector of CppAD base types
 typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra;
 #endif
 
@@ -87,6 +105,7 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
     /* Convenience CppAD functions */
     m.def("independent", &TinyAD::independent<InnerScalar>);
     m.def("compute_jacobian", &TinyAD::compute_jacobian<InnerScalar>);
+    m.def("print_ad", &TinyAD::print_ad<InnerScalar>);
     
     /* ADFun class */
     py::class_<ADFun>(m, "ADFun")
