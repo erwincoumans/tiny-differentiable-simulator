@@ -49,49 +49,49 @@ struct CppADUtils {
 
   template <class T>
   static T cos1(const T& v) {
-    using std::cos;
+    using CppAD::cos;
     return cos(v);
   }
 
   template <class T>
   static T sin1(const T& v) {
-    using std::sin;
+    using CppAD::sin;
     return sin(v);
   }
 
   template <class T>
   static T sqrt1(const T& v) {
-    using std::sqrt;
+    using CppAD::sqrt;
     return sqrt(v);
   }
 
   template <class T>
   static T exp(const T& v) {
-    using std::exp;
+    using CppAD::exp;
     return exp(v);
   }
 
   template <class T>
   static T log(const T& v) {
-    using std::log;
+    using CppAD::log;
     return log(v);
   }
 
   template <class T>
   static T pow(const T& v, const T& e) {
-    using std::pow;
+    using CppAD::pow;
     return pow(v, e);
   }
 
   template <class T>
   static T tanh(const T& v) {
-    using std::tanh;
+    using CppAD::tanh;
     return tanh(v);
   }
 
   template <class T>
   static T atan2(const T& dy, const T& dx) {
-    using std::atan2;
+    using CppAD::atan2;
     return atan2(dy, dx);
   }
   
@@ -196,6 +196,11 @@ namespace TinyAD
     vector<Scalar> jac(nx * ny);
     jac = f.Jacobian(vx);
     return jac;
+  }
+  
+  template <typename Scalar = double>
+  inline void print_ad(const std::string& s, const CppAD::AD<Scalar>& v) {
+    CppAD::PrintFor(v, s.c_str(), v, "\n");
   }
 
 } 
