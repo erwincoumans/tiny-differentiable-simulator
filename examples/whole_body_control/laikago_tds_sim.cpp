@@ -38,6 +38,8 @@ int SECS_PER_PHASE = 5;
 int TOTAL_SECS = SECS_PER_PHASE * desired_speeds.size();
 
 vector<MyScalar> GetDesiredSpeed(int secs) {
+    if(secs>(desired_speeds.size()*SECS_PER_PHASE))
+        secs = desired_speeds.size()*SECS_PER_PHASE;
   return desired_speeds[secs / SECS_PER_PHASE];
 }
 
@@ -119,14 +121,12 @@ int main(int argc, char* argv[]) {
   com_velocity_estimator.Reset();
   raibert_swing_leg_controller.Reset();
 
-  auto start_time = std::chrono::high_resolution_clock::now();
+  //auto start_time = std::chrono::high_resolution_clock::now();
   int secs_since_start=0;
   while (secs_since_start < TOTAL_SECS) {
-    std::this_thread::sleep_for(std::chrono::duration<double>(0.003));
-    auto current_time = std::chrono::high_resolution_clock::now();
-    secs_since_start = std::chrono::duration_cast<std::chrono::seconds>(
-        current_time - start_time).count();
-
+    //std::this_thread::sleep_for(std::chrono::duration<double>(0.003));
+    secs_since_start = robot.GetTimeSinceReset();
+    
     auto speed_tuple = GetDesiredSpeed(secs_since_start);
     vector<MyScalar>
         desired_speed = {speed_tuple[0], speed_tuple[1], speed_tuple[2]};
