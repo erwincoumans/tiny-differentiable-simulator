@@ -263,12 +263,10 @@ struct EigenAlgebraT {
   }
 
   TINY_INLINE static Scalar norm(const MotionVector &v) {
-    using std::sqrt;
     return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] +
                 v[4] * v[4] + v[5] * v[5]);
   }
   TINY_INLINE static Scalar norm(const ForceVector &v) {
-    using std::sqrt;
     return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] +
                 v[4] * v[4] + v[5] * v[5]);
   }
@@ -541,6 +539,7 @@ struct EigenAlgebraT {
       const Eigen::Matrix<Scalar, Cols, 1> &vec) {
     return mat.transpose() * vec;
   }
+
   EIGEN_ALWAYS_INLINE static VectorX mul_transpose(const MatrixX &mat,
                                            const VectorX &vec) {
     return mat.transpose() * vec;
@@ -645,13 +644,50 @@ struct EigenAlgebraT {
       const Vector3 &axis, const Scalar &angle) {
     return Quaternion(Eigen::AngleAxis(angle, axis));
   }
-  TINY_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
+
+  EIGEN_ALWAYS_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
     auto ang_ax = Eigen::AngleAxis<Scalar>(quat);
 
     return ang_ax.axis() * ang_ax.angle();
   }
+
+  EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(const Quaternion &start, 
+                                                              const Quaternion &end) {
+    Quaternion q1 = Quaternion(start);
+    Quaternion q2 = Quaternion(end);
+    normalize(q1);
+    normalize(q2);
+
+    /* Ported from PyBullet */
+    // The "nearest" operation from PyBullet
+    VectorX diff(4);
+    diff[0] = q1.x() - q2.x();
+    diff[1] = q1.y() - q2.y();
+    diff[2] = q1.z() - q2.z();
+    diff[3] = q1.w() - q2.w();
+
+    VectorX sum(4);
+    sum[0] = q1.x() + q2.x();
+    sum[1] = q1.y() + q2.y();
+    sum[2] = q1.z() + q2.z();
+    sum[3] = q1.w() + q2.w();
+
+    Scalar dd = diff.dot(diff);
+    Scalar ss = sum.dot(sum);
+
+    Quaternion closest_end = quat_from_xyzw(
+        tds::where_lt(dd, ss, q2.x(), -q2.x()),
+        tds::where_lt(dd, ss, q2.y(), -q2.y()),
+        tds::where_lt(dd, ss, q2.z(), -q2.z()),
+        tds::where_lt(dd, ss, q2.w(), -q2.w()));
+    
+    normalize(closest_end);
+    Quaternion res = closest_end * inverse(q1);
+    normalize(res);
+    return res;
+  }
+
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {
-    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -665,7 +701,6 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_y_matrix(const Scalar &angle) {
-    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -678,7 +713,6 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_z_matrix(const Scalar &angle) {
-    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -692,7 +726,6 @@ struct EigenAlgebraT {
 
   static Matrix3 rotation_zyx_matrix(const Scalar &r, const Scalar &p,
                                      const Scalar &y) {
-    using std::cos, std::sin;
     Scalar ci(cos(r));
     Scalar cj(cos(p));
     Scalar ch(cos(y));
@@ -796,16 +829,19 @@ struct EigenAlgebraT {
                  cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi), // y
                  cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi), // z
                  cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi)); // w
-    q.normalize();
+    normalize(q);
     return q;
   }
   
   EIGEN_ALWAYS_INLINE static const Quaternion inverse(const Quaternion &q) {
-    return q.normalized().inverse();
+    Quaternion q2(q);
+    normalize(q2);
+    return q2.inverse();
   }
   
   EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy(const Quaternion &q) {
-    const Quaternion q2 = q.normalized();
+    Quaternion q2(q);
+    normalize(q2);
   
     // From tiny_quaternion.h
     Vector3 rpy;
@@ -843,7 +879,8 @@ struct EigenAlgebraT {
   }
   
   EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
-    const Quaternion q2 = q.normalized();
+    Quaternion q2(q);
+    normalize(q2);
   
     // From tiny_quaternion.h
     Scalar m00, m01, m02;
@@ -1108,6 +1145,17 @@ struct EigenAlgebraT {
     return cos(s);
 #endif
   }
+  
+  template <typename T>
+  TINY_INLINE static auto acos(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::acos(s);
+#else
+    using std::acos;
+    return acos(s);
+#endif
+  }
+
 
   template <typename T>
   TINY_INLINE static auto tan(const T &s) {

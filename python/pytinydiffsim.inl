@@ -548,9 +548,11 @@
   m.def("inverse_kinematics", &MyInverseKinematics);
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
   m.def("find_file", &MyFindFile);
+  m.def("quat_difference", &QuaternionDifference);
 
   m.def("pi", &MyPi);
   m.def("cos", &MyCos);
+  m.def("acos", &MyAcos);
   m.def("sin", &MySin);
   m.def("max", &MyMax);
   m.def("min", &MyMin);
@@ -681,6 +683,7 @@
            &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision);
 
 #if 0
+
   py::enum_<VelocitySmoothingMethod>(m, "TinyVelocitySmoothingMethod",
                                          py::arithmetic())
       .value("SMOOTH_VEL_NONE", SMOOTH_VEL_NONE)
