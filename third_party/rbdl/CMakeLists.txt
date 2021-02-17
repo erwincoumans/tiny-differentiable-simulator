@@ -64,6 +64,18 @@ ADD_LIBRARY(rbdl-urdfreader
 		addons/urdfreader/urdf/boost_replacement/string_split.h
 		)
 
-target_compile_definitions( rbdl-urdfreader PUBLIC -DNOMINMAX PRIVATE -DNOMINMAX )
+
 target_include_directories( rbdl-urdfreader PUBLIC include addons/urdfreader )
 target_link_libraries( rbdl-urdfreader PUBLIC Eigen3::Eigen)
+
+IF(WIN32)
+  target_compile_definitions( rbdl-urdfreader PUBLIC -DNOMINMAX PRIVATE -DNOMINMAX )
+  TARGET_COMPILE_OPTIONS(rbdl-urdfreader PUBLIC -bigobj)
+  target_include_directories( rbdl-urdfreader PUBLIC include/Windows )
+ELSE(WIN32)
+IF(APPLE)
+  target_include_directories( rbdl-urdfreader PUBLIC include/Mac )
+ELSE(APPLE)
+  target_include_directories( rbdl-urdfreader PUBLIC include/Linux )
+ENDIF(APPLE)
+ENDIF(WIN32)
