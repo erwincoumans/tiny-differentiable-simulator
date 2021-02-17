@@ -75,8 +75,9 @@ ADD_LIBRARY(pytinydiffsim SHARED pytinydiffsim.cc ${TDS_HDRS})
 
 
 ADD_LIBRARY(pytinydiffsim_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
+IF(USE_CPPAD)
 ADD_LIBRARY(pytinydiffsim_ad SHARED pytinydiffsim_ad.cc ${TDS_HDRS})
-
+ENDIF(USE_CPPAD)
 
 
 #SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES PREFIX "")
@@ -87,9 +88,11 @@ ADD_LIBRARY(pytinydiffsim_ad SHARED pytinydiffsim_ad.cc ${TDS_HDRS})
 #SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES DEBUG_POSTFIX "_d")
 
 
-TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2 Eigen3::Eigen CppADCodeGen)
-TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2 Eigen3::Eigen CppADCodeGen)
+TARGET_LINK_LIBRARIES(pytinydiffsim tinyxml2 Eigen3::Eigen )
+TARGET_LINK_LIBRARIES(pytinydiffsim_dual tinyxml2 Eigen3::Eigen )
+IF(USE_CPPAD)
 TARGET_LINK_LIBRARIES(pytinydiffsim_ad tinyxml2 Eigen3::Eigen CppADCodeGen)
+ENDIF(USE_CPPAD)
 
 IF (WIN32)
   TARGET_COMPILE_OPTIONS(pytinydiffsim PUBLIC -bigobj)

@@ -252,7 +252,7 @@ if(USE_OPTIM)
 	add_definitions(-DOPTIM_ENABLE_EIGEN_WRAPPERS)
 endif(USE_OPTIM)
 
-OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" ON)
+OPTION(USE_CPPAD "Use CppAD and CppADCodeGen" OFF)
 IF(USE_CPPAD)
   # Add CppAD as an external project and an imported target.  
   ExternalProject_Add(CppAD-Project
