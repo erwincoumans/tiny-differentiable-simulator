@@ -24,9 +24,10 @@
 
 
 namespace TINY {
-    template <typename Scalar, typename Utils, typename Algebra>
+    template <typename Algebra>
     struct TinyIKTarget {
         typedef typename Algebra::Vector3 Vector3;
+        typedef typename Algebra::Scalar Scalar;
 
         /**
          * Index of the link that should reach a given target.
@@ -41,7 +42,7 @@ namespace TINY {
          * position.
          */
         Vector3 body_point{
-            Vector3(Utils::zero(), Utils::zero(), Utils::zero()) };
+            Vector3(Algebra::zero(), Algebra::zero(), Algebra::zero()) };
 
         TinyIKTarget(int link_index, const Vector3& position)
             : link_index(link_index), position(position) {}
@@ -59,7 +60,7 @@ namespace TINY {
         IK_RESULT_REACHED
     };
 
-    template <typename Scalar, typename Utils>
+    template <typename Scalar>
     struct TinyIKResult
     {
         int iter;
@@ -73,9 +74,11 @@ namespace TINY {
      * The implementation has been inspired from the Rigid Body Dynamics Library
      * (RBDL) by Martin Felis.
      */
-    template <typename Scalar, typename Utils, typename Algebra,
+    template <typename Algebra,
         TinyIKMethod Method = IK_JAC_TRANSPOSE>
         struct TinyInverseKinematics {
+        typedef typename Algebra::Scalar Scalar;
+        
 #ifdef USE_EIGEN
         // Eigen helpers not available for our other scalar types
         static_assert(Method == IK_JAC_TRANSPOSE || std::is_same_v<Scalar, double>,
@@ -88,7 +91,7 @@ namespace TINY {
 #endif
 
         static const TinyIKMethod kMethod = Method;
-        typedef ::TINY::TinyIKTarget<Scalar, Utils, Algebra> Target;
+        typedef ::TINY::TinyIKTarget<Algebra> Target;
         typedef ::tds::MultiBody<Algebra> MultiBody;
         typedef typename Algebra::Vector3 Vector3;
         typedef typename Algebra::VectorX VectorX;
@@ -132,11 +135,11 @@ namespace TINY {
         VectorX q_reference;
         Scalar weight_reference{ 0.2 };
         
-        TinyIKResult<Scalar, Utils> compute(const MultiBody& mb, const VectorX& q_init,
+        TinyIKResult<Scalar> compute(const MultiBody& mb, const VectorX& q_init,
             VectorX& q) const {
 
-            TinyIKResult<Scalar, Utils> result;
-            result.residual = Utils::fraction(-1,1);
+            TinyIKResult<Scalar> result;
+            result.residual = Algebra::fraction(-1,1);
 
             assert(q_init.size() == mb.dof());
             assert(q_reference.empty() || q_reference.size() == q_init.size());
@@ -211,11 +214,11 @@ namespace TINY {
                         TINY::to_eigen(JJTe_lambda2_I)
                         .colPivHouseholderQr()
                         .solve(TINY::to_eigen(e));
-                    VectorX z = TINY::from_eigen_v<double, Utils>(eigen_mat);
+                    VectorX z = TINY::from_eigen_v<Algebra>(eigen_mat);
                     delta_theta = J.mul_transpose(z);
                 }
 
-                Scalar sq_length = Utils::zero();
+                Scalar sq_length = Algebra::zero();
                 for (int i = 0; i < mb.dof_actuated(); ++i) {
                     Scalar delta = delta_theta[i + qd_offset];
                     Scalar& qi = q[i + q_offset];

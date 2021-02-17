@@ -417,7 +417,7 @@ class SimpleRobot {
         world_link_pos[0], world_link_pos[1], world_link_pos[2]
     );
 
-    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, MyAlgebra,TINY::IK_JAC_PINV>
+    TINY::TinyInverseKinematics<MyAlgebra,TINY::IK_JAC_PINV>
         inverse_kinematics;
     inverse_kinematics.weight_reference = MyTinyConstants::fraction(0, 10);
     // step size
