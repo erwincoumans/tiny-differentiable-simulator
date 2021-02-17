@@ -112,6 +112,11 @@
       .def("get_euler_rpy2", [](const Quaternion &q) {
           return MyAlgebra::get_euler_rpy2(q);
       })
+      .def("normalized", [](const Quaternion &q) {
+          Quaternion q2(q);
+          MyAlgebra::normalize(q2);
+          return q2;
+      })
       .def(py::self * py::self)
       .def_property_readonly("x", [](const Quaternion &q) { return q.x(); })
       .def_property_readonly("y", [](const Quaternion &q) { return q.y(); })
