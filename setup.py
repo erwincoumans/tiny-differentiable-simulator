@@ -91,7 +91,7 @@ CXX_FLAGS += '-fpermissive '
 # libraries += [current_python]
 
 libraries = []
-include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include', 'third_party/CppAD/include', 'build/CppADCodeGen/include']
+include_dirs = ['src', '.','python', 'third_party/eigen3', 'third_party/tinyxml2/include', 'third_party/pybind11/include']
 
 pytinyopengl3_libraries = []
 pytinyopengl3_include_dirs = ['src', 'third_party/tinyobjloader']
@@ -229,14 +229,18 @@ pytinydiffsim_dual_ext = Extension(
 
 extensions.append(pytinydiffsim_dual_ext)
 
-pytinydiffsim_ad_ext = Extension(
-    "pytinydiffsim_ad",
-    sources=sources+["python/pytinydiffsim_ad.cc"],
-    libraries=libraries,
-    extra_compile_args=CXX_FLAGS.split(),
-    include_dirs=include_dirs + ["."])
-
-extensions.append(pytinydiffsim_ad_ext)
+if os.path.exists("third_party/CppAD/include"):
+    pytinydiffsim_ad_ext = Extension(
+        "pytinydiffsim_ad",
+        sources=sources+["python/pytinydiffsim_ad.cc"],
+        libraries=libraries,
+        extra_compile_args=CXX_FLAGS.split(),
+        include_dirs=include_dirs + [".",
+                                     "third_party/CppAD/include", 
+                                     "build/CppADCodeGen/include"])
+    extensions.append(pytinydiffsim_ad_ext)
+else:
+    print("Skipping pytinydiffsim_ad extension since CppAD is missing.")
 
 pytinyopengl3_ext = Extension(
     "pytinyopengl3",

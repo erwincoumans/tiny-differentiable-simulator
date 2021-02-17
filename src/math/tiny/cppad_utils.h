@@ -21,8 +21,8 @@
 #include <stdio.h>
 
 #include <cppad/cg.hpp>
+
 #include <vector>
-#include <cppad/cppad.hpp>
 #include <string>
 
 #include "math.h"

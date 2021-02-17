@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Switch between Eigen and Tiny Algebra.
-#if 1
+#define USE_CPPAD
 #include <vector>
 #include <cppad/cg/cppadcg.hpp>
-#include <cppad/example/cppad_eigen.hpp>
-#define USE_CPPAD
-
 #include "math/tiny/cppad_utils.h"
 #include "dynamics/mass_matrix.hpp"
 #include "dynamics/kinematics.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
-#include "math/eigen_algebra.hpp"
 
 #define USE_IK_JAC_TRANSPOSE
+
+// Switch between Eigen and Tiny Algebra.
+#if 1
+#include <cppad/example/cppad_eigen.hpp>
+#include "math/eigen_algebra.hpp"
 
 typedef double InnerScalar; // define underlying data type
 typedef CppAD::AD<InnerScalar> MyScalar; // wrap in Cpp::AD
@@ -36,19 +36,7 @@ typedef std::vector<InnerScalar> BaseVector; // Vector of CppAD base types
 typedef tds::EigenAlgebraT<MyScalar> MyAlgebra; 
 
 #else
-
-#include <vector>
-#include <cppad/cg/cppadcg.hpp>
-#define USE_CPPAD
-
-#include "math/tiny/cppad_utils.h"
-#include "dynamics/mass_matrix.hpp"
-#include "dynamics/kinematics.hpp"
-#include "dynamics/forward_dynamics.hpp"
-#include "dynamics/integrator.hpp"
 #include "math/tiny/tiny_algebra.hpp"
-
-#define USE_IK_JAC_TRANSPOSE
 
 typedef double InnerScalar; // define underlying data type
 typedef CppAD::AD<InnerScalar> MyScalar; // wrap in Cpp::AD
