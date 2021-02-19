@@ -61,10 +61,10 @@ static TinyMatrixXxX<TinyScalar, TinyConstants> from_eigen(
   return result;
 }
 
-template <typename TinyScalar, typename TinyConstants, int Cols>
-static TinyVectorX<TinyScalar, TinyConstants> from_eigen_v(
-    const Eigen::Matrix<TinyScalar, Eigen::Dynamic, Cols>& m) {
-  TinyVectorX<TinyScalar, TinyConstants> result(m.rows());
+template <typename Algebra, int Cols>
+static typename Algebra::VectorX  from_eigen_v(
+    const Eigen::Matrix<typename Algebra::Scalar, Eigen::Dynamic, Cols>& m) {
+  typename Algebra::VectorX result(m.rows());
   for (int i = 0; i < m.rows(); ++i) {
     result[i] = m(i, 0);
   }

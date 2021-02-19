@@ -43,6 +43,7 @@ struct DoubleUtils {
   static double sin1(double v) { return ::sin(v); }
   static double atan2(double dy, double dx) { return ::atan2(dy, dx); }
   static double asin(double v) { return ::asin(v); }
+  static double acos(double v) { return ::acos(v); }
   static double copysign(double x, double y) { return ::copysign(x, y); }
   static double abs(double v) { return ::fabs(v); }
   static double pow(double a, double b) { return ::pow(a, b); }

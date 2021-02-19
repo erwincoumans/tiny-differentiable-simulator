@@ -161,8 +161,13 @@ struct TinyDualDoubleUtils {
      return TinyDualDouble(::asin(z.real()), z.dual() / ::sqrt(double(1) - z.real() * z.real()));
  }
 
-  static TinyDualDouble atan2(const TinyDualDouble& y, const TinyDualDouble& x)
-  {
+ static TinyDualDouble acos(const TinyDualDouble& z)
+ {
+     return TinyDualDouble(::acos(z.real()), -z.dual() / ::sqrt(double(1) - z.real() * z.real()));
+ }
+
+ static TinyDualDouble atan2(const TinyDualDouble& y, const TinyDualDouble& x)
+ {
       TinyDualDouble z = y / x;
       bool neg_x = x.real() < 0;
       bool neg_y = y.real() < 0;
@@ -170,7 +175,6 @@ struct TinyDualDoubleUtils {
       double quadrant = neg_x ? (neg_y ? -M_PI : M_PI) : 0;
       return TinyDualDouble(atan(z.real()) + quadrant, z.dual() / (double(1) + (z.real()*z.real())));
   }
-
 
   static double getDouble(TinyDualDouble v) { return (double)v.real(); }
 

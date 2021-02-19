@@ -38,7 +38,7 @@ template <typename Scalar>
 static TINY_INLINE CppAD::AD<Scalar> where_gt(
     const CppAD::AD<Scalar>& x, const CppAD::AD<Scalar>& y,
     const CppAD::AD<Scalar>& if_true, const CppAD::AD<Scalar>& if_false) {
-  return CppAD::CondExpGt(x, y, if_true, if_false);
+    return CppAD::CondExpGt(x, y, if_true, if_false);
 }
 
 template <typename Scalar>

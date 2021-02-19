@@ -121,9 +121,9 @@ inline MyAlgebra::VectorX MyInverseKinematics(tds::MultiBody<MyAlgebra>& mb, int
 {
     MyAlgebra::VectorX q_target;
 #ifdef USE_IK_JAC_TRANSPOSE
-    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_TRANSPOSE> inverse_kinematics;
+    TINY::TinyInverseKinematics<MyAlgebra, TINY::IK_JAC_TRANSPOSE> inverse_kinematics;
 #else    
-    TINY::TinyInverseKinematics<MyScalar, MyTinyConstants, TINY::IK_JAC_PINV> inverse_kinematics;
+    TINY::TinyInverseKinematics<MyAlgebra, TINY::IK_JAC_PINV> inverse_kinematics;
 #endif
 
     inverse_kinematics.weight_reference = MyTinyConstants::fraction(0,10);
@@ -152,9 +152,30 @@ MyScalar MyCos(MyScalar v)
     return MyAlgebra::cos(v);
 }
 
+MyScalar MyAcos(MyScalar v)
+{
+    return MyAlgebra::acos(v);
+}
+
 MyScalar MySin(MyScalar v)
 {
     return MyAlgebra::sin(v);
 }
 
+MyScalar MyMax(MyScalar a, MyScalar b)
+{
+    return MyAlgebra::max(a, b);
+}
 
+MyScalar MyMin(MyScalar a, MyScalar b)
+{
+    return MyAlgebra::min(a, b);
+}
+
+MyScalar MyClip(MyScalar v, MyScalar low, MyScalar high) {
+    return MyAlgebra::max(MyAlgebra::min(v, high), low);
+}
+
+MyAlgebra::Quaternion QuaternionDifference(const MyAlgebra::Quaternion &q_start, const MyAlgebra::Quaternion &q_end) {
+    return MyAlgebra::quat_difference(q_start, q_end);
+}

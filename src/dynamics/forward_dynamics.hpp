@@ -67,7 +67,8 @@ void forward_dynamics(MultiBody<Algebra> &mb,
         // TODO consider nonzero resting position of joint for stiffness?
         // TODO consider non-scalar joint damping and stiffness?
         VectorX quat = mb.get_q_for_link(q, i);
-        Vector3 Axes_angle = Algebra::quaternion_axis_angle(Quaternion(quat[0], quat[1], quat[2], quat[3]));
+        Quaternion qquat = Algebra::quat_from_xyzw(quat[0], quat[1], quat[2], quat[3]);
+        Vector3 Axes_angle = Algebra::quaternion_axis_angle(qquat);
         tau_temp -= link.stiffness * Axes_angle;
         tau_temp -= link.damping * mb.get_qd_for_link(qd, i);
 

@@ -15,7 +15,7 @@
 #include "math/tiny/tiny_double_utils.h"
 
 
-typedef double TinyDualScalar;
+typedef double InnerScalar;
 typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
 
