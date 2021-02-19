@@ -86,6 +86,7 @@ print(platform)
 
 CXX_FLAGS = ''
 CXX_FLAGS += '-fpermissive '
+CXX_FLAGS += '-D_USE_MATH_DEFINES '
 
 
 # libraries += [current_python]
@@ -230,14 +231,19 @@ pytinydiffsim_dual_ext = Extension(
 extensions.append(pytinydiffsim_dual_ext)
 
 if os.path.exists("third_party/CppAD/include"):
+    platform_include_dirs = []
+    if _platform == "win32":
+      platform_include_dirs=["third_party/patches/CppADCodeGenWindows/include"]
+  
     pytinydiffsim_ad_ext = Extension(
         "pytinydiffsim_ad",
         sources=sources+["python/pytinydiffsim_ad.cc"],
         libraries=libraries,
         extra_compile_args=CXX_FLAGS.split(),
-        include_dirs=include_dirs + [".",
-                                     "third_party/CppAD/include", 
-                                     "build/CppADCodeGen/include"])
+        include_dirs=include_dirs + platform_include_dirs + [".",
+                  "third_party/CppADCodeGen/include",
+                  "third_party/CppAD/include" ])
+      
     extensions.append(pytinydiffsim_ad_ext)
 else:
     print("Skipping pytinydiffsim_ad extension since CppAD is missing.")
