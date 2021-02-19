@@ -9,7 +9,7 @@ IF(WIN32)
 INCLUDE_DIRECTORIES( include/Windows )
 ENDIF()
 
-ADD_LIBRARY(rbdl-static 
+ADD_LIBRARY(rbdl-static STATIC 
  src/rbdl_version.cc
   src/rbdl_mathutils.cc
   src/rbdl_utils.cc
@@ -39,7 +39,7 @@ ENDIF(WIN32)
 
 
 
-ADD_LIBRARY(rbdl-urdfreader
+ADD_LIBRARY(rbdl-urdfreader STATIC 
 		addons/urdfreader/urdfreader.cc
 	    addons/urdfreader/urdf/urdfdom/urdf_parser/src/check_urdf.cpp	
 		addons/urdfreader/urdf/urdfdom/urdf_parser/src/pose.cpp
