@@ -82,7 +82,7 @@ class SimpleRobot {
     SetupPlane(meshcat_viz);
     SetupLaikago(meshcat_viz);
 
-    forward_kinematics(*robot_mb_);
+    forward_kinematics(*robot_mb_, robot_mb_->q(), robot_mb_->qd());
     meshcat_viz.sync_visual_transforms(robot_mb_);
 
     std::cout << "start settle down\n";
@@ -219,6 +219,26 @@ class SimpleRobot {
 
   void PrintRobotState() {
     robot_mb_->print_state();
+  }
+
+  std::vector<double> MapContactForceToJointTorques(int leg_id,
+                                                    std::vector<double> contact_force) {
+    auto jacobian_vector = ComputeJacobian(leg_id);
+    TINY::TinyVector3<MyScalar, MyTinyConstants> contact_force_tiny_vector(
+        contact_force[0], contact_force[1], contact_force[2]
+    );
+    MyAlgebra::Matrix3X mat(1, 3);
+    mat.assign_vector_horizontal(0, 0, contact_force_tiny_vector);
+    auto all_motor_torques = mat * jacobian_vector;
+    int motors_per_leg = num_motors_ / num_legs_;
+    int com_dof = 6;
+    std::vector<double> motor_torques;
+
+    for (int joint_id = leg_id * motors_per_leg;
+         joint_id < (leg_id + 1) * motors_per_leg; joint_id++) {
+      motor_torques.push_back(all_motor_torques(0, com_dof + joint_id));
+    }
+    return motor_torques;
   }
 
  private:
@@ -437,6 +457,14 @@ class SimpleRobot {
       joint_angles.push_back(vec[joint_id]);
     }
     return joint_angles;
+  }
+
+  MyAlgebra::Matrix3X ComputeJacobian(int leg_id) {
+    int link_id = foot_link_ids_[leg_id];
+    auto world_point = robot_mb_->links()[link_id].X_world.translation;
+    auto local_point =
+        robot_mb_->get_world_transform(-1).apply_inverse(world_point);
+    return point_jacobian2(*robot_mb_, link_id, local_point, true);
   }
 
 };
