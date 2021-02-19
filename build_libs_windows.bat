@@ -119,12 +119,30 @@ popd
 cd %ROOT%
 
 
+pushd third_party\osqp
+mkdir build_cmake
+cd build_cmake
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="d" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%\third_party\osqp\build_cmake\local_install ..
+cmake  --build .  --target INSTALL  --config Debug
+cmake  --build .  --target INSTALL  --config Release
+popd
+cd %ROOT%
+
+pushd third_party\qpoases
+mkdir build_cmake
+cd build_cmake
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="d" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%\third_party\qpoases\build_cmake\local_install ..
+cmake  --build .  --target INSTALL  --config Debug
+cmake  --build .  --target INSTALL  --config Release
+popd
+cd %ROOT%
+
 
 
 mkdir build_cmake
 cd build_cmake
 
-cmake  -DCMAKE_CXX_FLAGS="/MP" -DUSE_CERES=ON -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON -DBullet_DIR=%ROOT%\third_party\bullet3\build_cmake -Dgflags_DIR=%ROOT%\third_party\gflags\build_cmake -Dglog_DIR=%ROOT%\third_party\glog\build_cmake -DEigen3_DIR=%ROOT%\third_party\eigen3\build_cmake -DCeres_DIR=%ROOT%\third_party\ceres-solver\build_cmake\local_install\cmake -DUSE_CPPAD=ON -DPAGMO_WITH_EIGEN3=ON -DBoost_DIR:PATH=%ROOT%/third_party/boost/stage/lib/cmake/Boost-1.75.0 -DTBB_VERSION=2021.1.0 -DPagmo_DIR:PATH=%ROOT%/third_party/pagmo2/build_cmake/local_install/lib/cmake/pagmo -DTBB_ROOT=%ROOT%/third_party/oneTBB/build_cmake/local_install ..
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DUSE_CERES=ON -DUSE_OSQP=ON -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON -DBullet_DIR=%ROOT%\third_party\bullet3\build_cmake -Dgflags_DIR=%ROOT%\third_party\gflags\build_cmake -Dglog_DIR=%ROOT%\third_party\glog\build_cmake -DEigen3_DIR=%ROOT%\third_party\eigen3\build_cmake -DCeres_DIR=%ROOT%\third_party\ceres-solver\build_cmake\local_install\cmake -DUSE_CPPAD=ON -DPAGMO_WITH_EIGEN3=ON -DBoost_DIR:PATH=%ROOT%/third_party/boost/stage/lib/cmake/Boost-1.75.0 -DTBB_VERSION=2021.1.0 -DPagmo_DIR:PATH=%ROOT%/third_party/pagmo2/build_cmake/local_install/lib/cmake/pagmo -DTBB_ROOT=%ROOT%/third_party/oneTBB/build_cmake/local_install ..
 
 rem cmake  --build .  --target INSTALL  --config Release
 rem start DIFF_PHYSICS.sln

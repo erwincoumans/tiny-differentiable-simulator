@@ -156,7 +156,7 @@ target_include_directories(laikago_tds_sim PRIVATE
     ../third_party ../third_party/nlohmann/include ../src whole_body_control)
 IF(USE_OSQP)
     target_link_libraries(laikago_tds_sim osqp::osqp)
-    target_include_directories(laikago_tds_sim PRIVATE ../third_party/osqp/include)
+    target_include_directories(laikago_tds_sim PRIVATE ../third_party/osqp/build_cmake/local_install/include)
     target_compile_definitions(laikago_tds_sim PRIVATE -DTDS_ENABLE_OSQP)
 ENDIF(USE_OSQP)
 IF(USE_QPOASES)
