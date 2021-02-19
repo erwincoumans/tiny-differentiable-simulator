@@ -16,7 +16,9 @@
 #include <nlohmann/json.hpp>
 
 #include "neural_network_from_json.hpp"
+#if defined (TDS_ENABLE_OSQP) || defined (TDS_ENABLE_QPOASES)
 #include "osqp_mpc_controller.hpp"
+#endif
 
 typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
@@ -78,7 +80,7 @@ class TorqueStanceLegController {
     vector<MyScalar> com_angular_velocity = robot.GetBaseRollPitchYawRate();
     vector<MyScalar> foot_positions_base_frame = robot
         .GetFootPositionsInBaseFrame();
-
+#if defined (TDS_ENABLE_OSQP) || defined (TDS_ENABLE_QPOASES)
     if (use_cpp_mpc_) {
       auto predicted_contact_forces = convex_mpc_.ComputeContactForces(
           {0.0}, com_vel, com_roll_pitch_yaw, com_angular_velocity,
@@ -97,7 +99,10 @@ class TorqueStanceLegController {
         ExtendVector(torque_output, motor_torques);
       }
       return torque_output;
-    } else {
+    } else 
+#endif
+    {
+
       vector<MyScalar> mpc_input;
       ExtendVector(mpc_input, com_vel);
       ExtendVector(mpc_input, com_roll_pitch_yaw);
@@ -124,6 +129,7 @@ class TorqueStanceLegController {
   SimpleRobot* robot_;
   NeuralNetworkFromJson<MyAlgebra> net_;
   int num_legs_ = 4;
+#if defined (TDS_ENABLE_OSQP) || defined (TDS_ENABLE_QPOASES)
   ConvexMpc convex_mpc_ = ConvexMpc(
       /*mass=*/220.0 / 9.8,
       /*inertia=*/{0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447},
@@ -132,6 +138,7 @@ class TorqueStanceLegController {
       /*timestep=*/0.025,
       /*qp_weights=*/{5, 5, 0.2, 0, 0, 10, 0., 0., 1., 1., 1., 0., 0}
   );
+#endif
 };
 
 } // namespace tds

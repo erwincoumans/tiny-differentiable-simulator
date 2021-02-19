@@ -157,10 +157,12 @@ target_include_directories(laikago_tds_sim PRIVATE
 IF(USE_OSQP)
     target_link_libraries(laikago_tds_sim osqp::osqp)
     target_include_directories(laikago_tds_sim PRIVATE ../third_party/osqp/include)
+    target_compile_definitions(laikago_tds_sim PRIVATE -DTDS_ENABLE_OSQP)
 ENDIF(USE_OSQP)
 IF(USE_QPOASES)
     target_link_libraries(laikago_tds_sim qpOASES)
     target_include_directories(laikago_tds_sim PRIVATE ../third_party/qpOASES/include)
+    target_compile_definitions(laikago_tds_sim PRIVATE -DTDS_ENABLE_QPOASES)
 ENDIF(USE_QPOASES)
 
 IF(USE_PAGMO2)
