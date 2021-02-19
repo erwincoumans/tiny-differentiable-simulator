@@ -127,7 +127,9 @@ IF (WIN32)
   target_link_directories (pytinydiffsim_ad PUBLIC "${PYTHON_LIBRARY_DIR}")
   TARGET_LINK_LIBRARIES(pytinydiffsim_ad ${PYTHON_LIBRARIES})
 ELSEIF (APPLE)
-  SET_TARGET_PROPERTIES(pytinydiffsim_ad PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  IF(USE_CPPAD)
+      SET_TARGET_PROPERTIES(pytinydiffsim_ad PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  ENDIF(USE_CPPAD)
 ENDIF ()
 
 
