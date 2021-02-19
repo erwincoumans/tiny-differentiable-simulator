@@ -36,6 +36,7 @@
 #include "visualizer/pybullet/pybullet_visualizer_api.h"
 #include "utils/file_utils.hpp"
 #include "pybullet_visual_instance_generator.h"
+#include "math/tiny/tiny_algebra.hpp"
 
 using namespace TINY;
 using namespace tds;
@@ -302,7 +303,7 @@ int main(int argc, char* argv[]) {
   const int foot_bl = 15;// 11;
   const TinyVector3 foot_offset(0, 0, 0);// -0.24, -0.02);
 
-  TinyInverseKinematics<double, DoubleUtils, IK_JAC_PINV> inverse_kinematics;
+  TinyInverseKinematics<TinyAlgebra<double, DoubleUtils>, IK_JAC_PINV> inverse_kinematics;
   // controls by how much the joint angles should be close to the initial q
   inverse_kinematics.weight_reference = 0;
   // step size
