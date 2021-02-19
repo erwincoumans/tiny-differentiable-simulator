@@ -16,122 +16,96 @@
 
 typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
-typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
+typedef TinyAlgebra<double,MyTinyConstants> MyAlgebra;
 
 using tds::NeuralNetworkFromJson;
 
 namespace {
 
-// Set of {vx, vy, vz, v_angular} waypoints.
-std::vector<std::vector<double>> desired_speeds{
-    {0.6, 0., 0., 0.},
-    {0.0, 0., 0., 0.8},
-    {0.0, -0.2, 0., 0.},
-    {0.0, 0., 0., -0.8},
-    {0.0, 0.2, 0., 0.},
-    {0.0, 0., 0., 0.}
-};
+    // Set of {vx, vy, vz, v_angular} waypoints.
+    std::vector<std::vector<double>> desired_speeds{
+        {0.6, 0., 0., 0.},
+        {0.0, 0., 0., 0.8},
+        {0.0, -0.2, 0., 0.},
+        {0.0, 0., 0., -0.8},
+        {0.0, 0.2, 0., 0.},
+        {0.0, 0., 0., 0.}
+    };
 
-int SECS_PER_PHASE = 5;
-int TOTAL_SECS = SECS_PER_PHASE * desired_speeds.size();
+    int SECS_PER_PHASE = 5;
+    int TOTAL_SECS = SECS_PER_PHASE * desired_speeds.size();
 
-vector<MyScalar> GetDesiredSpeed(int secs) {
-    if(secs>(desired_speeds.size()*SECS_PER_PHASE))
-        secs = desired_speeds.size()*SECS_PER_PHASE;
-  return desired_speeds[secs / SECS_PER_PHASE];
-}
-
-void ExtendVector(vector<MyScalar>& v1, const vector<MyScalar> v2) {
-  v1.insert(v1.end(), v2.begin(), v2.end());
-}
-
-vector<MyScalar> GetMpcInput(const vector<MyScalar>& desired_speed,
-                             double desired_twisting_speed,
-                             tds::SimpleRobot& robot,
-                             const tds::COMVelocityEstimator&
-                             com_velocity_estimator,
-                             tds::OpenloopGaitGenerator&
-                             openloop_gait_generator
-) {
-  vector<MyScalar> friction_coeffs = {0.45, 0.45, 0.45, 0.45};
-  vector<MyScalar> desired_com_position = {0.0, 0.0, 0.42};
-  vector<MyScalar> desired_com_velocity = {desired_speed[0],
-                                           desired_speed[1], 0.0};
-  vector<MyScalar> desired_com_roll_pitch_yaw = {0.0, 0.0, 0.0};
-  vector<MyScalar>
-      desired_com_angular_velocity = {0.0, 0.0, desired_twisting_speed};
-  vector<MyScalar> foot_contact_state;
-  for (tds::LegState state: openloop_gait_generator.GetDesiredLegState()) {
-    foot_contact_state.push_back(
-        double(state == tds::STANCE || state == tds::EARLY_CONTACT));
-
-  }
-  return desired_speeds[secs / SECS_PER_PHASE];
-}
-
-}
-
-int main(int argc, char* argv[]) {
-  MeshcatUrdfVisualizer<MyAlgebra> meshcat_viz;
-  std::cout << "Waiting for meshcat server" << std::endl;
-  meshcat_viz.delete_all();
-
-  double time_step = 0.001;
-  tds::SimpleRobot robot(time_step, meshcat_viz);
-  tds::COMVelocityEstimator com_velocity_estimator(&robot);
-  tds::OpenloopGaitGenerator openloop_gait_generator(&robot);
-  tds::RaibertSwingLegController
-      raibert_swing_leg_controller(&robot, &openloop_gait_generator,
-                                   &com_velocity_estimator);
-  tds::TorqueStanceLegController
-      torque_stance_leg_controller(&robot, /*use_cpp_mpc=*/true);
-
-  robot.Reset();
-  openloop_gait_generator.Reset();
-  com_velocity_estimator.Reset();
-  raibert_swing_leg_controller.Reset();
-
-  int secs_since_start = 0;
-  while (secs_since_start < TOTAL_SECS) {
-    std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
-    secs_since_start = robot.GetTimeSinceReset();
-
-    auto speed_tuple = GetDesiredSpeed(secs_since_start);
-    std::vector<MyScalar>
-        desired_speed = {speed_tuple[0], speed_tuple[1], speed_tuple[2]};
-    double desired_twisting_speed = speed_tuple[3];
-
-    raibert_swing_leg_controller.SetDesiredSpeed(desired_speed);
-    raibert_swing_leg_controller.SetDesiredTwistingSpeed
-        (desired_twisting_speed);
-    openloop_gait_generator.Update(robot.GetTimeSinceReset());
-    com_velocity_estimator.Update();
-    raibert_swing_leg_controller.Update();
-
-    auto stance_action = torque_stance_leg_controller.GetAction(
-        desired_speed,
-        desired_twisting_speed,
-        robot,
-        com_velocity_estimator,
-        openloop_gait_generator
-    );
-    auto swing_action = raibert_swing_leg_controller.GetAction();
-
-    std::vector<double> hybrid_action;
-    for (size_t joint_id = 0; joint_id < robot.GetNumMotors(); joint_id++) {
-      if (swing_action.find(joint_id) != swing_action.end()) {
-        std::vector<double> command = swing_action[joint_id];
-        for (double item: command) {
-          hybrid_action.push_back(item);
+    std::vector<MyScalar> GetDesiredSpeed(int secs) {
+        if(secs > desired_speeds.size() * SECS_PER_PHASE) {
+            secs = desired_speeds.size() * SECS_PER_PHASE;
         }
-      } else {
-        for (size_t i = 0; i < 4; i++) {
-          hybrid_action.push_back(0.0);
-        }
-        hybrid_action.push_back(stance_action[joint_id]);
-      }
+        return desired_speeds[secs / SECS_PER_PHASE];
     }
 
-    robot.Step(hybrid_action, tds::MOTOR_CONTROL_HYBRID, meshcat_viz);
-  }
+}
+
+int main(int argc,char* argv[]) {
+    MeshcatUrdfVisualizer<MyAlgebra> meshcat_viz;
+    std::cout << "Waiting for meshcat server" << std::endl;
+    meshcat_viz.delete_all();
+
+    double time_step = 0.001;
+    tds::SimpleRobot robot(time_step,meshcat_viz);
+    tds::COMVelocityEstimator com_velocity_estimator(&robot);
+    tds::OpenloopGaitGenerator openloop_gait_generator(&robot);
+    tds::RaibertSwingLegController
+        raibert_swing_leg_controller(&robot,&openloop_gait_generator,
+            &com_velocity_estimator);
+    tds::TorqueStanceLegController
+        torque_stance_leg_controller(&robot, /*use_cpp_mpc=*/true);
+
+    robot.Reset();
+    openloop_gait_generator.Reset();
+    com_velocity_estimator.Reset();
+    raibert_swing_leg_controller.Reset();
+
+    int secs_since_start = 0;
+    while(secs_since_start < TOTAL_SECS) {
+        std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
+        secs_since_start = robot.GetTimeSinceReset();
+
+        auto speed_tuple = GetDesiredSpeed(secs_since_start);
+        std::vector<MyScalar>
+            desired_speed ={speed_tuple[0], speed_tuple[1], speed_tuple[2]};
+        double desired_twisting_speed = speed_tuple[3];
+
+        raibert_swing_leg_controller.SetDesiredSpeed(desired_speed);
+        raibert_swing_leg_controller.SetDesiredTwistingSpeed
+        (desired_twisting_speed);
+        openloop_gait_generator.Update(robot.GetTimeSinceReset());
+        com_velocity_estimator.Update();
+        raibert_swing_leg_controller.Update();
+
+        auto stance_action = torque_stance_leg_controller.GetAction(
+            desired_speed,
+            desired_twisting_speed,
+            robot,
+            com_velocity_estimator,
+            openloop_gait_generator
+        );
+        auto swing_action = raibert_swing_leg_controller.GetAction();
+
+        std::vector<double> hybrid_action;
+        for(size_t joint_id = 0; joint_id < robot.GetNumMotors(); joint_id++) {
+            if(swing_action.find(joint_id) != swing_action.end()) {
+                std::vector<double> command = swing_action[joint_id];
+                for(double item: command) {
+                    hybrid_action.push_back(item);
+                }
+            }
+            else {
+                for(size_t i = 0; i < 4; i++) {
+                    hybrid_action.push_back(0.0);
+                }
+                hybrid_action.push_back(stance_action[joint_id]);
+            }
+        }
+
+        robot.Step(hybrid_action,tds::MOTOR_CONTROL_HYBRID,meshcat_viz);
+    }
 }
