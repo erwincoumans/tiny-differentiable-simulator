@@ -35,9 +35,36 @@ std::vector<std::vector<double>> desired_speeds{
 int SECS_PER_PHASE = 5;
 int TOTAL_SECS = SECS_PER_PHASE * desired_speeds.size();
 
-std::vector<MyScalar> GetDesiredSpeed(int secs) {
-  if (secs > desired_speeds.size() * SECS_PER_PHASE) {
-    secs = desired_speeds.size() * SECS_PER_PHASE;
+vector<MyScalar> GetDesiredSpeed(int secs) {
+    if(secs>(desired_speeds.size()*SECS_PER_PHASE))
+        secs = desired_speeds.size()*SECS_PER_PHASE;
+  return desired_speeds[secs / SECS_PER_PHASE];
+}
+
+void ExtendVector(vector<MyScalar>& v1, const vector<MyScalar> v2) {
+  v1.insert(v1.end(), v2.begin(), v2.end());
+}
+
+vector<MyScalar> GetMpcInput(const vector<MyScalar>& desired_speed,
+                             double desired_twisting_speed,
+                             tds::SimpleRobot& robot,
+                             const tds::COMVelocityEstimator&
+                             com_velocity_estimator,
+                             tds::OpenloopGaitGenerator&
+                             openloop_gait_generator
+) {
+  vector<MyScalar> friction_coeffs = {0.45, 0.45, 0.45, 0.45};
+  vector<MyScalar> desired_com_position = {0.0, 0.0, 0.42};
+  vector<MyScalar> desired_com_velocity = {desired_speed[0],
+                                           desired_speed[1], 0.0};
+  vector<MyScalar> desired_com_roll_pitch_yaw = {0.0, 0.0, 0.0};
+  vector<MyScalar>
+      desired_com_angular_velocity = {0.0, 0.0, desired_twisting_speed};
+  vector<MyScalar> foot_contact_state;
+  for (tds::LegState state: openloop_gait_generator.GetDesiredLegState()) {
+    foot_contact_state.push_back(
+        double(state == tds::STANCE || state == tds::EARLY_CONTACT));
+
   }
   return desired_speeds[secs / SECS_PER_PHASE];
 }
