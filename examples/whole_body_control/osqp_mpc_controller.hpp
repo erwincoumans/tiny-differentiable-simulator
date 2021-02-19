@@ -38,6 +38,7 @@ using Eigen::MatrixXd;
 using Eigen::Quaterniond;
 using Eigen::Vector3d;
 using Eigen::VectorXd;
+#ifdef TDS_ENABLE_QPOASES
 #include "qpOASES.hpp"
 #include "qpOASES/Types.hpp"
 
@@ -46,6 +47,10 @@ using qpOASES::QProblem;
 typedef Eigen::Matrix<qpOASES::real_t, Eigen::Dynamic, Eigen::Dynamic,
                       Eigen::RowMajor>
     RowMajorMatrixXd;
+
+
+
+#endif //TDS_ENABLE_QPOASES
 
 constexpr int k3Dim = 3;
 constexpr double kGravity = 9.8;
@@ -64,7 +69,7 @@ enum QPSolverName
   OSQP, QPOASES
 };
 
-
+#ifdef TDS_ENABLE_QPOASES
 // Auxiliary function for copying data to qpOASES data structure.
 void CopyToVec(const Eigen::VectorXd& vec,
                const std::vector<int> foot_contact_states, int num_legs,
@@ -125,7 +130,7 @@ void CopyToMatrix(const Eigen::MatrixXd& input,
     ++row_blk;
   }
 }
-
+#endif //TDS_ENABLE_QPOASES
 
 // Converts the roll pitchh yaw angle vector to the corresponding rotation
 // matrix.
@@ -199,7 +204,12 @@ public:
     ConvexMpc(double mass, const std::vector<double>& inertia, int num_legs,
         int planning_horizon, double timestep,
         const std::vector<double>& qp_weights, double alpha = 1e-5,
-          QPSolverName qp_solver_name=QPOASES);
+#ifdef TDS_ENABLE_QPOASES
+        QPSolverName qp_solver_name=QPOASES
+#else
+        QPSolverName qp_solver_name=OSQP
+#endif
+    );
 
     virtual ~ConvexMpc()
     {
@@ -818,7 +828,7 @@ std::vector<double> ConvexMpc::ComputeContactForces(
     }
     else
     {
-
+#ifdef TDS_ENABLE_QPOASES
       // Solve the QP Problem using qpOASES
     UpdateConstraintsMatrix(foot_friction_coeffs, planning_horizon_, num_legs_,
                             &constraint_);
@@ -893,6 +903,7 @@ std::vector<double> ConvexMpc::ComputeContactForces(
         ++buffer_index;
       }
     }
+#endif //TDS_ENABLE_QPOASES
     return qp_solution_;
     }
 }
