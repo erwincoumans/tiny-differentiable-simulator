@@ -31,3 +31,9 @@
 [submodule "third_party/boost"]
 	path = third_party/boost
 	url = https://github.com/erwincoumans/boost.git
+[submodule "third_party/osqp"]
+	path = third_party/osqp
+	url = https://github.com/oxfordcontrol/osqp.git
+[submodule "third_party/qpOASES"]
+	path = third_party/qpOASES
+	url = https://github.com/coin-or/qpOASES.git
