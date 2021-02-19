@@ -23,6 +23,10 @@
 #undef max
 #undef min
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
+
 namespace tds {
 
 template <typename ScalarT = double>

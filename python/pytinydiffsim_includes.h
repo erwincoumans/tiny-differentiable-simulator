@@ -29,6 +29,10 @@
 #include "dynamics/jacobian.hpp"
 #include "math/neural_network.hpp"
 #include "utils/file_utils.hpp"
+#ifdef _WIN32
+#undef min
+#undef max
+#endif
 
 template <typename Algebra>
 struct UrdfToMultiBody2 {
