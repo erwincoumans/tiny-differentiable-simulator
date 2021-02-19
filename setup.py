@@ -229,6 +229,19 @@ pytinydiffsim_dual_ext = Extension(
 
 extensions.append(pytinydiffsim_dual_ext)
 
+if os.path.exists("third_party/CppAD/include"):
+    pytinydiffsim_ad_ext = Extension(
+        "pytinydiffsim_ad",
+        sources=sources+["python/pytinydiffsim_ad.cc"],
+        libraries=libraries,
+        extra_compile_args=CXX_FLAGS.split(),
+        include_dirs=include_dirs + [".",
+                                     "third_party/CppAD/include", 
+                                     "build/CppADCodeGen/include"])
+    extensions.append(pytinydiffsim_ad_ext)
+else:
+    print("Skipping pytinydiffsim_ad extension since CppAD is missing.")
+
 pytinyopengl3_ext = Extension(
     "pytinyopengl3",
     sources=pytinyopengl3_sources,

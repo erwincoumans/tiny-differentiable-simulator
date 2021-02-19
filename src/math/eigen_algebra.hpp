@@ -263,12 +263,10 @@ struct EigenAlgebraT {
   }
 
   TINY_INLINE static Scalar norm(const MotionVector &v) {
-    using std::sqrt;
     return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] +
                 v[4] * v[4] + v[5] * v[5]);
   }
   TINY_INLINE static Scalar norm(const ForceVector &v) {
-    using std::sqrt;
     return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] +
                 v[4] * v[4] + v[5] * v[5]);
   }
@@ -285,7 +283,7 @@ struct EigenAlgebraT {
   template <typename T>
   EIGEN_ALWAYS_INLINE static auto normalize(T &v) {
     Scalar z = v.squaredNorm();
-    //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen    
+    //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen
     //assert(z > Scalar(0));
     Scalar invZ = Scalar(1) / sqrt(z);
     v.x() *= invZ;
@@ -331,7 +329,7 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Matrix3 eye3() { return Matrix3::Identity(); }
   EIGEN_ALWAYS_INLINE static void set_identity(Quaternion &quat) {
-    quat = Quaternion(Scalar(1.), Scalar(0.), Scalar(0.), Scalar(0.));
+    quat.setIdentity();
   }
 
   EIGEN_ALWAYS_INLINE static Scalar zero() { return Scalar(0); }
@@ -339,6 +337,7 @@ struct EigenAlgebraT {
   EIGEN_ALWAYS_INLINE static Scalar two() { return Scalar(2); }
   EIGEN_ALWAYS_INLINE static Scalar half() { return Scalar(0.5); }
   EIGEN_ALWAYS_INLINE static Scalar pi() { return Scalar(M_PI); }
+  EIGEN_ALWAYS_INLINE static Scalar half_pi() { return Scalar(M_PI / 2.0); }
   EIGEN_ALWAYS_INLINE static Scalar fraction(int a, int b) {
     return (Scalar(a)) / b;
   }
@@ -512,11 +511,11 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static void assign_row(MatrixX& m, Index i,
                                              const SpatialVector &v) {
-   
+
     m.template block<1, 3>(i, 0) = v.top;
     m.template block<1, 3>(i, 3) = v.bottom;
 
-   
+
   }
 
   EIGEN_ALWAYS_INLINE static void assign_horizontal(MatrixX &mat,
@@ -535,12 +534,13 @@ struct EigenAlgebraT {
   }
 
   template <int Rows, int Cols>
-  TINY_INLINE static VectorX mul_transpose(
+  EIGEN_ALWAYS_INLINE static VectorX mul_transpose(
       const Eigen::Matrix<Scalar, Rows, Cols> &mat,
       const Eigen::Matrix<Scalar, Cols, 1> &vec) {
     return mat.transpose() * vec;
   }
-  TINY_INLINE static VectorX mul_transpose(const MatrixX &mat,
+
+  EIGEN_ALWAYS_INLINE static VectorX mul_transpose(const MatrixX &mat,
                                            const VectorX &vec) {
     return mat.transpose() * vec;
   }
@@ -644,13 +644,50 @@ struct EigenAlgebraT {
       const Vector3 &axis, const Scalar &angle) {
     return Quaternion(Eigen::AngleAxis(angle, axis));
   }
-  TINY_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
+
+  EIGEN_ALWAYS_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
     auto ang_ax = Eigen::AngleAxis<Scalar>(quat);
 
     return ang_ax.axis() * ang_ax.angle();
   }
+
+  EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(const Quaternion &start, 
+                                                              const Quaternion &end) {
+    Quaternion q1 = Quaternion(start);
+    Quaternion q2 = Quaternion(end);
+    normalize(q1);
+    normalize(q2);
+
+    /* Ported from PyBullet */
+    // The "nearest" operation from PyBullet
+    VectorX diff(4);
+    diff[0] = q1.x() - q2.x();
+    diff[1] = q1.y() - q2.y();
+    diff[2] = q1.z() - q2.z();
+    diff[3] = q1.w() - q2.w();
+
+    VectorX sum(4);
+    sum[0] = q1.x() + q2.x();
+    sum[1] = q1.y() + q2.y();
+    sum[2] = q1.z() + q2.z();
+    sum[3] = q1.w() + q2.w();
+
+    Scalar dd = diff.dot(diff);
+    Scalar ss = sum.dot(sum);
+
+    Quaternion closest_end = quat_from_xyzw(
+        tds::where_lt(dd, ss, q2.x(), -q2.x()),
+        tds::where_lt(dd, ss, q2.y(), -q2.y()),
+        tds::where_lt(dd, ss, q2.z(), -q2.z()),
+        tds::where_lt(dd, ss, q2.w(), -q2.w()));
+    
+    normalize(closest_end);
+    Quaternion res = closest_end * inverse(q1);
+    normalize(res);
+    return res;
+  }
+
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {
-    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -664,7 +701,6 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_y_matrix(const Scalar &angle) {
-    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -677,7 +713,6 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_z_matrix(const Scalar &angle) {
-    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -691,7 +726,6 @@ struct EigenAlgebraT {
 
   static Matrix3 rotation_zyx_matrix(const Scalar &r, const Scalar &p,
                                      const Scalar &y) {
-    using std::cos, std::sin;
     Scalar ci(cos(r));
     Scalar cj(cos(p));
     Scalar ch(cos(y));
@@ -709,8 +743,17 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Vector3 rotate(const Quaternion &q,
-                                            const Vector3 &v) {
-    return q * v;
+                                            const Vector3 &w) {
+    /* Rotating with an all zero quaternion results in
+       a rotation with the identity quaternion in Eigen.
+       However in TinyAlgebra this returns a zero vector.
+       This function mimics the TinyAlgebra implementation. */
+    Quaternion q2(q.w() * w[0] + q.y() * w[2] - q.z() * w[1],
+                  q.w() * w[1] + q.z() * w[0] - q.x() * w[2],
+                  q.w() * w[2] + q.x() * w[1] - q.y() * w[0],
+                 -q.x() * w[0] - q.y() * w[1] - q.z() * w[2]);
+    q2 *= q.inverse();
+    return Vector3(q2.x(), q2.y(), q2.z());
   }
 
   /**
@@ -768,11 +811,134 @@ struct EigenAlgebraT {
     return Quaternion(w, x, y, z);
   }
 
+  /**@brief Set the quaternion using euler angles, compatible with PyBullet/ROS/Gazebo
+   * @param yaw Angle around Z
+   * @param pitch Angle around Y
+   * @param roll Angle around X */
+  EIGEN_ALWAYS_INLINE static const Quaternion quat_from_euler_rpy(const Vector3& rpy) {
+    Scalar phi, the, psi;
+    Scalar roll = rpy[0];
+    Scalar pitch = rpy[1];
+    Scalar yaw = rpy[2];
+    phi = roll * Scalar(0.5);
+    the = pitch * Scalar(0.5);
+    psi = yaw * Scalar(0.5);
+
+    Quaternion q = quat_from_xyzw(
+                 sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi), // x
+                 cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi), // y
+                 cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi), // z
+                 cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi)); // w
+    normalize(q);
+    return q;
+  }
+  
+  EIGEN_ALWAYS_INLINE static const Quaternion inverse(const Quaternion &q) {
+    Quaternion q2(q);
+    normalize(q2);
+    return q2.inverse();
+  }
+  
+  EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy(const Quaternion &q) {
+    Quaternion q2(q);
+    normalize(q2);
+  
+    // From tiny_quaternion.h
+    Vector3 rpy;
+    Scalar sarg;
+    Scalar sqx = q2.x() * q2.x();
+    Scalar sqy = q2.y() * q2.y();
+    Scalar sqz = q2.z() * q2.z();
+    Scalar squ = q2.w() * q2.w();
+    sarg = -two() * (q2.x() * q2.z() - q2.w() * q2.y());
+
+    // If the pitch angle is PI/2 or -PI/2, we can only compute
+    // the sum roll + yaw.  However, any combination that gives
+    // the right sum will produce the correct orientation, so we
+    // set rollX = 0 and compute yawZ.
+    
+    // Compute results if -0.999 < sarg < 0.999 
+    rpy[0] = atan2(two() * (q2.y() * q2.z() + q2.w() * q2.x()), squ - sqx - sqy + sqz);
+    rpy[1] = asin(sarg);
+    rpy[2] = atan2(two() * (q2.x() * q2.y() + q2.w() * q2.z()), squ + sqx - sqy - sqz);
+    
+    // Check if sarg <= -0.9999, if so apply fix
+    const Scalar thres1 = fraction(-99999, 100000);
+    rpy[0] = tds::where_le(sarg, thres1, zero(), rpy[0]);
+    rpy[1] = tds::where_le(sarg, thres1, half_pi(), rpy[1]);
+    rpy[2] = tds::where_le(sarg, thres1, two() * atan2(q2.x(), -q2.y()), rpy[2]);
+    
+    // Check if sarg >= 0.9999, if so apply fix
+    const Scalar thres2 = fraction(99999, 100000);
+    rpy[0] = tds::where_ge(sarg, thres2, zero(), rpy[0]);
+    rpy[1] = tds::where_ge(sarg, thres2, half_pi(), rpy[1]);
+    rpy[2] = tds::where_ge(sarg, thres2, two() * atan2(-q2.x(), q2.y()), rpy[2]);
+    
+    return rpy;
+
+  }
+  
+  EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
+    Quaternion q2(q);
+    normalize(q2);
+  
+    // From tiny_quaternion.h
+    Scalar m00, m01, m02;
+    Scalar m10, m11, m12;
+    Scalar m20, m21, m22;
+    const Scalar tx = two() * q2.x();
+    const Scalar ty = two() * q2.y();
+    const Scalar tz = two() * q2.z();
+    const Scalar twx = tx * q2.w();
+    const Scalar twy = ty * q2.w();
+    const Scalar twz = tz * q2.w();
+    const Scalar txx = tx * q2.x();
+    const Scalar txy = ty * q2.x();
+    const Scalar txz = tz * q2.x();
+    const Scalar tyy = ty * q2.y();
+    const Scalar tyz = tz * q2.y();
+    const Scalar tzz = tz * q2.z();
+    m00 = one() - (tyy + tzz);
+    m01 = txy - twz;
+    m02 = txz + twy;
+    m10 = txy + twz;
+    m11 = one() - (txx + tzz);
+    m12 = tyz - twx;
+    m20 = txz - twy;
+    m21 = tyz + twx;
+    m22 = one() - (txx + tyy);
+
+    // Next extract Euler angles
+    Vector3 rpy;
+
+    rpy[0] = atan2(m12, m22);
+    Scalar c2 = sqrt(m00 * m00 + m01 * m01);
+    
+    rpy[0] = tds::where_gt(rpy[0], zero(), -pi(), rpy[0]);
+    rpy[1] = tds::where_gt(rpy[0], zero(), -atan2(-m02, -c2), -atan2(-m02, c2));
+    
+    /*
+    if (rpy[0] > zero()) {
+        rpy[0] -= pi();
+        rpy[1] = -atan2(-m02, -c2);
+    }
+    else {
+        rpy[1] = -atan2(-m02, c2);
+    }
+    */
+    Scalar s1 = sin(rpy[0]);
+    Scalar c1 = cos(rpy[0]);
+    rpy[0] = -rpy[0];
+    rpy[2] = -atan2(s1 * m20 - c1 * m10, c1 * m11 - s1 * m21);
+
+    return rpy;
+  }
+
+  EIGEN_ALWAYS_INLINE static void set_zero(Matrix3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3X &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix6x3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(Vector3 &m) { m.setZero(); }
   EIGEN_ALWAYS_INLINE static void set_zero(VectorX &m) { m.setZero(); }
-
   EIGEN_ALWAYS_INLINE static void set_zero(MatrixX &m) { m.setZero(); }
   template <int Size1, int Size2 = 1>
   EIGEN_ALWAYS_INLINE static void set_zero(
@@ -829,6 +995,8 @@ struct EigenAlgebraT {
     return a == b;
   }
 
+  EIGEN_ALWAYS_INLINE static const Vector3 get_row(const Matrix3 &m, const int i) { return Vector3(m.row(i)); }
+
 #ifdef USE_STAN
   template <typename InnerScalar>
   TINY_INLINE static std::enable_if_t<
@@ -846,7 +1014,7 @@ struct EigenAlgebraT {
     } else
 #endif
 #ifdef USE_CPPAD
-        if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
+    if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
                                      CppAD::AD<CppAD::cg::CG<double>>>) {
       return CppAD::Value(CppAD::Var2Par(s)).getValue();
     } else if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
@@ -866,22 +1034,83 @@ struct EigenAlgebraT {
   template <int Size1, int Size2>
   static void print(const std::string &title,
                     const Eigen::Matrix<Scalar, Size1, Size2> &m) {
-    std::cout << title << "\n" << m << std::endl;
+    printf("%s\n", title.c_str());
+    int rows = num_rows(m);
+    int cols = num_cols(m);
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            Scalar s = m(r, c);
+            double v = to_double(s);
+            printf("%2.3f, ", v);
+        }
+        printf("\n");
+    }
   }
   template <int Size1, int Size2 = 1>
   static void print(const std::string &title,
                     const Eigen::Array<Scalar, Size1, Size2> &v) {
-    std::cout << title << "\n" << v << std::endl;
+    printf("%s\n", title.c_str());
+    for (int r = 0; r < v.rows(); r++) {
+        for (int c = 0; c < v.cols(); c++) {
+            Scalar s = v[r, c];
+            double d = to_double(s);
+            printf("%2.3f, ", d);
+        }
+        printf("\n");
+    }
   }
   static void print(const std::string &title, const Scalar &v) {
     std::cout << title << "\n" << to_double(v) << std::endl;
   }
   static void print(const std::string &title, const Vector3 &v) {
-    std::cout << title << "\n" << v << std::endl;
+    printf("%s\n", title.c_str());
+    for (int c = 0; c < 3; c++) {
+        Scalar val = v[c];
+        double v = to_double(val);
+        printf("%f, ", v);
+    }
+    printf("\n");
+  }
+  static void print(const std::string &title, const VectorX &v) {
+    printf("%s\n", title.c_str());
+    for (int c = 0; c < size(v); c++) {
+        Scalar val = v[c];
+        double v = to_double(val);
+        printf("%f, ", v);
+    }
+    printf("\n");
+  }
+  static void print(const std::string &title, const Quaternion &q) {
+    printf("%s (xyzw): \t", title.c_str());
+    printf("%.6f  %.6f  %.6f  %.6f\n", to_double(q.x()),
+        to_double(q.y()), to_double(q.z()), to_double(q.w()));
   }
   static void print(const std::string &title, const Matrix3 &m) {
-    std::cout << title << "\n" << m << std::endl;
+    printf("%s\n", title.c_str());
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            Scalar s = m(r, c);
+            double v = to_double(s);
+            printf("%2.3f, ", v);
+        }
+        printf("\n");
+    }
   }
+  static void print(const std::string &title,
+                    const Matrix3X &m) {
+    printf("%s\n", title.c_str());
+    int rows = num_rows(m);
+    int cols = num_cols(m);
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            Scalar s = m(r, c);
+            double v = to_double(s);
+            printf("%2.3f, ", v);
+        }
+        printf("\n");
+    }
+  }
+
   template <typename T>
   static void print(const std::string &title, const T &abi) {
     abi.print(title.c_str());
@@ -889,62 +1118,123 @@ struct EigenAlgebraT {
 
   template <typename T>
   TINY_INLINE static auto sin(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::sin(s);
+#else
     using std::sin;
     return sin(s);
+#endif
+  }
+  
+  template <typename T>
+  TINY_INLINE static auto asin(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::asin(s);
+#else
+    using std::asin;
+    return asin(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto cos(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::cos(s);
+#else
     using std::cos;
     return cos(s);
+#endif
   }
+  
+  template <typename T>
+  TINY_INLINE static auto acos(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::acos(s);
+#else
+    using std::acos;
+    return acos(s);
+#endif
+  }
+
 
   template <typename T>
   TINY_INLINE static auto tan(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::tan(s);
+#else
     using std::tan;
     return tan(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto atan2(const T &dy, const T &dx) {
+#ifdef USE_CPPAD
+    return CppAD::atan2(dy, dx);
+#else
     using std::atan2;
     return atan2(dy, dx);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto abs(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::abs(s);
+#else
     using std::abs;
     return abs(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto sqrt(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::sqrt(s);
+#else
     using std::sqrt;
     return sqrt(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto tanh(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::tanh(s);
+#else
     using std::tanh;
     return tanh(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto pow(const T &s, const T &e) {
+#ifdef USE_CPPAD
+    return CppAD::pow(s, e);
+#else
     using std::pow;
     return pow(s, e);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto exp(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::exp(s);
+#else
     using std::exp;
     return exp(s);
+#endif
   }
 
   template <typename T>
   TINY_INLINE static auto log(const T &s) {
+#ifdef USE_CPPAD
+    return CppAD::log(s);
+#else
     using std::log;
     return log(s);
+#endif
   }
 
   template <typename T>

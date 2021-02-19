@@ -23,7 +23,7 @@
 
 #define USE_IK_JAC_TRANSPOSE
 
-typedef double TinyDualScalar;
+typedef double InnerScalar;
 typedef ::TINY::TinyDualDouble MyScalar;
 typedef ::TINY::TinyDualDoubleUtils MyTinyConstants;
 
@@ -40,7 +40,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(pytinydiffsim_dual, m) {
  
     py::class_<TinyDualDouble>(m, "TinyDualDouble")
-        .def(py::init<TinyDualScalar, TinyDualScalar>())
+        .def(py::init<InnerScalar, InnerScalar>())
         .def(py::self + py::self)
         .def(py::self - py::self)
         .def(py::self * py::self)
