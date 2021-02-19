@@ -406,7 +406,7 @@ ENDIF()
 OPTION(USE_OSQP "Use OSQP solver" OFF)
 IF(USE_OSQP)
     find_package(osqp)
-    SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/osqp)
+    #SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/osqp)
 ENDIF()
 
 OPTION(USE_QPOASES "Use qpOASES solver" OFF)
