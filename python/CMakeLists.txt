@@ -119,18 +119,18 @@ ELSEIF (APPLE)
 ENDIF ()
 
 
-IF (WIN32)
-  TARGET_COMPILE_OPTIONS(pytinydiffsim_ad PUBLIC -bigobj)
-  
-  GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
-  
-  target_link_directories (pytinydiffsim_ad PUBLIC "${PYTHON_LIBRARY_DIR}")
-  TARGET_LINK_LIBRARIES(pytinydiffsim_ad ${PYTHON_LIBRARIES})
-ELSEIF (APPLE)
-  IF(USE_CPPAD)
-      SET_TARGET_PROPERTIES(pytinydiffsim_ad PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-  ENDIF(USE_CPPAD)
-ENDIF ()
+IF(USE_CPPAD)
+    IF (WIN32)
+      TARGET_COMPILE_OPTIONS(pytinydiffsim_ad PUBLIC -bigobj)
+
+      GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)# CACHE)
+
+      target_link_directories (pytinydiffsim_ad PUBLIC "${PYTHON_LIBRARY_DIR}")
+      TARGET_LINK_LIBRARIES(pytinydiffsim_ad ${PYTHON_LIBRARIES})
+    ELSEIF (APPLE)
+          SET_TARGET_PROPERTIES(pytinydiffsim_ad PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    ENDIF ()
+ENDIF(USE_CPPAD)
 
 
 
