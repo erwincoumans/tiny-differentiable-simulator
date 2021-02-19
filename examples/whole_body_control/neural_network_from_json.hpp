@@ -10,6 +10,9 @@ namespace tds {
 template<typename Algebra>
 class NeuralNetworkFromJson : public NeuralNetwork<Algebra> {
  public:
+  // Default constructor.
+  NeuralNetworkFromJson(){}
+
   // Constructs a NeuralNetwork with the given json model state file's weights,
   // biases, layer sizes and activation functions.
   NeuralNetworkFromJson(const nlohmann::json& json) {
