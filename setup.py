@@ -234,6 +234,8 @@ if os.path.exists("third_party/CppAD/include"):
     platform_include_dirs = []
     if _platform == "win32":
       platform_include_dirs=["third_party/patches/CppADCodeGenWindows/include"]
+    if _platform == "linux" or _platform == "linux2":
+      platform_include_dirs=["third_party/patches/CppADCodeGenLinux/include"]
   
     pytinydiffsim_ad_ext = Extension(
         "pytinydiffsim_ad",
