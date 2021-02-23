@@ -1,0 +1,80 @@
+<?xml version="0.0" ?>
+<robot name="urdf_robot">
+  <link name="world"/>
+  <link name="link0_x">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+	<joint name="joint0" type="prismatic">
+    <parent link="world"/>
+    <child link="link0_x"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="1.0" friction="1.0"/>
+    <limit lower="-1000" upper="1000" />
+  </joint>
+  
+	<link name="link0_y">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+	<joint name="joint1" type="prismatic">
+    <parent link="link0_x"/>
+    <child link="link0_y"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="1.0" friction="1.0"/>
+    <limit lower="-1000" upper="1000" />
+  </joint>
+	<link name="link0_z">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+	<joint name="joint2" type="prismatic">
+    <parent link="link0_y"/>
+    <child link="link0_z"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="1.0" friction="1.0"/>
+    <limit lower="-1000" upper="1000" />
+  </joint>
+	<link name="base_link">
+		<inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+       <mass value=".1"/>
+			<inertia ixx="0.00004" ixy="0" ixz="0" iyy="0.00004" iyz="0" izz="0.00004"/>
+		</inertial>
+		<visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="textured_sphere_smooth.obj" scale="0.03 0.03 0.03"/>      
+			</geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+	 <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint3" type="spherical">
+    <parent link="link0_z"/>
+    <child link="base_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="1.0" friction="1.0"/>
+  </joint>
+  
+</robot>
