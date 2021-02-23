@@ -290,6 +290,31 @@ class MultiBodyConstraintSolver {
                  baumgarte_rel_vel;
       lcp_b[i] *= collision;
 
+#if USE_PROJECTED_FRICTION_DIRECTION
+
+      // friction direction
+      Vector3 lateral_rel_vel = rel_vel - normal_rel_vel * cp.world_normal_on_b;
+      // lateral_rel_vel.print("lateral_rel_vel");
+      const Scalar lateral = Algebra::norm(lateral_rel_vel);
+      // printf("Algebra::norm(lateral_rel_vel): %.6f\n",
+      //        Algebra::getDouble(lateral));
+
+      Vector3 fr_direction1,fr_direction2;
+      //      cp.world_normal_on_b.print("contact normal");
+      //      fflush(stdout);
+      if(lateral < Algebra::fraction(1,10000)) {
+          // use the plane space of the contact normal as friction directions
+          plane_space(cp.world_normal_on_b,fr_direction1,fr_direction2);
+      }
+      else {
+          // use the negative lateral velocity and its orthogonal as friction
+          // directions
+          fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
+          fr_direction1.normalize();
+          fr_direction2 = Algebra::cross(fr_direction1,cp.world_normal_on_b);
+          fr_direction2.normalize();
+      }
+#else
       // friction direction
       Vector3 lateral_rel_vel = rel_vel - normal_rel_vel * cp.world_normal_on_b;
       // if constexpr (is_cppad_scalar<Scalar>::value) {
@@ -303,7 +328,7 @@ class MultiBodyConstraintSolver {
       plane_space(cp.world_normal_on_b, fr_direction1, fr_direction2);
       fr_direction1 *= collision;
       fr_direction2 *= collision;
-
+#endif
       Scalar l1 = Algebra::dot(fr_direction1, rel_vel);
       lcp_b[n_c + i] = -l1;
       // printf("l1=%f\n", l1);
