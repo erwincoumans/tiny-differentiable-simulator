@@ -82,7 +82,7 @@ struct OpenGLUrdfVisualizer {
   }
 
 
-  void load_obj_shapes(const std::string& obj_filename, std::vector<int>& shape_ids, std::vector<::TINY::TinyVector3f>& colors)
+  void load_obj_shapes(const std::string& obj_filename, std::vector<int>& shape_ids, std::vector<::TINY::TinyVector3f>& colors,const ::TINY::TinyVector3f& scaling)
   {
       tinyobj::attrib_t attrib;
       std::vector<tinyobj::shape_t> shapes;
@@ -104,6 +104,15 @@ struct OpenGLUrdfVisualizer {
           std::vector<GfxVertexFormat1> vertices;
           int textureIndex = -1;
           TinyMeshUtils::extract_shape(attrib, shapes[i], materials, indices, vertices, textureIndex);
+          //apply scaling
+          for(int vv=0;vv<vertices.size();vv++)
+          {
+              vertices[vv].x*= scaling[0];
+              vertices[vv].y*= scaling[1];
+              vertices[vv].z*= scaling[2];
+          }
+          
+          
           textureIndex = -1;
           ::TINY::TinyVector3f color(1, 1, 1);
           if (shapes[i].mesh.material_ids.size())
@@ -131,7 +140,8 @@ struct OpenGLUrdfVisualizer {
   {
       std::vector<int> shape_ids;
       std::vector<::TINY::TinyVector3f> colors;
-      load_obj_shapes(obj_filename, shape_ids, colors);
+      ::TINY::TinyVector3f unit_scaling(1,1,1);
+      load_obj_shapes(obj_filename, shape_ids, colors, unit_scaling);
       
       for (int i = 0; i < shape_ids.size(); i++)
       {
@@ -176,7 +186,7 @@ struct OpenGLUrdfVisualizer {
                       Algebra::to_double(v.geometry.mesh.scale[1]),
                       Algebra::to_double(v.geometry.mesh.scale[2]));
                   ::TINY::TinyQuaternionf orn(0,0,0,1);
-                  load_obj_shapes(obj_filename,b2v.visual_shape_uids,b2v.shape_colors);
+                  load_obj_shapes(obj_filename,b2v.visual_shape_uids,b2v.shape_colors,scaling);
               }
               break;
           }
