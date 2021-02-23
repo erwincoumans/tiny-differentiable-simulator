@@ -94,7 +94,8 @@
 	<joint name="chest" type="continuous" >
 		<parent link="torso" />
 		<child link="chest" />
-				<origin rpy = "0 0 0" xyz = "0.000000 0.944604 0.000000" />
+		<origin rpy = "0 0 0" xyz = "0.000000 0.944604 0.000000" />
+		<axis xyz="1 0 0"/>
 	</joint>
 	
 	<link name="right_shoulder" >
@@ -119,7 +120,8 @@
 	<joint name="right_shoulder" type="continuous" >
 		<parent link="chest" />
 		<child link="right_shoulder" />
-				<origin rpy = "0 0 0" xyz = "-0.096200 0.974000 0.732440" />
+		<origin rpy = "0 0 0" xyz = "-0.096200 0.974000 0.732440" />
+		<axis xyz="1 0 0"/>
 	</joint>
 	<link name="right_elbow" >
 		<inertial>
@@ -144,7 +146,7 @@
 		<parent link="right_shoulder" />
 		<child link="right_elbow" />
 		<limit effort="1000.0" lower="0" upper="3.14" velocity="0.5"/>
-				<origin rpy = "0 0 0" xyz = "0.000000 -1.099152 0.000000" />
+		<origin rpy = "0 0 0" xyz = "0.000000 -1.099152 0.000000" />
 		<axis xyz = "0.000000 0.000000 1.000000" />
 	</joint>
 </robot>
