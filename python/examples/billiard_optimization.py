@@ -27,7 +27,7 @@ def rollout(force_x, force_y, step, render):
   dt = dp.fraction(1, 60)
   gravity_z = dp.fraction(0,1)
   world = dp.TinyWorld()
-  world.gravity = dp.TinyVector3(dp.fraction(0,1),dp.fraction(0,1),dp.fraction(0,1))
+  world.gravity = dp.Vector3(dp.fraction(0,1),dp.fraction(0,1),dp.fraction(0,1))
     
   radius = dp.fraction(1,2)
   mass = dp.fraction(1,1)
@@ -38,7 +38,7 @@ def rollout(force_x, force_y, step, render):
   rx = dp.fraction(0,1)
   y = dp.fraction(0,1)
   
-  target_pos = dp.TinyVector3(dp.fraction(35, 10),dp.fraction(8, 1), dp.fraction(0,1))
+  target_pos = dp.Vector3(dp.fraction(35, 10),dp.fraction(8, 1), dp.fraction(0,1))
   ball_id = 0
   target_id = 5
   
@@ -61,7 +61,7 @@ def rollout(force_x, force_y, step, render):
       geom = dp.TinySphere(radius)
       geoms.append(geom)
       body = dp.TinyRigidBody(mass, geom)
-      body.world_pose.position = dp.TinyVector3(x, y, dp.fraction(0,1))
+      body.world_pose.position = dp.Vector3(x, y, dp.fraction(0,1))
       bodies.append(body)
       
       if render:
@@ -87,12 +87,12 @@ def rollout(force_x, force_y, step, render):
     y = y + dy
   
   #white player ball
-  white = dp.TinyVector3(dp.fraction(0,1), -dp.fraction(2,1), dp.fraction(0,1))
+  white = dp.Vector3(dp.fraction(0,1), -dp.fraction(2,1), dp.fraction(0,1))
   white_geom = dp.TinySphere(radius);
   white_ball = dp.TinyRigidBody(mass, white_geom)
   white_ball.world_pose.position = white
   bodies.append(white_ball)
-  white_ball.apply_central_force(dp.TinyVector3(force_x, force_y, dp.fraction(0,1)))
+  white_ball.apply_central_force(dp.Vector3(force_x, force_y, dp.fraction(0,1)))
 
   if render:
     orn = p.TinyQuaternionf(0.,0.,0.,1.)

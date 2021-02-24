@@ -112,6 +112,9 @@
       .def("get_euler_rpy2", [](const Quaternion &q) {
           return MyAlgebra::get_euler_rpy2(q);
       })
+      .def("set_euler_rpy", [](Quaternion &q, const Vector3 &rpy) {
+          MyAlgebra::set_euler_rpy(q, rpy);
+      })
       .def("normalized", [](const Quaternion &q) {
           Quaternion q2(q);
           MyAlgebra::normalize(q2);

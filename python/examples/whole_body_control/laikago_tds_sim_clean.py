@@ -271,7 +271,7 @@ class SimpleRobot(object):
     self.mb = dp.TinyMultiBody(is_floating)
     urdf2mb = dp.UrdfToMultiBody2()
     self.res = urdf2mb.convert2(self.urdf_data, self.world, self.mb)
-    self.mb.set_base_position(dp.TinyVector3(0,0,0.6))
+    self.mb.set_base_position(dp.Vector3(0,0,0.6))
 
     knee_angle = -0.5
     abduction_angle = 0.2
@@ -312,8 +312,8 @@ class SimpleRobot(object):
     self._motor_model = LaikagoMotorModel(kp=self._kp, kd=self._kd, motor_control_mode=MOTOR_CONTROL_HYBRID)
     
     self.ReceiveObservation()
-    self.mb.set_base_position(dp.TinyVector3(START_POS[0],START_POS[1],START_POS[2]))
-    self.mb.set_base_orientation(dp.TinyQuaternion(START_ORN[0],START_ORN[1],START_ORN[2],START_ORN[3]))
+    self.mb.set_base_position(dp.Vector3(START_POS[0],START_POS[1],START_POS[2]))
+    self.mb.set_base_orientation(dp.Quaternion(START_ORN[0],START_ORN[1],START_ORN[2],START_ORN[3]))
     
     dp.forward_kinematics(self.mb, self.mb.q, self.mb.qd)
     meshcat_utils_dp.sync_visual_transforms(self.mb, self.b2vis, self.vis)
@@ -445,12 +445,12 @@ class SimpleRobot(object):
       #tds
       base_world_tr = self.mb.get_world_transform(-1)
       local_base_tr = dp.TinySpatialTransform()
-      local_base_tr.translation = dp.TinyVector3(base_translation[0],base_translation[1],base_translation[2])
-      local_base_tr.rotation.setRotation(dp.TinyQuaternion(base_rotation[0],base_rotation[1],base_rotation[2],base_rotation[3]))
+      local_base_tr.translation = dp.Vector3(base_translation[0],base_translation[1],base_translation[2])
+      local_base_tr.rotation.setRotation(dp.Quaternion(base_rotation[0],base_rotation[1],base_rotation[2],base_rotation[3]))
       world_tr = base_world_tr*local_base_tr
       local_link_tr = dp.TinySpatialTransform()
       local_link_tr.rotation.set_identity()
-      local_link_tr.translation = dp.TinyVector3(link_position[0],link_position[1],link_position[2])
+      local_link_tr.translation = dp.Vector3(link_position[0],link_position[1],link_position[2])
       link_tr = world_tr* local_link_tr
       world_link_pos = [link_tr.translation[0],link_tr.translation[1],link_tr.translation[2]]
         
@@ -459,7 +459,7 @@ class SimpleRobot(object):
 
     ik_solver = 0
     
-    target_world_pos = dp.TinyVector3(world_link_pos[0],world_link_pos[1],world_link_pos[2])
+    target_world_pos = dp.Vector3(world_link_pos[0],world_link_pos[1],world_link_pos[2])
     #target_local_pos = self.mb.get_world_transform(-1).apply_inverse(target_world_pos)
     
     all_joint_angles2 = dp.inverse_kinematics(self.mb, link_id, target_world_pos)
@@ -558,12 +558,12 @@ class SimpleRobot(object):
     # orientation given by dividing (or multiplying with inverse).
     # Get inverse quaternion assuming the vector is at 0,0,0 origin.
     tr = dp.TinySpatialTransform()
-    tr.translation = dp.TinyVector3(1,2,3)
+    tr.translation = dp.Vector3(1,2,3)
     tr.translation.set_zero()
-    orn = dp.TinyQuaternion(orientation[0],orientation[1],orientation[2],orientation[3])
+    orn = dp.Quaternion(orientation[0],orientation[1],orientation[2],orientation[3])
     tr.rotation.setRotation(orn)
     tr_inv = tr.get_inverse()
-    rel_vel = tr.apply_inverse(dp.TinyVector3(angular_velocity[0],angular_velocity[1],angular_velocity[2]))
+    rel_vel = tr.apply_inverse(dp.Vector3(angular_velocity[0],angular_velocity[1],angular_velocity[2]))
     #tr.print("tds trans")
     #print("tds rel_vel=",rel_vel)
     
@@ -657,7 +657,7 @@ class SimpleRobot(object):
     """
     
     dp.forward_kinematics(self.mb, self.mb.q, self.mb.qd)
-    dp.forward_dynamics(self.mb, dp.TinyVector3(0.,0.,-10.))
+    dp.forward_dynamics(self.mb, dp.Vector3(0.,0.,-10.))
 
     mb_q = vecx_to_np(self.mb.q)[7:]
     mb_qd = vecx_to_np(self.mb.qd)[6:]

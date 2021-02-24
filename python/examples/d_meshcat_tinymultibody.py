@@ -87,14 +87,14 @@ is_floating = True
 laikago_mb = dp.TinyMultiBody(is_floating)
 
 res = urdf2mb.convert2(med0.urdf_structs, world, laikago_mb)
-laikago_mb.set_base_position(dp.TinyVector3(3., 2., 0.7))
-laikago_mb.set_base_orientation(dp.TinyQuaternion(0.8042817254804792, 0.08692563458095628, -0.12155529396079404, 0.5751514153863713))#0.2474039592545229, 0.0, 0.0, 0.9689124217106448))
+laikago_mb.set_base_position(dp.Vector3(3., 2., 0.7))
+laikago_mb.set_base_orientation(dp.Quaternion(0.8042817254804792, 0.08692563458095628, -0.12155529396079404, 0.5751514153863713))#0.2474039592545229, 0.0, 0.0, 0.9689124217106448))
 mb_solver = dp.TinyMultiBodyConstraintSolver()
 
-q = dp.TinyVectorX(2)
+q = dp.VectorX(2)
 q[0] = -0.53167
 q[1] = 0.30707
-qd = dp.TinyVectorX(2)
+qd = dp.VectorX(2)
 qd[0] = -1
 qd[1] = 0
 
@@ -111,8 +111,8 @@ dt = 1. / 1000.
 
 while p0.isConnected():
   #dp.forward_kinematics(laikago_mb, laikago_mb.q, laikago_mb.qd)
-  dp.forward_dynamics(laikago_mb, dp.TinyVector3(0., 0., -10.))
-  #dp.forward_dynamics(laikago_mb, dp.TinyVector3(0., 0., 0.))
+  dp.forward_dynamics(laikago_mb, dp.Vector3(0., 0., -10.))
+  #dp.forward_dynamics(laikago_mb, dp.Vector3(0., 0., 0.))
   
   if 1:
     multi_bodies = [plane_mb, laikago_mb]
