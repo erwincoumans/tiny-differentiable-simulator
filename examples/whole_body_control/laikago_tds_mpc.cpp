@@ -66,7 +66,7 @@ int main(int argc,char* argv[]) {
 
     int secs_since_start = 0;
     while(secs_since_start < TOTAL_SECS) {
-        std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
+        //std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
         secs_since_start = robot.GetTimeSinceReset();
 
         auto speed_tuple = GetDesiredSpeed(secs_since_start);
