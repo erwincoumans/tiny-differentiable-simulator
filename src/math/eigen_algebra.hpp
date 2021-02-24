@@ -820,20 +820,8 @@ struct EigenAlgebraT {
    * @param pitch Angle around Y
    * @param roll Angle around X */
   EIGEN_ALWAYS_INLINE static const Quaternion quat_from_euler_rpy(const Vector3& rpy) {
-    Scalar phi, the, psi;
-    Scalar roll = rpy[0];
-    Scalar pitch = rpy[1];
-    Scalar yaw = rpy[2];
-    phi = roll * Scalar(0.5);
-    the = pitch * Scalar(0.5);
-    psi = yaw * Scalar(0.5);
-
-    Quaternion q = quat_from_xyzw(
-                 sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi), // x
-                 cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi), // y
-                 cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi), // z
-                 cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi)); // w
-    normalize(q);
+    Quaternion q;
+    set_euler_rpy(q, rpy);
     return q;
   }
   
@@ -936,6 +924,22 @@ struct EigenAlgebraT {
     rpy[2] = -atan2(s1 * m20 - c1 * m10, c1 * m11 - s1 * m21);
 
     return rpy;
+  }
+  
+  EIGEN_ALWAYS_INLINE static void set_euler_rpy(Quaternion &q, const Vector3& rpy) {
+    Scalar phi, the, psi;
+    Scalar roll = rpy[0];
+    Scalar pitch = rpy[1];
+    Scalar yaw = rpy[2];
+    phi = roll * half();
+    the = pitch * half();
+    psi = yaw * half();
+
+    q.x() = sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi);
+    q.y() = cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi);
+    q.z() = cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi);
+    q.w() = cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi);
+    normalize(q);
   }
 
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3 &m) { m.setZero(); }

@@ -23,7 +23,7 @@ def create_multi_body(mass, collision_shapes, is_floating, world):
   base_link.link_name = "plane_link"
   inertial = pd.TinyUrdfInertial()
   inertial.mass = mass 
-  inertial.inertia_xxyyzz = pd.TinyVector3(mass,mass,mass)
+  inertial.inertia_xxyyzz = pd.Vector3(mass,mass,mass)
   base_link.urdf_inertial = inertial
   
   base_link.urdf_collision_shapes = collision_shapes
@@ -37,21 +37,21 @@ world = pd.TinyWorld()
 collision_shape = pd.TinyUrdfCollision()
 
 collision_shape.geometry.geom_type = pd.PLANE_TYPE
-collision_shape.origin_xyz = pd.TinyVector3(0.,0.,2.)
+collision_shape.origin_xyz = pd.Vector3(0.,0.,2.)
 plane_mb = create_multi_body(0, [collision_shape], False, world)
 
 collision_shape = pd.TinyUrdfCollision()
 collision_shape.geometry.geom_type = pd.SPHERE_TYPE
 collision_shape.geometry.sphere.radius = 2.0
 sphere_mb = create_multi_body(2.0, [collision_shape], True, world)
-sphere_mb.set_base_position(pd.TinyVector3(0.,0.,25.))
+sphere_mb.set_base_position(pd.Vector3(0.,0.,25.))
 dt = 1./240.
 
 mb_solver = pd.TinyMultiBodyConstraintSolver()
 
 while 1:
     
-  pd.forward_dynamics(sphere_mb, pd.TinyVector3(0., 0., -10.))
+  pd.forward_dynamics(sphere_mb, pd.Vector3(0., 0., -10.))
   
   #collision detection
   multi_bodies = [plane_mb, sphere_mb]
