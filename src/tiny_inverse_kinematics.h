@@ -142,7 +142,7 @@ namespace TINY {
             result.residual = Algebra::fraction(-1,1);
 
             assert(q_init.size() == mb.dof());
-            assert(q_reference.empty() || q_reference.size() == q_init.size());
+            assert(q_reference.size()==0 || q_reference.size() == q_init.size());
             q = q_init;
 
             const int q_offset = mb.is_floating() ? 7 : 0;
