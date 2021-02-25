@@ -25,7 +25,7 @@ Will also expose stan_math forward mode differentiation, dual and fixed point.
 from absl import app
 from absl import flags
 
-import pytinydiffsim2 as pydiffphys
+import pytinydiffsim as pydiffphys
 
 FLAGS = flags.FLAGS
 
@@ -50,7 +50,7 @@ def main(argv):
 
   w = pydiffphys.TinyWorld()
 
-  w.gravity = pydiffphys.TinyVector3(0, 0, -9.81)
+  w.gravity = pydiffphys.Vector3(0, 0, -9.81)
   g = w.gravity
   print("g=", g.z)
   plane = pydiffphys.TinyPlane()
@@ -62,10 +62,10 @@ def main(argv):
   b2 = pydiffphys.TinyRigidBody(mass, sphere)
 
   print("b.linear_velocity=", b1.linear_velocity)
-  pos_a = pydiffphys.TinyVector3(0, 0, 0)
-  orn_a = pydiffphys.TinyQuaternion(0, 0, 0, 1)
-  pos_b = pydiffphys.TinyVector3(0, 0, 50)
-  orn_b = pydiffphys.TinyQuaternion(0, 0, 0, 1)
+  pos_a = pydiffphys.Vector3(0, 0, 0)
+  orn_a = pydiffphys.Quaternion(0, 0, 0, 1)
+  pos_b = pydiffphys.Vector3(0, 0, 50)
+  orn_b = pydiffphys.Quaternion(0, 0, 0, 1)
 
   pose_a = pydiffphys.TinyPose(pos_a, orn_a)
   pose_b = pydiffphys.TinyPose(pos_b, orn_b)

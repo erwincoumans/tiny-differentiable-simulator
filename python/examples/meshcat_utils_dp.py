@@ -109,11 +109,11 @@ def sync_visual_transforms(mb, b2vis, vis):
     link_world_trans = mb.get_world_transform(v.link_index)
 
     vpos = v.origin_xyz
-    vorn = dp.TinyQuaternion(0.0, 0.0, 0.0, 1.0)
+    vorn = dp.Quaternion(0.0, 0.0, 0.0, 1.0)
     vorn.set_euler_rpy(v.origin_rpy)
     trv = dp.TinySpatialTransform()
     trv.translation = vpos
-    trv.rotation = dp.TinyMatrix3x3(vorn)
+    trv.rotation = dp.Matrix3(vorn)
     #print("link_world_trans.x=",link_world_trans.translation.x)
     #print("link_world_trans.y=",link_world_trans.translation.y)
     #print("link_world_trans.z=",link_world_trans.translation.z)
