@@ -149,25 +149,28 @@ target_link_libraries(meshcat_zmq_example ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
 
-#add_executable(laikago_tds_sim whole_body_control/laikago_tds_sim.cpp)
-#target_link_libraries(laikago_tds_sim tinyxml2 ${MESHCAT_LIBRARIES}
-#        Eigen3::Eigen)
-#target_include_directories(laikago_tds_sim PRIVATE
-#    ../third_party ../third_party/nlohmann/include ../src whole_body_control)
-#IF(USE_OSQP)
-#    target_link_libraries(laikago_tds_sim osqp::osqp)
-#    target_include_directories(laikago_tds_sim PRIVATE ../third_party/osqp/build_cmake/local_install/include)
-#    target_compile_definitions(laikago_tds_sim PRIVATE -DTDS_ENABLE_OSQP)
-#ENDIF(USE_OSQP)
-#IF(USE_QPOASES)
-#    target_link_libraries(laikago_tds_sim qpOASES)
-#    target_include_directories(laikago_tds_sim PRIVATE ../third_party/qpOASES/include)
-#    target_compile_definitions(laikago_tds_sim PRIVATE -DTDS_ENABLE_QPOASES)
-#ENDIF(USE_QPOASES)
+IF(USE_OSQP)
+  add_executable(laikago_tds_mpc whole_body_control/laikago_tds_mpc.cpp)
+  target_link_libraries(laikago_tds_mpc tinyxml2 ${MESHCAT_LIBRARIES}
+          Eigen3::Eigen)
+  target_include_directories(laikago_tds_mpc PRIVATE
+      ../third_party ../third_party/nlohmann/include ../src whole_body_control)
+  
+  target_link_libraries(laikago_tds_mpc osqp::osqp)
+  target_include_directories(laikago_tds_mpc PRIVATE ../third_party/osqp/build_cmake/local_install/include)
+  target_compile_definitions(laikago_tds_mpc PRIVATE -DTDS_ENABLE_OSQP)
+  
+  IF(USE_QPOASES)
+      target_link_libraries(laikago_tds_mpc qpOASES)
+      target_include_directories(laikago_tds_mpc PRIVATE ../third_party/qpOASES/include)
+      target_compile_definitions(laikago_tds_mpc PRIVATE -DTDS_ENABLE_QPOASES)
+  ENDIF(USE_QPOASES)
+ENDIF(USE_OSQP)
 
 IF(USE_PAGMO2)
-  add_executable(pagmo2_example pagmo2_example.cpp )
-  target_link_libraries(pagmo2_example Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
+  add_executable(pagmo2_example pagmo2_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS} )
+  target_link_libraries(pagmo2_example tinyxml2 Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
+  target_include_directories(pagmo2_example PRIVATE ../src ../third_party/tinyobjloader ../third_party)
 IF (WIN32)
   target_compile_definitions(pagmo2_example PRIVATE -D_CPPUNWIND)
 ENDIF()
