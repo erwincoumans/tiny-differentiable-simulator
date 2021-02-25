@@ -46,12 +46,7 @@ typedef TinyQuaternion<double, DoubleUtils> Quaternion;
 
 double knee_angle = -0.5;
 double abduction_angle = 0.2;
-int frameskip_gfx_sync =10;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
-
-double initial_poses[] = {
-    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-};
+int frameskip_gfx_sync =1;  //use 60Hz, no need for skipping
 
 bool do_sim = true;
 
@@ -67,6 +62,9 @@ void my_keyboard_callback(int keycode, int state)
 
 
 
+
+
+
 template <typename Algebra>
 struct ContactSimulation {
     using Scalar = typename Algebra::Scalar;
@@ -75,10 +73,12 @@ struct ContactSimulation {
     tds::World<Algebra> world;
     tds::MultiBody<Algebra>* mb_ = nullptr;
 
-    int num_timesteps{ 1 };
-    Scalar dt{ Algebra::from_double(1e-3) };
+    int num_timesteps{1};
+    Scalar dt{Algebra::from_double(1./60.)};
 
-    int input_dim() const { return mb_->dof() + mb_->dof_qd(); }
+    int input_dim() const {
+        return mb_->dof() + mb_->dof_qd();
+    }
     int state_dim() const {
         return mb_->dof() + mb_->dof_qd() + mb_->num_links() * 7;
     }
@@ -86,85 +86,64 @@ struct ContactSimulation {
 
     ContactSimulation() {
         std::string plane_filename;
-        tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
-        cache.construct(plane_filename, world, false, false);
-        tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", m_urdf_filename);
-        mb_ = cache.construct(m_urdf_filename, world, false, true);
+        world.set_gravity(Vector3(0.,0.,-10));
+        tds::FileUtils::find_file("plane_implicit.urdf",plane_filename);
+        cache.construct(plane_filename,world,false,false);
+        tds::FileUtils::find_file("cartpole.urdf",m_urdf_filename);
+        mb_ = cache.construct(m_urdf_filename,world,false,false);
         mb_->base_X_world().translation = Algebra::unit3_z();
+        std::cout << "ContactSimulation!" << std::endl;
     }
 
-    std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
+    virtual ~ContactSimulation()
+    {
+        std::cout << "~ContactSimulation" << std::endl;
+    }
+    std::vector<Scalar> operator()(const std::vector<Scalar>& v,Scalar tau=0.) {
         assert(static_cast<int>(v.size()) == input_dim());
         mb_->initialize();
         //copy input into q, qd
-        for (int i = 0; i < mb_->dof(); ++i) {
+        for(int i = 0; i < mb_->dof(); ++i) {
             mb_->q(i) = v[i];
         }
-        for (int i = 0; i < mb_->dof_qd(); ++i) {
+        for(int i = 0; i < mb_->dof_qd(); ++i) {
             mb_->qd(i) = v[i + mb_->dof()];
         }
+
+        static double t=0;
+        //printf("t=%f, [%f,%f]\n",t,mb_->q(0),mb_->q(1));
+        t+=dt;
         std::vector<Scalar> result(output_dim());
-        for (int t = 0; t < num_timesteps; ++t) {
+        for(int t = 0; t < num_timesteps; ++t) {
 
-            // pd control
-            if (1) {
-                // use PD controller to compute tau
-                int qd_offset = mb_->is_floating() ? 6 : 0;
-                int q_offset = mb_->is_floating() ? 7 : 0;
-                int num_targets = mb_->tau_.size() - qd_offset;
-                std::vector<double> q_targets;
-                q_targets.resize(mb_->tau_.size());
 
-                double kp = 150;
-                double kd = 3;
-                double max_force = 550;
-                int param_index = 0;
+            mb_->tau_[0] = tau;
+            mb_->tau_[1] = 0;
 
-                for (int i = 0; i < mb_->tau_.size(); i++) {
-                    mb_->tau_[i] = 0;
-                }
-                int tau_index = 0;
-                int pose_index = 0;
-                for (int i = 0; i < mb_->links_.size(); i++) {
-                    if (mb_->links_[i].joint_type != JOINT_FIXED) {
-                        double q_desired = initial_poses[pose_index++];
-                        double q_actual = mb_->q_[q_offset];
-                        double qd_actual = mb_->qd_[qd_offset];
-                        double position_error = (q_desired - q_actual);
-                        double desired_velocity = 0;
-                        double velocity_error = (desired_velocity - qd_actual);
-                        double force = kp * position_error + kd * velocity_error;
 
-                        if (force < -max_force) force = -max_force;
-                        if (force > max_force) force = max_force;
-                        mb_->tau_[tau_index] = force;
-                        q_offset++;
-                        qd_offset++;
-                        param_index++;
-                        tau_index++;
-                    }
-                }
-            }
+            //std::vector<Scalar> tau = policy(observation)
 
-            tds::forward_dynamics(*mb_, world.get_gravity());
+            tds::forward_dynamics(*mb_,world.get_gravity());
             mb_->clear_forces();
 
-            integrate_euler_qdd(*mb_, dt);
+            integrate_euler_qdd(*mb_,dt);
 
             world.step(dt);
-            
-            tds::integrate_euler(*mb_, dt);
+
+            tds::integrate_euler(*mb_,dt);
+
+
 
             //copy q, qd, link world poses (for rendering) to output
             int j = 0;
-            for (int i = 0; i < mb_->dof(); ++i, ++j) {
+            for(int i = 0; i < mb_->dof(); ++i,++j) {
                 result[j] = mb_->q(i);
             }
-            for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
+            for(int i = 0; i < mb_->dof_qd(); ++i,++j) {
                 result[j] = mb_->qd(i);
             }
-            for (const auto link : *mb_) {
-                if (link.X_visuals.size())
+            for(const auto link : *mb_) {
+                if(link.X_visuals.size())
                 {
                     Transform visual_X_world = link.X_world * link.X_visuals[0];
                     result[j++] = visual_X_world.translation[0];
@@ -188,9 +167,90 @@ struct ContactSimulation {
     }
 };
 
+struct CartpoleEnv
+{
+    ContactSimulation<MyAlgebra>& contact_sim;
+
+    CartpoleEnv(ContactSimulation<MyAlgebra>& cartpole)
+        :contact_sim(cartpole)
+    {
+        //std::cout << "CartpoleEnv!\n" << std::endl;
+    }
+    virtual ~CartpoleEnv()
+    {
+        //std::cout << "~CartpoleEnv\n" << std::endl;
+    }
+
+    std::vector<MyScalar> sim_state;
+    std::vector<MyScalar> sim_state_with_graphics;
+
+    std::vector<double> reset()
+    {
+        sim_state.resize(contact_sim.input_dim());
+        for(int i=0;i<sim_state.size();i++)
+        {
+            sim_state[i] = 0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+            
+            
+        }
+        for (auto v : sim_state)
+            std::cout << v << std::endl;
+        return sim_state;
+    }
+    void step(double action,std::vector<double>& obs,double& reward,bool& done)
+    {
+        //sim_state = [q0, q1, qd0, qd1]
+
+
+        sim_state_with_graphics = contact_sim(sim_state,action);
+        sim_state = sim_state_with_graphics;
+
+        sim_state.resize(contact_sim.input_dim());
+        obs = sim_state;
+        reward = 1;
+        double x = sim_state[0];
+        double theta = sim_state[1];
+
+        double theta_threshold_radians = 12. * 2. * M_PI / 360.;
+        double x_threshold = 0.4;//  #2.4
+        done =  (x < -x_threshold)
+            || (x > x_threshold)
+            || (theta < -theta_threshold_radians)
+            || (theta > theta_threshold_radians);
+    }
+};
+
+
+void testEnv()
+{
+
+}
+
+ContactSimulation<MyAlgebra> m_cartpole_sim;
+
+
+double policy(const std::vector<double> &x,const std::vector<double>& obs)
+{
+    double action = 0;
+
+    for(int i=0;i<4;i++)
+    {
+        action+=x[i]*obs[i];
+    }
+    action+=x[4];
+    if(action<-1)
+        action=-1;
+    if(action>1)
+        action=1;
+    return action;
+}
+
 
 
 int main(int argc, char* argv[]) {
+
+    
+
   int sync_counter = 0;
   int frame = 0;
   World<MyAlgebra> world;
@@ -202,16 +262,11 @@ int main(int argc, char* argv[]) {
   
   
   visualizer.delete_all();
-#if 1
+
   ContactSimulation<MyAlgebra> contact_sim;
   
   int input_dim = contact_sim.input_dim();
-  std::vector<MyAlgebra::Scalar> prep_inputs;
   
-  std::vector<MyAlgebra::Scalar> prep_outputs;
-  prep_inputs.resize(input_dim);
-  prep_inputs[3] = 1;
-  prep_inputs[6] = 1;
 
   //int sphere_shape = visualizer.m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
   
@@ -233,7 +288,7 @@ int main(int argc, char* argv[]) {
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
-  tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", file_and_path);
+  tds::FileUtils::find_file("cartpole.urdf", file_and_path);
   auto urdf_structures = contact_sim.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
   FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);
@@ -241,7 +296,7 @@ int main(int argc, char* argv[]) {
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  int num_total_threads = 2;
+  int num_total_threads = 1;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
   int num_base_instances;
@@ -296,27 +351,36 @@ int main(int argc, char* argv[]) {
 
   
 
-  std::vector<std::vector<MyScalar>> parallel_outputs(
-      num_total_threads, std::vector<MyScalar>(contact_sim.output_dim()));
+  CartpoleEnv env(m_cartpole_sim);
+  auto obs = env.reset();
+  double total_reward = 0;
+  int max_steps = 200;
+  int num_steps = 0;
 
-  std::vector<std::vector<MyScalar>> parallel_inputs(num_total_threads);
-
-  for (int i = 0; i < num_total_threads; ++i) {
-      parallel_inputs[i] = std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
-      parallel_inputs[i][3] = 1;
-      parallel_inputs[i][6] = 1;
-      
-  }
+  //std::vector<double> x={6.038696,17.109466,2.287317,4.744410,0.859432};//trained on [-0.05. 0.05]
+  //std::vector<double> x={262.931804,1265.481361,490.198848,497.031251,-22.723601};//89.645820,489.210318,181.857783,198.405684,8.169060
+  std::vector<double> x={123.029492,1225.629406,339.628481,325.638617,-16.230902};//trained on [-0.27,0.27] instead of [-0.05. 0.05]
   
   while (!visualizer.m_opengl_app.m_window->requested_exit()) {
 
-      for (int i = 0; i < num_total_threads; ++i) {
-          parallel_outputs[i] = contact_sim(parallel_inputs[i]);
-          for (int j = 0; j < contact_sim.input_dim(); ++j) {
-              parallel_inputs[i][j] = parallel_outputs[i][j];
+
+      {
+          double action = 10.*policy(x,obs);
+          double reward;
+          bool  done;
+          env.step(action,obs,reward,done);
+          total_reward += reward;
+          num_steps++;
+          if(done || num_steps>=max_steps)
+          {
+              printf("total_reward=%f\n",total_reward);
+              total_reward=0;
+              num_steps = 0;
+              obs = env.reset();
           }
       }
 
+      
       sync_counter++;
       frame += 1;
       if (sync_counter > frameskip_gfx_sync) {
@@ -337,25 +401,32 @@ int main(int argc, char* argv[]) {
                   {
                       
                       
-                      for (int v = 0; v < num_base_instances; v++)
+                      if (contact_sim.mb_->is_floating())
                       {
-                          int visual_instance_id = visual_instances[instance_index++];
-                          if (visual_instance_id >= 0)
+                          for(int v = 0; v < num_base_instances; v++)
                           {
+                              int visual_instance_id = visual_instances[instance_index++];
+                              if(visual_instance_id >= 0)
+                              {
 
-                              ::TINY::TinyVector3f pos(parallel_outputs[s][4 + 0],
-                                  parallel_outputs[s][4 + 1],
-                                  parallel_outputs[s][4 + 2]);
-                              ::TINY::TinyQuaternionf orn(parallel_outputs[s][0],
-                                  parallel_outputs[s][1],
-                                  parallel_outputs[s][2],
-                                  parallel_outputs[s][3]);
+                                  ::TINY::TinyVector3f pos(env.sim_state_with_graphics[4 + 0],
+                                      env.sim_state_with_graphics[4 + 1],
+                                      env.sim_state_with_graphics[4 + 2]);
+                                  ::TINY::TinyQuaternionf orn(env.sim_state_with_graphics[0],
+                                      env.sim_state_with_graphics[1],
+                                      env.sim_state_with_graphics[2],
+                                      env.sim_state_with_graphics[3]);
 
-                              pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
-                              pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
+                                  pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
+                                  pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
 
-                              visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                                  visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos,orn,visual_instance_id);
+                              }
                           }
+                      }
+                      else
+                      {
+                          instance_index+=num_base_instances;
                       }
                       
                       for (int l = 0; l < contact_sim.mb_->links_.size(); l++) {
@@ -365,13 +436,14 @@ int main(int argc, char* argv[]) {
                               if (visual_instance_id >= 0)
                               {
 
-                                  ::TINY::TinyVector3f pos(parallel_outputs[s][offset + l * 7 + 0],
-                                      parallel_outputs[s][offset + l * 7 + 1],
-                                      parallel_outputs[s][offset + l * 7 + 2]);
-                                  ::TINY::TinyQuaternionf orn(parallel_outputs[s][offset + l * 7 + 3],
-                                      parallel_outputs[s][offset + l * 7 + 4],
-                                      parallel_outputs[s][offset + l * 7 + 5],
-                                      parallel_outputs[s][offset + l * 7 + 6]);
+                                  ::TINY::TinyVector3f pos(env.sim_state_with_graphics[offset + l * 7 + 0],
+                                      env.sim_state_with_graphics[offset + l * 7 + 1],
+                                      env.sim_state_with_graphics[offset + l * 7 + 2]);
+                                  ::TINY::TinyQuaternionf orn(
+                                      env.sim_state_with_graphics[offset + l * 7 + 3],
+                                      env.sim_state_with_graphics[offset + l * 7 + 4],
+                                      env.sim_state_with_graphics[offset + l * 7 + 5],
+                                      env.sim_state_with_graphics[offset + l * 7 + 6]);
 
                                   pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
                                   pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
@@ -389,171 +461,6 @@ int main(int argc, char* argv[]) {
   }
 
    
-#else
-  std::string plane_file_name;
-  FileUtils::find_file("plane_implicit.urdf", plane_file_name);
-  char plane_search_path[TINY_MAX_EXE_PATH_LEN];
-  FileUtils::extract_path(plane_file_name.c_str(), plane_search_path,
-                              TINY_MAX_EXE_PATH_LEN);
-  MultiBody<MyAlgebra>& plane_mb = *world.create_multi_body();
-  plane_mb.set_floating_base(false);
-  
-  {
-    TinyVisualInstanceGenerator<MyAlgebra> vig(visualizer);
-    UrdfStructures<MyAlgebra> plane_urdf_structures =
-        parser.load_urdf(plane_file_name);
-    std::string texture_path = "checker_purple.png";
-    visualizer.m_path_prefix = plane_search_path;
-    visualizer.convert_visuals(plane_urdf_structures, texture_path);
-
-    UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-        plane_urdf_structures, world, plane_mb, &vig);
-    
-    //
-  }
-  prev_keyboard_callback = visualizer.m_opengl_app.m_window->get_keyboard_callback();
-  visualizer.m_opengl_app.m_window->set_keyboard_callback(my_keyboard_callback);
-
-  char search_path[TINY_MAX_EXE_PATH_LEN];
-  std::string file_name;
-  FileUtils::find_file("laikago/laikago_toes_zup.urdf", file_name);
-  FileUtils::extract_path(file_name.c_str(), search_path,
-                              TINY_MAX_EXE_PATH_LEN);
-
-  std::ifstream ifs(file_name);
-  std::string urdf_string;
-  if (!ifs.is_open()) {
-    std::cout << "Error, cannot open file_name: " << file_name << std::endl;
-    exit(-1);
-  }
-
-  urdf_string = std::string((std::istreambuf_iterator<char>(ifs)),
-                            std::istreambuf_iterator<char>());
-  StdLogger logger;
-  UrdfStructures<MyAlgebra> urdf_structures;
-  int flags = 0;
-  parser.load_urdf_from_string(urdf_string, flags, logger, urdf_structures);
-  // create graphics structures
-  std::string texture_path = "laikago_tex.jpg";
-  visualizer.m_path_prefix = search_path;
-  MultiBody<MyAlgebra>& mb = *world.create_multi_body();
-  bool floating_base = true;
-  visualizer.convert_visuals(urdf_structures, texture_path);
-
-  mb.set_floating_base(true);
-  {
-      TinyVisualInstanceGenerator<MyAlgebra> vig(visualizer);
-      UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-          urdf_structures, world, mb, &vig);
-  }
-  mb.initialize();
-
-  //visualizer.create_visual_instances(mb);
-
-
-
-
-  int start_index = 0;
-  if (floating_base) {
-    start_index = 7;
-    mb.q_[0] = 0;
-    mb.q_[1] = 0;
-    mb.q_[2] = 0;
-    mb.q_[3] = 1;
-
-    mb.q_[4] = 0;
-    mb.q_[5] = 0;
-    mb.q_[6] = 1.5;
-
-    mb.qd_[0] = 0;
-    mb.qd_[1] = 0;
-    mb.qd_[2] = 0;
-    mb.qd_[3] = 0;
-  }
-  if (mb.q_.size() >= 12) {
-    for (int cc = 0; cc < 12; cc++) {
-      mb.q_[start_index + cc] = initial_poses[cc];
-    }
-  }
-  mb.set_position(TinyVector3<double, DoubleUtils>(0., 0., 0.6));
-  mb.set_orientation(TinyQuaternion<double, DoubleUtils>(0.0, 0.0, 0.706825181105366, 0.7073882691671998 ));
-  world.default_friction = 1.0;
-
-  TinyVector3<double, DoubleUtils> grav(DoubleUtils::zero(),
-                                        DoubleUtils::zero(),
-                                        DoubleUtils::fraction(-1000, 100));
-  double dt = 1. / 1000.;
-  
-  while (!visualizer.m_opengl_app.m_window->requested_exit()) {
-    
-      forward_kinematics(mb);
-
-      if (do_sim) {
-          
-
-          forward_dynamics(mb, grav);
-
-
-          integrate_euler_qdd(mb, dt);
-
-          // pd control
-          if (1) {
-              // use PD controller to compute tau
-              int qd_offset = mb.is_floating() ? 6 : 0;
-              int q_offset = mb.is_floating() ? 7 : 0;
-              int num_targets = mb.tau_.size() - qd_offset;
-              std::vector<double> q_targets;
-              q_targets.resize(mb.tau_.size());
-
-              double kp = 150;
-              double kd = 3;
-              double max_force = 550;
-              int param_index = 0;
-
-              for (int i = 0; i < mb.tau_.size(); i++) {
-                  mb.tau_[i] = 0;
-              }
-              int tau_index = 0;
-              int pose_index = 0;
-              for (int i = 0; i < mb.links_.size(); i++) {
-                  if (mb.links_[i].joint_type != JOINT_FIXED) {
-                      double q_desired = initial_poses[pose_index++];
-                      double q_actual = mb.q_[q_offset];
-                      double qd_actual = mb.qd_[qd_offset];
-                      double position_error = (q_desired - q_actual);
-                      double desired_velocity = 0;
-                      double velocity_error = (desired_velocity - qd_actual);
-                      double force = kp * position_error + kd * velocity_error;
-
-                      if (force < -max_force) force = -max_force;
-                      if (force > max_force) force = max_force;
-                      mb.tau_[tau_index] = force;
-                      q_offset++;
-                      qd_offset++;
-                      param_index++;
-                      tau_index++;
-                  }
-              }
-          }
-
-
-
-          world.step(dt);
-
-          integrate_euler(mb, dt);
-
-      }
-      
-    sync_counter++;
-    frame += 1;
-    if (sync_counter > frameskip_gfx_sync) {
-      sync_counter = 0;
-      visualizer.sync_visual_transforms(&mb);
-      visualizer.render();
-      std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync*dt));
-    }
-  }
-#endif
   printf("finished\n");
   return EXIT_SUCCESS;
 
