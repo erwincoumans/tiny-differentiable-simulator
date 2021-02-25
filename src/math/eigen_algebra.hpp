@@ -284,9 +284,9 @@ struct EigenAlgebraT {
     return v.squaredNorm();
   }
 
-  template <typename T>
-  EIGEN_ALWAYS_INLINE static auto normalize(T &v) {
-    Scalar z = v.squaredNorm();
+  EIGEN_ALWAYS_INLINE static auto normalize(const Quaternion &q) {
+    Quaternion v(q);
+    Scalar z = q.squaredNorm();
     //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen
     //assert(z > Scalar(0));
     Scalar invZ = Scalar(1) / sqrt(z);
@@ -657,10 +657,8 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(const Quaternion &start, 
                                                               const Quaternion &end) {
-    Quaternion q1 = Quaternion(start);
-    Quaternion q2 = Quaternion(end);
-    normalize(q1);
-    normalize(q2);
+    Quaternion q1 = normalize(start);
+    Quaternion q2 = normalize(end);
 
     /* Ported from PyBullet */
     // The "nearest" operation from PyBullet
@@ -685,10 +683,9 @@ struct EigenAlgebraT {
         tds::where_lt(dd, ss, q2.z(), -q2.z()),
         tds::where_lt(dd, ss, q2.w(), -q2.w()));
     
-    normalize(closest_end);
+    closest_end = normalize(closest_end);
     Quaternion res = closest_end * inverse(q1);
-    normalize(res);
-    return res;
+    return normalize(res);
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {
@@ -826,14 +823,12 @@ struct EigenAlgebraT {
   }
   
   EIGEN_ALWAYS_INLINE static const Quaternion inverse(const Quaternion &q) {
-    Quaternion q2(q);
-    normalize(q2);
+    Quaternion q2 = normalize(q);
     return q2.inverse();
   }
   
   EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy(const Quaternion &q) {
-    Quaternion q2(q);
-    normalize(q2);
+    Quaternion q2 = normalize(q);
   
     // From tiny_quaternion.h
     Vector3 rpy;
@@ -871,8 +866,7 @@ struct EigenAlgebraT {
   }
   
   EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
-    Quaternion q2(q);
-    normalize(q2);
+    Quaternion q2 = normalize(q);
   
     // From tiny_quaternion.h
     Scalar m00, m01, m02;
@@ -939,7 +933,13 @@ struct EigenAlgebraT {
     q.y() = cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi);
     q.z() = cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi);
     q.w() = cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi);
-    normalize(q);
+    
+    // Normalize quaternion in place
+    Quaternion q2 = normalize(q);
+    q.x() = q2.x();
+    q.y() = q2.y();
+    q.z() = q2.z();
+    q.w() = q2.w();
   }
 
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3 &m) { m.setZero(); }

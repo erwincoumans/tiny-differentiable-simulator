@@ -141,7 +141,7 @@ typename Algebra::Matrix3X point_jacobian_fd(
       angular_velocity[i] = Algebra::one();
 
       base_rot += (angular_velocity * base_rot) * (eps * Algebra::half());
-      base_rot.normalize();
+      base_rot = Algebra::normalize(base_rot);
       q_x[0] = base_rot.getX();
       q_x[1] = base_rot.getY();
       q_x[2] = base_rot.getZ();
