@@ -580,6 +580,27 @@ struct TinyAlgebra {
     // return delta;
   }
 
+
+  TINY_INLINE static Quaternion quat_integrate(const Quaternion &q,
+      const Vector3 &ang_vel,
+      const Scalar &dt){
+
+      auto angle = norm(ang_vel);
+      Vector3 axis;
+      if(angle < 0.001)
+      {
+          // use Taylor's expansions of sync function
+          axis = ang_vel * (0.5 * dt - (dt * dt * dt) * (0.020833333333) * angle * angle);
+      }
+      else
+      {
+          // sync(fAngle) = sin(c*fAngle)/t
+          axis = ang_vel * (sin(0.5 * angle * dt) / angle);
+      }
+      Quaternion quat = q * Quaternion(axis.x(),axis.y(),axis.z(),cos(angle * dt * 0.5));
+      return quat;
+  }
+
   TINY_INLINE static void quat_increment(Quaternion &a, const Quaternion &b) {
     a += b;
   }

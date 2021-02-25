@@ -181,7 +181,7 @@ class TinyVectorX {
     printf("%s\n", txt);
     for (int i = 0; i < m_size; ++i) {
       double v = TinyConstants::getDouble(m_data[i]);
-      printf("%f, ", v);
+      printf("%2.7f, ", v);
     }
     printf("\n");
   }
