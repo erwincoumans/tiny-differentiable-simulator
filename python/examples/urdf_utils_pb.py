@@ -31,7 +31,7 @@ class UrdfConverterPyBullet(ued.UrdfEditor):
     super(ued.UrdfEditor, self).__init__(**kwargs)
 
   def convert_vec(self, vec):
-    vec = dp.TinyVector3(vec[0], vec[1], vec[2])
+    vec = dp.Vector3(vec[0], vec[1], vec[2])
     return vec
 
   def convert_geom_type(self, geom_type):

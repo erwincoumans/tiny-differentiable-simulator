@@ -37,8 +37,8 @@ colliders = plane_urdf_data.base_links[0].urdf_collision_shapes
 print("num_colliders=",len(colliders))
 ray_from=[]
 ray_to=[]
-ray_from.append(dp.TinyVector3(-2,.1,0))
-ray_to.append(dp.TinyVector3(2,.1,0))
+ray_from.append(dp.Vector3(-2,.1,0))
+ray_to.append(dp.Vector3(2,.1,0))
 caster = dp.TinyRaycast()
 
 colliders = []
@@ -56,11 +56,11 @@ if 1:
 if 1:
     collision_shape = dp.TinyUrdfCollision()
     collision_shape.geometry.geom_type = dp.BOX_TYPE
-    collision_shape.geometry.box.extents = dp.TinyVector3(1,0.1,0.1)
+    collision_shape.geometry.box.extents = dp.Vector3(1,0.1,0.1)
     colliders.append(collision_shape)
     collision_shape = dp.TinyUrdfCollision()
     collision_shape.geometry.geom_type = dp.BOX_TYPE
-    collision_shape.geometry.box.extents = dp.TinyVector3(1.5,0.15,0.15)
+    collision_shape.geometry.box.extents = dp.Vector3(1.5,0.15,0.15)
     colliders.append(collision_shape)
 
 
