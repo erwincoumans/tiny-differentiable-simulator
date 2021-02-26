@@ -79,3 +79,9 @@ ELSE(APPLE)
   target_include_directories( rbdl-urdfreader PUBLIC include/Linux )
 ENDIF(APPLE)
 ENDIF(WIN32)
+
+
+add_executable(rbdl_gui_example examples/rbdl_gui_example.cpp ../dear_imgui/opengl3/imgui_impl_opengl3.cpp  ${TDS_HDRS})
+target_link_libraries(rbdl_gui_example rbdl-static rbdl-urdfreader opengl_window dear_imgui  ${CMAKE_DL_LIBS})
+target_include_directories(rbdl_gui_example PRIVATE ../glad ../dear_imgui ../../src)
+
