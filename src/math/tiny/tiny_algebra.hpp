@@ -493,10 +493,8 @@ struct TinyAlgebra {
     
   TINY_INLINE static const Quaternion quat_difference(const Quaternion &start, 
                                                       const Quaternion &end) {
-    Quaternion q1 = Quaternion(start);
-    Quaternion q2 = Quaternion(end);
-    normalize(q1);
-    normalize(q2);
+    Quaternion q1 = normalize(start);
+    Quaternion q2 = normalize(end);
     
     /* Ported from PyBullet */
     // The "nearest" operation from PyBullet
@@ -520,10 +518,10 @@ struct TinyAlgebra {
         tds::where_lt(dd, ss, q2.getY(), -q2.getY()),
         tds::where_lt(dd, ss, q2.getZ(), -q2.getZ()),
         tds::where_lt(dd, ss, q2.getW(), -q2.getW()));
+    closest_end.normalize();
 
-    normalize(closest_end);
     Quaternion res = closest_end * inverse(q1);
-    normalize(res);
+    res.normalize();
     return res;
   }
   

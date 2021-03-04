@@ -310,9 +310,9 @@ class MultiBodyConstraintSolver {
           // use the negative lateral velocity and its orthogonal as friction
           // directions
           fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
-          fr_direction1.normalize();
+          fr_direction1 = Algebra::normalize(fr_direction1);
           fr_direction2 = Algebra::cross(fr_direction1,cp.world_normal_on_b);
-          fr_direction2.normalize();
+          fr_direction2 = Algebra::normalize(fr_direction2);
       }
 #else
       // friction direction

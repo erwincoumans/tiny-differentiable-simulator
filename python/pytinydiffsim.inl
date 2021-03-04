@@ -116,9 +116,7 @@
           MyAlgebra::set_euler_rpy(q, rpy);
       })
       .def("normalized", [](const Quaternion &q) {
-          Quaternion q2(q);
-          MyAlgebra::normalize(q2);
-          return q2;
+          return MyAlgebra::normalize(q);
       })
       .def(py::self * py::self)
       .def_property_readonly("x", [](const Quaternion &q) { return q.x(); })
