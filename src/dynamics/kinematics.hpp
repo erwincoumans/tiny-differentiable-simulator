@@ -1,6 +1,5 @@
 #pragma once
 
-#define SWAP_TRANSFORM_ASSOCIATIVITY false
 
 #include "../multi_body.hpp"
 
@@ -70,7 +69,7 @@ void forward_kinematics(
     if (parent >= 0 || mb.is_floating()) {
       const Transform &parent_X_world =
           parent >= 0 ? mb[parent].X_world : mb.base_X_world();
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       link.X_world = link.X_parent * parent_X_world;  // RBDL style
 #else
       link.X_world = parent_X_world * link.X_parent;
@@ -80,7 +79,7 @@ void forward_kinematics(
       MotionVector xv = link.X_parent.apply(parentVelocity);
       link.v = xv + link.vJ;
     } else {
-      #if SWAP_TRANSFORM_ASSOCIATIVITY
+      #if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       link.X_world = link.X_parent * mb.base_X_world();
       #else
       link.X_world = mb.base_X_world() * link.X_parent;
@@ -198,7 +197,7 @@ void forward_kinematics_q(
         const Transform &parent_X_world =
             parent >= 0 ? (*links_X_world)[parent] : *base_X_world;
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
         (*links_X_world)[i] = x_parent * parent_X_world;
 #else
         (*links_X_world)[i] = parent_X_world * x_parent;
@@ -208,7 +207,7 @@ void forward_kinematics_q(
         const Transform &parent_X_base =
             parent >= 0 ? (*links_X_base)[parent] : ident;
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
         (*links_X_base)[i] = x_parent * parent_X_base;
 #else
         (*links_X_base)[i] = parent_X_base * x_parent;
@@ -217,7 +216,7 @@ void forward_kinematics_q(
     } else {
       // first link in fixed-base system
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       if (links_X_world) (*links_X_world)[i] = x_parent * *base_X_world;
 #else
       if (links_X_world) (*links_X_world)[i] = *base_X_world * x_parent;
