@@ -206,7 +206,7 @@ struct Link {
                       __LINE__);
       }
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       *X_parent = (*X_J) * X_T;
 #else
       *X_parent = X_T * (*X_J);
@@ -272,7 +272,7 @@ struct Link {
                         "Error: Unknown joint type encountered in " __FILE__ ":%i\n",
                         __LINE__);
         }
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
         *X_parent = (*X_J) * X_T;
 #else
 
@@ -377,7 +377,7 @@ struct Link {
                 "Error: Unknown joint type encountered in " __FILE__ ":%i\n",
                 __LINE__);
     }
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#if TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     *X_parent = (*X_J) * X_T;
 #else
     *X_parent = X_T * (*X_J);
