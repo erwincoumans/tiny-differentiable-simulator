@@ -32,29 +32,25 @@
 
 int num_total_threads = 2;
 bool enable_sleep = true;
+int frameskip_gfx_sync =10;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
 
-//std::string urdf_name = "laikago/laikago_toes_zup.urdf";
-//bool is_floating = true;
-//double knee_angle = -0.5;
-//double abduction_angle = 0.2;
-//double initial_poses[] = {
-//    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-//    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-//};
-
+std::string urdf_name = "laikago/laikago_toes_zup.urdf";
+bool is_floating = true;
+double knee_angle = -0.5;
+double abduction_angle = 0.2;
+double initial_poses[] = {
+    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+};
 
 //std::string urdf_name = "franka_panda/panda_with_pendulum.urdf";
 //double initial_poses[]={0.98, 0.458, 0.31, -2.24, -0.30, 2.66, 2.32, 0.02, 0.02};//panda
 //bool is_floating = false;
 
-std::string urdf_name = "sphere8cube_shift_shapes.urdf";
+//std::string urdf_name = "sphere8cube_shift_shapes.urdf";
 //std::string urdf_name = "sphere8cube_inertia.urdf";
-bool is_floating = true;
-double initial_poses[]={0};
-
-
-
-int frameskip_gfx_sync =10;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
+//bool is_floating = true;
+//double initial_poses[]={0};
 
 
 
