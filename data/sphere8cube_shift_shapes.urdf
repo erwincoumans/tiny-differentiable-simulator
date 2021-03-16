@@ -1,0 +1,67 @@
+<?xml version="0.0" ?>
+<robot name="urdf_robot">
+	<link name="baseLink">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="1.00000"/>
+			<inertia ixx="0.16733" ixy="0" ixz="0" iyy="0.16733" iyz="0" izz="0.16733"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 1.00000 0.00000"/>
+			<geometry>
+				<mesh filename="cube.obj" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_-1_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.40000 1.40000 0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.40000 1.40000 0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.40000 0.60000 0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.40000 0.60000 0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.40000 1.40000 -0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.40000 1.40000 -0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.40000 0.60000 -0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.40000 0.60000 -0.40000"/>
+			<geometry>
+				<sphere radius="0.10000"/>
+			</geometry>
+		</collision>
+	</link>
+</robot>
