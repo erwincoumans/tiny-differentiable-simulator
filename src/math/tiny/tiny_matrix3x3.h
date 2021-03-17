@@ -202,8 +202,16 @@ class TinyMatrix3x3 {
     TinyScalar sc = si * ch;
     TinyScalar ss = si * sh;
 
-    setValue(cj * ch, sj * sc - cs, sj * cc + ss, cj * sh, sj * ss + cc,
-             sj * cs - sc, -sj, cj * si, cj * ci);
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    // need to transpose
+    m_el[0].setValue(cj * ch, cj * sh, -sj);
+    m_el[1].setValue(sj * sc - cs, sj * ss + cc, cj * si);
+    m_el[2].setValue(sj * cc + ss, sj * cs - sc, cj * ci);
+#else
+    m_el[0].setValue(cj * ch, sj * sc - cs, sj * cc + ss);
+    m_el[1].setValue(cj * sh, sj * ss + cc, sj * cs - sc);
+    m_el[2].setValue(-sj, cj * si, cj * ci);
+#endif
   }
 
   void set_rotation_x(TinyScalar angle) {
@@ -211,9 +219,17 @@ class TinyMatrix3x3 {
     TinyScalar s(TinyConstants::sin1(angle));
     TinyScalar o(TinyConstants::zero());
     TinyScalar i(TinyConstants::one());
+
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    // need to transpose
+    m_el[0].setValue(i, o, o);
+    m_el[1].setValue(o, c, s);
+    m_el[2].setValue(o, -s, c);
+#else
     m_el[0].setValue(i, o, o);
     m_el[1].setValue(o, c, -s);
     m_el[2].setValue(o, s, c);
+#endif
   }
 
   void set_rotation_y(TinyScalar angle) {
@@ -221,9 +237,17 @@ class TinyMatrix3x3 {
     TinyScalar s(TinyConstants::sin1(angle));
     TinyScalar o(TinyConstants::zero());
     TinyScalar i(TinyConstants::one());
+
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    // need to transpose
+    m_el[0].setValue(c, o, -s);
+    m_el[1].setValue(o, i, o);
+    m_el[2].setValue(s, o, c);
+#else
     m_el[0].setValue(c, o, s);
     m_el[1].setValue(o, i, o);
     m_el[2].setValue(-s, o, c);
+#endif
   }
 
   void set_rotation_z(TinyScalar angle) {
@@ -231,26 +255,34 @@ class TinyMatrix3x3 {
     TinyScalar s(TinyConstants::sin1(angle));
     TinyScalar o(TinyConstants::zero());
     TinyScalar i(TinyConstants::one());
+
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    // need to transpose
+    m_el[0].setValue(c, s, o);
+    m_el[1].setValue(-s, c, o);
+    m_el[2].setValue(o, o, i);
+#else
     m_el[0].setValue(c, -s, o);
     m_el[1].setValue(s, c, o);
     m_el[2].setValue(o, o, i);
+#endif
   }
 
   /**@brief Set the matrix to the identity */
   void set_identity() {
-    setValue(TinyConstants::convert(1), TinyConstants::convert(0),
-             TinyConstants::convert(0), TinyConstants::convert(0),
-             TinyConstants::convert(1), TinyConstants::convert(0),
-             TinyConstants::convert(0), TinyConstants::convert(0),
-             TinyConstants::convert(1));
+    setValue(TinyConstants::one(), TinyConstants::zero(),
+             TinyConstants::zero(), TinyConstants::zero(),
+             TinyConstants::one(), TinyConstants::zero(),
+             TinyConstants::zero(), TinyConstants::zero(),
+             TinyConstants::one());
   }
 
   void set_zero() {
-    setValue(TinyConstants::convert(0), TinyConstants::convert(0),
-             TinyConstants::convert(0), TinyConstants::convert(0),
-             TinyConstants::convert(0), TinyConstants::convert(0),
-             TinyConstants::convert(0), TinyConstants::convert(0),
-             TinyConstants::convert(0));
+    setValue(TinyConstants::zero(), TinyConstants::zero(),
+             TinyConstants::zero(), TinyConstants::zero(),
+             TinyConstants::zero(), TinyConstants::zero(),
+             TinyConstants::zero(), TinyConstants::zero(),
+             TinyConstants::zero());
   }
 
 #ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
@@ -291,9 +323,19 @@ class TinyMatrix3x3 {
     TinyScalar wx = q.w() * xs, wy = q.w() * ys, wz = q.w() * zs;
     TinyScalar xx = q.x() * xs, xy = q.x() * ys, xz = q.x() * zs;
     TinyScalar yy = q.y() * ys, yz = q.y() * zs, zz = q.z() * zs;
-    setValue(TinyConstants::one() - (yy + zz), xy - wz, xz + wy, xy + wz,
-             TinyConstants::one() - (xx + zz), yz - wx, xz - wy, yz + wx,
-             TinyConstants::one() - (xx + yy));
+
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    // need to transpose
+    setValue(
+      TinyConstants::one() - (yy + zz), xy + wz, xz - wy,
+      xy - wz, TinyConstants::one() - (xx + zz), yz + wx,
+      xz + wy, yz - wx, TinyConstants::one() - (xx + yy));
+#else
+    setValue(
+      TinyConstants::one() - (yy + zz), xy - wz, xz + wy,
+      xy + wz, TinyConstants::one() - (xx + zz), yz - wx,
+      xz - wy, yz + wx, TinyConstants::one() - (xx + yy));
+#endif
   }
 
   TinyQuaternion getRotation2() const {
@@ -302,49 +344,48 @@ class TinyMatrix3x3 {
 	  return tmp;
   }
   
-
   /**@brief Get the matrix represented as a quaternion
    * @param q The quaternion which will be set */
   void getRotation(TinyQuaternion& q) const {
-    TinyScalar trace = m_el[0].x() + m_el[1].y() + m_el[2].z();
-    TinyScalar temp[4];
+// #ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    const TinyMatrix3x3& m = *this;
+// #else
+//     const TinyMatrix3x3 m = transpose();
+// #endif
+   
+	{
+      TinyScalar trace = m_el[0].x() + m_el[1].y() + m_el[2].z();
+      TinyScalar temp[4];
+      if (trace < TinyConstants::zero()) {
+        int i = m_el[0].x() < m_el[1].y() ? (m_el[1].y() < m_el[2].z() ? 2 : 1)
+                                          : (m_el[0].x() < m_el[2].z() ? 2 : 0);
+        int j = (i + 1) % 3;
+        int k = (i + 2) % 3;
 
-    if (trace < TinyConstants::zero()) {
-      int i = m_el[0].x() < m_el[1].y() ? (m_el[1].y() < m_el[2].z() ? 2 : 1)
-                                        : (m_el[0].x() < m_el[2].z() ? 2 : 0);
-      int j = (i + 1) % 3;
-      int k = (i + 2) % 3;
+        TinyScalar tmp =
+            ((m_el[i][i] - m_el[j][j]) - m_el[k][k]) + TinyConstants::one();
+        TinyScalar s = TinyConstants::sqrt1(tmp);
+        temp[i] = s * TinyConstants::half();
+        s = TinyConstants::half() / s;
 
-      TinyScalar tmp =
-          ((m_el[i][i] - m_el[j][j]) - m_el[k][k]) + TinyConstants::one();
-      TinyScalar s = TinyConstants::sqrt1(tmp);
-      temp[i] = s * TinyConstants::half();
-      s = TinyConstants::half() / s;
+        temp[3] = (m_el[j][k] - m_el[k][j]) * s;
+        temp[j] = (m_el[i][j] + m_el[j][i]) * s;
+        temp[k] = (m_el[i][k] + m_el[k][i]) * s;
+      } else {
+        TinyScalar s = TinyConstants::sqrt1(trace + TinyConstants::one());
+        temp[3] = (s * TinyConstants::half());
+        s = TinyConstants::half() / s;
 
-#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-      temp[3] = (m_el[j][k] - m_el[k][j]) * s;
-      temp[j] = (m_el[i][j] + m_el[j][i]) * s;
-      temp[k] = (m_el[i][k] + m_el[k][i]) * s;
-#else
-      temp[3] = (m_el[k][j] - m_el[j][k]) * s;
-      temp[j] = (m_el[j][i] + m_el[i][j]) * s;
-      temp[k] = (m_el[k][i] + m_el[i][k]) * s;
-#endif //#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    } else {
-      TinyScalar s = TinyConstants::sqrt1(trace + TinyConstants::one());
-      temp[3] = (s * TinyConstants::half());
-      s = TinyConstants::half() / s;
-#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-      temp[0] = ((m_el[1][2] - m_el[2][1]) * s);
-      temp[1] = ((m_el[2][0] - m_el[0][2]) * s);
-      temp[2] = ((m_el[0][1] - m_el[1][0]) * s);  
-#else
-      temp[0] = ((m_el[2].y() - m_el[1].z()) * s);
-      temp[1] = ((m_el[0].z() - m_el[2].x()) * s);
-      temp[2] = ((m_el[1].x() - m_el[0].y()) * s);
-#endif
+        temp[0] = ((m_el[1][2] - m_el[2][1]) * s);
+        temp[1] = ((m_el[2][0] - m_el[0][2]) * s);
+        temp[2] = ((m_el[0][1] - m_el[1][0]) * s);
+      }
+      #ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+      q.setValue(temp[0], temp[1], temp[2], temp[3]);
+      #else
+      q.setValue(temp[0], temp[1], temp[2], -temp[3]);
+      #endif
     }
-    q.setValue(temp[0], temp[1], temp[2], temp[3]);
   }
 
   /**@brief Return the transpose of the matrix */
@@ -369,7 +410,7 @@ class TinyMatrix3x3 {
     return *this;
   }
 
-  /** @brief Substractss by the target matrix on the right
+  /** @brief Substracts by the target matrix on the right
    *  @param m matrix to be applied
    * Equivilant to this = this - m */
   TinyMatrix3x3& operator-=(const TinyMatrix3x3& m) {

@@ -9,7 +9,7 @@
 
 #include "nlohmann/json.hpp"
 
-#if USE_PAGMO
+#ifdef USE_PAGMO
 #include <pagmo/algorithm.hpp>
 // #include <pagmo/algorithms/ipopt.hpp>
 #include <pagmo/algorithms/nlopt.hpp>
@@ -18,11 +18,14 @@
 #include <pagmo/problem.hpp>
 #endif
 
-#if USE_OPTIM
+#ifdef USE_OPTIM
 #include "utils/optim_gd.hpp"
 #endif
 
+#ifdef USE_CERES
 #include "ceres_estimator.hpp"
+#endif
+
 #include "neural_augmentation.hpp"
 #include "optimization_problem.hpp"
 #include "utils/stopwatch.hpp"
@@ -206,6 +209,7 @@ class Experiment {
     }
   }
 
+#ifdef USE_PAGMO
   pagmo::algorithm get_pagmo_algorithm() const {
     if (log["settings"]["pagmo"]["solver"] == "nlopt") {
       pagmo::nlopt solver(log["settings"]["pagmo"]["nlopt"]["solver"]);
@@ -220,7 +224,7 @@ class Experiment {
       return algo;
     }
     if (log["settings"]["pagmo"]["solver"] == "optimlib") {
-#if USE_OPTIM
+#ifdef USE_OPTIM
       auto gd = tds::optim_gd();
       gd.settings.gd_settings.method =
           log["settings"]["pagmo"]["optimlib"]["method"];
@@ -272,11 +276,12 @@ class Experiment {
     throw std::runtime_error("Unknown Pagmo solver: " +
                              (std::string)log["settings"]["pagmo"]["solver"]);
   }
+#endif
 
   template <typename OptimizationProblemT>
   void run_pagmo(OptimizationProblemT& problem) {
+#ifdef USE_PAGMO
     update_log(problem);
-#if USE_PAGMO
     pagmo::problem prob(problem);
     pagmo::algorithm algo = get_pagmo_algorithm();
     // pagmo::algorithm algo{pagmo::sade()};
@@ -351,6 +356,7 @@ class Experiment {
 
   template <typename OptimizationProblemT>
   void run_ceres(OptimizationProblemT& problem) {
+#ifdef USE_CERES
     update_log(problem);
     tds::CeresEstimator estimator(&problem);
     estimator.setup();
@@ -359,6 +365,10 @@ class Experiment {
     // parameters = problem.parameters();
     log["settings"]["solver"]["name"] = "ceres-LM";
     log["total_duration"] = watch_total.elapsed();
+#else
+    throw std::runtime_error(
+        "CMake option 'USE_CERES' needs to be active to use Ceres.");
+#endif
   }
 
   virtual void save_settings() {}

@@ -53,12 +53,14 @@ FILE(GLOB_RECURSE TDS_HDRS "src/*.h" "src/*.hpp")
 
 include(ExternalProject)
 
-find_package(Eigen3 QUIET)
-if (Eigen3_FOUND)
-    message("Found system Eigen3")
-    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
-    add_definitions(-DUSE_EIGEN)
-else(Eigen3_FOUND)
+
+#find_package(Eigen3 QUIET)
+#if (Eigen3_FOUND)
+#    message("FOUND EIGEN")
+#
+#    message("Eigen include directories: ${EIGEN3_INCLUDE_DIRS}")
+#    add_definitions(-DUSE_EIGEN)
+#else(Eigen3_FOUND)
     OPTION(USE_EIGEN_FALLBACK "Use third_party/eigen3" ON)
       if (USE_EIGEN_FALLBACK)
       message("Using third_party/eigen3")
@@ -71,7 +73,7 @@ else(Eigen3_FOUND)
       set(Eigen3_FOUND TRUE)
       add_definitions(-DUSE_EIGEN)
     endif(USE_EIGEN_FALLBACK)
-endif (Eigen3_FOUND)
+#endif (Eigen3_FOUND)
 
 add_definitions(-DTDS_HOME="${CMAKE_CURRENT_LIST_DIR}")
 message("Setting TDS_HOME=${CMAKE_CURRENT_LIST_DIR}")
@@ -191,6 +193,23 @@ if(USE_RBDL)
   SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/rbdl)
 endif(USE_RBDL)
 endif(Eigen3_FOUND)
+
+OPTION (USE_CGAL "Include CGAL libraries for mesh generation" OFF)
+if (USE_CGAL)
+  message("IN CGAL") 
+  find_package(Boost)
+  find_library(gmp NAMES gmp)
+  find_library(mpfr NAMES mpfr)
+  if(Boost_FOUND AND gmp AND mpfr)
+    add_definitions(-DUSE_CGAL)
+    set(CGAL_FOUND TRUE)
+    # set(CGAL_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/third_party/CGAL-5.2/include)
+    # SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/CGAL)
+    find_package(CGAL REQUIRED PATHS ./third_party/CGAL)
+  else()
+    message(STATUS "Missing required components for CGAL. Required libraries: Boost, GMP, MPFR")
+  endif()
+endif(USE_CGAL)
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /std:c++17")
@@ -322,7 +341,6 @@ IF(USE_CERES)
 	    add_definitions(-DUSE_CERES)
 	    message("FOUND CERES!")
     ELSE()
-#    add_definitions(-DUSE_CERES)
 #      ExternalProject_Add(glog-Project
 #          PREFIX glog
 #          SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third_party/glog
@@ -346,16 +364,15 @@ IF(USE_CERES)
     ENDIF()
 ENDIF(USE_CERES)
 
-
-# set(MINIGLOG ON)
-# set(BUILD_TESTING OFF)
-# set(BUILD_EXAMPLES OFF)
-
-OPTION(USE_CERES "Use Ceres" OFF)
 #IF(USE_CERES)
 #  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/ceres-solver)
 #  SET(CERES_LIBRARIES Ceres::ceres)
 #ENDIF()
+
+
+# set(MINIGLOG ON)
+# set(BUILD_TESTING OFF)
+# set(BUILD_EXAMPLES OFF)
 
 set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)

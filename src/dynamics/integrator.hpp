@@ -18,24 +18,26 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
   assert(Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == mb.dof_qd());
 
-
+  int q_offset, qd_offset;
   if (mb.is_floating()) {
     mb.base_acceleration().top = Vector3(qdd[0], qdd[1], qdd[2]);
     mb.base_acceleration().bottom = Vector3(qdd[3], qdd[4], qdd[5]);
     // Algebra::print("mb.base_acceleration()", mb.base_acceleration());
     // Algebra::print("qdd", qdd);
 
-    mb.base_velocity().top = Vector3(qd[0], qd[1], qd[2]);
-    mb.base_velocity().bottom = Vector3(qd[3], qd[4], qd[5]);
-
-    mb.base_velocity() += mb.base_acceleration() * dt;
     // Algebra::print("mb.base_velocity()", mb.base_velocity());
-    qd[0] = mb.base_velocity().top[0];
-    qd[1] = mb.base_velocity().top[1];
-    qd[2] = mb.base_velocity().top[2];
+    for (int i = 0; i < 6; ++i) {
+      qd[i] += qdd[i] * dt;
+    }
 
-    const Vector3 &linear_velocity = mb.base_velocity().bottom;
-    mb.base_X_world().translation += linear_velocity * dt;
+    mb.base_velocity().top = Vector3(qd[0], qd[1], qd[2]);
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    mb.base_velocity().bottom =
+        mb.base_X_world().rotation * Vector3(qd[3], qd[4], qd[5]);
+#else
+    mb.base_velocity().bottom = Algebra::transpose(mb.base_X_world().rotation) *
+                                Vector3(qd[3], qd[4], qd[5]);
+#endif
 
     // update base orientation using Quaternion derivative
     const Vector3 &angular_velocity = mb.base_velocity().top;
@@ -54,16 +56,10 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
     q[1] = Algebra::quat_y(base_rot);
     q[2] = Algebra::quat_z(base_rot);
     q[3] = Algebra::quat_w(base_rot);
-    int q_offset = 4, qd_offset = 3;
-
-    //update the linear degree of freedom of a floating base
-    for (int i = 0; i < 3; i++) {
-        int qindex = i + q_offset;
-        int qdindex = i + qd_offset;
-        qd[qdindex] += qdd[qdindex] * dt;
-        q[qindex] += qd[qdindex] * dt;
-    }
-
+    q[4] += qd[3] * dt;
+    q[5] += qd[4] * dt;
+    q[6] += qd[5] * dt;
+    
   }
 
   for (auto &link: mb.links()){
@@ -125,6 +121,15 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
         mb.base_velocity().top = Vector3(qd[0], qd[1], qd[2]);
         mb.base_velocity().bottom = Vector3(qd[3], qd[4], qd[5]);
 
+    
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    mb.base_velocity().bottom =
+        mb.base_X_world().rotation * Vector3(qd[3], qd[4], qd[5]);
+#else
+    mb.base_velocity().bottom = Algebra::transpose(mb.base_X_world().rotation) *
+                                Vector3(qd[3], qd[4], qd[5]);
+#endif
+
         mb.base_velocity() += mb.base_acceleration() * dt;
         mb.base_acceleration().set_zero();
 
@@ -133,13 +138,12 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
         qd[1] = mb.base_velocity().top[1];
         qd[2] = mb.base_velocity().top[2];
         int q_offset = 4, qd_offset = 3;
-		//update the linear degree of freedom of a floating base
+        //update the linear degree of freedom of a floating base
         for (int i = 0; i < 3; i++) {
 		    int qdindex = i + qd_offset;
 		    qd[qdindex] += qdd[qdindex] * dt;
 		    
 		}
-
     }
 
     for (auto& link : mb.links()) {
