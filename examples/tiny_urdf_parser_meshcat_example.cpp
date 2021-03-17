@@ -65,10 +65,10 @@ int main(int argc, char* argv[]) {
     UrdfStructures<MyAlgebra> plane_urdf_structures =
         parser.load_urdf(plane_file_name);
     UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-        plane_urdf_structures, world, plane_mb);
+        plane_urdf_structures, world, plane_mb,0);
     std::string texture_path = "checker_purple.png";
     meshcat_viz.m_path_prefix = plane_search_path;
-    meshcat_viz.convert_visuals(plane_urdf_structures, texture_path);
+    meshcat_viz.convert_visuals(plane_urdf_structures, texture_path,0);
   }
 
   char search_path[TINY_MAX_EXE_PATH_LEN];
@@ -93,12 +93,12 @@ int main(int argc, char* argv[]) {
   // create graphics structures
   std::string texture_path = "laikago_tex.jpg";
   meshcat_viz.m_path_prefix = search_path;
-  meshcat_viz.convert_visuals(urdf_structures, texture_path);
+  meshcat_viz.convert_visuals(urdf_structures, texture_path,0);
   bool floating_base = true;
   MultiBody<MyAlgebra>& mb = *world.create_multi_body();
   mb.set_floating_base(true);
   UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
-      urdf_structures, world, mb);
+      urdf_structures, world, mb,0);
   mb.initialize();
 
   int start_index = 0;

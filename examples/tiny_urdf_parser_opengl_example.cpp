@@ -36,8 +36,8 @@ int frameskip_gfx_sync =10;  // only sync every 10 frames (sim at 1000 Hz, gfx a
 bool use_plane = true;
 //sphere8cube_inertia_xyzspherical.urdf
 
-#define USE_PANDA
-//#define USE_LAIKAGO
+//#define USE_PANDA
+#define USE_LAIKAGO
 
 #ifdef USE_LAIKAGO
 //std::string urdf_name = "laikago/laikago_toes_zup_chassis_collision.urdf";
