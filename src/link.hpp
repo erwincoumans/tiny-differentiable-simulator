@@ -374,7 +374,7 @@ struct Link {
       case JOINT_FIXED:
         // Transform is set to identity in its constructor already
         // and never changes.
-        *X_J = X_J_fixed;
+        //*X_J = X_J_fixed;
         break;
       default:
         fprintf(stderr,
