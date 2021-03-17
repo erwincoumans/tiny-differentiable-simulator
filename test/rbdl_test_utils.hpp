@@ -35,7 +35,6 @@ using namespace tds;
 
 namespace {
     const double kRbdlTestErrorTolerance = 1e-10;
-    //const double kRbdlTestErrorTolerance = 1e-1;
 }
 
 #if USE_RBDL

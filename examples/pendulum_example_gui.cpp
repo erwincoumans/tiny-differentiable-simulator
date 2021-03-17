@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
     app.m_renderer->write_transforms();
     app.swap_buffer();
 
-    std::this_thread::sleep_for(std::chrono::duration<double>(0.1));
+    std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
   }
 
   
