@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-//#define TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS 
+//#define TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
 
 #include "dynamics/forward_dynamics.hpp"
 #include "math/eigen_algebra.hpp"

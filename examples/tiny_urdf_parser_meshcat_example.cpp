@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
         plane_urdf_structures, world, plane_mb,0);
     std::string texture_path = "checker_purple.png";
     meshcat_viz.m_path_prefix = plane_search_path;
-    meshcat_viz.convert_visuals(plane_urdf_structures, texture_path,0);
+    meshcat_viz.convert_visuals(plane_urdf_structures, texture_path,&plane_mb);
   }
 
   char search_path[TINY_MAX_EXE_PATH_LEN];
@@ -93,14 +93,14 @@ int main(int argc, char* argv[]) {
   // create graphics structures
   std::string texture_path = "laikago_tex.jpg";
   meshcat_viz.m_path_prefix = search_path;
-  meshcat_viz.convert_visuals(urdf_structures, texture_path,0);
+  
   bool floating_base = true;
   MultiBody<MyAlgebra>& mb = *world.create_multi_body();
   mb.set_floating_base(true);
   UrdfToMultiBody<MyAlgebra>::convert_to_multi_body(
       urdf_structures, world, mb,0);
   mb.initialize();
-
+  meshcat_viz.convert_visuals(urdf_structures, texture_path,&mb);
   int start_index = 0;
   if (floating_base) {
     start_index = 7;
@@ -177,8 +177,11 @@ int main(int argc, char* argv[]) {
     }
 
     forward_dynamics(mb, grav);
+    
+    mb.clear_forces();
 
-    //integrate_euler(mb, dt);
+    integrate_euler_qdd(mb, dt);
+
 
     world.step(dt);
 

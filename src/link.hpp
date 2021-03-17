@@ -327,7 +327,9 @@ struct Link {
                         __LINE__);
         }
     }
-    inline void jcalc(const VectorX &q) const { jcalc(q, &X_J, &X_parent); }
+    inline void jcalc(const VectorX &q) const { 
+        jcalc(q, &X_J, &X_parent); 
+    }
     inline void jcalc(const VectorX &q, const VectorX &qd) const {
         jcalc(q);
         jcalc(qd, &vJ);

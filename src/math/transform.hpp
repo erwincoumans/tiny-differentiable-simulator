@@ -139,6 +139,16 @@ struct Transform {
       return Algebra::transpose(rotation) * (point - translation);
   }
 #else
+    // implementation from RBDL
+  Transform operator*(const Transform &t) const {
+    Transform tr = *this;
+    // tr.translation = t.translation + t.rotation * translation;
+    tr.translation =
+        t.translation + Algebra::transpose(t.rotation) * translation;
+    tr.rotation *= t.rotation;
+    return tr;
+  }
+
 // Transform operator*(const Transform &t) const {
 //   Transform tr = *this;
 //   tr.translation = t.translation + t.rotation * translation;
@@ -152,15 +162,8 @@ struct Transform {
 //   tr.rotation *= t.rotation;
 //   return tr;
 // }
-  Transform operator*(const Transform &t) const {
-    /// XXX this is different from Featherstone: we assume transforms are
-    /// right-associative
-    Transform tr = *this;
-    tr.translation += Algebra::transpose(rotation) * t.translation;
-    // tr.translation += rotation * t.translation;
-    tr.rotation *= t.rotation;
-    return tr;
-  }
+ 
+
   TINY_INLINE Vector3 apply(const Vector3 &point) const {
     return rotation * point + translation;
   }

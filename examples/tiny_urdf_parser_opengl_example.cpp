@@ -84,7 +84,7 @@ typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 typedef TinyVector3<double, DoubleUtils> Vector3;
 typedef TinyQuaternion<double, DoubleUtils> Quaternion;
 
-MyAlgebra::Vector3 start_pos(0,0,1.60);//0.4002847
+MyAlgebra::Vector3 start_pos(0,0,.60);//0.4002847
 //MyAlgebra::Quaternion start_orn = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(-3.14/2.,0,0));
 //MyAlgebra::Quaternion start_orn(0.23364591,0,0,0.97232174932);
 //MyAlgebra::Quaternion start_orn(0,0,0,1);//0.23364591,0,0,0.97232174932);
