@@ -419,7 +419,7 @@ struct Link {
         break;
       }
       case JOINT_FIXED:
-        *v_J = v_J_fixed;
+        //*v_J = v_J_fixed;
         break;
       default:
         fprintf(stderr,
