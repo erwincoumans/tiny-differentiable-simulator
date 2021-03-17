@@ -18,7 +18,7 @@
 #include <chrono>  // std::chrono::seconds
 #include <thread>  // std::this_thread::sleep_for
 
-#include "geometry.hpp"
+
 #include "math/tiny/fix64_scalar.h"
 #include "dynamics/kinematics.hpp"
 #include "dynamics/forward_dynamics.hpp"
@@ -70,7 +70,6 @@ int main(int argc, char* argv[]) {
   app.set_up_axis(2);
   app.m_renderer->get_active_camera()->set_camera_distance(4);
   app.m_renderer->get_active_camera()->set_camera_pitch(-30);
-  app.m_renderer->get_active_camera()->set_camera_yaw(90);
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
   //install ffmpeg in path and uncomment, to enable video recording
   //app.dump_frames_to_video("test.mp4");
@@ -89,22 +88,8 @@ int main(int argc, char* argv[]) {
 
   int num_spheres = 5;
 
-  bool add_plane = false;
-  if(add_plane)
-  {
-      MultiBody* planemb = world.create_multi_body();
-      planemb->set_floating_base(false);
-      Transform base_X_geom;
-      base_X_geom.set_identity();
-      tds::Plane<Algebra>* plane = new tds::Plane<Algebra>();
-      planemb->collision_geometries().push_back(plane);
-      planemb->collision_transforms(-1).push_back(base_X_geom);
-  }
-
   MultiBody* mb = world.create_multi_body();
-    init_compound_pendulum<Algebra>(*mb, world, num_spheres);
-
-    mb->set_position(Vector3(0,0,2));
+  init_compound_pendulum<Algebra>(*mb, world, num_spheres);
 
   mbbodies.push_back(mb);
 
@@ -131,8 +116,8 @@ int main(int argc, char* argv[]) {
 
   MatrixX M(mb->links().size(), mb->links().size());
 
-  double dt = 1. / 480.;
-  //app.set_mp4_fps(1./dt);
+  double dt = 1. / 240.;
+  app.set_mp4_fps(1./dt);
   int upAxis = 2;
   while (!app.m_window->requested_exit()) 
   {
@@ -154,7 +139,7 @@ int main(int argc, char* argv[]) {
     
 
       // printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", q[0], q[1], qd[0], qd[1]);
-      //tds::mass_matrix(*mb, &M);
+      tds::mass_matrix(*mb, &M);
       
       //M.print("M");
       if (mb->qd()[0] < -1e4) {
@@ -163,7 +148,7 @@ int main(int argc, char* argv[]) {
     }
 
     
-    //std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+    std::this_thread::sleep_for(std::chrono::duration<double>(dt));
     // sync transforms
     int visual_index = 0;
     TinyVector3f prev_pos(0,0,0);
@@ -188,13 +173,7 @@ int main(int argc, char* argv[]) {
         rot = Algebra::matrix_to_quat(geom_X_world.rotation);
         TinyQuaternionf base_orn(rot.x(), rot.y(), rot.z(),
                                 rot.w());
-        if(l==0)
-        {
-            prev_pos.setValue(body->get_world_transform(-1).translation[0],
-                body->get_world_transform(-1).translation[1],
-                body->get_world_transform(-1).translation[2]);
-            app.m_renderer->draw_line(prev_pos,base_pos,color,line_width);
-        } else if (l>0)
+        if (l>=0)
         {
           //printf("b=%d\n",b);
           app.m_renderer->draw_line(prev_pos, base_pos,color, line_width);
@@ -211,6 +190,8 @@ int main(int argc, char* argv[]) {
     app.m_renderer->render_scene();
     app.m_renderer->write_transforms();
     app.swap_buffer();
+
+    std::this_thread::sleep_for(std::chrono::duration<double>(0.1));
   }
 
   

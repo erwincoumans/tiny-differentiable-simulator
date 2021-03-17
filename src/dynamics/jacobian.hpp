@@ -42,11 +42,12 @@ typename Algebra::Matrix3X point_jacobian(
     // see (Eq. 2.238) in
     // https://ethz.ch/content/dam/ethz/special-interest/mavt/robotics-n-intelligent-systems/rsl-dam/documents/RobotDynamics2016/FloatingBaseKinematics.pdf
 #ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    Matrix3 cr = Algebra::cross_matrix(point_tf.translation);
+    // Matrix3 cr = Algebra::cross_matrix(point_tf.translation);
+    Matrix3 cr = Algebra::transpose(Algebra::cross_matrix(base_point));
     Algebra::assign_block(jac, cr, 0, 0);
-    jac(3, 0) = Algebra::one();
-    jac(4, 1) = Algebra::one();
-    jac(5, 2) = Algebra::one();
+    jac(0, 3) = Algebra::one();
+    jac(1, 4) = Algebra::one();
+    jac(2, 5) = Algebra::one();
 #else
     Matrix3 cr = Algebra::transpose(Algebra::cross_matrix(base_point));
     Algebra::assign_block(jac, cr, 0, 0);
@@ -111,7 +112,7 @@ typename Algebra::Matrix3X point_jacobian_fd(
   assert(Algebra::size(q) == mb.dof());
   assert(link_index < static_cast<int>(mb.size()));
   Matrix3X jac(3, mb.dof_qd());
-  jac.set_zero();
+  Algebra::set_zero(jac);
   std::vector<Transform> links_X_world;
   Transform base_X_world;
   // compute world point transform for the initial joint angles
@@ -136,21 +137,22 @@ typename Algebra::Matrix3X point_jacobian_fd(
       // special handling of quaternion differencing via angular velocity
       Quaternion base_rot = Algebra::matrix_to_quat(base_X_world.rotation);
 
-      Vector3 angular_velocity;
-      angular_velocity.set_zero();
+      Vector3 angular_velocity = Algebra::zero3();
       angular_velocity[i] = Algebra::one();
-
-      base_rot += (angular_velocity * base_rot) * (eps * Algebra::half());
-      base_rot = Algebra::normalize(base_rot);
-      q_x[0] = base_rot.getX();
-      q_x[1] = base_rot.getY();
-      q_x[2] = base_rot.getZ();
-      q_x[3] = base_rot.getW();
+      Algebra::quat_increment(
+              base_rot, Algebra::quat_velocity(base_rot, angular_velocity, eps * Algebra::half()));
+      // base_rot += (angular_velocity * base_rot) * (eps * Algebra::half());
+      base_rot.normalize();
+      q_x[0] = Algebra::quat_x(base_rot);
+      q_x[1] = Algebra::quat_y(base_rot);
+      q_x[2] = Algebra::quat_z(base_rot);
+      q_x[3] = Algebra::quat_w(base_rot);
     } else {
       // adjust for the +1 offset with the 4 DOF orientation in q vs. 3 in qd
       int q_index = mb.is_floating() ? i + 1 : i;
       q_x[q_index] += eps;
     }
+    // Algebra::print(("q_x " + std::to_string(i)).c_str(), q_x);
     forward_kinematics_q(mb, q_x, &base_X_world_temp, &links_X_world);
     world_point = mb.empty() ? base_X_world_temp.apply(base_point)
                              : links_X_world[link_index].apply(base_point);

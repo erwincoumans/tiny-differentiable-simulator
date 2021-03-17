@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <string>
+#include <cassert>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES 1

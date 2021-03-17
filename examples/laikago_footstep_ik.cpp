@@ -35,9 +35,6 @@
 
 #include "visualizer/pybullet/pybullet_visualizer_api.h"
 #include "utils/file_utils.hpp"
-#include "pybullet_visual_instance_generator.h"
-#include "math/tiny/tiny_algebra.hpp"
-
 using namespace TINY;
 using namespace tds;
 #undef max
@@ -155,8 +152,6 @@ struct GaitGenerator {
   }
 };
 
-
-
 int main(int argc, char* argv[]) {
   double dt = 1. / 1000;
 
@@ -237,7 +232,6 @@ int main(int argc, char* argv[]) {
   int kd_id = sim->addUserDebugParameter("kd", 0, 13, 3.);
   int force_id = sim->addUserDebugParameter("max force", 0, 1500, 550);
 
-  PyBulletInstanceGenerator gen(sim);
   {
     MultiBody<TinyAlgebra<double, DoubleUtils> >* mb = world.create_multi_body();
     int robotId = sim->loadURDF(plane_filename);
@@ -245,7 +239,7 @@ int main(int argc, char* argv[]) {
     PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils> >::extract_urdf_structs(
         urdf_data, robotId, sim, sim);
     UrdfToMultiBody< TinyAlgebra<double, DoubleUtils> >::convert_to_multi_body(urdf_data,
-                                                                    world, *mb, &gen);
+                                                                    world, *mb);
     mb->initialize();
     sim->removeBody(robotId);
   }
@@ -261,7 +255,7 @@ int main(int argc, char* argv[]) {
     PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils> >::extract_urdf_structs(
         urdf_data, robotId, sim, sim);
     UrdfToMultiBody< TinyAlgebra<double, DoubleUtils> >::convert_to_multi_body(urdf_data,
-                                                                    world, *mb, &gen);
+                                                                    world, *mb);
 
     mbbodies.push_back(mb);
     mb->set_floating_base(false);
@@ -303,7 +297,7 @@ int main(int argc, char* argv[]) {
   const int foot_bl = 15;// 11;
   const TinyVector3 foot_offset(0, 0, 0);// -0.24, -0.02);
 
-  TinyInverseKinematics<TinyAlgebra<double, DoubleUtils>, IK_JAC_PINV> inverse_kinematics;
+  TinyInverseKinematics<double, DoubleUtils, IK_JAC_PINV> inverse_kinematics;
   // controls by how much the joint angles should be close to the initial q
   inverse_kinematics.weight_reference = 0;
   // step size

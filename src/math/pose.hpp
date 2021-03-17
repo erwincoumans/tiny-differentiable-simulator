@@ -66,6 +66,6 @@ struct Pose {
 template <typename AlgebraFrom, typename AlgebraTo = AlgebraFrom>
 static inline Pose<AlgebraTo> clone(const Pose<AlgebraFrom>& p) {
   typedef Conversion<AlgebraFrom, AlgebraTo> C;
-  return Pose<AlgebraTo>(C::convert(p.position), C::convert(p.orientation));
+  return Pose<AlgebraTo>(C::convert(p.position_), C::convert(p.orientation_));
 }
 }  // namespace tds

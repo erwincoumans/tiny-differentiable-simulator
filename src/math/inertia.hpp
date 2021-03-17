@@ -202,10 +202,10 @@ struct ArticulatedBodyInertia {
    * Ia*v = mv(Iw + Hv, Mv + H^T w)
    */
   ForceVector operator*(const MotionVector &v) const {
-      ForceVector result;
-      result.top = I * v.top + H * v.bottom;
-      result.bottom = M * v.bottom + Algebra::transpose(H) * v.top;
-      return result;
+    ForceVector result;
+    result.top = I * v.top + H * v.bottom;
+    result.bottom = M * v.bottom + Algebra::transpose(H) * v.top;
+    return result;
   }
     Matrix6x3 operator*(const Matrix6x3 &v) const {
         Matrix6x3 result;
@@ -222,8 +222,9 @@ struct ArticulatedBodyInertia {
     auto topleft_transpose = Algebra::transpose(I);
     auto topleft = I;
     auto top_right = H;
-    result.top = bottomleft * v.top + topleft_transpose * v.bottom;
-    result.bottom = topleft * v.top + top_right * v.bottom;
+    result.top = Algebra::transpose(H) * v.top + Algebra::transpose(I) * v.bottom;
+    // result.top = Algebra::transpose(H) * v.top + M * v.bottom;
+    result.bottom = I * v.top + H * v.bottom;
     return result;
   }
 
