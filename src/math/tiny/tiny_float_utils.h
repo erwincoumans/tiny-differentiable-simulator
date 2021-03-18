@@ -75,6 +75,10 @@ struct FloatUtils {
     return result;
   }
 
+  static float scalar_from_double(double d) {
+    return static_cast<float>(d);
+  }
+
   static void FullAssert(bool a) {
     if (!a) {
       printf("!");

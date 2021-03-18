@@ -1,8 +1,7 @@
 #pragma once
 
-#define SWAP_TRANSFORM_ASSOCIATIVITY false
-
 #include "../multi_body.hpp"
+
 
 namespace tds {
 /**
@@ -22,7 +21,8 @@ void forward_kinematics(
     const typename Algebra::VectorX &qdd = typename Algebra::VectorX()) {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
-  using VectorX = typename Algebra::VectorX;
+  using Matrix3 = typename Algebra::Matrix3;
+  using Matrix6 = typename Algebra::Matrix6;
   typedef tds::Transform<Algebra> Transform;
   typedef tds::MotionVector<Algebra> MotionVector;
   typedef tds::ForceVector<Algebra> ForceVector;
@@ -41,16 +41,60 @@ void forward_kinematics(
     mb.base_X_world().translation = Vector3(q[4], q[5], q[6]);
     if (Algebra::size(qd) != 0) {
       mb.base_velocity().top = Vector3(qd[0], qd[1], qd[2]);
-      mb.base_velocity().bottom = Vector3(qd[3], qd[4], qd[5]);
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+      mb.base_velocity().bottom = mb.base_X_world().rotation * Vector3(qd[3], qd[4], qd[5]);
+#else
+      mb.base_velocity().bottom = Algebra::transpose(mb.base_X_world().rotation) * Vector3(qd[3], qd[4], qd[5]);
+#endif
+      // mb.base_velocity().bottom = Vector3(qd[0], qd[1], qd[2]);
+      // mb.base_velocity().top = Vector3(qd[3], qd[4], qd[5]);
     } else {
       mb.base_velocity().set_zero();
     }
 
+    // MotionVector v0 = mb.base_velocity();
+    MotionVector v0 = mb.base_velocity();
+
     mb.base_abi() = mb.base_rbi();
-    //ForceVector I0_mul_v0 = mb.base_abi() * mb.base_velocity();
-    ForceVector I0_mul_v0 = mb.base_abi().mul_org(mb.base_velocity());
+    //mb.base_abi().H = Algebra::zero33();
+    // Algebra::print("BASE ABI", mb.base_abi());
+    // Algebra::print("base_X_world", mb.base_X_world());
+    // Algebra::print("base_velocity", mb.base_velocity());
+    // Algebra::print("qd", mb.qd());
+
+    ForceVector I0_mul_v0 = mb.base_abi() * v0;
+    // Algebra::print("ABI", mb.base_abi().matrix());
+    // typedef Eigen::Matrix<double, 6, 1> Vector6;
+    // Vector6 v0d;
+    // v0d[0] = v0[3];
+    // v0d[1] = v0[4];
+    // v0d[2] = v0[5];
+    // v0d[3] = v0[0];
+    // v0d[4] = v0[1];
+    // v0d[5] = v0[2];
+    // // for (int i = 0; i < 6; ++i) {
+    // //   v0d[i] = v0[i];
+    // // }
+    // Vector6 I0_mul_v0d = mb.base_abi().matrix().transpose() * v0d;
+    // ForceVector I0_mul_v0;
+    // for (int i = 0; i < 6; ++i) {
+    //   I0_mul_v0[i] = I0_mul_v0d[i];
+    // }
+    // ForceVector I0_mul_v0 = mb.base_abi().mul_org(mb.base_velocity());
+    // Matrix6 v0x = v0.cross_matrix();
+    // Algebra::print("v0x", v0x);
+    // // Matrix6 v0xI = v0x * mb.base_abi().matrix().transpose();
+    // // Algebra::print("v0xI", v0xI);
+    // Vector6 bbf = v0x * I0_mul_v0d;
+    // // Vector6 bbf = v0xI * v0d;
+    // for (int i = 0; i < 6; ++i) {
+    //   mb.base_bias_force()[i] = bbf[i];
+    // }
     mb.base_bias_force() =
-        Algebra::cross(mb.base_velocity(), I0_mul_v0) - mb.base_applied_force();
+        Algebra::cross(v0, I0_mul_v0) - mb.base_applied_force();
+    // Algebra::print("I0_mul_v0", I0_mul_v0);
+    // Algebra::print("mb.base_velocity()", mb.base_velocity());
+    // Algebra::print("mb.base_bias_force()", mb.base_bias_force());
   }
 
   for (int i = 0; i < static_cast<int>(mb.num_links()); i++) {
@@ -58,10 +102,8 @@ void forward_kinematics(
     int parent = link.parent_index;
 
     // update joint transforms, joint velocity (if available)
-//    Scalar q_val = mb.get_q_for_link(q, i);
-//    Scalar qd_val = mb.get_qd_for_link(qd, i);
-    VectorX q_val = mb.get_q_for_link(q, i);
-    VectorX qd_val = mb.get_qd_for_link(qd, i);
+    auto q_val = mb.get_q_for_link(q, i);
+    auto qd_val = mb.get_qd_for_link(qd, i);
     link.jcalc(q_val, qd_val);
 
     // std::cout << "Link " << i << " transform: " << link.X_parent <<
@@ -70,7 +112,7 @@ void forward_kinematics(
     if (parent >= 0 || mb.is_floating()) {
       const Transform &parent_X_world =
           parent >= 0 ? mb[parent].X_world : mb.base_X_world();
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       link.X_world = link.X_parent * parent_X_world;  // RBDL style
 #else
       link.X_world = parent_X_world * link.X_parent;
@@ -80,18 +122,19 @@ void forward_kinematics(
       MotionVector xv = link.X_parent.apply(parentVelocity);
       link.v = xv + link.vJ;
     } else {
-      #if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       link.X_world = link.X_parent * mb.base_X_world();
-      #else
+#else
       link.X_world = mb.base_X_world() * link.X_parent;
-      #endif
+#endif
       link.v = link.vJ;
     }
     MotionVector v_x_vJ = Algebra::cross(link.v, link.vJ);
-    link.c = v_x_vJ /*+link.c_J[i]*/;
+    link.c = v_x_vJ + link.cJ;
 
     link.abi = link.rbi;
     ForceVector I_mul_v = link.abi * link.v;
+    // ForceVector I_mul_v = link.abi.mul_org(link.v);
     ForceVector f_ext = link.X_world.apply_inverse(link.f_ext);
     // #ifdef NEURAL_SIM
     //       if (i >= 3) {
@@ -129,13 +172,14 @@ void forward_kinematics(
     Algebra::print("link.pA", link.pA);
 #endif
     // compute helper temporary variables for floating-base RNEA
-    // const SpatialVector &parent_a =
-    //     parent >= 0 ? links[parent].a : mb.base_acceleration_;
-    // link.a = link.X_parent.apply(parent_a) + v_x_vJ;
-    // if (!qdd.empty()) {
-    //   link.a += link.S * get_qdd_for_link(qdd, i);
-    // }
-    // link.f = link.abi * link.a + link.pA;
+    const MotionVector &parent_a =
+        parent >= 0 ? mb[parent].a : mb.base_acceleration();
+    link.a = link.X_parent.apply(parent_a) + v_x_vJ;
+    //if (Algebra::size(qdd) > 0) {
+    //  Scalar qdd_val = mb.get_qd_for_link(qdd, i);
+    //  link.a += link.S * qdd_val;
+    //}
+    link.f = link.abi * link.a + link.pA;
   }
 }
 
@@ -198,7 +242,7 @@ void forward_kinematics_q(
         const Transform &parent_X_world =
             parent >= 0 ? (*links_X_world)[parent] : *base_X_world;
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
         (*links_X_world)[i] = x_parent * parent_X_world;
 #else
         (*links_X_world)[i] = parent_X_world * x_parent;
@@ -208,7 +252,7 @@ void forward_kinematics_q(
         const Transform &parent_X_base =
             parent >= 0 ? (*links_X_base)[parent] : ident;
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
         (*links_X_base)[i] = x_parent * parent_X_base;
 #else
         (*links_X_base)[i] = parent_X_base * x_parent;
@@ -217,7 +261,7 @@ void forward_kinematics_q(
     } else {
       // first link in fixed-base system
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       if (links_X_world) (*links_X_world)[i] = x_parent * *base_X_world;
 #else
       if (links_X_world) (*links_X_world)[i] = *base_X_world * x_parent;

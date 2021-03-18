@@ -316,8 +316,8 @@ class MultiBodyConstraintSolverSpring
     const ContactPoint& cp0 = cps[0];
     const Scalar kEpsilon = Algebra::from_double(1e-5);
 
-    MultiBody<Algebra>* mb_a = cp0.multi_body_a;
-    MultiBody<Algebra>* mb_b = cp0.multi_body_b;
+    tds::MultiBody<Algebra>* mb_a = cp0.multi_body_a;
+    tds::MultiBody<Algebra>* mb_b = cp0.multi_body_b;
 
     const int n_a = mb_a->dof_qd();
     const int n_b = mb_b->dof_qd();
@@ -337,9 +337,9 @@ class MultiBodyConstraintSolverSpring
       const Vector3& world_point_b = cp.world_point_on_b;
       const Vector3& world_normal = -cp.world_normal_on_b;  // !!!
       Matrix3X jac_a =
-          point_jacobian(*mb_a, mb_a->q(), cp.link_a, world_point_a);
+          point_jacobian(*mb_a, mb_a->q(), cp.link_a, world_point_a, false);
       Matrix3X jac_b =
-          point_jacobian(*mb_b, mb_b->q(), cp.link_b, world_point_b);
+          point_jacobian(*mb_b, mb_b->q(), cp.link_b, world_point_b, false);
 
       // Algebra::print("jac_b", jac_b);
       // mb_b->print_state();

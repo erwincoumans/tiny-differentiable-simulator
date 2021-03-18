@@ -49,14 +49,14 @@ struct ContactSimulation {
 
   int input_dim() const { return system->dof() + system->dof_qd(); }
   int state_dim() const {
-    return system->dof() + system->dof_qd() + system->num_links() * 3;
+    return system->dof() + system->dof_qd() + system->size() * 3;
   }
   int output_dim() const { return num_timesteps * state_dim(); }
 
   ContactSimulation() {
     std::string plane_filename, urdf_filename;
-    //tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
-    //cache.construct(plane_filename, world, false, false);
+    // tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
+    // cache.construct(plane_filename, world, false, false);
     tds::FileUtils::find_file("pendulum5.urdf", urdf_filename);
     system = cache.construct(urdf_filename, world, false, false);
     system->base_X_world().translation = Algebra::unit3_z();
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
   int sphere_shape = app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
   // typedef tds::Conversion<DiffAlgebra, tds::TinyAlgebraf> Conversion;
   std::vector<int> visuals;
-  for (int i = 0; i < num_total_threads * simulation.system->num_links(); ++i) {
+  for (int i = 0; i < num_total_threads * simulation.system->size(); ++i) {
     TinyVector3f pos(0, 0, 0);
     TinyQuaternionf orn(0, 0, 0, 1);
     TinyVector3f color(0.5, 0.6, 1);
@@ -178,7 +178,7 @@ int main(int argc, char* argv[]) {
 
   model.forward_zero.allocate(num_total_threads);
 
-  std::vector< TinyVector3f> positions;
+  std::vector<TinyVector3f> positions;
   std::vector<unsigned int> indices;
 
   TinyVector3f line_color(0.3, 0.3, 0.3);
@@ -186,17 +186,15 @@ int main(int argc, char* argv[]) {
   const int link_pos_id_offset =
       simulation.system->dof() + simulation.system->dof_qd();
   const int square_id = (int)std::sqrt((double)num_total_threads);
-  //sim_spacing is the visual distance between independent parallel simulations
-  const float sim_spacing = 5.f;
+  const float radius = 1.f;
   for (int run = 0; run < 40; ++run) {
     for (int i = 0; i < num_total_threads; ++i) {
       inputs[i] = std::vector<Scalar>(simulation.input_dim(), Scalar(0));
       inputs[i][0] = std::rand() * 1. / RAND_MAX;
     }
     for (int t = 0; t < 1000; ++t) {
-
-        positions.resize(0);
-        indices.resize(0);
+      positions.resize(0);
+      indices.resize(0);
 
       timer.start();
       // call GPU kernel
@@ -213,43 +211,39 @@ int main(int argc, char* argv[]) {
       int visual_id = 0;
       for (int i = 0; i < num_total_threads; ++i) {
         TinyVector3f prev_pos(0, 0, 0);
-        for (std::size_t l = 0; l < simulation.system->num_links(); ++l) {
+        for (std::size_t l = 0; l < simulation.system->size(); ++l) {
           int sphereId = visuals[visual_id++];
           TinyVector3f pos;
           pos[0] = outputs[i][link_pos_id_offset + l * 3 + 0];
           pos[1] = outputs[i][link_pos_id_offset + l * 3 + 1];
           pos[2] = outputs[i][link_pos_id_offset + l * 3 + 2];
-          pos[0] += sim_spacing * (i % square_id) - square_id * sim_spacing / 2;
-          pos[1] += sim_spacing * (i / square_id) - square_id * sim_spacing / 2;
+          pos[0] += radius * (i % square_id) - square_id * radius / 2;
+          pos[1] += radius * (i / square_id) - square_id * radius / 2;
           TinyQuaternionf orn(0, 0, 0, 1);
           if (l > 0) {
-             //app.m_renderer->draw_line(prev_pos, pos, line_color, line_width);
-             indices.push_back(positions.size());
-             positions.push_back(prev_pos);
-             indices.push_back(positions.size());
-             positions.push_back(pos);
-             if (positions.size()>256)
-             {
-                 app.m_renderer->draw_lines(&positions[0],
-                     line_color, positions.size(),
-                     sizeof(TinyVector3f), &indices[0],
-                     indices.size(), line_width);
-                 positions.resize(0);
-                 indices.resize(0);
-             }
+            // app.m_renderer->draw_line(prev_pos, pos, line_color, line_width);
+            indices.push_back(positions.size());
+            positions.push_back(prev_pos);
+            indices.push_back(positions.size());
+            positions.push_back(pos);
+            if (positions.size() > 256) {
+              app.m_renderer->draw_lines(&positions[0], line_color,
+                                         positions.size(), sizeof(TinyVector3f),
+                                         &indices[0], indices.size(),
+                                         line_width);
+              positions.resize(0);
+              indices.resize(0);
+            }
           }
           prev_pos = pos;
           app.m_renderer->write_single_instance_transform_to_cpu(pos, orn,
                                                                  sphereId);
         }
       }
-
-      if (positions.size())
-      {
-          app.m_renderer->draw_lines(&positions[0],
-              line_color, positions.size(),
-              sizeof(TinyVector3f), &indices[0],
-              indices.size(), line_width);
+      if (positions.size()) {
+        app.m_renderer->draw_lines(&positions[0], line_color, positions.size(),
+                                   sizeof(TinyVector3f), &indices[0],
+                                   indices.size(), line_width);
       }
       app.m_renderer->update_camera(upAxis);
 

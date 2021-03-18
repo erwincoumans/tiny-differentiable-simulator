@@ -119,6 +119,8 @@ public:
 
   TINY_INLINE const LinkCollection &links() const { return links_; }
   TINY_INLINE std::size_t num_links() const { return links_.size(); }
+  TINY_INLINE std::size_t size() const { return links_.size(); }
+  
   TINY_INLINE const Link &operator[](std::size_t i) const { return links_[i]; }
   TINY_INLINE Link &operator[](std::size_t i) { return links_[i]; }
   TINY_INLINE typename LinkCollection::iterator begin() {
@@ -563,17 +565,13 @@ public:
   }
 
   // attaches a new link, setting parent to the last link
-  void attach(Link &link, bool is_controllable = true) {
+  size_t attach(Link &link, bool is_controllable = true) {
     int parent_index = -1;
     if (!links_.empty()) parent_index = static_cast<int>(links_.size()) - 1;
-    attach(link, parent_index, is_controllable);
+    return attach(link, parent_index, is_controllable);
   }
   
-  void attach_link(Link& link, int parent_index,
-      bool is_controllable = true) {
-      attach(link, parent_index, is_controllable);
-  }
-  void attach(Link &link, int parent_index, bool is_controllable = true) {
+  size_t attach(Link &link, int parent_index, bool is_controllable = true) {
     int sz = static_cast<int>(links_.size());
     assert(parent_index < sz);
     link.index = sz;
@@ -624,6 +622,7 @@ public:
 //    link.S.print("joint.S");
 #endif
     links_.push_back(link);
+    return links_.size()-1;
   }
 };
 
