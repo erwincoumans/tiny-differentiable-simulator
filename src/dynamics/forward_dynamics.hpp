@@ -224,11 +224,16 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     //       NEURAL_ASSIGN(base_bias_force[5], "base_bias_force_5");
     // #endif
 
-     mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
+     Matrix6 inv_abi = Algebra::inverse(mb.base_abi().matrix());
+     //mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
     //mb.base_acceleration() = -MotionVector(
     //    Algebra::inverse(mb.base_abi().matrix()) * mb.base_bias_force());
+     mb.base_acceleration() = -MotionVector(
+        inv_abi * mb.base_bias_force());
 
   } else {
+    // convert gravity to base frame for fixed-base systems
+    spatial_gravity = mb.base_X_world().apply(spatial_gravity);
     mb.base_acceleration() = -spatial_gravity;
   }
 
@@ -246,13 +251,15 @@ void forward_dynamics(MultiBody<Algebra> &mb,
       Algebra::print("a_parent", a_parent);
     }
 #endif
+    MotionVector x_a = X_parent.apply(a_parent);
+    link.a = x_a + link.c;
 
     // model.a[i] = X_parent.apply(model.a[parent]) + model.c[i];
     // LOG << "a'[" << i << "] = " << model.a[i].transpose() << std::endl;
 
     if (link.qd_index >= 0) {
-      MotionVector x_a = X_parent.apply(a_parent);
-      link.a = x_a + link.c;
+      
+      
 #if DEBUG
       Algebra::print("x_a", x_a);
       Algebra::print("a'", link.a);
@@ -288,11 +295,22 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     Algebra::print("a", link.a);
 #endif
   }
+  
+  // Algebra::print("spatial_gravity", spatial_gravity);
   if (mb.is_floating()) {
-    mb.base_acceleration() += spatial_gravity;
+    MotionVector xa  = mb.base_acceleration();
+    xa.bottom += Algebra::cross(mb.base_velocity().top, mb.base_velocity().bottom);
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    xa.bottom = Algebra::transpose(mb.base_X_world().rotation) *  xa.bottom;
+#else
+    xa.bottom = mb.base_X_world().rotation *  xa.bottom;
+#endif
+    xa += spatial_gravity;
     for (int i = 0; i < 6; i++) {
-      qdd[i] = mb.base_acceleration()[i];
+      // qdd[i] = mb.base_acceleration()[i];
+      qdd[i] = xa[i];
     }
+    // mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
   } else {
     mb.base_acceleration().set_zero();
   }

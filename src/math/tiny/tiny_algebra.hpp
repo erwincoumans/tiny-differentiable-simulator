@@ -574,7 +574,7 @@ struct TinyAlgebra {
     //                  q[3] * w[2] + q[0] * w[1] - q[1] * w[0],
     //                  -q[0] * w[0] - q[1] * w[1] - q[2] * w[2]);
     // delta *= half() * dt;
-    // print("delta quat", delta);
+    // // print("delta quat", delta);
     // return delta;
   }
 
@@ -764,12 +764,14 @@ struct TinyAlgebra {
     return TinyConstants::tanh(s);
   }
 
-  TINY_INLINE static Scalar min(const Scalar &a, const Scalar &b) {
-    return TinyConstants::min1(a, b);
+  template <typename T>
+  TINY_INLINE static auto max(const T &x, const T &y) {
+    return tds::where_gt(x, y, x, y);
   }
 
-  TINY_INLINE static Scalar max(const Scalar &a, const Scalar &b) {
-    return TinyConstants::max1(a, b);
+  template <typename T>
+  TINY_INLINE static auto min(const T &x, const T &y) {
+    return tds::where_lt(x, y, x, y);
   }
 
   TinyAlgebra() = delete;

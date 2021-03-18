@@ -9,9 +9,12 @@
 #include <stan/math/fwd.hpp>
 #endif
 
+#if USE_CPPAD
 #include <cppad/cg.hpp>
 #include <cppad/cg/support/cppadcg_eigen.hpp>
 #include <cppad/example/cppad_eigen.hpp>
+#endif
+
 #include <limits>
 #include <mutex>
 #include <stdexcept>
@@ -26,7 +29,11 @@
 #include <ceres/autodiff_cost_function.h>
 #include "math/tiny/ceres_utils.h"
 #endif
+
+#if USE_CPPAD
 #include "math/tiny/cppad_utils.h"
+#endif
+
 #include "stopwatch.hpp"
 // clang-format on
 
@@ -110,6 +117,8 @@ struct default_diff_algebra<DIFF_STAN_FORWARD, Dim, Scalar> {
   //               "functionality.");
 #endif
 };
+
+#ifdef USE_CPPAD
 template <int Dim, typename Scalar>
 struct default_diff_algebra<DIFF_CPPAD_AUTO, Dim, Scalar> {
   using ADScalar = typename CppAD::AD<Scalar>;
@@ -123,13 +132,14 @@ struct default_diff_algebra<DIFF_CPPAD_CODEGEN_AUTO, Dim, Scalar> {
                                   TinyAlgebra<ADScalar, CppADUtils<CGScalar>>,
                                   EigenAlgebraT<ADScalar>>;
 };
+#endif
 
 /**
  * Central difference for scalar-valued function `f` given vector `x`.
  */
 template <DiffMethod Method, typename F, typename Scalar = double>
 static std::enable_if_t<Method == DIFF_NUMERICAL, void> compute_gradient(
-    F f, const std::vector<Scalar>& x, std::vector<Scalar>& dfx,
+    const F &f, const std::vector<Scalar> &x, std::vector<Scalar> &dfx,
     const Scalar eps = 1e-6) {
   dfx.resize(x.size());
   const Scalar fx = f(x);
@@ -153,7 +163,7 @@ struct CeresFunctional {
   F<ceres::Jet<Scalar, Dim>> f_jet;
 
   template <typename T>
-  bool operator()(const T* const x, T* e) const {
+  bool operator()(const T *const x, T *e) const {
     std::vector<T> arg(x, x + Dim);
     if constexpr (std::is_same_v<T, Scalar>) {
       *e = f_double(arg);
@@ -175,15 +185,15 @@ struct CeresFunctional {
 template <DiffMethod Method, int Dim, template <typename> typename F,
           typename Scalar = double>
 static std::enable_if_t<Method == DIFF_CERES, void> compute_gradient(
-    const std::vector<Scalar>& x, std::vector<Scalar>& dfx) {
+    const std::vector<Scalar> &x, std::vector<Scalar> &dfx) {
 #ifdef USE_CERES
   assert(static_cast<int>(x.size()) == Dim);
   dfx.resize(x.size());
   typedef CeresFunctional<Dim, F, Scalar> CF;
   ceres::AutoDiffCostFunction<CF, 1, Dim> cost_function(new CF);
   Scalar fx;
-  Scalar* grad = dfx.data();
-  const Scalar* params = x.data();
+  Scalar *grad = dfx.data();
+  const Scalar *params = x.data();
   cost_function.Evaluate(&params, &fx, &grad);
 #else
   throw std::runtime_error(
@@ -198,7 +208,7 @@ static std::enable_if_t<Method == DIFF_CERES, void> compute_gradient(
  */
 template <DiffMethod Method, typename F, typename Scalar = double>
 static std::enable_if_t<Method == DIFF_DUAL, void> compute_gradient(
-    F f, const std::vector<Scalar>& x, std::vector<Scalar>& dfx) {
+    const F &f, const std::vector<Scalar> &x, std::vector<Scalar> &dfx) {
   // typedef TinyDual<Scalar> Dual;
   typedef TinyDualDouble Dual;
   dfx.resize(x.size());
@@ -219,7 +229,7 @@ static std::enable_if_t<Method == DIFF_DUAL, void> compute_gradient(
  */
 template <DiffMethod Method, typename F>
 static std::enable_if_t<Method == DIFF_STAN_REVERSE, void> compute_gradient(
-    F f, const std::vector<double>& x, std::vector<double>& dfx) {
+    const F &f, const std::vector<double> &x, std::vector<double> &dfx) {
 #if USE_STAN
   dfx.resize(x.size());
 
@@ -248,7 +258,7 @@ static std::enable_if_t<Method == DIFF_STAN_REVERSE, void> compute_gradient(
  */
 template <DiffMethod Method, typename F, typename Scalar = double>
 static std::enable_if_t<Method == DIFF_STAN_FORWARD, void> compute_gradient(
-    F f, const std::vector<Scalar>& x, std::vector<Scalar>& dfx) {
+    const F &f, const std::vector<Scalar> &x, std::vector<Scalar> &dfx) {
 #if USE_STAN
   typedef stan::math::fvar<Scalar> Dual;
   dfx.resize(x.size());
@@ -275,9 +285,11 @@ template <DiffMethod Method, template <typename> typename F,
 struct GradientFunctional {
   static const int kDim = F<ScalarAlgebra>::kDim;
   using Scalar = typename ScalarAlgebra::Scalar;
-  virtual Scalar value(const std::vector<Scalar>&) const = 0;
-  virtual const std::vector<Scalar>& gradient(
-      const std::vector<Scalar>&) const = 0;
+  virtual Scalar value(const std::vector<Scalar> &) const = 0;
+  virtual const std::vector<Scalar> &gradient(
+      const std::vector<Scalar> &) const = 0;
+  template <typename... Args>
+  GradientFunctional(Args &&... args) {}
 };
 
 template <template <typename> typename F, typename ScalarAlgebra>
@@ -287,9 +299,13 @@ class GradientFunctional<DIFF_NUMERICAL, F, ScalarAlgebra> {
   mutable std::vector<Scalar> gradient_;
 
  public:
+  template <typename... Args>
+  GradientFunctional(Args &&... args)
+      : f_scalar_(std::forward<Args>(args)...) {}
+
   static const int kDim = F<ScalarAlgebra>::kDim;
-  Scalar value(const std::vector<Scalar>& x) const { return f_scalar_(x); }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  Scalar value(const std::vector<Scalar> &x) const { return f_scalar_(x); }
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     tds::compute_gradient<tds::DIFF_NUMERICAL>(f_scalar_, x, gradient_);
     return gradient_;
   }
@@ -307,15 +323,15 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
   mutable std::vector<Scalar> gradient_;
 
   struct CostFunctional {
-    GradientFunctional* parent;
+    GradientFunctional *parent;
 
     F<ScalarAlgebra> f_scalar;
     F<TinyAlgebra<ADScalar, CeresUtils<kDim, Scalar>>> f_jet;
 
-    CostFunctional(GradientFunctional* parent) : parent(parent) {}
+    CostFunctional(GradientFunctional *parent) : parent(parent) {}
 
     template <typename T>
-    bool operator()(const T* const x, T* e) const {
+    bool operator()(const T *const x, T *e) const {
       std::vector<T> arg(x, x + kDim);
       if constexpr (std::is_same_v<T, Scalar>) {
         *e = f_scalar(arg);
@@ -326,7 +342,7 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
     }
   };
 
-  CostFunctional* cost_{nullptr};
+  CostFunctional *cost_{nullptr};
   ceres::AutoDiffCostFunction<CostFunctional, 1, kDim> cost_function_;
 #endif
 
@@ -335,11 +351,11 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
   // CostFunctional pointer is managed by cost_function_.
   GradientFunctional()
       : cost_(new CostFunctional(this)), cost_function_(cost_) {}
-  GradientFunctional(GradientFunctional& f)
+  GradientFunctional(GradientFunctional &f)
       : cost_(new CostFunctional(this)), cost_function_(cost_) {}
-  GradientFunctional(const GradientFunctional& f)
+  GradientFunctional(const GradientFunctional &f)
       : cost_(new CostFunctional(this)), cost_function_(cost_) {}
-  GradientFunctional& operator=(const GradientFunctional& f) {
+  GradientFunctional &operator=(const GradientFunctional &f) {
     if (cost_) {
       delete cost_;
     }
@@ -352,20 +368,20 @@ class GradientFunctional<DIFF_CERES, F, ScalarAlgebra> {
   F<ScalarAlgebra> f_scalar_;
 #endif
 
-  Scalar value(const std::vector<Scalar>& x) const {
+  Scalar value(const std::vector<Scalar> &x) const {
 #ifdef USE_CERES
     return cost_->f_scalar(x);
 #else
     return f_scalar_(x);
 #endif
   }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
 #ifdef USE_CERES
     assert(static_cast<int>(x.size()) == kDim);
     gradient_.resize(x.size());
     Scalar fx;
-    Scalar* grad = gradient_.data();
-    const Scalar* params = x.data();
+    Scalar *grad = gradient_.data();
+    const Scalar *params = x.data();
     cost_function_.Evaluate(&params, &fx, &grad);
     return gradient_;
 #else
@@ -385,9 +401,14 @@ class GradientFunctional<DIFF_DUAL, F, ScalarAlgebra> {
   mutable std::vector<Scalar> gradient_;
 
  public:
+  template <typename... Args>
+  GradientFunctional(Args &&... args)
+      : f_scalar_(std::forward<Args>(args)...),
+        f_ad_(std::forward<Args>(args)...) {}
+
   static const int kDim = F<ScalarAlgebra>::kDim;
-  Scalar value(const std::vector<Scalar>& x) const { return f_scalar_(x); }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  Scalar value(const std::vector<Scalar> &x) const { return f_scalar_(x); }
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     tds::compute_gradient<tds::DIFF_DUAL>(f_ad_, x, gradient_);
     return gradient_;
   }
@@ -397,21 +418,30 @@ template <template <typename> typename F, typename ScalarAlgebra>
 class GradientFunctional<DIFF_STAN_REVERSE, F, ScalarAlgebra> {
   using Scalar = typename ScalarAlgebra::Scalar;
   F<ScalarAlgebra> f_scalar_;
+  static const int kDim = F<ScalarAlgebra>::kDim;
 #if USE_STAN
   F<EigenAlgebraT<stan::math::var>> f_ad_;
   mutable std::vector<Scalar> gradient_;
 
  public:
-  Scalar value(const std::vector<Scalar>& x) const { return f_scalar_(x); }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  template <typename... Args>
+  GradientFunctional(Args &&... args)
+      : f_scalar_(std::forward<Args>(args)...),
+        f_ad_(std::forward<Args>(args)...) {}
+
+  Scalar value(const std::vector<Scalar> &x) const { return f_scalar_(x); }
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     tds::compute_gradient<tds::DIFF_STAN_REVERSE>(f_ad_, x, gradient_);
     return gradient_;
   }
 #else
  public:
-  static const int kDim = F<ScalarAlgebra>::kDim;
-  Scalar value(const std::vector<Scalar>& x) const { return f_scalar_(x); }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  template <typename... Args>
+  GradientFunctional(Args &&... args)
+      : f_scalar_(std::forward<Args>(args)...) {}
+
+  Scalar value(const std::vector<Scalar> &x) const { return f_scalar_(x); }
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     throw std::runtime_error(
         "Variable 'USE_STAN' must be set to use automatic "
         "differentiation functions from Stan Math.");
@@ -423,21 +453,30 @@ template <template <typename> typename F, typename ScalarAlgebra>
 class GradientFunctional<DIFF_STAN_FORWARD, F, ScalarAlgebra> {
   using Scalar = typename ScalarAlgebra::Scalar;
   F<ScalarAlgebra> f_scalar_;
+  static const int kDim = F<ScalarAlgebra>::kDim;
 #if USE_STAN
   F<EigenAlgebraT<stan::math::fvar<Scalar>>> f_ad_;
   mutable std::vector<Scalar> gradient_;
 
  public:
-  Scalar value(const std::vector<Scalar>& x) const { return f_scalar_(x); }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  template <typename... Args>
+  GradientFunctional(Args &&... args)
+      : f_scalar_(std::forward<Args>(args)...),
+        f_ad_(std::forward<Args>(args)...) {}
+
+  Scalar value(const std::vector<Scalar> &x) const { return f_scalar_(x); }
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     tds::compute_gradient<tds::DIFF_STAN_FORWARD>(f_ad_, x, gradient_);
     return gradient_;
   }
 #else
  public:
-  static const int kDim = F<ScalarAlgebra>::kDim;
-  Scalar value(const std::vector<Scalar>& x) const { return f_scalar_(x); }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  template <typename... Args>
+  GradientFunctional(Args &&... args)
+      : f_scalar_(std::forward<Args>(args)...) {}
+
+  Scalar value(const std::vector<Scalar> &x) const { return f_scalar_(x); }
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     throw std::runtime_error(
         "Variable 'USE_STAN' must be set to use automatic "
         "differentiation functions from Stan Math.");
@@ -445,6 +484,7 @@ class GradientFunctional<DIFF_STAN_FORWARD, F, ScalarAlgebra> {
 #endif
 };
 
+#ifdef USE_CPPAD
 static bool gCppADParallelMode = false;
 template <typename GradientFunctional>
 inline void CppADParallelSetup(int num_threads) {
@@ -481,21 +521,34 @@ class GradientFunctional<DIFF_CPPAD_AUTO, F, ScalarAlgebra> {
   using Dual = typename CppAD::AD<Scalar>;
   static const int kDim = F<ScalarAlgebra>::kDim;
 
-  GradientFunctional(const std::vector<Scalar>& x_init = {}) { Init(x_init); }
-  GradientFunctional(const GradientFunctional& other) { Init(); }
-  GradientFunctional(GradientFunctional& f) { Init(); }
-  GradientFunctional& operator=(const GradientFunctional& other) = delete;
+  GradientFunctional &operator=(const GradientFunctional &other) = delete;
 
-  Scalar value(const std::vector<Scalar>& x) const { return f_scalar_(x); }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  template <typename... Args>
+  GradientFunctional(Args &&... args)
+      : f_scalar_(std::forward<Args>(args)...),
+        f_ad_(std::forward<Args>(args)...) {
+    Init();
+  }
+
+  Scalar value(const std::vector<Scalar> &x) const { return f_scalar_(x); }
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     gradient_ = tape_.Jacobian(x);
     return gradient_;
   }
 
- private:
-  void Init(const std::vector<Scalar>& x_init = {}) {
-    std::vector<Dual> ax(kDim);
-    for (int i = 0; i < kDim; ++i) {
+  /**
+   * Traces the function with the provided input values (zeros if empty).
+   */
+  void Init(const std::vector<Scalar> &x_init = {}) {
+    int actual_dim = kDim > 0 ? kDim : static_cast<int>(x_init.size());
+    if (actual_dim == 0) {
+      std::cerr << "Warning: CppAD GradientFunctional could not be initialized "
+                   "because the parameter dimensionality is zero."
+                << std::endl;
+      return;
+    }
+    std::vector<Dual> ax(actual_dim);
+    for (int i = 0; i < actual_dim; ++i) {
       if (i < static_cast<int>(x_init.size())) {
         ax[i] = x_init[i];
       } else {
@@ -510,11 +563,13 @@ class GradientFunctional<DIFF_CPPAD_AUTO, F, ScalarAlgebra> {
     tape_.optimize();
   }
 
+ private:
   F<ScalarAlgebra> f_scalar_;
   F<EigenAlgebraT<Dual>> f_ad_;
   mutable CppAD::ADFun<Scalar> tape_;
   mutable std::vector<Scalar> gradient_;
 };
+#endif
 
 namespace {
 // make sure every model has its own ID
@@ -526,15 +581,51 @@ struct CodeGenSettings {
   bool use_clang{true};
   int optimization_level{0};
   std::size_t max_assignments_per_func{5000};
-  std::size_t max_operations_per_assignment{50};
+  std::size_t max_operations_per_assignment{150};
   std::string sources_folder{"cppadcg_src"};
   bool save_to_disk{true};
 
   // function arguments used while generating the code (will be zero if not set)
   std::vector<double> default_x;
   std::vector<double> default_nograd_x;
+
+  // whether to throw a MissingGradientException if some input indices have no
+  // derivatives
+  bool fail_on_missing_gradient_indices{true};
+
+  // custom name for the model; a unique name will be chosen if empty
+  std::string model_name;
 };
 
+struct MissingGradientException : public std::exception {
+  std::vector<size_t> missing_indices;
+  std::string model_name;
+
+  explicit MissingGradientException(const std::vector<size_t> &missing_indices,
+                                    const std::string &model_name)
+      : missing_indices(missing_indices), model_name(model_name) {}
+
+  static std::string message(const std::vector<size_t> &missing_indices,
+                             const std::string &model_name) {
+    std::stringstream ss;
+    ss << "The following " << missing_indices.size()
+       << " input variable indices have no available derivatives in model \""
+       << model_name << "\":\n";
+    for (size_t i = 0; i < missing_indices.size(); ++i) {
+      ss << missing_indices[i];
+      if (i < missing_indices.size() - 1) {
+        ss << ", ";
+      }
+    }
+    return ss.str();
+  }
+
+  const char *what() const noexcept override {
+    return message(missing_indices, model_name).c_str();
+  }
+};
+
+#if USE_CPPAD
 #if CPPAD_CG_SYSTEM_LINUX
 template <template <typename> typename F, typename ScalarAlgebra>
 class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
@@ -545,10 +636,60 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
   static const int kDim = F<ScalarAlgebra>::kDim;
   using DualAlgebra = typename default_diff_algebra<DIFF_CPPAD_CODEGEN_AUTO,
                                                     kDim, Scalar>::type;
+  // #ifndef NDEBUG
+  // template <typename... Args>
+  // GradientFunctional(Args &&... args)
+  //     : model_name_("model_" + std::to_string(cpp_ad_codegen_model_counter)),
+  //       f_scalar_(std::forward<Args>(args)...) {
+  //   Init();
+  // }
+  // #else
+  // template <typename... Args>
+  // GradientFunctional(Args &&...)
+  //     : model_name_("model_" + std::to_string(cpp_ad_codegen_model_counter)) {
+  //   Init();
+  // }
+  // #endif
+  GradientFunctional(const std::string &model_name =
+                         "model_" +
+                         std::to_string(cpp_ad_codegen_model_counter),
+                     const std::string &library_name = "")
+      : model_name_(model_name), library_name_(library_name) {
+    Init();
+  }
+  GradientFunctional(const GradientFunctional &other)
+      : model_name_(other.model_name_), library_name_(other.library_name_) {
+    Init();
+  }
+  GradientFunctional &operator=(const GradientFunctional &other) {
+    model_name_ = other.model_name_;
+    library_name_ = other.library_name_;
+    Init();
+    return *this;
+  }
 
-  static void Compile(const CodeGenSettings& settings = CodeGenSettings()) {
-    std::vector<Dual> ax(kDim + settings.default_nograd_x.size());
-    for (std::size_t i = 0; i < kDim; ++i) {
+  /**
+   * Generates and compiles code for the functor provided through the template
+   * argument. Returns the name of the model that can be provided to the
+   * subsequent GradientFunctor constructions to load this model from its
+   * dynamic library (dlopen). Further codegen- and compilation-related settings
+   * can be made via the `settings` argument.
+   * Any arguments provided via parameter packing are forwarded to the
+   * constructor of the functor `F` provided as template argument.
+   */
+  template <typename... Args>
+  static std::string Compile(
+      const CodeGenSettings &settings = CodeGenSettings(), Args &&... args) {
+    int actual_dim =
+        kDim > 0 ? kDim : static_cast<int>(settings.default_x.size());
+    if (actual_dim == 0) {
+      std::cerr << "Warning: CppADCodeGen GradientFunctional could not be "
+                   "initialized because the parameter dimensionality is zero."
+                << std::endl;
+      return "<ERROR>";
+    }
+    std::vector<Dual> ax(actual_dim + settings.default_nograd_x.size());
+    for (std::size_t i = 0; i < actual_dim; ++i) {
       if (i >= settings.default_x.size()) {
         ax[i] = ScalarAlgebra::zero();
       } else {
@@ -557,42 +698,83 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
     }
 
     for (std::size_t i = 0; i < settings.default_nograd_x.size(); ++i) {
-      ax[i + kDim] = settings.default_nograd_x[i];
+      ax[i + actual_dim] = settings.default_nograd_x[i];
     }
 
+    std::string model_name;
+    if (!settings.model_name.empty()) {
+      model_name = settings.model_name;
+    } else {
+      model_name = "model_" + std::to_string(++cpp_ad_codegen_model_counter);
+    }
     CppAD::Independent(ax);
     std::vector<Dual> ay(1);
-    std::cout << "Tracing cost functor for code generation...\n";
-    F<DualAlgebra> f;
+    Stopwatch timer;
+    timer.start();
+    if (settings.verbose) {
+      printf("Tracing cost functor of model \"%s\" for code generation...\n",
+             model_name.c_str());
+    }
+    F<DualAlgebra> f(std::forward<Args>(args)...);
+    if (settings.verbose) {
+      printf("Tracing completed.\t(%.3fs)\n", timer.stop());
+    }
     ay[0] = f(ax);
     CppAD::ADFun<CGScalar> tape;
     tape.Dependent(ax, ay);
-    tape.optimize();
+    // tape.optimize();
 
-    Stopwatch timer;
     timer.start();
-    std::string model_name =
-        "model_" + std::to_string(++cpp_ad_codegen_model_counter);
     CppAD::cg::ModelCSourceGen<Scalar> cgen(tape, model_name);
-    cgen.setCreateSparseJacobian(true);
-    // cgen.setCreateJacobian(true);
+    // cgen.setCreateSparseJacobian(true);
+    cgen.setCreateJacobian(true);
     if (settings.default_nograd_x.size() > 0) {
       if (settings.verbose) {
         printf(
             "Dynamic parameters provided, creating sparsity pattern. (%d "
             "active, %ld inactive)\n",
-            kDim, ax.size() - kDim);
+            actual_dim, ax.size() - actual_dim);
       }
-      std::vector<size_t> rows(kDim, 0);
-      std::vector<size_t> cols(kDim, 0);
+      std::vector<size_t> rows(actual_dim, 0);
+      std::vector<size_t> cols(actual_dim, 0);
       std::iota(cols.begin(), cols.end(), 0);
       cgen.setCustomSparseJacobianElements(rows, cols);
     }
+    if (settings.verbose) {
+      timer.start();
+      printf("Generating code for model \"%s\" with CppADCodeGen...\n",
+             model_name.c_str());
+      cgen.generateSources(CppAD::cg::MultiThreadingType::NONE);
+      printf("Code for model \"%s\" has been generated.\t(%.3fs)\n",
+             model_name.c_str(), timer.stop());
+      fflush(stdout);
+    }
+
+    if (cgen.isCreateSparseJacobian()) {
+      // check that the sparse Jacobian indices match the requested indices
+      const auto &sparsity = cgen.getJacobianSparsity();
+      std::vector<size_t> missing_indices;
+      for (size_t i = 0; i < sparsity.sparsity.size(); ++i) {
+        if (sparsity.sparsity[i].empty()) {
+          missing_indices.push_back(i);
+        }
+      }
+      if (!missing_indices.empty()) {
+        // there are missing indices in the generated sparsity pattern
+        if (settings.fail_on_missing_gradient_indices) {
+          throw MissingGradientException(missing_indices, model_name);
+        } else {
+          std::cerr << "Warning: "
+                    << MissingGradientException::message(missing_indices,
+                                                         model_name)
+                    << std::endl;
+        }
+      }
+    }
+
     cgen.setMaxAssignmentsPerFunc(settings.max_assignments_per_func);
     cgen.setMaxOperationsPerAssignment(settings.max_operations_per_assignment);
     if (settings.verbose) {
-      printf("Created CppAD::cg::ModelCSourceGen.\t(%.3fs)\n", timer.stop());
-      fflush(stdout);
       timer.start();
     }
     CppAD::cg::ModelLibraryCSourceGen<Scalar> libcgen(cgen);
@@ -623,7 +805,7 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
     compiler->addCompileFlag("-O" +
                              std::to_string(settings.optimization_level));
     std::cout << "{ ";
-    for (const auto& flag : compiler->getCompileFlags()) {
+    for (const auto &flag : compiler->getCompileFlags()) {
       std::cout << flag << " ";
     }
     std::cout << "}\t";
@@ -641,34 +823,38 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
       printf("Finished compiling dynamic library.\t(%.3fs)\n", timer.stop());
       fflush(stdout);
     }
+
+    return model_name;
   }
 
-  Scalar value(const std::vector<Scalar>& x) const {
+  Scalar value(const std::vector<Scalar> &x) const {
     const auto fx = model_->ForwardZero(x);
 #ifndef NDEBUG
-    const auto fx_slow = f_scalar_(x);
-    const bool close = std::fabs(fx_slow - fx[0]) < 1e-6;
-    if (!close) {
-      std::cout << "Scalar/CodeGen 0th order mismatch: " << fx_slow << " vs "
-                << fx[0] << "\n";
-    }
-    assert(close);
+    // const auto fx_slow = f_scalar_(x);
+    // const bool close = std::fabs(fx_slow - fx[0]) < 1e-6;
+    // if (!close) {
+    //   std::cout << "Scalar/CodeGen 0th order mismatch: " << fx_slow << " vs "
+    //             << fx[0] << "\n";
+    // }
+    // assert(close);
 #endif
     return fx[0];
   }
-  const std::vector<Scalar>& gradient(const std::vector<Scalar>& x) const {
+  const std::vector<Scalar> &gradient(const std::vector<Scalar> &x) const {
     assert(lib_ != nullptr && model_ != nullptr);
-    gradient_.resize(kDim);
-    rows_.resize(kDim);
-    cols_.resize(kDim);
-    model_->SparseJacobian(x, gradient_, rows_, cols_);
-    // gradient_ = model_->Jacobian(x);
-    // gradient_.resize(kDim);
+    static int actual_dim = kDim > 0 ? kDim : static_cast<int>(x.size());
+    assert(actual_dim > 0);
+    gradient_.resize(actual_dim);
+    rows_.resize(actual_dim);
+    cols_.resize(actual_dim);
+    // model_->SparseJacobian(x, gradient_, rows_, cols_);
+    gradient_ = model_->Jacobian(x);
+    // gradient_.resize(actual_dim);
     // #ifndef NDEBUG
     //     // In debug mode, verify the gradient matches the (slower) Ceres
     //     gradient.
     //     // This can help catch if/else branches that CppAD isn't aware of.
-    //     if (kDim != static_cast<int>(x.size())) {
+    //     if (actual_dim != static_cast<int>(x.size())) {
     //       std::cout << "Cannot compare codegen gradient against Ceres at the"
     //                    "moment if the functor has non-grad variables as
     //                    input.\n";
@@ -691,32 +877,16 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
     return gradient_;
   }
 
-  void Init() {
+  void Init(bool verbose = false) {
     if (library_name_.empty()) {
       library_name_ = "./" + model_name_ + ".so";
     }
     lib_ = std::make_unique<CppAD::cg::LinuxDynamicLib<Scalar>>(library_name_);
     model_ = lib_->model(model_name_);
-    std::cout << "Loaded compiled model \"" << model_name_ << "\" from \""
-              << library_name_ << "\".\n";
-  }
-
-  GradientFunctional(const std::string& model_name =
-                         "model_" +
-                         std::to_string(cpp_ad_codegen_model_counter),
-                     const std::string& library_name = "")
-      : model_name_(model_name), library_name_(library_name) {
-    Init();
-  }
-  GradientFunctional(const GradientFunctional& other)
-      : model_name_(other.model_name_), library_name_(other.library_name_) {
-    Init();
-  }
-  GradientFunctional& operator=(const GradientFunctional& other) {
-    model_name_ = other.model_name_;
-    library_name_ = other.library_name_;
-    Init();
-    return *this;
+    if (verbose) {
+      std::cout << "Loaded compiled model \"" << model_name_ << "\" from \""
+                << library_name_ << "\".\n";
+    }
   }
 
  private:
@@ -728,7 +898,7 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
   std::string library_name_{""};
 
 #ifndef NDEBUG
-  F<ScalarAlgebra> f_scalar_;
+  // F<ScalarAlgebra> f_scalar_;
 //   GradientFunctional<tds::DIFF_CERES, F, ScalarAlgebra> ceres_functional_;
 #endif
   mutable std::vector<Scalar> gradient_;
@@ -737,5 +907,6 @@ class GradientFunctional<DIFF_CPPAD_CODEGEN_AUTO, F, ScalarAlgebra> {
   std::unique_ptr<CppAD::cg::LinuxDynamicLib<Scalar>> lib_{nullptr};
   std::unique_ptr<CppAD::cg::GenericModel<Scalar>> model_;
 };
+#endif
 #endif
 }  // namespace tds
