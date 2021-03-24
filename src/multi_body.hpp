@@ -572,7 +572,7 @@ public:
   }
  
   size_t attach_link(Link &link, int parent_index, bool is_controllable = true) {
-     attach(link, parent_index, is_controllable); 
+     return attach(link, parent_index, is_controllable); 
  } 
   size_t attach(Link &link, int parent_index, bool is_controllable = true) {
     int sz = static_cast<int>(links_.size());
