@@ -1,12 +1,3 @@
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Labeled_mesh_domain_3.h>
-#include <CGAL/Mesh_complex_3_in_triangulation_3.h>
-#include <CGAL/Mesh_criteria_3.h>
-#include <CGAL/Mesh_triangulation_3.h>
-#include <CGAL/Polygon_mesh_processing/compute_normal.h>
-#include <CGAL/Surface_mesh/Surface_mesh.h>
-#include <CGAL/make_mesh_3.h>
-
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
@@ -15,36 +6,48 @@
 #include "stb_image/stb_image.h"
 #include "tiny_obj_loader.h"
 #include "utils/file_utils.hpp"
-#include "utils/sdf_to_mesh_converter.hpp"
+#include "math/tiny/tiny_algebra.hpp"
+#include "math/tiny/tiny_double_utils.h"
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_chrome_trace_util.h"
 #include "visualizer/opengl/utils/tiny_logging.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
+#include "geometry.hpp"
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::FT FT;
-typedef K::Point_3 Point;
-typedef FT(Function)(const Point &);
-typedef CGAL::Labeled_mesh_domain_3<K> Mesh_domain;
+#include "utils/sdf_to_mesh/marching_cubes.hpp"
 
-#ifdef CGAL_CONCURRENT_MESH_3
-typedef CGAL::Parallel_tag Concurrency_tag;
-#else
-typedef CGAL::Sequential_tag Concurrency_tag;
-#endif
-
-typedef CGAL::Mesh_triangulation_3<Mesh_domain, CGAL::Default,
-                                   Concurrency_tag>::type Tr;
-typedef CGAL::Mesh_complex_3_in_triangulation_3<Tr> C3t3;
-typedef CGAL::Mesh_criteria_3<Tr> Mesh_criteria;
-using namespace CGAL::parameters;
+typedef TinyAlgebra<double, TINY::DoubleUtils> Algebra;
+using Vector3 = typename Algebra::Vector3;
 using namespace TINY;
 
-FT sphere_function(const Point &p) {
-  return CGAL::squared_distance(p, Point(CGAL::ORIGIN)) - 1.0;
+#define BOUND 3.0
+#define NCELLS 50
+#define GRAD 0.06
+#define MINVAL 0.0
+
+struct CGALShape
+{
+  std::vector<GfxVertexFormat1> vertices;
+  std::vector<int> indices;
+
+  size_t num_triangles;
+  size_t num_vertices;
+};
+
+float simple_squared_distance(Vector3 p1, Vector3 p2)
+{
+  return sqrtf(pow(p1.x() - p2.x(), 2) + pow(p1.y() - p2.y(), 2) + pow(p1.z() - p2.z(), 2));
 }
 
-int main(int argc, char **argv) {
+double simple_sphere_function(Vector3 p)
+{
+  return simple_squared_distance(p, Vector3::zero()) - 1.0;
+}
+
+FORMULA<Algebra> sphere_function(simple_sphere_function);
+
+int main(int argc, char **argv)
+{
   TinyOpenGL3App app("sdf_to_mesh_test", 1024, 768);
   app.m_renderer->init();
   app.set_up_axis(2);
@@ -52,19 +55,54 @@ int main(int argc, char **argv) {
   app.m_renderer->get_active_camera()->set_camera_pitch(-30);
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
 
-  Mesh_domain domain = Mesh_domain::create_implicit_mesh_domain(
-      sphere_function, K::Sphere_3(CGAL::ORIGIN, 3.0));
-  Mesh_criteria criteria(facet_angle = 30.0, facet_size = 0.3,
-                         facet_distance = 0.025, cell_radius_edge = 2.0,
-                         cell_size = 0.1);
+  // Create a shape from the simple Marching Cubes algorithm
+  float minX = -BOUND;
+  float maxX = BOUND;
+  float minY = -BOUND;
+  float maxY = BOUND;
+  float minZ = -BOUND;
+  float maxZ = BOUND;
 
-  // Outputing mesh in medit format to a file
-  // std::ofstream medit_file("out.mesh");
-  // c3t3.output_to_medit(medit_file);
+  int ncellsX = NCELLS;
+  int ncellsY = NCELLS;
+  int ncellsZ = NCELLS;
 
-  // Directly reading into local data structures
-  SdfToMeshConverter<K, Tr> mesh(sphere_function, domain, criteria);
-  auto shape = mesh.convert_to_shape();
+  float gradX = GRAD;
+  float gradY = GRAD;
+  float gradZ = GRAD;
+
+  float minValue = MINVAL;
+
+  MCShape<Algebra> result = MarchingCubes<Algebra>(minX, maxX, minY, maxY, minZ, maxZ,
+                                                   ncellsX, ncellsY, ncellsZ,
+                                                   gradX, gradY, gradZ, minValue,
+                                                   sphere_function);
+
+  CGALShape shape;
+  for (const auto &v : result.vertices)
+  {
+    GfxVertexFormat1 vgl;
+    vgl.x = v.p.x();
+    vgl.y = v.p.y();
+    vgl.z = v.p.z();
+    vgl.nx = v.norm.x();
+    vgl.ny = v.norm.y();
+    vgl.nz = v.norm.z();
+    vgl.w = 1.;
+    vgl.u = vgl.v = 0.;
+
+    shape.vertices.push_back(vgl);
+  }
+
+  for (const auto &t : result.index_triangles)
+  {
+    shape.indices.push_back(t[0]);
+    shape.indices.push_back(t[1]);
+    shape.indices.push_back(t[2]);
+  }
+
+  shape.num_vertices = result.vertices.size();
+  shape.num_triangles = result.index_triangles.size();
 
   TinyVector3f pos(0, 0, -0.02);
   TinyQuaternionf orn(0, 0, 0, 1);
@@ -83,12 +121,15 @@ int main(int argc, char **argv) {
   for (int i = 0; i < texWidth * texHeight * 3; i++)
     texels[i] = 255;
 
-  for (int i = 0; i < texWidth; i++) {
-    for (int j = 0; j < texHeight; j++) {
+  for (int i = 0; i < texWidth; i++)
+  {
+    for (int j = 0; j < texHeight; j++)
+    {
       int a = i < texWidth / 2 ? 1 : 0;
       int b = j < texWidth / 2 ? 1 : 0;
 
-      if (a == b) {
+      if (a == b)
+      {
         texels[(i + j * texWidth) * 3 + 0] = red;
         texels[(i + j * texWidth) * 3 + 1] = green;
         texels[(i + j * texWidth) * 3 + 2] = blue;
@@ -118,16 +159,21 @@ int main(int argc, char **argv) {
 
   int upAxis = 2;
   app.m_renderer->write_transforms();
-  while (!app.m_window->requested_exit()) {
+  while (!app.m_window->requested_exit())
+  {
     app.m_renderer->update_camera(upAxis);
     {
       DrawGridData data;
       data.upAxis = upAxis;
       app.draw_grid(data);
     }
-    { app.m_renderer->render_scene(); }
+    {
+      app.m_renderer->render_scene();
+    }
 
-    { app.swap_buffer(); }
+    {
+      app.swap_buffer();
+    }
   }
 
   return 0;
