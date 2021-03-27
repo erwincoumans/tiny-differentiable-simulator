@@ -209,7 +209,8 @@ class MultiBodyConstraintSolver {
       //   is_positive_definite_b = true;
       // } else {
       submit_profile_timing("inverse_mass_matrix_b");
-      is_positive_definite_b = Algebra::symmetric_inverse(mass_matrix_b, mass_matrix_b_inv);
+      is_positive_definite_b =
+          Algebra::symmetric_inverse(mass_matrix_b, mass_matrix_b_inv);
       submit_profile_timing("");
       // }
     }
@@ -310,9 +311,9 @@ class MultiBodyConstraintSolver {
           // use the negative lateral velocity and its orthogonal as friction
           // directions
           fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
-          fr_direction1.normalize();
+          fr_direction1 = Algebra::normalize(fr_direction1);
           fr_direction2 = Algebra::cross(fr_direction1,cp.world_normal_on_b);
-          fr_direction2.normalize();
+          fr_direction2 = Algebra::normalize(fr_direction2);
       }
 #else
       // friction direction
@@ -461,29 +462,43 @@ class MultiBodyConstraintSolver {
    * length.
    */
   static inline void plane_space(const Vector3& n, Vector3& p, Vector3& q) {
-    if (n[2] * n[2] > Algebra::half()) {
-      // choose p in y-z plane
-      Scalar a = n[1] * n[1] + n[2] * n[2];
-      Scalar k = Algebra::sqrt(a);
-      p[0] = Algebra::zero();
-      p[1] = -n[2] * k;
-      p[2] = n[1] * k;
-      // set q = n x p
-      q[0] = a * k;
-      q[1] = -n[0] * p[2];
-      q[2] = n[0] * p[1];
-    } else {
-      // choose p in x-y plane
-      Scalar a = n[0] * n[0] + n[1] * n[1];
-      Scalar k = Algebra::sqrt(a);
-      p[0] = -n[1] * k;
-      p[1] = n[0] * k;
-      p[2] = Algebra::zero();
-      // set q = n x p
-      q[0] = -n[2] * p[1];
-      q[1] = n[2] * p[0];
-      q[2] = a * k;
-    }
+    Scalar n_sqr = n[2] * n[2];
+    Scalar mostly_z =
+        tds::where_gt(n_sqr, Algebra::half(), Algebra::one(), Algebra::zero());
+    Scalar a =
+        n[1] * n[1] + tds::where_gt(n_sqr, Algebra::half(), n_sqr, n[0] * n[0]);
+    Scalar k = Algebra::sqrt(a);
+    p[0] = tds::where_gt(n_sqr, Algebra::half(), Algebra::zero(), -n[1] * k);
+    p[1] = tds::where_gt(n_sqr, Algebra::half(), -n[2] * k, n[0] * k);
+    p[2] = tds::where_gt(n_sqr, Algebra::half(), n[1] * k, n[1] * k);
+    // set q = n x p
+    q[0] = tds::where_gt(n_sqr, Algebra::half(), a * k, -n[2] * p[1]);
+    q[1] = tds::where_gt(n_sqr, Algebra::half(), -n[0] * p[2], n[2] * p[0]);
+    q[2] = tds::where_gt(n_sqr, Algebra::half(), n[0] * p[1], a * k);
+    
+    // if (n[2] * n[2] > Algebra::half()) {
+    //   // choose p in y-z plane
+    //   Scalar a = n[1] * n[1] + n[2] * n[2];
+    //   Scalar k = Algebra::sqrt(a);
+    //   p[0] = Algebra::zero();
+    //   p[1] = -n[2] * k;
+    //   p[2] = n[1] * k;
+    //   // set q = n x p
+    //   q[0] = a * k;
+    //   q[1] = -n[0] * p[2];
+    //   q[2] = n[0] * p[1];
+    // } else {
+    //   // choose p in x-y plane
+    //   Scalar a = n[0] * n[0] + n[1] * n[1];
+    //   Scalar k = Algebra::sqrt(a);
+    //   p[0] = -n[1] * k;
+    //   p[1] = n[0] * k;
+    //   p[2] = Algebra::zero();
+    //   // set q = n x p
+    //   q[0] = -n[2] * p[1];
+    //   q[1] = n[2] * p[0];
+    //   q[2] = a * k;
+    // }
   }
 
  private:

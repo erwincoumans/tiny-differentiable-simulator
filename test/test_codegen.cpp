@@ -2,7 +2,6 @@
 
 // clang-format off
 // Differentiation must go first
-#define USE_CPPAD
 #include "utils/differentiation.hpp"
 #include "math/conditionals.hpp"
 #include "world.hpp"

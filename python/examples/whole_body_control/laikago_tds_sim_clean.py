@@ -446,10 +446,10 @@ class SimpleRobot(object):
       base_world_tr = self.mb.get_world_transform(-1)
       local_base_tr = dp.TinySpatialTransform()
       local_base_tr.translation = dp.Vector3(base_translation[0],base_translation[1],base_translation[2])
-      local_base_tr.rotation.setRotation(dp.Quaternion(base_rotation[0],base_rotation[1],base_rotation[2],base_rotation[3]))
+      local_base_tr.rotation = dp.Matrix3(dp.Quaternion(base_rotation[0],base_rotation[1],base_rotation[2],base_rotation[3]))
       world_tr = base_world_tr*local_base_tr
       local_link_tr = dp.TinySpatialTransform()
-      local_link_tr.rotation.set_identity()
+      local_link_tr.rotation = dp.Matrix3(dp.Quaternion(0,0,0,1))
       local_link_tr.translation = dp.Vector3(link_position[0],link_position[1],link_position[2])
       link_tr = world_tr* local_link_tr
       world_link_pos = [link_tr.translation[0],link_tr.translation[1],link_tr.translation[2]]
@@ -539,7 +539,7 @@ class SimpleRobot(object):
 
   def GetTrueBaseOrientation(self):
     rn = self.mb.get_base_orientation()
-    orn=[rn[0],rn[1],rn[2],rn[3]]
+    orn=[rn.x,rn.y,rn.z,rn.w]
     return orn
     
   def TransformAngularVelocityToLocalFrame(self, angular_velocity, orientation):
@@ -561,7 +561,7 @@ class SimpleRobot(object):
     tr.translation = dp.Vector3(1,2,3)
     tr.translation.set_zero()
     orn = dp.Quaternion(orientation[0],orientation[1],orientation[2],orientation[3])
-    tr.rotation.setRotation(orn)
+    tr.rotation = dp.Matrix3(orn)
     tr_inv = tr.get_inverse()
     rel_vel = tr.apply_inverse(dp.Vector3(angular_velocity[0],angular_velocity[1],angular_velocity[2]))
     #tr.print("tds trans")
@@ -711,7 +711,7 @@ class SimpleRobot(object):
     angvel = [self.mb.qd[0],self.mb.qd[1],self.mb.qd[2]]
     linvel = [self.mb.qd[3],self.mb.qd[4],self.mb.qd[5]]
     pos=[ps[0],ps[1],ps[2]]
-    orn=[rn[0],rn[1],rn[2],rn[3]]
+    orn=[rn.x,rn.y,rn.z,rn.w]
     
     if sync_to_pybullet:
       self.pybullet_client.resetBasePositionAndOrientation(self.quadruped, pos, orn)
