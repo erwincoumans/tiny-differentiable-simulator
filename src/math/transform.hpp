@@ -5,11 +5,8 @@
 
 // right-associative means transforms are multiplied like parent_transform * child_transform.
 // RBDL uses left-associative transforms
-#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    #define RIGHT_ASSOCIATIVE_TRANSFORMS false
-#else
-    #define RIGHT_ASSOCIATIVE_TRANSFORMS true
-#endif
+//#define TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+
 
 namespace tds {
 template <typename Algebra>
@@ -73,7 +70,7 @@ struct Transform {
   }
 
   Matrix6 matrix() const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
     Matrix3 E = Algebra::transpose(rotation);
 #else
@@ -90,7 +87,7 @@ struct Transform {
   }
 
   Matrix6 matrix_transpose() const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
     Matrix3 E = Algebra::transpose(rotation);
 #else
@@ -115,7 +112,7 @@ struct Transform {
 //   tr.rotation *= t.rotation;
 //   return tr;
 // }
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
   // Transform operator*(const Transform &t) const {
   //   /// XXX this is different from Featherstone
   //   Transform tr = *this;
@@ -142,6 +139,16 @@ struct Transform {
       return Algebra::transpose(rotation) * (point - translation);
   }
 #else
+    // implementation from RBDL
+  Transform operator*(const Transform &t) const {
+    Transform tr = *this;
+    // tr.translation = t.translation + t.rotation * translation;
+    tr.translation =
+        t.translation + Algebra::transpose(t.rotation) * translation;
+    tr.rotation *= t.rotation;
+    return tr;
+  }
+
 // Transform operator*(const Transform &t) const {
 //   Transform tr = *this;
 //   tr.translation = t.translation + t.rotation * translation;
@@ -155,15 +162,8 @@ struct Transform {
 //   tr.rotation *= t.rotation;
 //   return tr;
 // }
-  Transform operator*(const Transform &t) const {
-    /// XXX this is different from Featherstone: we assume transforms are
-    /// right-associative
-    Transform tr = *this;
-    tr.translation += Algebra::transpose(rotation) * t.translation;
-    // tr.translation += rotation * t.translation;
-    tr.rotation *= t.rotation;
-    return tr;
-  }
+ 
+
   TINY_INLINE Vector3 apply(const Vector3 &point) const {
     return rotation * point + translation;
   }
@@ -187,14 +187,19 @@ struct Transform {
 #endif
 
   Transform inverse() const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    Matrix3 E = Algebra::transpose(rotation);
     const Matrix3 &Et = rotation;
+    Transform inv;
+    inv.rotation = E;
+    inv.translation = E * -translation;
 #else
+    const Matrix3 &E = rotation;
     Matrix3 Et = Algebra::transpose(rotation);
-#endif
     Transform inv;
     inv.rotation = Et;
-    inv.translation = Et * -translation;
+    inv.translation = E * -translation;
+#endif
     return inv;
   }
 
@@ -203,7 +208,7 @@ struct Transform {
    * X*V = mv(E*w, E*(v - r x w))
    */
   inline MotionVector apply(const MotionVector &inVec) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Matrix3 E = Algebra::transpose(rotation);
 #else
     const Matrix3 &E = rotation;
@@ -225,7 +230,7 @@ struct Transform {
    * inv(X)*V = mv(ET*w, ET*v + r x (ET*w))
    */
   inline MotionVector apply_inverse(const MotionVector &inVec) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
 #else
     Matrix3 Et = Algebra::transpose(rotation);
@@ -242,7 +247,7 @@ struct Transform {
    * XT*F = fv(ETn + rxETf, ETf)
    */
   inline ForceVector apply(const ForceVector &inVec) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
 #else
     Matrix3 Et = Algebra::transpose(rotation);
@@ -261,7 +266,7 @@ struct Transform {
    * X^* F = fv(E(n - rxf), Ef)
    */
   inline ForceVector apply_inverse(const ForceVector &inVec) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Matrix3 E = Algebra::transpose(rotation);
 #else
     const Matrix3 &E = rotation;
@@ -284,7 +289,7 @@ struct Transform {
    * XT*F = fv(ETn + rxETf, ETf)
    */
   inline Matrix6x3 apply_to_3d_force(const Matrix6x3 &inMat) const{
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
 #else
     Matrix3 Et = Algebra::transpose(rotation);
@@ -307,7 +312,7 @@ struct Transform {
    * X*V = mv(E*w, E*(v - r x w))
    */
   inline Matrix6x3 apply_to_3d_motion(const Matrix6x3 &inMat) const{
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Matrix3 E = Algebra::transpose(rotation);
 #else
     const Matrix3 &E = rotation;
@@ -335,7 +340,7 @@ struct Transform {
   * X^* F = fv(E(n - rxf), Ef)
   */
   inline Matrix6x3 apply_inverse_to_3d_force(const Matrix6x3 &inMat) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     Matrix3 E = Algebra::transpose(rotation);
 #else
     const Matrix3 &E = rotation;
@@ -358,7 +363,7 @@ struct Transform {
   * inv(X)*V = mv(ET*w, ET*v + r x (ET*w))
   */
   inline Matrix6x3 apply_inverse_to_3d_motion(const Matrix6x3 &inMat) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
 #else
     Matrix3 Et = Algebra::transpose(rotation);
@@ -378,7 +383,7 @@ struct Transform {
    * Computes \f$ X^* I X^{-1} \f$.
    */
   inline RigidBodyInertia apply(const RigidBodyInertia &rbi) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
     Matrix3 E = Algebra::transpose(rotation);
 #else
@@ -402,7 +407,7 @@ struct Transform {
    * Computes \f$ X^T I X \f$.
    */
   inline RigidBodyInertia apply_transpose(const RigidBodyInertia &rbi) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
     Matrix3 E = Algebra::transpose(rotation);
 #else
@@ -426,7 +431,7 @@ struct Transform {
    * Computes \f$ X^* I^A X^{-1} \f$.
    */
   inline ArticulatedBodyInertia apply(const ArticulatedBodyInertia &abi) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
     Matrix3 E = Algebra::transpose(rotation);
 #else
@@ -455,7 +460,7 @@ struct Transform {
    */
   inline ArticulatedBodyInertia apply_transpose(
       const ArticulatedBodyInertia &abi) const {
-#if RIGHT_ASSOCIATIVE_TRANSFORMS
+#ifndef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     const Matrix3 &Et = rotation;
     Matrix3 E = Algebra::transpose(rotation);
 #else

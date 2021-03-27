@@ -14,7 +14,9 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
 
 
-import torch
+use_cpp_mpc = True
+
+  
 import numpy as np
 import os
 import glob
@@ -28,18 +30,26 @@ parser.add_argument("--input", type=str, default="mpc_20201028-164829_mpc_inputs
 parser.add_argument("--output", type=str, default="mpc_20201028-164829_torques.npy")
 args = parser.parse_args()
 
-model = torch.load("mpc_ffn_model.pt",  map_location='cpu')
-model.to('cpu')
 
-model.double()
-model.eval()
+if use_cpp_mpc:
+  try:
+    import mpc_osqp as convex_mpc  # pytype: disable=import-error
+  except:  #pylint: disable=W0702
+    print("You need to install motion_imitation")
+    print("Either run python3 setup.py install --user in this repo")
+    print("or use pip3 install motion_imitation --user")
+    sys.exit()
+else:
+  import torch
 
-
-input_file = args.input
-output_file = args.output
-
-loss_fn = torch.nn.MSELoss()
-loss_arr = []
+  model = torch.load("mpc_ffn_model.pt",  map_location='cpu')
+  model.to('cpu')
+  model.double()
+  model.eval()
+  input_file = args.input
+  output_file = args.output
+  loss_fn = torch.nn.MSELoss()
+  loss_arr = []
 
 from typing import Any, Sequence, Tuple
 
@@ -55,13 +65,8 @@ except:  #pylint: disable=W0702
   print("or use pip3 install motion_imitation --user")
   sys.exit()
 
-#try:
-#  import mpc_osqp as convex_mpc  # pytype: disable=import-error
-#except:  #pylint: disable=W0702
-#  print("You need to install motion_imitation")
-#  print("Either run python3 setup.py install --user in this repo")
-#  print("or use pip3 install motion_imitation --user")
-#  sys.exit()
+
+
 
 _FORCE_DIMENSION = 3
 # The QP weights in the convex MPC formulation. See the MIT paper for details:
@@ -130,14 +135,17 @@ class TorqueStanceLegController(leg_controller.LegController):
     self._friction_coeffs = np.array(friction_coeffs)
     body_inertia_list = list(body_inertia)
     weights_list = list(_MPC_WEIGHTS)
-    #self._cpp_mpc = convex_mpc.ConvexMpc(
-    #    body_mass,
-    #    body_inertia_list,
-    #    self._num_legs,
-    #    _PLANNING_HORIZON_STEPS,
-    #    _PLANNING_TIMESTEP,
-    #    weights_list,
-    #)
+    alpha = 1e-5
+    self._cpp_mpc = convex_mpc.ConvexMpc(
+        body_mass,
+        body_inertia_list,
+        self._num_legs,
+        _PLANNING_HORIZON_STEPS,
+        _PLANNING_TIMESTEP,
+        weights_list,
+        alpha,
+        convex_mpc.QPOASES
+    )
 
   def reset(self, current_time):
     del current_time
@@ -189,9 +197,9 @@ class TorqueStanceLegController(leg_controller.LegController):
     mpc_input = np.array(mpc_input).flatten()
     self.mpc_inputs.append(mpc_input)
     
-    use_cpp_mpc = False
+    
     if use_cpp_mpc:
-      print("cpp_mpc.compute")
+      #print("cpp_mpc.compute")
       #p.submitProfileTiming("cpp_mpc.compute")
       predicted_contact_forces = self._cpp_mpc.compute_contact_forces(
           [0],  #com_position

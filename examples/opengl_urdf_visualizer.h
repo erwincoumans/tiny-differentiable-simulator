@@ -117,17 +117,21 @@ struct OpenGLUrdfVisualizer {
           ::TINY::TinyVector3f color(1, 1, 1);
           if (shapes[i].mesh.material_ids.size())
           {
-              const tinyobj::material_t& mat = materials[shapes[i].mesh.material_ids[0]];
-              color.setValue(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
-              if (mat.diffuse_texname.length())
+              int mat_index = shapes[i].mesh.material_ids[0];
+              if (mat_index>=0 && mat_index<materials.size())
               {
-                  std::string texture_file_name = std::string(basepath) + mat.diffuse_texname;
-                  std::vector< unsigned char> buffer;
-                  int width, height, n;
-                  unsigned char* image = stbi_load(texture_file_name.c_str(), &width, &height, &n, 3);
+                  const tinyobj::material_t& mat = materials[mat_index];
+                  color.setValue(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
+                  if (mat.diffuse_texname.length())
+                  {
+                      std::string texture_file_name = std::string(basepath) + mat.diffuse_texname;
+                      std::vector< unsigned char> buffer;
+                      int width, height, n;
+                      unsigned char* image = stbi_load(texture_file_name.c_str(), &width, &height, &n, 3);
 
-                  textureIndex = m_opengl_app.m_renderer->register_texture(image, width, height);
-                  free(image);
+                      textureIndex = m_opengl_app.m_renderer->register_texture(image, width, height);
+                      free(image);
+                  }
               }
           }
           int shape = m_opengl_app.m_renderer->register_shape(&vertices[0].x, vertices.size(), &indices[0], indices.size(), B3_GL_TRIANGLES, textureIndex);

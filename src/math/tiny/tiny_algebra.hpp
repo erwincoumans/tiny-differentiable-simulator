@@ -493,10 +493,8 @@ struct TinyAlgebra {
     
   TINY_INLINE static const Quaternion quat_difference(const Quaternion &start, 
                                                       const Quaternion &end) {
-    Quaternion q1 = Quaternion(start);
-    Quaternion q2 = Quaternion(end);
-    normalize(q1);
-    normalize(q2);
+    Quaternion q1 = normalize(start);
+    Quaternion q2 = normalize(end);
     
     /* Ported from PyBullet */
     // The "nearest" operation from PyBullet
@@ -520,10 +518,10 @@ struct TinyAlgebra {
         tds::where_lt(dd, ss, q2.getY(), -q2.getY()),
         tds::where_lt(dd, ss, q2.getZ(), -q2.getZ()),
         tds::where_lt(dd, ss, q2.getW(), -q2.getW()));
+    closest_end.normalize();
 
-    normalize(closest_end);
     Quaternion res = closest_end * inverse(q1);
-    normalize(res);
+    res.normalize();
     return res;
   }
   
@@ -576,7 +574,7 @@ struct TinyAlgebra {
     //                  q[3] * w[2] + q[0] * w[1] - q[1] * w[0],
     //                  -q[0] * w[0] - q[1] * w[1] - q[2] * w[2]);
     // delta *= half() * dt;
-    // print("delta quat", delta);
+    // // print("delta quat", delta);
     // return delta;
   }
 
@@ -766,12 +764,14 @@ struct TinyAlgebra {
     return TinyConstants::tanh(s);
   }
 
-  TINY_INLINE static Scalar min(const Scalar &a, const Scalar &b) {
-    return TinyConstants::min1(a, b);
+  template <typename T>
+  TINY_INLINE static auto max(const T &x, const T &y) {
+    return tds::where_gt(x, y, x, y);
   }
 
-  TINY_INLINE static Scalar max(const Scalar &a, const Scalar &b) {
-    return TinyConstants::max1(a, b);
+  template <typename T>
+  TINY_INLINE static auto min(const T &x, const T &y) {
+    return tds::where_lt(x, y, x, y);
   }
 
   TinyAlgebra() = delete;

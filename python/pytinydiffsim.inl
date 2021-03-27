@@ -116,9 +116,7 @@
           MyAlgebra::set_euler_rpy(q, rpy);
       })
       .def("normalized", [](const Quaternion &q) {
-          Quaternion q2(q);
-          MyAlgebra::normalize(q2);
-          return q2;
+          return MyAlgebra::normalize(q);
       })
       .def(py::self * py::self)
       .def_property_readonly("x", [](const Quaternion &q) { return q.x(); })
@@ -178,9 +176,9 @@
 //      .def(py::init<MyScalar, MyScalar, MyScalar, 
 //          MyScalar, MyScalar, MyScalar, 
 //          MyScalar, MyScalar, MyScalar>())
-//      .def("get_at", [](const Matrix& a, const int row, const int col) {
-//          return a(col, row);
-///      })
+      .def("get_at", [](const Matrix3& a, const int row, const int col) {
+          return a(row, col);
+      })
       .def("__getitem__", [](const Matrix3& a, py::tuple t) {
           if (t.size() != 2)
               throw std::runtime_error("Invalid indexing!");
@@ -213,6 +211,9 @@
       })
       .def_property_readonly("num_columns", [](const Matrix3X& a) {
           return MyAlgebra::num_cols(a);
+      })
+     .def("get_at", [](const Matrix3X& a, const int row, const int col) {
+          return a( row, col);
       })
       //.def("print", &Matrix3X::print)
       .def("__getitem__", [](const Matrix3X& a, py::tuple t) {

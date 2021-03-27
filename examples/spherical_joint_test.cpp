@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
     tds::FileUtils::find_file("pendulum5spherical.urdf", urdf_filename);
     MultiBody* mb = cache.construct(urdf_filename, world, false, false);
     
-    //mb->qd()[2] = Algebra::fraction(1, 2);
+    mb->qd()[2] = Algebra::fraction(1, 2);
 #else
     MultiBody* mb = world.create_multi_body();
     init_spherical_compound_pendulum<Algebra>(*mb, world, num_spheres);

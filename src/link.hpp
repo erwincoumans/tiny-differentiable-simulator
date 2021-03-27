@@ -42,6 +42,7 @@ struct Link {
 
   mutable Transform X_world;  // world_to_link
   mutable MotionVector vJ;    // local joint velocity (relative to parent link)
+  mutable MotionVector cJ;    // bias velocity for link
   mutable MotionVector v;     // global joint velocity (relative to world)
   mutable MotionVector a;     // acceleration (relative to world)
   mutable MotionVector c;     // velocity product acceleration
@@ -206,7 +207,7 @@ struct Link {
                       __LINE__);
       }
 
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
       *X_parent = (*X_J) * X_T;
 #else
       *X_parent = X_T * (*X_J);
@@ -272,7 +273,7 @@ struct Link {
                         "Error: Unknown joint type encountered in " __FILE__ ":%i\n",
                         __LINE__);
         }
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
         *X_parent = (*X_J) * X_T;
 #else
 
@@ -326,7 +327,9 @@ struct Link {
                         __LINE__);
         }
     }
-    inline void jcalc(const VectorX &q) const { jcalc(q, &X_J, &X_parent); }
+    inline void jcalc(const VectorX &q) const { 
+        jcalc(q, &X_J, &X_parent); 
+    }
     inline void jcalc(const VectorX &q, const VectorX &qd) const {
         jcalc(q);
         jcalc(qd, &vJ);
@@ -371,13 +374,14 @@ struct Link {
       case JOINT_FIXED:
         // Transform is set to identity in its constructor already
         // and never changes.
+        //*X_J = X_J_fixed;
         break;
       default:
         fprintf(stderr,
                 "Error: Unknown joint type encountered in " __FILE__ ":%i\n",
                 __LINE__);
     }
-#if SWAP_TRANSFORM_ASSOCIATIVITY
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
     *X_parent = (*X_J) * X_T;
 #else
     *X_parent = X_T * (*X_J);
@@ -415,6 +419,7 @@ struct Link {
         break;
       }
       case JOINT_FIXED:
+        //*v_J = v_J_fixed;
         break;
       default:
         fprintf(stderr,

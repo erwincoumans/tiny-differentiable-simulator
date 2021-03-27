@@ -116,6 +116,7 @@ struct EigenAlgebraT {
     return m.determinant();
   }
 
+  
   /**
          *    main method for Cholesky decomposition.
          *    input/output  a  Symmetric positive def. matrix
@@ -180,6 +181,78 @@ struct EigenAlgebraT {
       return is_positive_definite;
   }
 
+
+  /**
+   * CppAD-friendly matrix inverse operation that assumes the input matrix is
+   * positive-definite.
+   */
+  static void plain_symmetric_inverse(const MatrixX &mat, MatrixX &mat_inv) {
+    assert(mat.rows() == mat.cols());
+    VectorX diagonal = mat.diagonal();
+    mat_inv = mat;
+    const int n = mat.rows();
+    int i, j, k;
+    Scalar sum;
+    for (i = 0; i < n; i++) {
+      mat_inv(i, i) = one() / diagonal[i];
+      for (j = i + 1; j < n; j++) {
+        sum = zero();
+        for (k = i; k < j; k++) {
+          sum -= mat_inv(j, k) * mat_inv(k, i);
+        }
+        mat_inv(j, i) = sum / diagonal[j];
+      }
+    }
+    for (i = 0; i < n; i++) {
+      for (j = i + 1; j < n; j++) {
+        mat_inv(i, j) = zero();
+      }
+    }
+    for (i = 0; i < n; i++) {
+      mat_inv(i, i) = mat_inv(i, i) * mat_inv(i, i);
+      for (k = i + 1; k < n; k++) {
+        mat_inv(i, i) += mat_inv(k, i) * mat_inv(k, i);
+      }
+      for (j = i + 1; j < n; j++) {
+        for (k = j; k < n; k++) {
+          mat_inv(i, j) += mat_inv(k, i) * mat_inv(k, j);
+        }
+      }
+    }
+    for (i = 0; i < n; i++) {
+      for (j = 0; j < i; j++) {
+        mat_inv(i, j) = mat_inv(j, i);
+      }
+    }
+  }
+
+#if 0
+  /**
+   * Returns true if the matrix `mat` is positive-definite, and assigns
+   * `mat_inv` to the inverse of mat.
+   * `mat` must be a symmetric matrix.
+   */
+  static bool symmetric_inverse(const MatrixX &mat, MatrixX &mat_inv) {
+    if constexpr (!is_cppad_scalar<Scalar>::value) {
+      Eigen::LLT<MatrixX> llt(mat);
+      if (llt.info() == Eigen::NumericalIssue) {
+        return false;
+      }
+      mat_inv = mat.inverse();
+    } else {
+      plain_symmetric_inverse(mat, mat_inv);
+      // // FIXME the atomic op needs to remain in memory but it will fail when
+      // the
+      // // dimensions of the input matrix are not always the same
+      // using InnerScalar = typename Scalar::value_type;
+      // static atomic_eigen_mat_inv<InnerScalar> mat_inv_op;
+      // mat_inv = mat_inv_op.op(mat);
+    }
+    return true;
+  }
+#endif
+
+  
   /**
    *     Inverse of a matrix, using Cholesky decomposition.
    *
@@ -224,6 +297,8 @@ struct EigenAlgebraT {
 
 
 
+  
+
   /**
    * V = mv(w, v)
    * F = mv(n, f)
@@ -266,11 +341,14 @@ struct EigenAlgebraT {
     return vector_a.dot(vector_b);
   }
 
+
   TINY_INLINE static Scalar norm(const MotionVector &v) {
+    using std::sqrt;
     return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] +
                 v[4] * v[4] + v[5] * v[5]);
   }
   TINY_INLINE static Scalar norm(const ForceVector &v) {
+    using std::sqrt;
     return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] +
                 v[4] * v[4] + v[5] * v[5]);
   }
@@ -284,9 +362,9 @@ struct EigenAlgebraT {
     return v.squaredNorm();
   }
 
-  template <typename T>
-  EIGEN_ALWAYS_INLINE static auto normalize(T &v) {
-    Scalar z = v.squaredNorm();
+  EIGEN_ALWAYS_INLINE static auto normalize(const Quaternion &q) {
+    Quaternion v(q);
+    Scalar z = q.squaredNorm();
     //don't call Eigen .normalize, since it has a comparison > 0, which fails CppADCodegen
     //assert(z > Scalar(0));
     Scalar invZ = Scalar(1) / sqrt(z);
@@ -299,11 +377,7 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Matrix3 cross_matrix(const Vector3 &v) {
     Matrix3 tmp;
-#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    tmp << zero(), v[2], -v[1], -v[2], zero(), v[0], v[1], -v[0], zero();
-#else
     tmp << zero(), -v[2], v[1], v[2], zero(), -v[0], -v[1], v[0], zero();
-#endif
     return tmp;
   }
 
@@ -510,16 +584,13 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static void assign_row(MatrixX &m, Index i,
                                              const MatrixX &v) {
-    m.row(i) = v;
+    m.row(i) = v.transpose();
   }
 
-  EIGEN_ALWAYS_INLINE static void assign_row(MatrixX& m, Index i,
+  EIGEN_ALWAYS_INLINE static void assign_row(MatrixX &m, Index i,
                                              const SpatialVector &v) {
-
-    m.template block<1, 3>(i, 0) = v.top;
-    m.template block<1, 3>(i, 3) = v.bottom;
-
-
+    m.block(i, 0, 1, 3) = v.top.transpose();
+    m.block(i, 3, 1, 3) = v.bottom.transpose();
   }
 
   EIGEN_ALWAYS_INLINE static void assign_horizontal(MatrixX &mat,
@@ -538,13 +609,12 @@ struct EigenAlgebraT {
   }
 
   template <int Rows, int Cols>
-  EIGEN_ALWAYS_INLINE static VectorX mul_transpose(
+  TINY_INLINE static VectorX mul_transpose(
       const Eigen::Matrix<Scalar, Rows, Cols> &mat,
       const Eigen::Matrix<Scalar, Cols, 1> &vec) {
     return mat.transpose() * vec;
   }
-
-  EIGEN_ALWAYS_INLINE static VectorX mul_transpose(const MatrixX &mat,
+  TINY_INLINE static VectorX mul_transpose(const MatrixX &mat,
                                            const VectorX &vec) {
     return mat.transpose() * vec;
   }
@@ -574,15 +644,28 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Matrix3 quat_to_matrix(const Quaternion &quat) {
     // NOTE: Eigen requires quat to be normalized
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    return quat.toRotationMatrix().transpose();
+#else
     return quat.toRotationMatrix();
+#endif
   }
   EIGEN_ALWAYS_INLINE static Matrix3 quat_to_matrix(const Scalar &x,
                                                     const Scalar &y,
                                                     const Scalar &z,
                                                     const Scalar &w) {
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    return Quaternion(w, x, y, z).toRotationMatrix().transpose();
+#else
     return Quaternion(w, x, y, z).toRotationMatrix();
+#endif
   }
-  EIGEN_ALWAYS_INLINE static Quaternion matrix_to_quat(const Matrix3 &m) {
+  EIGEN_ALWAYS_INLINE static Quaternion matrix_to_quat(const Matrix3 &matrix) {
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    Matrix3 m = matrix.transpose();
+#else
+    const Matrix3& m = matrix;
+#endif
     if constexpr (is_cppad_scalar<Scalar>::value) {
       // add epsilon to denominator to prevent division by zero
       const Scalar eps = from_double(1e-6);
@@ -657,10 +740,8 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(const Quaternion &start, 
                                                               const Quaternion &end) {
-    Quaternion q1 = Quaternion(start);
-    Quaternion q2 = Quaternion(end);
-    normalize(q1);
-    normalize(q2);
+    Quaternion q1 = normalize(start);
+    Quaternion q2 = normalize(end);
 
     /* Ported from PyBullet */
     // The "nearest" operation from PyBullet
@@ -685,13 +766,13 @@ struct EigenAlgebraT {
         tds::where_lt(dd, ss, q2.z(), -q2.z()),
         tds::where_lt(dd, ss, q2.w(), -q2.w()));
     
-    normalize(closest_end);
+    closest_end = normalize(closest_end);
     Quaternion res = closest_end * inverse(q1);
-    normalize(res);
-    return res;
+    return normalize(res);
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_x_matrix(const Scalar &angle) {
+    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -705,6 +786,7 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_y_matrix(const Scalar &angle) {
+    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -717,6 +799,7 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 rotation_z_matrix(const Scalar &angle) {
+    using std::cos, std::sin;
     Scalar c = cos(angle);
     Scalar s = sin(angle);
     Matrix3 temp;
@@ -730,6 +813,7 @@ struct EigenAlgebraT {
 
   static Matrix3 rotation_zyx_matrix(const Scalar &r, const Scalar &p,
                                      const Scalar &y) {
+    using std::cos, std::sin;
     Scalar ci(cos(r));
     Scalar cj(cos(p));
     Scalar ch(cos(y));
@@ -741,23 +825,22 @@ struct EigenAlgebraT {
     Scalar sc = si * ch;
     Scalar ss = si * sh;
     Matrix3 temp;
-    temp << cj * ch, sj * sc - cs, sj * cc + ss, cj * sh, sj * ss + cc,
-        sj * cs - sc, -sj, cj * si, cj * ci;
+
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+    temp << cj * ch, cj * sh, -sj,
+            sj * sc - cs, sj * ss + cc, cj * si,
+            sj * cc + ss, sj * cs - sc, cj * ci;
+#else
+    temp << cj * ch, sj * sc - cs, sj * cc + ss,
+            cj * sh, sj * ss + cc,
+            sj * cs - sc, -sj, cj * si, cj * ci;
+#endif
     return temp;
   }
 
   EIGEN_ALWAYS_INLINE static Vector3 rotate(const Quaternion &q,
-                                            const Vector3 &w) {
-    /* Rotating with an all zero quaternion results in
-       a rotation with the identity quaternion in Eigen.
-       However in TinyAlgebra this returns a zero vector.
-       This function mimics the TinyAlgebra implementation. */
-    Quaternion q2(q.w() * w[0] + q.y() * w[2] - q.z() * w[1],
-                  q.w() * w[1] + q.z() * w[0] - q.x() * w[2],
-                  q.w() * w[2] + q.x() * w[1] - q.y() * w[0],
-                 -q.x() * w[0] - q.y() * w[1] - q.z() * w[2]);
-    q2 *= q.inverse();
-    return Vector3(q2.x(), q2.y(), q2.z());
+                                            const Vector3 &v) {
+    return q * v;
   }
 
   /**
@@ -767,26 +850,13 @@ struct EigenAlgebraT {
   EIGEN_ALWAYS_INLINE static Quaternion quat_velocity(const Quaternion &q,
                                                       const Vector3 &w,
                                                       const Scalar &dt) {
-    Quaternion delta((-q.x() * w[0] - q.y() * w[1] - q.z() * w[2]) * (0.5 * dt),
-                     (q.w() * w[0] + q.y() * w[2] - q.z() * w[1]) * (0.5 * dt),
-                     (q.w() * w[1] + q.z() * w[0] - q.x() * w[2]) * (0.5 * dt),
-                     (q.w() * w[2] + q.x() * w[1] - q.y() * w[0]) * (0.5 * dt));
+    Quaternion delta((-w[0] * q.x() - w[1] * q.y() - w[2] * q.z()) * (0.5 * dt),
+                     (w[0] * q.w() + w[1] * q.z() - w[2] * q.y()) * (0.5 * dt),
+                     (w[1] * q.w() + w[2] * q.x() - w[0] * q.z()) * (0.5 * dt),
+                     (w[2] * q.w() + w[0] * q.y() - w[1] * q.x()) * (0.5 * dt));
     return delta;
   }
 
-  EIGEN_ALWAYS_INLINE static Quaternion quat_integrate(const Quaternion &q,
-                                                       const Vector3 &w,
-                                                       const Scalar &dt){
-    auto axang = quaternion_axis_angle(q);
-    axang += w * dt;
-
-    auto ang = norm(axang);
-    auto ax = axang / ang;
-
-    auto aa = Eigen::AngleAxis<Scalar>(ang, ax);
-
-    return Quaternion(aa);
-  }
   EIGEN_ALWAYS_INLINE static void quat_increment(Quaternion &a,
                                                  const Quaternion &b) {
     a.x() += b.x();
@@ -826,14 +896,12 @@ struct EigenAlgebraT {
   }
   
   EIGEN_ALWAYS_INLINE static const Quaternion inverse(const Quaternion &q) {
-    Quaternion q2(q);
-    normalize(q2);
+    Quaternion q2 = normalize(q);
     return q2.inverse();
   }
   
   EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy(const Quaternion &q) {
-    Quaternion q2(q);
-    normalize(q2);
+    Quaternion q2 = normalize(q);
   
     // From tiny_quaternion.h
     Vector3 rpy;
@@ -871,8 +939,7 @@ struct EigenAlgebraT {
   }
   
   EIGEN_ALWAYS_INLINE static const Vector3 get_euler_rpy2(const Quaternion &q) {
-    Quaternion q2(q);
-    normalize(q2);
+    Quaternion q2 = normalize(q);
   
     // From tiny_quaternion.h
     Scalar m00, m01, m02;
@@ -939,7 +1006,13 @@ struct EigenAlgebraT {
     q.y() = cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi);
     q.z() = cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi);
     q.w() = cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi);
-    normalize(q);
+    
+    // Normalize quaternion in place
+    Quaternion q2 = normalize(q);
+    q.x() = q2.x();
+    q.y() = q2.y();
+    q.z() = q2.z();
+    q.w() = q2.w();
   }
 
   EIGEN_ALWAYS_INLINE static void set_zero(Matrix3 &m) { m.setZero(); }
