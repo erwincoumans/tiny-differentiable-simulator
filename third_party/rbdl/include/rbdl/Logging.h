@@ -10,6 +10,7 @@
 
 #include <sstream>
 #include <rbdl/rbdl_config.h>
+#include <iostream>
 
 class LoggingGuard;
 
@@ -19,11 +20,13 @@ class LoggingGuard;
  *
  * \warning Logging has a huge impact on performance.
  */
+//#define RBDL_ENABLE_LOGGING
 #ifndef RBDL_ENABLE_LOGGING
 #define LOG if (false) LogOutput 
 #define SUPPRESS_LOGGING ;
 #else
-#define LOG LogOutput
+//#define LOG LogOutput
+#define LOG std::cout
 #define SUPPRESS_LOGGING LoggingGuard _nolog
 #endif
 
