@@ -195,7 +195,8 @@ void test_urdf_dynamics(std::string filename, bool is_floating = false) {
         rbdl_tau[i + qd_offset] = Algebra::to_double(mb->tau(i));
       }
 
-      forward_dynamics(*mb, gravity);
+      bool rbdl_convention = true;
+      forward_dynamics(*mb, gravity, rbdl_convention);
 
       RigidBodyDynamics::ForwardDynamics(rbdl_model, rbdl_q, rbdl_qd, rbdl_tau,
                                          rbdl_qdd);

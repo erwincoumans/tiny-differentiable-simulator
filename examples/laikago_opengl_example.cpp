@@ -19,6 +19,9 @@
 #include <string>
 #include <thread>
 
+//std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup_chassis_collision.urdf";
+std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup.urdf";
+
 //#include "meshcat_urdf_visualizer.h"
 #include "opengl_urdf_visualizer.h"
 
@@ -110,7 +113,7 @@ struct LaikagoSimulation {
         std::string plane_filename;
         tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
         cache.construct(plane_filename, world, false, false);
-        tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", m_urdf_filename);
+        tds::FileUtils::find_file(LAIKAGO_URDF_NAME, m_urdf_filename);
         system = cache.construct(m_urdf_filename, world, false, true);
         system->base_X_world().translation = Algebra::unit3_z();
     }
@@ -258,7 +261,7 @@ int main(int argc, char* argv[]) {
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
-  tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", file_and_path);
+  tds::FileUtils::find_file(LAIKAGO_URDF_NAME, file_and_path);
   auto urdf_structures = contact_sim.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
   FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);
@@ -266,7 +269,7 @@ int main(int argc, char* argv[]) {
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  int num_total_threads = 2;
+  int num_total_threads = 10;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
   int num_base_instances = 0;
@@ -325,10 +328,16 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::vector<MyScalar>> parallel_inputs(num_total_threads);
 
+  
+  
   for (int i = 0; i < num_total_threads; ++i) {
+      //auto quat = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0.5,1.3,i*0.3));
+      auto quat = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0,0,i*0.3));
       parallel_inputs[i] = std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
-      //quaternion 'w' = 1
-      parallel_inputs[i][3] = 1;
+      parallel_inputs[i][0] = quat.x();
+      parallel_inputs[i][1] = quat.y();
+      parallel_inputs[i][2] = quat.z();
+      parallel_inputs[i][3] = quat.w();
       //start height at 0.7
       parallel_inputs[i][6] = 0.7;
       
