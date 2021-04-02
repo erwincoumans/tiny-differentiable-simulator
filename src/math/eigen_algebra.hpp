@@ -839,21 +839,48 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Vector3 rotate(const Quaternion &q,
-                                            const Vector3 &v) {
-    return q * v;
+                                            const Vector3 &w) {
+    return q * w;
+
+ /* Rotating with an all zero quaternion results in
+       a rotation with the identity quaternion in Eigen.
+       However in TinyAlgebra this returns a zero vector.
+       This function mimics the TinyAlgebra implementation. */
+    //Quaternion q2(q.w() * w[0] + q.y() * w[2] - q.z() * w[1],
+    //              q.w() * w[1] + q.z() * w[0] - q.x() * w[2],
+    //              q.w() * w[2] + q.x() * w[1] - q.y() * w[0],
+    //             -q.x() * w[0] - q.y() * w[1] - q.z() * w[2]);
+    //q2 *= q.inverse();
+    //return Vector3(q2.x(), q2.y(), q2.z());
   }
 
   /**
    * Computes the quaternion delta given current rotation q, angular velocity w,
    * time step dt.
    */
+  
   EIGEN_ALWAYS_INLINE static Quaternion quat_velocity(const Quaternion &q,
                                                       const Vector3 &w,
                                                       const Scalar &dt) {
-    Quaternion delta((-w[0] * q.x() - w[1] * q.y() - w[2] * q.z()) * (0.5 * dt),
-                     (w[0] * q.w() + w[1] * q.z() - w[2] * q.y()) * (0.5 * dt),
-                     (w[1] * q.w() + w[2] * q.x() - w[0] * q.z()) * (0.5 * dt),
-                     (w[2] * q.w() + w[0] * q.y() - w[1] * q.x()) * (0.5 * dt));
+      auto ww = (-q.x()*w[0] - q.y()*w[1] - q.z()*w[2]  ) * (0.5 * dt);
+      auto xx = ( q.w()*w[0] + q.z()*w[1] - q.y()*w[2]) * (0.5 * dt);
+      auto yy = ( q.w()*w[1] + q.x()*w[2] - q.z()*w[0]) * (0.5 * dt);
+      auto zz = ( q.w()*w[2] + q.y()*w[0] - q.x()*w[1]) * (0.5 * dt);
+
+      Quaternion delta = quat_from_xyzw(xx,yy,zz, ww);
+      return delta;
+
+  }
+  
+  EIGEN_ALWAYS_INLINE static Quaternion quat_velocity_spherical(const Quaternion &q,
+                                                      const Vector3 &vel,
+                                                      const Scalar &dt) {
+    //return w * q * (dt * half());
+    auto w = (-q.x() * vel[0] - q.y() * vel[1] - q.z() * vel[2]) * (0.5 * dt);
+    auto x = (q.w() * vel[0] + q.y() * vel[2] - q.z() * vel[1]) * (0.5 * dt);
+    auto y = (q.w() * vel[1] + q.z() * vel[0] - q.x() * vel[2]) * (0.5 * dt);
+    auto z = (q.w() * vel[2] + q.x() * vel[1] - q.y() * vel[0]) * (0.5 * dt);
+    Quaternion delta = quat_from_xyzw(x,y,z,w);
     return delta;
   }
 
