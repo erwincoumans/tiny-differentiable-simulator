@@ -565,20 +565,33 @@ struct TinyAlgebra {
    * Computes the quaternion delta given current rotation q, angular velocity w,
    * time step dt.
    */
-  TINY_INLINE static Quaternion quat_velocity(const Quaternion &q,
+  
+	TINY_INLINE static Quaternion quat_velocity(const Quaternion &q,
+                                              const Vector3 &w,
+                                              const Scalar &dt) {
+        auto ww = (-q.x()*w[0] - q.y()*w[1] - q.z()*w[2]  ) * (0.5 * dt);
+        auto xx = ( q.w()*w[0] + q.z()*w[1] - q.y()*w[2]) * (0.5 * dt);
+        auto yy = ( q.w()*w[1] + q.x()*w[2] - q.z()*w[0]) * (0.5 * dt);
+        auto zz = ( q.w()*w[2] + q.y()*w[0] - q.x()*w[1]) * (0.5 * dt);
+
+        Quaternion delta = quat_from_xyzw(xx,yy,zz, ww);
+        return delta;
+    }
+
+    TINY_INLINE static Quaternion quat_velocity_spherical(const Quaternion &q,
                                               const Vector3 &vel,
                                               const Scalar &dt) {
-    //return w * q * (dt * half());
-    auto w = (-q.x() * vel[0] - q.y() * vel[1] - q.z() * vel[2]) * (half() * dt);
-    auto x = (q.w() * vel[0] + q.y() * vel[2] - q.z() * vel[1]) * (half() * dt);
-    auto y = (q.w() * vel[1] + q.z() * vel[0] - q.x() * vel[2]) * (half() * dt);
-    auto z = (q.w() * vel[2] + q.x() * vel[1] - q.y() * vel[0]) * (half() * dt);
-    //we may create a zero length quaternion, use the 'unsafe' version
-    Quaternion delta = quat_from_xyzw_unsafe(x,y,z,w);
-    return delta;
-  }
+        //return w * q * (dt * half());
+        auto w = (-q.x() * vel[0] - q.y() * vel[1] - q.z() * vel[2]) * (half() * dt);
+        auto x = (q.w() * vel[0] + q.y() * vel[2] - q.z() * vel[1]) * (half() * dt);
+        auto y = (q.w() * vel[1] + q.z() * vel[0] - q.x() * vel[2]) * (half() * dt);
+        auto z = (q.w() * vel[2] + q.x() * vel[1] - q.y() * vel[0]) * (half() * dt);
+        //we may create a zero length quaternion, use the 'unsafe' version
+        Quaternion delta = quat_from_xyzw_unsafe(x,y,z,w);
+        return delta;
+    }
 
-
+ 
   TINY_INLINE static Quaternion quat_integrate(const Quaternion &q,
       const Vector3 &ang_vel,
       const Scalar &dt){
