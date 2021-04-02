@@ -569,10 +569,10 @@ struct TinyAlgebra {
 	TINY_INLINE static Quaternion quat_velocity(const Quaternion &q,
                                               const Vector3 &w,
                                               const Scalar &dt) {
-        auto ww = (-q.x()*w[0] - q.y()*w[1] - q.z()*w[2]  ) * (0.5 * dt);
-        auto xx = ( q.w()*w[0] + q.z()*w[1] - q.y()*w[2]) * (0.5 * dt);
-        auto yy = ( q.w()*w[1] + q.x()*w[2] - q.z()*w[0]) * (0.5 * dt);
-        auto zz = ( q.w()*w[2] + q.y()*w[0] - q.x()*w[1]) * (0.5 * dt);
+        auto ww = (-q.x()*w[0] - q.y()*w[1] - q.z()*w[2]  ) * (half() * dt);
+        auto xx = ( q.w()*w[0] + q.z()*w[1] - q.y()*w[2]) * (half() * dt);
+        auto yy = ( q.w()*w[1] + q.x()*w[2] - q.z()*w[0]) * (half() * dt);
+        auto zz = ( q.w()*w[2] + q.y()*w[0] - q.x()*w[1]) * (half() * dt);
 
         Quaternion delta = quat_from_xyzw(xx,yy,zz, ww);
         return delta;
