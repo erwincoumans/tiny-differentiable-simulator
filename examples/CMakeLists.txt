@@ -29,13 +29,12 @@ target_compile_definitions(laikago_opengl_tiny_example PRIVATE USE_TINY )
 
 endif()
 
-# spherical_joint_test using Tiny is broken
-IF(0)
-    add_executable(spherical_joint_test spherical_joint_test.cpp  ${TDS_HDRS})
-    target_link_libraries(spherical_joint_test opengl_window tinyxml2  ${CMAKE_DL_LIBS})
-    target_compile_definitions(spherical_joint_test PRIVATE USE_TINY )
-    target_include_directories(spherical_joint_test PRIVATE ../src)
-ENDIF()
+
+add_executable(spherical_joint_test_tiny spherical_joint_test.cpp  ${TDS_HDRS})
+target_link_libraries(spherical_joint_test_tiny opengl_window tinyxml2  ${CMAKE_DL_LIBS})
+target_compile_definitions(spherical_joint_test_tiny PRIVATE USE_TINY )
+target_include_directories(spherical_joint_test_tiny PRIVATE ../src)
+
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(billiard_opt_example_gui PRIVATE ../src)
