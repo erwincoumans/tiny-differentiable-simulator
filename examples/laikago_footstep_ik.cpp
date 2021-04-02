@@ -22,6 +22,7 @@
 #include <thread>
 
 #include "Utils/b3Clock.h"
+#include "math/tiny/tiny_algebra.hpp"
 #include "math/tiny/tiny_double_utils.h"
 #include "tiny_inverse_kinematics.h"
 #include "dynamics/kinematics.hpp"
@@ -239,9 +240,9 @@ int main(int argc, char* argv[]) {
     PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils> >::extract_urdf_structs(
         urdf_data, robotId, sim, sim);
     UrdfToMultiBody< TinyAlgebra<double, DoubleUtils> >::convert_to_multi_body(urdf_data,
-                                                                    world, *mb);
+                                                                    world, *mb,0);
     mb->initialize();
-    sim->removeBody(robotId);
+    //sim->removeBody(robotId);
   }
   int start_index = 0;
   MultiBody< TinyAlgebra<double, DoubleUtils> >* mb = world.create_multi_body();
@@ -255,12 +256,12 @@ int main(int argc, char* argv[]) {
     PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils> >::extract_urdf_structs(
         urdf_data, robotId, sim, sim);
     UrdfToMultiBody< TinyAlgebra<double, DoubleUtils> >::convert_to_multi_body(urdf_data,
-                                                                    world, *mb);
+                                                                    world, *mb,0);
 
     mbbodies.push_back(mb);
     mb->set_floating_base(false);
     mb->initialize();
-    sim->removeBody(robotId);
+    //sim->removeBody(robotId);
     
     
     start_index = mb->is_floating() ? 7 : 0;
@@ -297,7 +298,7 @@ int main(int argc, char* argv[]) {
   const int foot_bl = 15;// 11;
   const TinyVector3 foot_offset(0, 0, 0);// -0.24, -0.02);
 
-  TinyInverseKinematics<double, DoubleUtils, IK_JAC_PINV> inverse_kinematics;
+  TinyInverseKinematics<TinyAlgebra<double, DoubleUtils>, IK_JAC_PINV> inverse_kinematics;
   // controls by how much the joint angles should be close to the initial q
   inverse_kinematics.weight_reference = 0;
   // step size
