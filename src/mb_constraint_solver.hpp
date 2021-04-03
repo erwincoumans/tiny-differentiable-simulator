@@ -169,7 +169,7 @@ class MultiBodyConstraintSolver {
     {
         auto cp = org_cps[i];
         
-        if (keep_all_points_ || cp.distance<0)
+        if (keep_all_points_ || cp.distance<Algebra::zero())
             cps.push_back(org_cps[i]);
     }
 

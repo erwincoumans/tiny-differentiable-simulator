@@ -82,11 +82,29 @@ make install
 popd
 cd $ROOT
 
+pushd third_party/osqp
+mkdir build_cmake
+cd build_cmake
+cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="d" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$ROOT/third_party/osqp/build_cmake/local_install ..
+cmake  --build .  --target INSTALL  --config Debug
+cmake  --build .  --target INSTALL  --config Release
+popd
+cd $ROOT
+
+pushd third_party/qpoases
+mkdir build_cmake
+cd build_cmake
+cmake   -DCMAKE_DEBUG_POSTFIX="d" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$ROOT/third_party/qpoases/build_cmake/local_install ..
+cmake  --build .  --target INSTALL  --config Debug
+cmake  --build .  --target INSTALL  --config Release
+popd
+cd $ROOT
+
 
 pushd third_party/osqp
 mkdir build_cmake
 cd build_cmake
-cmake   -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=%ROOT%/third_party/osqp/build_cmake/local_install ..
+cmake   -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$ROOT/third_party/osqp/build_cmake/local_install ..
 make -j4 
 make install
 popd
