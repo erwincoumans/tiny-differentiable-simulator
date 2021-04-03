@@ -574,7 +574,7 @@ struct TinyAlgebra {
         auto yy = ( q.w()*w[1] + q.x()*w[2] - q.z()*w[0]) * (half() * dt);
         auto zz = ( q.w()*w[2] + q.y()*w[0] - q.x()*w[1]) * (half() * dt);
 
-        Quaternion delta = quat_from_xyzw(xx,yy,zz, ww);
+        Quaternion delta = quat_from_xyzw_unsafe(xx,yy,zz, ww);
         return delta;
     }
 

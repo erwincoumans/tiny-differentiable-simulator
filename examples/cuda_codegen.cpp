@@ -60,6 +60,7 @@ struct ContactSimulation {
     tds::FileUtils::find_file("pendulum5.urdf", urdf_filename);
     system = cache.construct(urdf_filename, world, false, false);
     system->base_X_world().translation = Algebra::unit3_z();
+    world.get_mb_constraint_solver()->keep_all_points_ = true;
   }
 
   std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
