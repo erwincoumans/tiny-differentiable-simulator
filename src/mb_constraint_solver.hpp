@@ -57,6 +57,7 @@ class MultiBodyConstraintSolver {
   SubmitProfileTiming profile_timing_func_{nullptr};
 
  public:
+  bool keep_all_points_{false};
   int pgs_iterations_{50};
   double least_squares_residual_threshold_{0};
   std::vector<int> limit_dependency_;
@@ -159,9 +160,22 @@ class MultiBodyConstraintSolver {
   // Args:
   // cps: contact points with distances < 0
   // dt : delta time (in seconds)
-  virtual void resolve_collision(const std::vector<ContactPoint>& cps,
+  virtual void resolve_collision(const std::vector<ContactPoint>& org_cps,
                                  const Scalar& dt) {
-    if (cps.empty()) return;
+ 
+    std::vector<ContactPoint> cps;
+
+    for (int i=0;i<org_cps.size();i++)
+    {
+        auto cp = org_cps[i];
+        
+        if (keep_all_points_ || cp.distance<0)
+            cps.push_back(org_cps[i]);
+    }
+
+    if (cps.empty()) 
+        return;
+
     const int n_c = static_cast<int>(cps.size());
 
     const ContactPoint& cp0 = cps[0];
@@ -254,7 +268,7 @@ class MultiBodyConstraintSolver {
 
       const Vector3& world_point_a = cp.world_point_on_a;
       Matrix3X jac_a = point_jacobian2(*mb_a, cp.link_a, world_point_a, false);
-      VectorX jac_a_i = Algebra::mul_transpose(jac_a, cp.world_normal_on_b);
+      VectorX jac_a_i = Algebra::mul_transpose(jac_a, cp.world_normal_on_b*collision);
       Algebra::assign_horizontal(jac_con, jac_a_i, i, 0);
 
       const Vector3& world_point_b = cp.world_point_on_b;
@@ -264,7 +278,7 @@ class MultiBodyConstraintSolver {
       //     point_jacobian_fd(*mb_b, mb_b->m_q, cp.link_b,
       //     world_point_b);
       // jac_b.print("jac_b");
-      VectorX jac_b_i = Algebra::mul_transpose(jac_b, cp.world_normal_on_b);
+      VectorX jac_b_i = Algebra::mul_transpose(jac_b, cp.world_normal_on_b*collision);
       // jac_b_i.print("jac_b_i");
 
       std::vector<Scalar> qd_empty;
