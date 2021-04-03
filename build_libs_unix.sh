@@ -1,5 +1,3 @@
-@set ROOT=%cd%
-@echo root= %ROOT%
 ROOT=$(pwd)
 echo $ROOT
 
@@ -85,7 +83,7 @@ cd $ROOT
 pushd third_party/osqp
 mkdir build_cmake
 cd build_cmake
-cmake  -DCMAKE_CXX_FLAGS="/MP" -DCMAKE_DEBUG_POSTFIX="d" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$ROOT/third_party/osqp/build_cmake/local_install ..
+cmake   -DCMAKE_DEBUG_POSTFIX="d" -DINSTALL_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$ROOT/third_party/osqp/build_cmake/local_install ..
 cmake  --build .  --target INSTALL  --config Debug
 cmake  --build .  --target INSTALL  --config Release
 popd
