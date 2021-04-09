@@ -22,7 +22,7 @@ Please use the following reference to cite this research:
   year =		 {2021},
   title =		 {NeuralSim: Augmenting Differentiable Simulators with Neural Networks},
   booktitle =		 {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
-  url = {https:https://github.com/google-research/tiny-differentiable-simulator}
+  url = {https://github.com/google-research/tiny-differentiable-simulator}
 }
 ```
 
