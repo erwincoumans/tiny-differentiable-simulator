@@ -59,13 +59,15 @@ bool is_floating = false;
 //std::string urdf_name = "sphere8cube_shift_shapes_render_spheres.urdf";
 
 //std::string urdf_name = "sphere8cube_inertia.urdf";bool is_floating = true;
+//std::string urdf_name = "sphere8cube_inertia_xyztrans_xyzrot.urdf";bool is_floating = false;
+//std::string urdf_name = "sphere8cube_col_visual_shift.urdf";bool is_floating = true;
+
 //std::string urdf_name = "two_cubes2special.urdf";bool is_floating = true;
 //std::string urdf_name = "two_cubes2.urdf";bool is_floating = true;
 //std::string urdf_name = "sphere8cube_inertia_xyzspherical.urdf";
 //std::string urdf_name = "humanoid_partial.urdf";
 //std::string urdf_name = "pendulum5spherical.urdf"; bool is_floating = false;
 //std::string urdf_name = "humanoid.urdf"; bool is_floating = true;
-
 
 //std::vector<double> initial_poses;
 
