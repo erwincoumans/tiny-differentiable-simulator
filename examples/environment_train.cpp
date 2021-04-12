@@ -42,9 +42,32 @@ typedef TinyQuaternion<double,DoubleUtils> Quaternion;
 
 using namespace pagmo;
 
+
+#if USE_LAIKAGO
+static MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
+//MyAlgebra::Quaternion start_orn = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(-3.14/2.,0,0));
+//MyAlgebra::Quaternion start_orn(0.23364591,0,0,0.97232174932);
+//MyAlgebra::Quaternion start_orn(0,0,0,1);//0.23364591,0,0,0.97232174932);
+//MyAlgebra::Quaternion start_orn = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(3.14/5.,0,0));
+//MyAlgebra::Quaternion start_orn = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0,3.14/2.,0));
+static MyAlgebra::Quaternion start_orn (0,0,0,1);
+
+static std::string urdf_name = "laikago/laikago_toes_zup.urdf";
+static bool is_floating = true;
+static double hip_angle = 0.07;//0
+static double knee_angle = -0.59;//-0.5;
+static double abduction_angle = 0.2;
+static std::vector<double> initial_poses = {
+    abduction_angle, hip_angle, knee_angle, abduction_angle, hip_angle, knee_angle,
+    abduction_angle, hip_angle, knee_angle, abduction_angle, hip_angle, knee_angle,
+};
+#include "environments/laikago_environment.h"
+typedef LaikagoEnv Environment;
+
+#else
 #include "environments/cartpole_environment.h"
-
-
+typedef CartpoleEnv Environment;
+//std::vector<double> x={5.236089,11.197456,8.838370,12.149057,-0.488806};
 
 ContactSimulation<MyAlgebra> m_cartpole_sim;
 
@@ -53,8 +76,8 @@ struct cartpole_problem {
     
 
     /// Constructor from dimension
-    cartpole_problem(unsigned dim = 5u)
-        : m_dim(dim)
+    cartpole_problem()
+        : m_dim(5u)
     {
         std::cout << "cartpole_problem\n" << std::endl;
     }
@@ -62,22 +85,6 @@ struct cartpole_problem {
     virtual ~cartpole_problem()
     {
         std::cout << "~cartpole_problem\n" << std::endl;
-    }
-
-    double policy(const vector_double &x,const std::vector<double>& obs) const
-    {
-        double action = 0;
-
-        for(int i=0;i<4;i++)
-        {
-            action+=x[i]*obs[i];
-        }
-        action+=x[4];
-        if(action<-1)
-            action=-1;
-        if(action>1)
-            action=1;
-        return action;
     }
 
     // Fitness computation
@@ -95,7 +102,12 @@ struct cartpole_problem {
             double total_reward = 0;
             for(int i =0; i< num_steps ; i++)
             {
-                double action = 10.*policy(x,obs);
+                std::vector<double> x_vec(x.size());
+                for (int s=0;s<x.size();s++)
+                {
+                    x_vec[s]=x[s];
+                }
+                double action = env.policy(x,obs);
                 double reward;
                 bool  done;
                 env.step(action,obs,reward,done);
@@ -156,6 +168,14 @@ struct cartpole_problem {
     unsigned m_dim;
 };
 
+typedef cartpole_problem tds_environment_problem;
+
+
+#endif
+
+
+
+
 
 
 
@@ -167,7 +187,7 @@ int main()
     // (i.e., a user-defined problem, in this case the 30-dimensional
     // generalised Schwefel test function).
 
-    cartpole_problem cart( 5);
+    tds_environment_problem cart;
     problem prob{cart};
 
     //self-adaptive differential evolution
