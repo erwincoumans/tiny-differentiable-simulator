@@ -56,10 +56,12 @@ class World {
   RigidBodyConstraintSolver<Algebra>* rb_constraint_solver_{nullptr};
   MultiBodyConstraintSolver<Algebra>* mb_constraint_solver_{nullptr};
 
+  public:
+
   std::vector<RigidBodyContactPoint> rb_contacts_;
   std::vector<std::vector<MultiBodyContactPoint>> mb_contacts_;
 
- public:
+ 
   int num_solver_iterations{50};
 
   // default contact settings
