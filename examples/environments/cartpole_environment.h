@@ -1,6 +1,7 @@
 #ifndef CARTPOLE_ENVIRONMENT_H
 #define CARTPOLE_ENVIRONMENT_H
 
+#include "math/neural_network.hpp"
 
 template <typename Algebra>
 struct ContactSimulation {
@@ -111,11 +112,14 @@ struct CartpoleEnv
     CartpoleEnv(ContactSimulation<MyAlgebra>& cartpole)
         :contact_sim(cartpole)
     {
-        //std::cout << "CartpoleEnv!\n" << std::endl;
+        bool use_input_bias = false;
+        int observation_size = contact_sim.input_dim();
+        neural_network.set_input_dim(observation_size, use_input_bias);
+        bool learn_bias = true;
+        neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, 1, learn_bias);//action is 1 number
     }
     virtual ~CartpoleEnv()
     {
-        //std::cout << "~CartpoleEnv\n" << std::endl;
     }
 
     std::vector<MyScalar> sim_state;
@@ -135,6 +139,14 @@ struct CartpoleEnv
 
     void step(double action,std::vector<double>& obs,double& reward,bool& done)
     {
+        //clamp and scale action
+         
+        if(action<-1)
+          action=-1;
+        if(action>1)
+          action=1;
+        action*=10;
+
         //sim_state = [q0, q1, qd0, qd1]
 
         sim_state_with_graphics = contact_sim(sim_state,action);
@@ -154,21 +166,30 @@ struct CartpoleEnv
             || (theta > theta_threshold_radians);
     }
 
-    
+    tds::NeuralNetwork<MyAlgebra> neural_network;
 
-    inline double policy(const std::vector<double> &x,const std::vector<double>& obs)
+    void init_neural_network(const std::vector<double> &x)
+    {
+        neural_network.set_parameters(x);
+    }
+
+    inline double policy(const std::vector<double>& obs)
+    {
+        std::vector<double> action;
+        neural_network.compute(obs, action);
+        return action[0];
+    }
+
+    inline double policy2(const std::vector<double> &x,const std::vector<double>& obs)
     {
         double action = 0;
 
         for(int i=0;i<4;i++)
         {
-            action+=10.*x[i]*obs[i];
+            action+=x[i]*obs[i];//identity activation
         }
-        action+=x[4];
-        if(action<-10)
-            action=-10;
-        if(action>10)
-            action=10;
+        action+=x[4];//bias
+        
         return action;
     }
 

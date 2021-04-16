@@ -59,8 +59,8 @@ void my_keyboard_callback(int keycode, int state)
     prev_keyboard_callback(keycode, state);
 }
 
-
-#if USE_LAIKAGO
+//#define USE_LAIKAGO
+#ifdef USE_LAIKAGO
 static MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
 static MyAlgebra::Quaternion start_orn (0,0,0,1);
 
@@ -79,8 +79,7 @@ typedef LaikagoEnv Environment;
 #else
 #include "environments/cartpole_environment.h"
 typedef CartpoleEnv Environment;
-std::vector<double> x={0.069278,5.483886,4.008912,7.406968,-0.219666};
-
+std::vector<double> trained_weights={0.069278,5.483886,4.008912,7.406968,-0.219666};
 #endif
 
 
@@ -188,30 +187,50 @@ int main(int argc, char* argv[]) {
 
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  ContactSimulation<MyAlgebra> m_cartpole_sim;
+  ContactSimulation<MyAlgebra> sim;
 
-  Environment env(m_cartpole_sim);
+  Environment env(sim);
   auto obs = env.reset();
   double total_reward = 0;
   int max_steps = 1000;
   int num_steps = 0;
 
-  //std::vector<double> x={6.038696,17.109466,2.287317,4.744410,0.859432};//trained on [-0.05. 0.05]
-  //std::vector<double> x={262.931804,1265.481361,490.198848,497.031251,-22.723601};//89.645820,489.210318,181.857783,198.405684,8.169060
-  //std::vector<double> x={123.029492,1225.629406,339.628481,325.638617,-16.230902};//trained on [-0.27,0.27] instead of [-0.05. 0.05]
-  
-  
+  int num_params = env.neural_network.num_weights() + env.neural_network.num_biases();
+  std::vector<double> x(num_params);
+  //rand
+  for (int i=0;i<x.size();i++)
+  {
+      x[i] = -0.35;//*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+  }
+  x = trained_weights;
+
+  env.init_neural_network(x);
 
   while (!visualizer.m_opengl_app.m_window->requested_exit()) {
 
 
       {
-          auto action = env.policy(x,obs);
+          //auto action2 = env.policy2(x, obs);
+          auto action = env.policy(obs);
+          
           double reward;
           bool  done;
           env.step(action,obs,reward,done);
           total_reward += reward;
           num_steps++;
+          int num_contacts = 0;
+          for (int c=0;c<env.contact_sim.world.mb_contacts_.size();c++)
+          {
+              for (int j=0;j<env.contact_sim.world.mb_contacts_[c].size();j++)
+              {
+                if (env.contact_sim.world.mb_contacts_[c][j].distance<0.01)
+                {
+                    num_contacts++;
+                }
+              }
+          }
+          
+
           if(done || num_steps>=max_steps)
           {
               //printf("total_reward=%f\n",total_reward);

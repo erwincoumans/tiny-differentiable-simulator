@@ -146,22 +146,25 @@ struct ContactSimulation {
 
 struct LaikagoEnv
 {
+    
     ContactSimulation<MyAlgebra>& contact_sim;
 
-    LaikagoEnv(ContactSimulation<MyAlgebra>& cartpole)
-        :contact_sim(cartpole)
+    LaikagoEnv(ContactSimulation<MyAlgebra>& sim)
+        :contact_sim(sim)
     {
         int observation_size = contact_sim.input_dim();
-        neural_network.set_input_dim(observation_size);
-        neural_network.add_linear_layer(tds::NN_ACT_RELU, 128);
+        neural_network.set_input_dim(observation_size, true);
+        neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);//128);
         neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
         neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, initial_poses.size());
-        
-        
-
     }
     virtual ~LaikagoEnv()
     {
+    }
+
+    void init_neural_network(const std::vector<double> &x)
+    {
+        neural_network.set_parameters(x);
     }
 
     std::vector<MyScalar> sim_state;
@@ -241,15 +244,10 @@ struct LaikagoEnv
         }
     }
     
-    inline const std::vector<double> policy(const std::vector<double> &x,const std::vector<double>& obs)
-    {
-        //todo, copy the weights in the constructor?
-        int num_weights = neural_network.num_weights();
-        int num_biases = neural_network.num_biases();
+    
 
-        assert(num_weights + num_biases == x.size());
-        neural_network.set_parameters(x);
-        
+    inline const std::vector<double> policy(const std::vector<double>& obs)
+    {
         std::vector<double> action (initial_poses.size(), MyScalar(0));
     
         neural_network.compute(obs, action);
