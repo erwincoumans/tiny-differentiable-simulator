@@ -40,6 +40,15 @@ struct Logger {
   virtual void print_message(const std::string& msg) = 0;
 };
 
+struct NullLogger : public Logger {
+  virtual void report_error(const std::string& txt) {
+  }
+  virtual void report_warning(const std::string& txt) {
+  }
+  virtual void print_message(const std::string& txt) {
+  }
+};
+
 struct StdLogger : public Logger {
   virtual void report_error(const std::string& txt) {
     std::cout << std::string("Error:") << txt << std::endl;
@@ -377,7 +386,7 @@ struct UrdfParser {
       const tinyxml2::XMLElement* c = mat->FirstChildElement("color");
       const tinyxml2::XMLElement* s = mat->FirstChildElement("specular");
       if (t || c || s) {
-        parse_material(urdf_structures, visual, mat, logger);
+        visual.has_local_material = parse_material(urdf_structures, visual, mat, logger);
       }
     }
     return true;
@@ -671,9 +680,13 @@ struct UrdfParser {
       std::map<std::string, std::string>& link_to_joint_name,
       std::map<std::string, std::string>& joint_to_parent_name,
       std::vector<std::string>& joint_to_parent_name_insertion_order,
-      std::map<std::string, int>& link_name_to_index, int level) {
-    std::cout << std::string(level, '-') << link_name << "["
+      std::map<std::string, int>& link_name_to_index, int level,
+      Logger& logger  ) {
+    std::stringstream ss;
+      
+    ss << std::string(level, '-') << link_name << "["
               << link_name_to_index[link_name] << "]" << std::endl;
+    logger.print_message(ss.str());
     // Iterate through the map
     for (auto at = joint_to_parent_name_insertion_order.begin();
          at != joint_to_parent_name_insertion_order.end(); at++) {
@@ -686,7 +699,7 @@ struct UrdfParser {
                     1;  // compensate for parent link at -1
         link_name_to_index[joint.child_name] = index;
         assign_links(joint.child_name, joints_by_name, link_to_joint_name,
-                     joint_to_parent_name, joint_to_parent_name_insertion_order, link_name_to_index, level + 1);
+                     joint_to_parent_name, joint_to_parent_name_insertion_order, link_name_to_index, level + 1, logger);
       }
     }
   }
@@ -704,6 +717,7 @@ struct UrdfParser {
                               std::istreambuf_iterator<char>());
 
     StdLogger logger;
+    //NullLogger logger;
     int flags = 0;
     UrdfStructures urdf_structures;
     load_urdf_from_string(urdf_string, flags, logger, urdf_structures);
@@ -824,7 +838,7 @@ struct UrdfParser {
     // recursively assign links
 
     assign_links(parent_links[0], joints_by_name, link_to_joint_name,
-                 joint_to_parent_name, joint_to_parent_name_insertion_order,urdf_structures.name_to_link_index, 0);
+                 joint_to_parent_name, joint_to_parent_name_insertion_order,urdf_structures.name_to_link_index, 0, logger);
 
     if (urdf_structures.name_to_link_index.size() !=
         (link_to_joint_name.size() + 1)) {

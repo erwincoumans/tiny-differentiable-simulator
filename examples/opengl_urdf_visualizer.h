@@ -175,6 +175,13 @@ struct OpenGLUrdfVisualizer {
       b2v.inertia_xyz = link.urdf_inertial.origin_xyz;
       b2v.inertia_rpy = link.urdf_inertial.origin_rpy;
       int color_rgb = 0xffffff;
+      //todo(erwincoumans make local material colors work
+      if (v.has_local_material)
+      {
+          //color_rgb = 0xff*v.material.material_rgb[0]+
+          //    0xff00*v.material.material_rgb[1]+
+          //    0xff0000*v.material.material_rgb[2];
+      }
       double world_pos[3] = {0, 0, 0};
       switch(v.geometry.geom_type)
       {

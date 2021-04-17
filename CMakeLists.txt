@@ -413,7 +413,7 @@ IF(USE_TESTING)
 ENDIF()
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/examples)
 
-OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" OFF)
+OPTION(BUILD_PYTHON_PLUGIN "Set when you want to build pydiffphys (Python bindings for tiny-differentiable-simulator)" ON)
 IF(BUILD_PYTHON_PLUGIN)
   if (Eigen3_FOUND)
   SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/python)
