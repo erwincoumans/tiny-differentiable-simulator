@@ -19,8 +19,8 @@
 #include <string>
 #include <thread>
 
-//std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup_chassis_collision.urdf";
-std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup.urdf";
+std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup_chassis_collision.urdf";
+//std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup.urdf";
 
 //#include "meshcat_urdf_visualizer.h"
 #include "opengl_urdf_visualizer.h"
