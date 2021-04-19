@@ -2,3 +2,5 @@
 build/
 compile_commands.json
 Dockerfile
+.history
+.vscode
