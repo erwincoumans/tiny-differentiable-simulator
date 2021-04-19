@@ -346,6 +346,16 @@ TEST(RBDLTest, LaikagoNoToesDynamics_Eigen) {
       "laikago/laikago_no_toes.urdf", true);
 }
 
+TEST(RBDLTest, AntLegDynamics_Tiny) {
+  test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>(
+      "gym/ant_lite_one_leg_xyz_xyzrot.urdf", false);
+}
+
+TEST(RBDLTest, AntLegDynamics_Eigen) {
+  test_urdf_dynamics<tds::EigenAlgebra>(
+      "gym/ant_lite_one_leg_xyz_xyzrot.urdf", false);
+}
+
 // TEST(RBDLTest, LaikagoDynamics) {
 //   std::cout << "\n\n### TinyAlgebra:\n";
 //   test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>(
