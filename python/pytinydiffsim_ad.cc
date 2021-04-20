@@ -48,6 +48,7 @@ typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra;
 
 
 #include "pytinydiffsim_includes.h"
+#include <pybind11/iostream.h>
 
 using namespace TINY;
 using namespace tds;
@@ -94,17 +95,20 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
     m.def("independent", &TinyAD::independent<InnerScalar>);
     m.def("compute_jacobian", &TinyAD::compute_jacobian<InnerScalar>);
     m.def("print_ad", &TinyAD::print_ad<InnerScalar>);
+    m.def("hold_memory", &CppAD::thread_alloc::hold_memory);
     
     /* ADFun class */
     py::class_<ADFun>(m, "ADFun")
         .def(py::init([](vector<MyScalar>& x, vector<MyScalar>& y) {
-            return std::unique_ptr<ADFun>(new CppAD::ADFun<InnerScalar>(x, y));
+            return new CppAD::ADFun<InnerScalar>(x, y);
         }))
         .def("Forward", [](ADFun& adfun, size_t q, const BaseVector& xq) {
-            // We have to use a lambda function because of default argument std::cout
-            return adfun.Forward(q, xq, std::cout);            
-        })
-        .def("Reverse", &ADFun::Reverse<BaseVector>)
+            return adfun.Forward(q, xq);            
+        }, py::call_guard<py::scoped_ostream_redirect,
+                          py::scoped_estream_redirect>())
+        .def("Reverse", &ADFun::Reverse<BaseVector>,
+            py::call_guard<py::scoped_ostream_redirect,
+                           py::scoped_estream_redirect>())
         .def("Jacobian", &ADFun::Jacobian<BaseVector>)
         ;
 
