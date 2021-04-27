@@ -12,36 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fenv.h>
 #include <stdio.h>
 
-#include <chrono>  // std::chrono::seconds
-#include <thread>  // std::this_thread::sleep_for
+#include <iostream>  // std::cout
 
-
-#include "math/tiny/fix64_scalar.h"
-#include "dynamics/kinematics.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
-#include "utils/pendulum.hpp"
-
-
+#include "dynamics/kinematics.hpp"
+#include "math/tiny/fix64_scalar.h"
 #include "math/tiny/tiny_double_utils.h"
-#include "utils/file_utils.hpp"
 #include "multi_body.hpp"
+#include "utils/file_utils.hpp"
+#include "utils/pendulum.hpp"
 #include "world.hpp"
 
 using namespace TINY;
 using namespace tds;
 
 #ifdef USE_TINY
-  #include "math/tiny/tiny_algebra.hpp"
+#include "math/tiny/tiny_algebra.hpp"
 #else
-  #include "math/eigen_algebra.hpp"
+#include "math/eigen_algebra.hpp"
 #endif
 
 int main(int argc, char* argv[]) {
 #ifdef USE_TINY
+  std::cout << "Using TinyAlgebra" << std::endl;
   typedef TinyAlgebra<double, DoubleUtils> Algebra;
   typedef typename Algebra::Vector3 Vector3;
   typedef typename Algebra::Quaternion Quarternion;
@@ -50,6 +46,7 @@ int main(int argc, char* argv[]) {
   typedef typename Algebra::Matrix3X Matrix3X;
   typedef typename Algebra::MatrixX MatrixX;
 #else
+  std::cout << "Using EigenAlgebra" << std::endl;
   typedef EigenAlgebra Algebra;
   typedef typename Algebra::Vector3 Vector3;
   typedef typename Algebra::Quaternion Quarternion;
@@ -89,10 +86,9 @@ int main(int argc, char* argv[]) {
   MatrixX M(mb->links().size(), mb->links().size());
 
   double dt = 1. / 240.;
-  
+
   int upAxis = 2;
-  for (int i=0;i<100;i++)
-  {
+  for (int i = 0; i < 100; i++) {
     // mb->clear_forces();
     tds::forward_kinematics(*mb);
 
@@ -103,15 +99,15 @@ int main(int argc, char* argv[]) {
     {
       tds::integrate_euler(*mb, mb->q(), mb->qd(), mb->qdd(), dt);
 
-      printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", mb->q()[0], mb->q()[1], mb->qd()[0], mb->qd()[1]);
+      printf("q: [%.3f %.3f] \tqd: [%.3f %.3f]\n", mb->q()[0], mb->q()[1],
+             mb->qd()[0], mb->qd()[1]);
       //tds::mass_matrix(*mb, &M);
-      
       //M.print("M");
+
       if (mb->qd()[0] < -1e4) {
         assert(0);
       }
     }
   }
-  
   return 0;
 }

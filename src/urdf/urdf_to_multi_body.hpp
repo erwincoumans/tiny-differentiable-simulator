@@ -25,6 +25,8 @@
 struct VisualInstanceGenerator {
   virtual void create_visual_instance(int shape_uid,
                                       std::vector<int> &instances) = 0;
+  virtual ~VisualInstanceGenerator() {
+  }
 };
 
 namespace tds {

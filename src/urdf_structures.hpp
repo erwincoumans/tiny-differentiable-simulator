@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "../geometry.hpp"  // for GeometryTypes
-#include "../link.hpp"
+#include "geometry.hpp"  // for GeometryTypes
+#include "link.hpp"
 
 namespace tds {
 template <typename Algebra>
