@@ -521,10 +521,9 @@
           &MultiBody<MyAlgebra>::get_position)
       .def("get_base_orientation",
           &MultiBody<MyAlgebra>::get_orientation)
-
       .def("get_world_transform",
            &MultiBody<MyAlgebra>::get_world_transform)
-
+      .def("get_world_com", &MultiBody<MyAlgebra>::get_world_com)
       .def("attach_link", &MultiBody<MyAlgebra>::attach_link)
       .def("set_q", &MultiBody<MyAlgebra>::set_q)
 #if 0

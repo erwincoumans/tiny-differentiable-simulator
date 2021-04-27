@@ -449,7 +449,7 @@ public:
     if (link == -1) {
       return tf.apply(base_rbi_.com);
     } else {
-      return tf.apply(links_[link].I.com);
+      return tf.apply(links_[link].rbi.com);
     }
   }
 
