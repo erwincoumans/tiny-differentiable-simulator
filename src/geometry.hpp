@@ -147,7 +147,5 @@ static TINY_INLINE Geometry<AlgebraTo> *clone(const Geometry<AlgebraFrom> *g) {
       return new Plane<AlgebraTo>(
           ((Plane<AlgebraFrom> *)g)->template clone<AlgebraTo>());
   }
-  throw std::runtime_error(
-      "Unsupported geom type encountered in clone_geom().");
 }
 }  // namespace tds
