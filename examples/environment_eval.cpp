@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
   
   visualizer.delete_all();
 
-  ContactSimulation<MyAlgebra> contact_sim;
+  CartpoleContactSimulation<MyAlgebra> contact_sim;
   
   int input_dim = contact_sim.input_dim();
   
@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
 
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  ContactSimulation<MyAlgebra> sim;
+  CartpoleContactSimulation<MyAlgebra> sim;
 
   Environment env(sim);
   auto obs = env.reset();

@@ -10,7 +10,7 @@
 #include "cartpole_urdf.h"
 
 template <typename Algebra>
-struct ContactSimulation {
+struct CartpoleContactSimulation {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using Transform = typename Algebra::Transform;
@@ -29,7 +29,7 @@ struct ContactSimulation {
   }
   int output_dim() const { return num_timesteps * state_dim(); }
 
-  ContactSimulation() {
+  CartpoleContactSimulation() {
     std::string plane_filename;
     world.set_gravity(Vector3(0., 0., -10));
 
@@ -54,11 +54,11 @@ struct ContactSimulation {
 
 
     mb_->base_X_world().translation = Algebra::unit3_z();
-    // std::cout << "ContactSimulation!" << std::endl;
+    std::cout << "CartpoleContactSimulation!" << std::endl;
   }
 
-  virtual ~ContactSimulation() {
-    // std::cout << "~ContactSimulation" << std::endl;
+  virtual ~CartpoleContactSimulation() {
+    std::cout << "~CartpoleContactSimulation" << std::endl;
   }
   std::vector<Scalar> operator()(const std::vector<Scalar>& v,
                                  Scalar tau = 0.) {
@@ -121,12 +121,19 @@ struct ContactSimulation {
   }
 };
 
+struct CartpoleEnvOutput
+{
+    std::vector<double> obs;
+    double reward;
+    bool done;
+};
+
 template <typename Algebra>
 struct CartpoleEnv {
   using Scalar = typename Algebra::Scalar;
-  ContactSimulation<Algebra>& contact_sim;
+  CartpoleContactSimulation<Algebra>& contact_sim;
 
-  CartpoleEnv(ContactSimulation<Algebra>& cartpole) : contact_sim(cartpole) {
+  CartpoleEnv(CartpoleContactSimulation<Algebra>& cartpole) : contact_sim(cartpole) {
     bool use_input_bias = false;
     int observation_size = contact_sim.input_dim();
     neural_network.set_input_dim(observation_size, use_input_bias);
@@ -148,6 +155,44 @@ struct CartpoleEnv {
     //     std::cout << v << std::endl;
     return sim_state;
   }
+
+  std::vector<double> reset2() {
+    
+    std::vector<double> obs = reset();
+    std::vector<double> sim_state;
+    // change layout to [q1,qd1, q0, qd0] to be compatible with
+    sim_state.push_back(obs[1]);
+    sim_state.push_back(obs[3]);
+    sim_state.push_back(obs[0]);
+    sim_state.push_back(obs[2]);
+    return sim_state;
+  }
+
+  void seed(long long int s) {
+      //std::cout<<"seed:" << s << std::endl;
+      std::srand(s);
+  }
+
+  CartpoleEnvOutput step2(double action) {
+      //std::cout << "action:" << action << std::endl;
+
+      CartpoleEnvOutput env_out;
+      
+      std::vector<double> obs;
+      step(action, obs, env_out.reward, env_out.done);
+      // obs in format [q0,q1,qd0,qd1]
+      // change layout to [q1,qd1, q0, qd0] to be compatible with
+      // PyBullet'CartPoleContinuousBulletEnv-v0'
+      env_out.obs.push_back(obs[1]);
+      env_out.obs.push_back(obs[3]);
+      env_out.obs.push_back(obs[0]);
+      env_out.obs.push_back(obs[2]);
+      //std::cout << "env_out.done=" << env_out.done << std::endl;
+      //std::cout << "env_out.reward=" << env_out.done << std::endl;
+      //std::cout << "obs=" << obs << std::endl;
+      return env_out;
+  }
+  
 
   void step(double action, std::vector<double>& obs, double& reward,
             bool& done) {

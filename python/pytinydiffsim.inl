@@ -891,11 +891,39 @@
           "name_to_link_index",
           &UrdfStructures<MyAlgebra>::name_to_link_index);
 
+
+
   py::class_<UrdfToMultiBody2<MyAlgebra>>(m, "UrdfToMultiBody2")
       .def(py::init<>())
       .def("convert2", &UrdfToMultiBody2<MyAlgebra>::convert);
 
+#ifdef ENABLE_CARTPOLE_TEST_ENV
+  py::class_<CartpoleEnvOutput>(m, "CartpoleEnvOutput")
+      .def(py::init<>())
+      .def_readwrite("obs",
+                     &CartpoleEnvOutput::obs)
+      .def_readwrite("reward",
+                     &CartpoleEnvOutput::reward)
+      .def_readwrite("done",
+                     &CartpoleEnvOutput::done)
+      ;
+
+  py::class_<CartpoleContactSimulation<MyAlgebra>>(m, "CartpoleSimulation")
+      .def(py::init<>())
+      .def_readwrite("m_urdf_filename",
+                     &CartpoleContactSimulation<MyAlgebra>::m_urdf_filename)
+      ;
+
+  py::class_<CartpoleEnv<MyAlgebra>>(m, "CartpoleEnv")
+      .def(py::init<CartpoleContactSimulation<MyAlgebra>&>())
+      .def("reset", &CartpoleEnv<MyAlgebra>::reset2)
+      .def("step", &CartpoleEnv<MyAlgebra>::step2)
+      .def("seed", &CartpoleEnv<MyAlgebra>::seed)
+      .def("init_neural_network", &CartpoleEnv<MyAlgebra>::init_neural_network)
+      .def("policy", &CartpoleEnv<MyAlgebra>::policy)
+      ;
   
+#endif//ENABLE_CARTPOLE_TEST_ENV
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
