@@ -18,9 +18,10 @@
 #define TINY_INVERSE_KINEMATICS_H
 
 #include "multi_body.hpp"
-//#include "math/tiny/tiny_algebra.hpp"
 
-//#include "math/tiny/tiny_eigen_helper.h"
+#ifdef USE_EIGEN
+#include "math/tiny/tiny_eigen_helper.h"
+#endif
 #include "dynamics/kinematics.hpp"
 #include "dynamics/jacobian.hpp"
 
