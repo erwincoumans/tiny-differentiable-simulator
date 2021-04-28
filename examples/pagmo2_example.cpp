@@ -46,7 +46,7 @@ using namespace pagmo;
 
 
 
-ContactSimulation<MyAlgebra> m_cartpole_sim;
+CartpoleContactSimulation<MyAlgebra> m_cartpole_sim;
 
 struct cartpole_problem {
 
