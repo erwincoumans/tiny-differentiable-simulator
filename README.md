@@ -17,12 +17,12 @@ Multiple visualizers are available, see below.
 Please use the following reference to cite this research:
 
 ```
-@inproceedings{Heiden_ICRA_2021,
-  author =		 {Eric Heiden, David Millard, Erwin Coumans, Yizhou Sheng, Gaurav S. Sukhatme},
-  year =		 {2021},
-  title =		 {NeuralSim: Augmenting Differentiable Simulators with Neural Networks},
-  booktitle =		 {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
-  url =		 {https://github.com/google-research/tiny-differentiable-simulator}
+@inproceedings{heiden2021neuralsim,
+  author =	  {Heiden, Eric and Millard, David and Coumans, Erwin and Sheng, Yizhou and Sukhatme, Gaurav S},
+  year =		  {2021},
+  title =		  {Neural{S}im: Augmenting Differentiable Simulators with Neural Networks},
+  booktitle = {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
+  url =		    {https://github.com/google-research/tiny-differentiable-simulator}
 }
 ```
 
