@@ -689,7 +689,9 @@
       m, "TinyMultiBodyConstraintSolver")
       .def(py::init<>())
       .def("resolve_collision",
-           &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision);
+           &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision)
+      .def_readwrite("pgs_iterations_", &MultiBodyConstraintSolver<MyAlgebra>::pgs_iterations_)
+      .def_readwrite("keep_all_points_", &MultiBodyConstraintSolver<MyAlgebra>::keep_all_points_);
 
 #if 0
 
@@ -735,10 +737,15 @@
            &World<MyAlgebra>::compute_contacts_multi_body)
       .def("get_collision_dispatcher",
            &World<MyAlgebra>::get_collision_dispatcher)
+      .def("get_mb_constraint_solver",
+           &World<MyAlgebra>::get_mb_constraint_solver)
+      .def("set_mb_constraint_solver",
+           &World<MyAlgebra>::set_mb_constraint_solver)
       .def_readwrite("friction",
                      &World<MyAlgebra>::default_friction)
       .def_readwrite("restitution",
-                     &World<MyAlgebra>::default_restitution);
+                     &World<MyAlgebra>::default_restitution)
+      .def_readwrite("num_solver_iterations", &World<MyAlgebra>::num_solver_iterations);
 
   py::class_<TinyRaycastResult<MyScalar, MyTinyConstants>>(m, "TinyRaycastResult")
       .def(py::init<>())
