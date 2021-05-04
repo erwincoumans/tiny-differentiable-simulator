@@ -33,7 +33,7 @@ addons:
       apt:
         packages:
           - python3
-          - clang-10
+          - clang-11
           - cmake
           - gcc-9
           - g++-9
