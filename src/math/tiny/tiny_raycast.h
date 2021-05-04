@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "geometry.hpp"
+#include "urdf_structures.hpp"
 
 namespace TINY
 {
@@ -24,7 +25,7 @@ template <typename TinyScalar, typename TinyConstants, typename TinyAlgebra>
 struct TinyRaycast {
   typedef ::TINY::TinyRaycastResult<TinyScalar, TinyConstants> TinyRaycastResult;
   typedef typename TinyAlgebra::Vector3 TinyVector3;
-  typedef ::tds::UrdfCollision<MyAlgebra> TinyUrdfCollision;
+  typedef ::tds::UrdfCollision<TinyAlgebra> TinyUrdfCollision;
 
   bool ray_box(const TinyVector3 &ray_from_local,
                const TinyVector3 &ray_to_local, const TinyUrdfCollision &box,

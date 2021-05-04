@@ -20,7 +20,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdio>
-
+#include <string>
 #include "tiny_dual.h"
 
 template <typename Scalar>

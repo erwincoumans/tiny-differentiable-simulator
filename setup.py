@@ -1,4 +1,4 @@
-#
+1#
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -212,11 +212,14 @@ print("-----")
 
 extensions = []
 
+CXX_FLAGS_TDS = CXX_FLAGS + '-DENABLE_CARTPOLE_TEST_ENV '
+
 pytinydiffsim_ext = Extension(
     "pytinydiffsim",
     sources=sources+["python/pytinydiffsim.cc"],
     libraries=libraries,
-    extra_compile_args=CXX_FLAGS.split(),
+    
+    extra_compile_args=CXX_FLAGS_TDS.split(),
     include_dirs=include_dirs + ["."])
 
 extensions.append(pytinydiffsim_ext)
@@ -267,7 +270,7 @@ extensions.append(pytinyopengl3_ext)
 
 setup(
     name='pytinydiffsim',
-    version='0.0.4',
+    version='0.0.6',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
     long_description=

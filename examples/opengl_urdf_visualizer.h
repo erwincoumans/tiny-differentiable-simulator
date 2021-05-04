@@ -23,7 +23,7 @@
 #include <string>
 
 #include "multi_body.hpp"
-#include "urdf/urdf_structures.hpp"
+#include "urdf_structures.hpp"
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "tiny_obj_loader.h"
 #include "utils/file_utils.hpp"
