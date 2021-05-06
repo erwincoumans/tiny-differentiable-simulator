@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "math/pose.hpp"
+#include "sdf_utils.hpp"
 
 namespace tds {
 enum GeometryTypes {
@@ -46,7 +47,7 @@ class Geometry {
 };
 
 template <typename Algebra>
-class Sphere : public Geometry<Algebra> {
+class Sphere : public Geometry<Algebra>, public SDF<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
@@ -54,7 +55,10 @@ class Sphere : public Geometry<Algebra> {
 
  public:
   explicit Sphere(const Scalar &radius)
-      : Geometry<Algebra>(TINY_SPHERE_TYPE), radius(radius) {}
+      : Geometry<Algebra>(TINY_SPHERE_TYPE), radius(radius) {
+    this->max_boundaries = Vector3(2 * radius, 2 * radius, 2 * radius);
+    this->min_boundaries = Vector3(-2 * radius, -2 * radius, -2 * radius);
+  }
 
   template <typename AlgebraTo = Algebra>
   Sphere<AlgebraTo> clone() const {
@@ -68,11 +72,15 @@ class Sphere : public Geometry<Algebra> {
     Scalar elem = Algebra::fraction(4, 10) * mass * radius * radius;
     return Vector3(elem, elem, elem);
   }
+
+  Scalar distance(const Vector3 &p) const override {
+    return p.length() - radius;
+  }
 };
 
 // capsule aligned with the Z axis
 template <typename Algebra>
-class Capsule : public Geometry<Algebra> {
+class Capsule : public Geometry<Algebra>, public SDF<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
@@ -81,7 +89,11 @@ class Capsule : public Geometry<Algebra> {
 
  public:
   explicit Capsule(const Scalar &radius, const Scalar &length)
-      : Geometry<Algebra>(TINY_CAPSULE_TYPE), radius(radius), length(length) {}
+      : Geometry<Algebra>(TINY_CAPSULE_TYPE), radius(radius), length(length) {
+    Scalar bound = 1.2 * (radius + length / 2);
+    this->max_boundaries = Vector3(bound, bound, bound);
+    this->min_boundaries = Vector3(-bound, -bound, -bound);
+  }
 
   template <typename AlgebraTo = Algebra>
   Capsule<AlgebraTo> clone() const {
@@ -106,6 +118,12 @@ class Capsule : public Geometry<Algebra> {
     inertia[1] = scaledmass * (x2 + z2);
     inertia[2] = scaledmass * (x2 + y2);
     return inertia;
+  }
+
+  Scalar distance(const Vector3 &p) const override {
+    Vector3 pt(p.x(), p.y(),
+               p.z() - std::clamp(p.z(), -this->length / 2, this->length / 2));
+    return pt.length() - this->radius;
   }
 };
 
@@ -150,4 +168,46 @@ static TINY_INLINE Geometry<AlgebraTo> *clone(const Geometry<AlgebraFrom> *g) {
   throw std::runtime_error(
       "Unsupported geom type encountered in clone_geom().");
 }
+
+template <typename Algebra>
+class Cylinder : public Geometry<Algebra>, public SDF<Algebra> {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+
+  Scalar radius;
+  Scalar length;
+
+ public:
+  Cylinder(const Scalar &radius, const Scalar &length)
+      : Geometry<Algebra>(TINY_CYLINDER_TYPE), radius(radius), length(length) {
+    Scalar bound = (radius + length / 2);
+    this->max_boundaries = Vector3(bound, bound, bound);
+    this->min_boundaries = Vector3(-bound, -bound, -bound);
+  }
+
+  template <typename AlgebraTo = Algebra>
+  Cylinder<AlgebraTo> clone() const {
+    typedef Conversion<Algebra, AlgebraTo> C;
+    return Cylinder<AlgebraTo>(C::convert(radius), C::convert(length));
+  }
+
+  const Scalar &get_radius() const { return radius; }
+  const Scalar &get_length() const { return length; }
+
+  Scalar distance(const Vector3 &p) const override {
+    // The Marching Cubes algorithm is not very good at sharp edges
+    // Define a small rounding radius to smooth the edge of the two faces
+    Scalar rb = radius / 20;  // Can be exposed to the users
+
+    Scalar lxy = Algebra::sqrt(p.x() * p.x() + p.y() * p.y());
+    Scalar lz = Algebra::abs(p.z());
+    Scalar dx = lxy - radius + rb;
+    Scalar dy = lz - length / 2 + rb;
+    Scalar min_d = Algebra::min(Algebra::max(dx, dy), Algebra::zero());
+    Scalar max_d = Algebra::sqrt(
+        Algebra::max(dx, Algebra::zero()) * Algebra::max(dx, Algebra::zero()) +
+        Algebra::max(dy, Algebra::zero()) * Algebra::max(dy, Algebra::zero()));
+    return min_d + max_d - rb;
+  }
+};
 }  // namespace tds
