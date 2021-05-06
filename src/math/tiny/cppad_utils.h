@@ -200,7 +200,7 @@ namespace TinyAD
   
   template <typename Scalar = double>
   inline void print_ad(const std::string& s, const CppAD::AD<Scalar>& v) {
-    CppAD::PrintFor(v, s.c_str(), v, "\n");
+    CppAD::PrintFor(CppAD::AD<Scalar>(-1), s.c_str(), v, "\n");
   }
 
 } 

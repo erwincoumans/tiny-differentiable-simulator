@@ -13,6 +13,19 @@ Multiple visualizers are available, see below.
 
 ![](https://github.com/erwincoumans/tiny-differentiable-simulator/blob/master/data/trb_meshcat.jpg)
 
+## Bibtex
+Please use the following reference to cite this research:
+
+```
+@inproceedings{heiden2021neuralsim,
+  author =	  {Heiden, Eric and Millard, David and Coumans, Erwin and Sheng, Yizhou and Sukhatme, Gaurav S},
+  year =		  {2021},
+  title =		  {Neural{S}im: Augmenting Differentiable Simulators with Neural Networks},
+  booktitle = {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
+  url =		    {https://github.com/google-research/tiny-differentiable-simulator}
+}
+```
+
 ## Related Papers
 * "NeuralSim: Augmenting Differentiable Simulators with Neural Networks", Eric Heiden, David Millard, Erwin Coumans, Yizhou Sheng, Gaurav S. Sukhatme. [PDF on Arxiv](https://arxiv.org/abs/2011.04217)
 * “Augmenting Differentiable Simulators with Neural Networks to Close the Sim2Real Gap”, RSS 2020 sim-to-real workshop, Eric Heiden, David Millard, Erwin Coumans, Gaurav Sukhatme. [PDF on Arxiv](https://sim2real.github.io/assets/papers/2020/heiden.pdf) and [video](https://www.youtube.com/watch?v=awhkI5xtFa0)

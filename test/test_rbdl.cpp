@@ -2,14 +2,14 @@
 
 //#define TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
 
-#include "rbdl_test_utils.hpp"
 #include "math/eigen_algebra.hpp"
+#include "rbdl_test_utils.hpp"
+
 
 using namespace tds;
 using namespace TINY;
 
-template <typename Algebra>
-void test_urdf_kinematics(std::string filename) {
+template <typename Algebra> void test_urdf_kinematics(std::string filename) {
   using Tf = Transform<Algebra>;
   using Vector3 = typename Algebra::Vector3;
   using VectorX = typename Algebra::VectorX;
@@ -27,7 +27,7 @@ void test_urdf_kinematics(std::string filename) {
 #ifdef USE_BULLET_URDF_PARSER
   UrdfCache<Algebra> cache;
   mb = cache.construct(urdf_filename, world, false, is_floating);
-#else   // USE_BULLET_URDF_PARSER
+#else  // USE_BULLET_URDF_PARSER
   UrdfParser<Algebra> parser;
   MultiBody<Algebra> mb1;
   mb = &mb1;
@@ -36,7 +36,7 @@ void test_urdf_kinematics(std::string filename) {
   UrdfStructures<Algebra> urdf_structures = parser.load_urdf(full_path);
   UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_structures, world, mb1);
   mb1.initialize();
-#endif  // USE_BULLET_URDF_PARSER
+#endif // USE_BULLET_URDF_PARSER
 
   std::string fail_message = "Failure at time step ";
 
@@ -87,8 +87,8 @@ void test_urdf_kinematics(std::string filename) {
         rbdl_q[i - int(mb->is_floating())] = Algebra::to_double(mb->q(i));
       }
       for (int i = qd_offset; i < mb->dof_qd(); ++i) {
-        mb->qd(i) = 0.0;   // double(rand()) / RAND_MAX;
-        mb->qdd(i) = 0.0;  // double(rand()) / RAND_MAX;
+        mb->qd(i) = 0.0;  // double(rand()) / RAND_MAX;
+        mb->qdd(i) = 0.0; // double(rand()) / RAND_MAX;
         rbdl_qd[i] = Algebra::to_double(mb->qd(i));
         rbdl_qdd[i] = Algebra::to_double(mb->qdd(i));
       }
@@ -125,16 +125,17 @@ void test_urdf_dynamics(std::string filename, bool is_floating = false) {
 #ifdef USE_BULLET_URDF_PARSER
   UrdfCache<Algebra> cache;
   mb = cache.construct(urdf_filename, world, false, is_floating);
-#else   // USE_BULLET_URDF_PARSER
+#else  // USE_BULLET_URDF_PARSER
   UrdfParser<Algebra> parser;
   MultiBody<Algebra> mb1(is_floating);
   mb = &mb1;
   std::string full_path;
   FileUtils::find_file(filename, full_path);
   UrdfStructures<Algebra> urdf_structures = parser.load_urdf(full_path);
-  UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_structures, world, mb1,0);
+  UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_structures, world, mb1,
+                                                  0);
   mb1.initialize();
-#endif  // USE_BULLET_URDF_PARSER
+#endif // USE_BULLET_URDF_PARSER
 
   if (mb->is_floating()) {
     // apply some random base velocity for testing
@@ -147,13 +148,14 @@ void test_urdf_dynamics(std::string filename, bool is_floating = false) {
     // mb->qd(2) = 172.56;
     // mb->qd(3) = 13.1204;
     // mb->qd(4) = 87.439;
+
+    // set a random base orientation
+    mb->set_orientation(
+        Algebra::matrix_to_quat(Algebra::rotation_zyx_matrix(0.5, -0.7, 0.3)));
+    // mb->set_orientation(
+    //     Algebra::matrix_to_quat(Algebra::rotation_x_matrix(M_PI_2)));
+    //     mb->set_position(Vector3(2034.0, -102.1879, 732.73));
   }
-  // set a random base orientation
-  mb->set_orientation(
-      Algebra::matrix_to_quat(Algebra::rotation_zyx_matrix(0.5, -0.7, 0.3)));
-  // mb->set_orientation(
-  //     Algebra::matrix_to_quat(Algebra::rotation_x_matrix(M_PI_2)));
-  //     mb->set_position(Vector3(2034.0, -102.1879, 732.73));
 
   std::string fail_message = "Failure at time step ";
 
@@ -195,7 +197,8 @@ void test_urdf_dynamics(std::string filename, bool is_floating = false) {
         rbdl_tau[i + qd_offset] = Algebra::to_double(mb->tau(i));
       }
 
-      forward_dynamics(*mb, gravity);
+      bool rbdl_convention = true;
+      forward_dynamics(*mb, gravity, rbdl_convention);
 
       RigidBodyDynamics::ForwardDynamics(rbdl_model, rbdl_q, rbdl_qd, rbdl_tau,
                                          rbdl_qdd);
@@ -341,8 +344,17 @@ TEST(RBDLTest, LaikagoNoToesDynamics_Tiny) {
 }
 
 TEST(RBDLTest, LaikagoNoToesDynamics_Eigen) {
-  test_urdf_dynamics<tds::EigenAlgebra>(
-      "laikago/laikago_no_toes.urdf", true);
+  test_urdf_dynamics<tds::EigenAlgebra>("laikago/laikago_no_toes.urdf", true);
+}
+
+TEST(RBDLTest, AntLegDynamics_Tiny) {
+  test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>(
+      "gym/ant_lite_one_leg_xyz_xyzrot.urdf", false);
+}
+
+TEST(RBDLTest, AntLegDynamics_Eigen) {
+  test_urdf_dynamics<tds::EigenAlgebra>("gym/ant_lite_one_leg_xyz_xyzrot.urdf",
+                                        false);
 }
 
 // TEST(RBDLTest, LaikagoDynamics) {

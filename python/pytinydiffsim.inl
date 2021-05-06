@@ -176,9 +176,9 @@
 //      .def(py::init<MyScalar, MyScalar, MyScalar, 
 //          MyScalar, MyScalar, MyScalar, 
 //          MyScalar, MyScalar, MyScalar>())
-//      .def("get_at", [](const Matrix& a, const int row, const int col) {
-//          return a(col, row);
-///      })
+      .def("get_at", [](const Matrix3& a, const int row, const int col) {
+          return a(row, col);
+      })
       .def("__getitem__", [](const Matrix3& a, py::tuple t) {
           if (t.size() != 2)
               throw std::runtime_error("Invalid indexing!");
@@ -211,6 +211,9 @@
       })
       .def_property_readonly("num_columns", [](const Matrix3X& a) {
           return MyAlgebra::num_cols(a);
+      })
+     .def("get_at", [](const Matrix3X& a, const int row, const int col) {
+          return a( row, col);
       })
       //.def("print", &Matrix3X::print)
       .def("__getitem__", [](const Matrix3X& a, py::tuple t) {
@@ -518,10 +521,9 @@
           &MultiBody<MyAlgebra>::get_position)
       .def("get_base_orientation",
           &MultiBody<MyAlgebra>::get_orientation)
-
       .def("get_world_transform",
            &MultiBody<MyAlgebra>::get_world_transform)
-
+      .def("get_world_com", &MultiBody<MyAlgebra>::get_world_com)
       .def("attach_link", &MultiBody<MyAlgebra>::attach_link)
       .def("set_q", &MultiBody<MyAlgebra>::set_q)
 #if 0
@@ -889,11 +891,39 @@
           "name_to_link_index",
           &UrdfStructures<MyAlgebra>::name_to_link_index);
 
+
+
   py::class_<UrdfToMultiBody2<MyAlgebra>>(m, "UrdfToMultiBody2")
       .def(py::init<>())
       .def("convert2", &UrdfToMultiBody2<MyAlgebra>::convert);
 
+#ifdef ENABLE_CARTPOLE_TEST_ENV
+  py::class_<CartpoleEnvOutput>(m, "CartpoleEnvOutput")
+      .def(py::init<>())
+      .def_readwrite("obs",
+                     &CartpoleEnvOutput::obs)
+      .def_readwrite("reward",
+                     &CartpoleEnvOutput::reward)
+      .def_readwrite("done",
+                     &CartpoleEnvOutput::done)
+      ;
+
+  py::class_<CartpoleContactSimulation<MyAlgebra>>(m, "CartpoleSimulation")
+      .def(py::init<>())
+      .def_readwrite("m_urdf_filename",
+                     &CartpoleContactSimulation<MyAlgebra>::m_urdf_filename)
+      ;
+
+  py::class_<CartpoleEnv<MyAlgebra>>(m, "CartpoleEnv")
+      .def(py::init<CartpoleContactSimulation<MyAlgebra>&>())
+      .def("reset", &CartpoleEnv<MyAlgebra>::reset2)
+      .def("step", &CartpoleEnv<MyAlgebra>::step2)
+      .def("seed", &CartpoleEnv<MyAlgebra>::seed)
+      .def("init_neural_network", &CartpoleEnv<MyAlgebra>::init_neural_network)
+      .def("policy", &CartpoleEnv<MyAlgebra>::policy)
+      ;
   
+#endif//ENABLE_CARTPOLE_TEST_ENV
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////

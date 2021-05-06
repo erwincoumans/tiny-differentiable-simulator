@@ -24,14 +24,15 @@
 #include "geometry.hpp"
 #include "multi_body.hpp"
 #include "stb_image/stb_image.h"
+#include "urdf_structures.hpp"
+#include "visualizer/opengl/tiny_opengl3_app.h"
 #include "tiny_obj_loader.h"
-#include "urdf/urdf_structures.hpp"
 #include "utils/file_utils.hpp"
 #include "utils/sdf_to_mesh_converter.hpp"
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
 
-#define USE_SDF_TO_MESH 1
+#define USE_SDF_TO_MESH 0
 
 template <typename Algebra>
 struct OpenGLUrdfVisualizer {
@@ -178,6 +179,13 @@ struct OpenGLUrdfVisualizer {
       b2v.inertia_xyz = link.urdf_inertial.origin_xyz;
       b2v.inertia_rpy = link.urdf_inertial.origin_rpy;
       int color_rgb = 0xffffff;
+      //todo(erwincoumans make local material colors work
+      if (v.has_local_material)
+      {
+          //color_rgb = 0xff*v.material.material_rgb[0]+
+          //    0xff00*v.material.material_rgb[1]+
+          //    0xff0000*v.material.material_rgb[2];
+      }
       double world_pos[3] = {0, 0, 0};
       switch (v.geometry.geom_type) {
         case ::tds::TINY_MESH_TYPE: {

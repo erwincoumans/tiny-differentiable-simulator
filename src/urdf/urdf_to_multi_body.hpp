@@ -22,30 +22,32 @@
 #include "../world.hpp"
 #include "urdf_structures.hpp"
 
-struct VisualInstanceGenerator
-{
-    virtual void create_visual_instance(int shape_uid, std::vector<int>& instances)=0;
+struct VisualInstanceGenerator {
+  virtual void create_visual_instance(int shape_uid,
+                                      std::vector<int> &instances) = 0;
+  virtual ~VisualInstanceGenerator() {
+  }
 };
 
 namespace tds {
-template <typename Algebra>
-struct UrdfToMultiBody {
+template <typename Algebra> struct UrdfToMultiBody {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
-  typedef tds::UrdfStructures<Algebra> UrdfStructures;
-  typedef tds::RigidBodyInertia<Algebra> RigidBodyInertia;
+  using Transform = tds::Transform<Algebra>;
+  using UrdfStructures = tds::UrdfStructures<Algebra>;
+  using RigidBodyInertia = tds::RigidBodyInertia<Algebra>;
 
-  static int convert_to_multi_body(const UrdfStructures& urdf_structures,
-                                   World<Algebra>& world,
-                                   MultiBody<Algebra>& mb,
-                                   VisualInstanceGenerator* vig) {
+  static int convert_to_multi_body(const UrdfStructures &urdf_structures,
+                                   World<Algebra> &world,
+                                   MultiBody<Algebra> &mb,
+                                   VisualInstanceGenerator *vig) {
     int return_code = kCONVERSION_OK;
 
     // start with base properties
     // mb->m_baseInertia
 
-    const UrdfLink<Algebra>& base_link = urdf_structures.base_links[0];
+    const UrdfLink<Algebra> &base_link = urdf_structures.base_links[0];
 
     {
       Scalar mass = base_link.urdf_inertial.mass;
@@ -54,21 +56,23 @@ struct UrdfToMultiBody {
                   base_link.urdf_inertial.origin_xyz[1],
                   base_link.urdf_inertial.origin_xyz[2]);
       Matrix3 inertia_diag = Algebra::diagonal3(local_inertia);
-      Matrix3 rot;
-      rot = Algebra::rotation_zyx_matrix(base_link.urdf_inertial.origin_rpy[0],
-                                         base_link.urdf_inertial.origin_rpy[1],
-                                         base_link.urdf_inertial.origin_rpy[2]);
-      Matrix3 inertia_C = rot * inertia_diag;
-      mb.base_rbi_ = RigidBodyInertia(mass, com, inertia_C);
+      mb.base_rbi_ = RigidBodyInertia(mass, com, inertia_diag);
+      // apply rotation
+      Transform tf;
+      tf.rotation =
+          Algebra::rotation_zyx_matrix(base_link.urdf_inertial.origin_rpy[0],
+                                       base_link.urdf_inertial.origin_rpy[1],
+                                       base_link.urdf_inertial.origin_rpy[2]);
+      mb.base_rbi_ = tf.apply(mb.base_rbi_);
     }
     for (std::size_t i = 0; i < base_link.urdf_visual_shapes.size(); i++) {
-      const UrdfVisual<Algebra>& visual_shape = base_link.urdf_visual_shapes[i];
+      const UrdfVisual<Algebra> &visual_shape = base_link.urdf_visual_shapes[i];
 
-      if (vig)
-      {
-          vig->create_visual_instance(visual_shape.visual_shape_uid, mb.visual_instance_uids_);
+      if (vig) {
+        vig->create_visual_instance(visual_shape.visual_shape_uid,
+                                    mb.visual_instance_uids_);
       }
-      Transform<Algebra> visual_offset;
+      Transform visual_offset;
       visual_offset.translation =
           Vector3(visual_shape.origin_xyz[0], visual_shape.origin_xyz[1],
                   visual_shape.origin_xyz[2]);
@@ -103,68 +107,68 @@ struct UrdfToMultiBody {
       // convert from enum JointType (SharedMemoryPublic.h) to JointType
       // (link.hpp)
       switch (urdf_structures.joints[i].joint_type) {
-        case JOINT_FIXED: {
-          printf("FixedType!\n");
-          l.set_joint_type(JOINT_FIXED);
-          joint_conversion_ok = true;
-          break;
-        }
-        case JOINT_REVOLUTE_AXIS: {
-          int non_zero_joint_axis_index = -1;
-          for (int j = 0; j < 3; j++) {
-            // approximate check needed?
-            if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
-              if (non_zero_joint_axis_index >= 0) {
-                break;
-              }
-              non_zero_joint_axis_index = j;
+      case JOINT_FIXED: {
+        printf("FixedType!\n");
+        l.set_joint_type(JOINT_FIXED);
+        joint_conversion_ok = true;
+        break;
+      }
+      case JOINT_REVOLUTE_AXIS: {
+        int non_zero_joint_axis_index = -1;
+        for (int j = 0; j < 3; j++) {
+          // approximate check needed?
+          if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
+            if (non_zero_joint_axis_index >= 0) {
+              break;
             }
+            non_zero_joint_axis_index = j;
           }
-          if (non_zero_joint_axis_index >= 0) {
-            l.set_joint_type(
-                JointType(JOINT_REVOLUTE_X + non_zero_joint_axis_index));
-          } else {
-            l.set_joint_type(JOINT_REVOLUTE_AXIS,
-                             urdf_structures.joints[i].joint_axis_xyz);
-          }
-          joint_conversion_ok = true;
-          break;
         }
-        case JOINT_PRISMATIC_AXIS: {
-          int non_zero_joint_axis_index = -1;
-          for (int j = 0; j < 3; j++) {
-            // approximate check needed?
-            if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
-              if (non_zero_joint_axis_index >= 0) {
-                break;
-              }
-              non_zero_joint_axis_index = j;
+        if (non_zero_joint_axis_index >= 0) {
+          l.set_joint_type(
+              JointType(JOINT_REVOLUTE_X + non_zero_joint_axis_index));
+        } else {
+          l.set_joint_type(JOINT_REVOLUTE_AXIS,
+                           urdf_structures.joints[i].joint_axis_xyz);
+        }
+        joint_conversion_ok = true;
+        break;
+      }
+      case JOINT_PRISMATIC_AXIS: {
+        int non_zero_joint_axis_index = -1;
+        for (int j = 0; j < 3; j++) {
+          // approximate check needed?
+          if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
+            if (non_zero_joint_axis_index >= 0) {
+              break;
             }
+            non_zero_joint_axis_index = j;
           }
-          if (non_zero_joint_axis_index >= 0) {
-            l.set_joint_type(
-                JointType(JOINT_PRISMATIC_X + non_zero_joint_axis_index));
-          } else {
-            l.set_joint_type(JOINT_PRISMATIC_AXIS,
-                             urdf_structures.joints[i].joint_axis_xyz);
-          }
-          joint_conversion_ok = true;
-          break;
         }
-        case JOINT_SPHERICAL: {
-            joint_conversion_ok = true;
-            l.set_joint_type(JOINT_SPHERICAL);
-            break;
+        if (non_zero_joint_axis_index >= 0) {
+          l.set_joint_type(
+              JointType(JOINT_PRISMATIC_X + non_zero_joint_axis_index));
+        } else {
+          l.set_joint_type(JOINT_PRISMATIC_AXIS,
+                           urdf_structures.joints[i].joint_axis_xyz);
         }
-        default: {
-          return_code = kCONVERSION_JOINT_FAILED;
-        }
+        joint_conversion_ok = true;
+        break;
+      }
+      case JOINT_SPHERICAL: {
+        joint_conversion_ok = true;
+        l.set_joint_type(JOINT_SPHERICAL);
+        break;
+      }
+      default: {
+        return_code = kCONVERSION_JOINT_FAILED;
+      }
       };
 
       if (return_code == kCONVERSION_OK) {
         l.X_T.rotation = Algebra::eye3();
-        const UrdfJoint<Algebra>& j = urdf_structures.joints[i];
-        const UrdfLink<Algebra>& link = urdf_structures.links[i];
+        const UrdfJoint<Algebra> &j = urdf_structures.joints[i];
+        const UrdfLink<Algebra> &link = urdf_structures.links[i];
         l.X_T.translation =
             Vector3(j.joint_origin_xyz[0], j.joint_origin_xyz[1],
                     j.joint_origin_xyz[2]);
@@ -177,21 +181,23 @@ struct UrdfToMultiBody {
                     link.urdf_inertial.origin_xyz[1],
                     link.urdf_inertial.origin_xyz[2]);
         Matrix3 inertia_diag = Algebra::diagonal3(local_inertia);
-        Matrix3 rot;
-        rot = Algebra::rotation_zyx_matrix(link.urdf_inertial.origin_rpy[0],
-                                           link.urdf_inertial.origin_rpy[1],
-                                           link.urdf_inertial.origin_rpy[2]);
-        Matrix3 inertia_C = rot * inertia_diag;
-        l.rbi = RigidBodyInertia(mass, com, inertia_C);
+
+        // apply rotation
+        Transform tf;
+        tf.rotation = Algebra::rotation_zyx_matrix(
+            link.urdf_inertial.origin_rpy[0], link.urdf_inertial.origin_rpy[1],
+            link.urdf_inertial.origin_rpy[2]);
+        l.rbi = RigidBodyInertia(mass, com, inertia_diag);
+        l.rbi = tf.apply(l.rbi);
 
         for (std::size_t i = 0; i < link.urdf_visual_shapes.size(); i++) {
-          const UrdfVisual<Algebra>& visual_shape = link.urdf_visual_shapes[i];
+          const UrdfVisual<Algebra> &visual_shape = link.urdf_visual_shapes[i];
 
-          if (vig)
-          {
-              vig->create_visual_instance(visual_shape.visual_shape_uid, l.visual_instance_uids);
+          if (vig) {
+            vig->create_visual_instance(visual_shape.visual_shape_uid,
+                                        l.visual_instance_uids);
           }
-          Transform<Algebra> visual_offset;
+          Transform visual_offset;
           visual_offset.translation =
               Vector3(visual_shape.origin_xyz[0], visual_shape.origin_xyz[1],
                       visual_shape.origin_xyz[2]);
@@ -214,13 +220,13 @@ struct UrdfToMultiBody {
     return return_code;
   }
 
-  static void convert_collisions(World<Algebra>& world,
-                                 const UrdfLink<Algebra>& link,
-                                 Link<Algebra>& l) {
+  static void convert_collisions(World<Algebra> &world,
+                                 const UrdfLink<Algebra> &link,
+                                 Link<Algebra> &l) {
     for (std::size_t c = 0; c < link.urdf_collision_shapes.size(); c++) {
-      const UrdfCollision<Algebra>& col = link.urdf_collision_shapes[c];
+      const UrdfCollision<Algebra> &col = link.urdf_collision_shapes[c];
 
-      Transform<Algebra> collision_offset;
+      Transform collision_offset;
       collision_offset.translation =
           Vector3(col.origin_xyz[0], col.origin_xyz[1], col.origin_xyz[2]);
       Vector3 rpy = col.origin_rpy;
@@ -228,43 +234,43 @@ struct UrdfToMultiBody {
           Algebra::rotation_zyx_matrix(rpy[0], rpy[1], rpy[2]);
 
       switch (col.geometry.geom_type) {
-        case TINY_SPHERE_TYPE: {
-          Geometry<Algebra>* geom =
-              world.create_sphere(col.geometry.sphere.radius);
-          l.collision_geometries.push_back(geom);
-          l.X_collisions.push_back(collision_offset);
-          break;
-        }
-        // case BOX_TYPE: {
-        //     // col.box.extents = Vector3(colShapeData.dimensions[0],
-        //     // colShapeData.dimensions[1], colShapeData.dimensions[2]);
-        //     // urdfLink.urdf_collision_shapes.push_back(col);
-        //     break;
-        // }
-        case TINY_CAPSULE_TYPE: {
-          Geometry<Algebra>* geom =
-              world.create_capsule(Scalar(col.geometry.capsule.radius),
-                                   Scalar(col.geometry.capsule.length));
-          l.collision_geometries.push_back(geom);
-          l.X_collisions.push_back(collision_offset);
-          break;
-        }
-        // case GEOM_MESH: {
-        //    // col.mesh.file_name = colShapeData.meshAssetFileName;
-        //    // col.mesh.scale = Vector3(colShapeData.dimensions[0],
-        //    // colShapeData.dimensions[1], colShapeData.dimensions[2]);
-        //    break;
-        //}
-        case TINY_PLANE_TYPE: {
-          Geometry<Algebra>* geom = world.create_plane();
-          l.collision_geometries.push_back(geom);
-          l.X_collisions.push_back(collision_offset);
-          break;
-        }
-        default: {
-        }
+      case TINY_SPHERE_TYPE: {
+        Geometry<Algebra> *geom =
+            world.create_sphere(col.geometry.sphere.radius);
+        l.collision_geometries.push_back(geom);
+        l.X_collisions.push_back(collision_offset);
+        break;
+      }
+      // case BOX_TYPE: {
+      //     // col.box.extents = Vector3(colShapeData.dimensions[0],
+      //     // colShapeData.dimensions[1], colShapeData.dimensions[2]);
+      //     // urdfLink.urdf_collision_shapes.push_back(col);
+      //     break;
+      // }
+      case TINY_CAPSULE_TYPE: {
+        Geometry<Algebra> *geom =
+            world.create_capsule(Scalar(col.geometry.capsule.radius),
+                                 Scalar(col.geometry.capsule.length));
+        l.collision_geometries.push_back(geom);
+        l.X_collisions.push_back(collision_offset);
+        break;
+      }
+      // case GEOM_MESH: {
+      //    // col.mesh.file_name = colShapeData.meshAssetFileName;
+      //    // col.mesh.scale = Vector3(colShapeData.dimensions[0],
+      //    // colShapeData.dimensions[1], colShapeData.dimensions[2]);
+      //    break;
+      //}
+      case TINY_PLANE_TYPE: {
+        Geometry<Algebra> *geom = world.create_plane();
+        l.collision_geometries.push_back(geom);
+        l.X_collisions.push_back(collision_offset);
+        break;
+      }
+      default: {
+      }
       };
     }
   }
 };
-}  // namespace tds
+} // namespace tds

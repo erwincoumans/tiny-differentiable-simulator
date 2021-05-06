@@ -18,7 +18,7 @@
 #include "math/pose.hpp"
 #include "math/tiny/tiny_quaternion.h"
 #include "math/tiny/tiny_raycast.h"
-#include "urdf/urdf_structures.hpp"
+#include "urdf_structures.hpp"
 #include "urdf/urdf_to_multi_body.hpp"
 #include "world.hpp"
 #include "tiny_inverse_kinematics.h"
@@ -29,6 +29,10 @@
 #include "dynamics/jacobian.hpp"
 #include "math/neural_network.hpp"
 #include "utils/file_utils.hpp"
+#ifdef ENABLE_CARTPOLE_TEST_ENV
+#include "examples/environments/cartpole_environment.h"
+#endif//ENABLE_CARTPOLE_TEST_ENV
+
 #ifdef _WIN32
 #undef min
 #undef max

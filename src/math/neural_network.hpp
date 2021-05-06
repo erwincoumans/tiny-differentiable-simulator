@@ -125,7 +125,10 @@ class NeuralNetworkSpecification {
     }
   }
 
-  void set_input_dim(int dim) { layers_[0] = dim; }
+  void set_input_dim(int dim, bool use_input_bias = true) { 
+      layers_[0] = dim;
+      use_bias_[0] = use_input_bias;
+  }
 
   void add_linear_layer(NeuralNetworkActivation activation, int units,
                         bool learn_bias = true) {
@@ -388,7 +391,9 @@ class NeuralNetwork : public NeuralNetworkSpecification {
   }
 
   void set_parameters(const std::vector<typename Algebra::Scalar>& params) {
-    assert(static_cast<int>(params.size()) >= num_parameters());
+    int params_size = params.size();
+    int num_actual_params = num_parameters();
+    assert(static_cast<int>(params_size) >= num_actual_params);
     weights.resize(num_weights());
     biases.resize(num_biases());
     std::copy(params.begin(), params.begin() + num_weights(), weights.begin());

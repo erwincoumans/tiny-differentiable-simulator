@@ -449,7 +449,7 @@ public:
     if (link == -1) {
       return tf.apply(base_rbi_.com);
     } else {
-      return tf.apply(links_[link].I.com);
+      return tf.apply(links_[link].rbi.com);
     }
   }
 
@@ -570,7 +570,10 @@ public:
     if (!links_.empty()) parent_index = static_cast<int>(links_.size()) - 1;
     return attach(link, parent_index, is_controllable);
   }
-  
+ 
+  size_t attach_link(Link &link, int parent_index, bool is_controllable = true) {
+     return attach(link, parent_index, is_controllable); 
+ } 
   size_t attach(Link &link, int parent_index, bool is_controllable = true) {
     int sz = static_cast<int>(links_.size());
     assert(parent_index < sz);

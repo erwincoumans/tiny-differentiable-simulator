@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
     }
 
     
-    //std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+   
     // sync transforms
     int visual_index = 0;
     TinyVector3f prev_pos(0,0,0);
@@ -203,6 +203,7 @@ int main(int argc, char* argv[]) {
     sync_counter++;
 
     if (!mbvisuals.empty() && (sync_counter > frameskip_gfx_sync)) {
+        std::this_thread::sleep_for(std::chrono::duration<double>(dt*frameskip_gfx_sync));
         sync_counter = 0;
         for (int b = 0; b < mbbodies.size(); b++) {
             for (int l = 0; l<mbbodies[b]->links().size();l++) {

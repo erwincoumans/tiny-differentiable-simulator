@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "../geometry.hpp"  // for GeometryTypes
-#include "../link.hpp"
+#include "geometry.hpp"  // for GeometryTypes
+#include "link.hpp"
 
 namespace tds {
 template <typename Algebra>
@@ -63,7 +63,10 @@ template <typename Algebra>
 struct VisualMaterial {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
-
+  VisualMaterial()
+      :material_rgb(Scalar(1.),Scalar(1.),Scalar(1.))
+  {
+  }
   Vector3 material_rgb;
   std::string texture_filename;
 };
