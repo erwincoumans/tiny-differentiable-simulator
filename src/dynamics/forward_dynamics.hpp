@@ -13,7 +13,8 @@ void forward_dynamics(MultiBody<Algebra> &mb,
                       const typename Algebra::VectorX &qd,
                       const typename Algebra::VectorX &tau,
                       const typename Algebra::Vector3 &gravity,
-                      typename Algebra::VectorX &qdd) {
+                      typename Algebra::VectorX &qdd,
+                      bool rbdl_convention = false) {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using VectorX = typename Algebra::VectorX;
@@ -224,16 +225,20 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     //       NEURAL_ASSIGN(base_bias_force[5], "base_bias_force_5");
     // #endif
 
-     Matrix6 inv_abi = Algebra::inverse(mb.base_abi().matrix());
-     //mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
+     if (rbdl_convention) {
+       Matrix6 inv_abi = Algebra::inverse(mb.base_abi().matrix());
+       mb.base_acceleration() = -MotionVector( inv_abi * mb.base_bias_force());
+     } else {
+       mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
+     }
     //mb.base_acceleration() = -MotionVector(
     //    Algebra::inverse(mb.base_abi().matrix()) * mb.base_bias_force());
-     mb.base_acceleration() = -MotionVector(
-        inv_abi * mb.base_bias_force());
 
   } else {
-    // convert gravity to base frame for fixed-base systems
-    spatial_gravity = mb.base_X_world().apply(spatial_gravity);
+    if (rbdl_convention) {
+      // convert gravity to base frame for fixed-base systems
+      spatial_gravity = mb.base_X_world().apply(spatial_gravity);
+    }
     mb.base_acceleration() = -spatial_gravity;
   }
 
@@ -295,22 +300,26 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     Algebra::print("a", link.a);
 #endif
   }
-  
-  // Algebra::print("spatial_gravity", spatial_gravity);
   if (mb.is_floating()) {
-    MotionVector xa  = mb.base_acceleration();
-    xa.bottom += Algebra::cross(mb.base_velocity().top, mb.base_velocity().bottom);
+    if (rbdl_convention) {
+      MotionVector xa  = mb.base_acceleration();
+      xa.bottom += Algebra::cross(mb.base_velocity().top, mb.base_velocity().bottom);
 #ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    xa.bottom = Algebra::transpose(mb.base_X_world().rotation) *  xa.bottom;
+      xa.bottom = Algebra::transpose(mb.base_X_world().rotation) *  xa.bottom;
 #else
-    xa.bottom = mb.base_X_world().rotation *  xa.bottom;
+      xa.bottom = mb.base_X_world().rotation *  xa.bottom;
 #endif
-    xa += spatial_gravity;
-    for (int i = 0; i < 6; i++) {
-      // qdd[i] = mb.base_acceleration()[i];
+      xa += spatial_gravity;
+      for (int i = 0; i < 6; i++) {
       qdd[i] = xa[i];
+      }
     }
-    // mb.base_acceleration() = -mb.base_abi().inv_mul(mb.base_bias_force());
+    else {
+      mb.base_acceleration() += spatial_gravity;
+      for (int i = 0; i < 6; i++) {
+        qdd[i] = mb.base_acceleration()[i];
+      }
+    }
   } else {
     mb.base_acceleration().set_zero();
   }
@@ -318,7 +327,8 @@ void forward_dynamics(MultiBody<Algebra> &mb,
 
 template <typename Algebra>
 void forward_dynamics(MultiBody<Algebra> &mb,
-                      const typename Algebra::Vector3 &gravity) {
-  forward_dynamics(mb, mb.q(), mb.qd(), mb.tau(), gravity, mb.qdd());
+                      const typename Algebra::Vector3 &gravity,
+                      bool rbdl_convention = false) {
+  forward_dynamics(mb, mb.q(), mb.qd(), mb.tau(), gravity, mb.qdd(), rbdl_convention);
 }
 }  // namespace tds

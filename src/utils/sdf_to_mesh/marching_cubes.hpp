@@ -279,7 +279,7 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
   // This should be enough space
   // If not, change 3 to 4 to reserve more space
   std::vector<IndexTriangle> triangles(3 * ncellsX * ncellsY * ncellsZ,
-                                       IndexTriangle(3, 0));
+                                       IndexTriangle({0, 0, 0}));
   size_t numTriangles = 0;
 
   int pointsZ = ncellsZ + 1;  // initialize global variable (for extra speed)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pybullet_urdf_import.hpp"
+
 #include "urdf_cache.hpp"
 
 namespace tds {

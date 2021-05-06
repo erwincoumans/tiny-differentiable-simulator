@@ -18,10 +18,12 @@
 #define TINY_INVERSE_KINEMATICS_H
 
 #include "multi_body.hpp"
-//#include "math/tiny/tiny_algebra.hpp"
 
+#ifdef USE_EIGEN
 #include "math/tiny/tiny_eigen_helper.h"
-
+#endif
+#include "dynamics/kinematics.hpp"
+#include "dynamics/jacobian.hpp"
 
 namespace TINY {
     template <typename Algebra>
@@ -199,10 +201,12 @@ namespace TINY {
                     delta_theta = Algebra::mul_transpose(J, e);
                 }
                 if constexpr (kMethod == IK_JAC_PINV) {
-                    auto J_pinv = pseudo_inverse(J);
-                    delta_theta = J_pinv * e;
-                }
-                else if constexpr (kMethod == IK_DAMPED_LM) {
+#ifdef USE_EIGEN
+//                  auto J_pinv = pseudo_inverse(J);
+//                    delta_theta = J_pinv * e;
+#endif  // USE_EIGEN
+                } else if constexpr (kMethod == IK_DAMPED_LM) {
+#ifdef USE_EIGEN
                     MatrixXxX JJTe_lambda2_I = J * J.transpose();
                     assert(JJTe_lambda2_I.m_cols == JJTe_lambda2_I.m_rows &&
                         JJTe_lambda2_I.m_cols == 3 * targets.size());
@@ -216,6 +220,7 @@ namespace TINY {
                         .solve(TINY::to_eigen(e));
                     VectorX z = TINY::from_eigen_v<Algebra>(eigen_mat);
                     delta_theta = J.mul_transpose(z);
+#endif //USE_EIGEN
                 }
 
                 Scalar sq_length = Algebra::zero();

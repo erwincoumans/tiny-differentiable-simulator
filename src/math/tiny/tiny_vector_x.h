@@ -18,7 +18,7 @@
 #define _TINY_VECTOR_X_H
 
 #include <stdio.h>
-
+#include <assert.h>
 #include <vector>
 
 namespace TINY

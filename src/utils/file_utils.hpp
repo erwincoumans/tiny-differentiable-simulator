@@ -18,7 +18,7 @@
 #include <stddef.h>  //ptrdiff_h
 #include <stdio.h>
 #include <string.h>
-
+#include <assert.h>
 #include <cassert>
 
 #ifndef TDS_HOME
@@ -153,7 +153,7 @@ struct FileUtils {
     if (numBytes > 0) {
       path[numBytes] = 0;
     } else {
-      assert("Cannot find executable path\n");
+      assert(0);//"Cannot find executable path\n");
     }
 #endif  //_WIN32
 #endif  //__APPLE__

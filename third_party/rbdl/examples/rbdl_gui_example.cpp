@@ -20,6 +20,11 @@
 #include "rbdl/rbdl.h"
 #include "urdfreader.h"
 #include "utils/file_utils.hpp"
+#include "contact_point.hpp"
+#include "math/tiny/tiny_double_utils.h"
+#include "math/tiny/tiny_algebra.hpp"
+typedef ::TINY::DoubleUtils MyTinyConstants;
+typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
 
 ///////////////
@@ -134,8 +139,88 @@ void MyKeyboardCallback(int keycode, int state)
 
 RigidBodyDynamics::Model m_rbdl_model;
 
+
+inline static RigidBodyDynamics::Math::Quaternion rbdl_quat_velocity(const RigidBodyDynamics::Math::Quaternion &q,
+                                                      const RigidBodyDynamics::Math::Vector3d &w,
+                                                      const double &dt) {
+    RigidBodyDynamics::Math::Quaternion delta((-q.x() * w[0] - q.y() * w[1] - q.z() * w[2]) * (0.5 * dt),
+                     (q.w() * w[0] + q.y() * w[2] - q.z() * w[1]) * (0.5 * dt),
+                     (q.w() * w[1] + q.z() * w[0] - q.x() * w[2]) * (0.5 * dt),
+                     (q.w() * w[2] + q.x() * w[1] - q.y() * w[0]) * (0.5 * dt));
+    return delta;
+  }
+
+ inline static void rbdl_quat_increment(RigidBodyDynamics::Math::Quaternion &a,
+                                                 const RigidBodyDynamics::Math::Quaternion& b) {
+    a.x() += b.x();
+    a.y() += b.y();
+    a.z() += b.z();
+    a.w() += b.w();
+  }
+
 void step_rbdl(Eigen::VectorXd& Q,Eigen::VectorXd& QDot, double dt)
 {
+    //collision detection
+    int num_bodies = m_rbdl_model.mBodies.size();
+    //assume a ground plane geom_a, pose_a
+    //and collide against bodies geom's (sphere)
+
+    auto geom_a = tds::Plane<MyAlgebra>();
+    auto pose_a = tds::Pose<MyAlgebra>();
+
+    std::vector<tds::ContactPoint<MyAlgebra>> contacts;
+    //start at 2, since '0' and '1' are to create floating base
+    for (int i=2;i<num_bodies;i++)
+    {
+        printf("body %d mass = %f\n", i, m_rbdl_model.mBodies[i].mMass);
+        
+        RigidBodyDynamics::UpdateKinematicsCustom(m_rbdl_model,&Q,NULL,NULL);
+        
+        double radius = 0.03;//sphere_small.urdf;
+        auto geom_b = tds::Sphere<MyAlgebra>(radius);
+        auto pose_b = tds::Pose<MyAlgebra>();
+
+        auto rbdl_orn = RigidBodyDynamics::CalcBodyWorldOrientation  (m_rbdl_model, Q, i, false);
+        auto rbdl_pos = RigidBodyDynamics::CalcBodyToBaseCoordinates (m_rbdl_model, Q, i, Eigen::Vector3d (0., 0., 0.), false);
+        MyAlgebra::Matrix3 mat(
+            rbdl_orn(0,0),rbdl_orn(0,1),rbdl_orn(0,2),
+            rbdl_orn(1,0),rbdl_orn(1,1),rbdl_orn(1,2),
+            rbdl_orn(2,0),rbdl_orn(2,1),rbdl_orn(2,2));
+        MyAlgebra::Quaternion orn = MyAlgebra::matrix_to_quat(mat);
+
+        pose_b.position_.setValue(rbdl_pos.x(),rbdl_pos.y(),rbdl_pos.z());
+        pose_b.orientation_ = orn;
+        tds::CollisionDispatcher<MyAlgebra> dispatcher;
+        
+        contacts.reserve(1);
+        contacts.resize(0);
+
+        int numContacts = dispatcher.compute_contacts(
+                    &geom_a, pose_a, &geom_b, pose_b, contacts);
+        //UpdateKinematicsCustom (model, &q, NULL, NULL);
+    }
+
+
+    bool has_contacts = false;
+    RigidBodyDynamics::ConstraintSet constraint_set;
+    for (int c=0;c<contacts.size();c++)
+    {
+        if (contacts[c].distance <0)
+        {
+            has_contacts = true;
+            printf("yuppie!\n");
+            int body_id = 2;
+            Eigen::Vector3d world_point(contacts[c].world_point_on_b.x(),contacts[c].world_point_on_b.y(),contacts[c].world_point_on_b.z());
+            Eigen::Vector3d sphere_point_local = RigidBodyDynamics::CalcBaseToBodyCoordinates (m_rbdl_model, Q, body_id, world_point);
+            
+            Eigen::Vector3d world_normal(contacts[c].world_normal_on_b.x(),contacts[c].world_normal_on_b.y(),contacts[c].world_normal_on_b.z());
+            constraint_set.AddContactConstraint(2,sphere_point_local, world_normal);
+        }
+    }
+    if (constraint_set.size() > 0) {
+		constraint_set.Bind(m_rbdl_model);
+	}
+
     std::vector<RigidBodyDynamics::Math::SpatialVector>* f_ext = 0;
 
     Eigen::VectorXd QDDot(m_rbdl_model.qdot_size);
@@ -145,8 +230,19 @@ void step_rbdl(Eigen::VectorXd& Q,Eigen::VectorXd& QDot, double dt)
         QDDot(k) = 0.;
         Tau(k) = 0.;
     }
-    RigidBodyDynamics::ForwardDynamics(m_rbdl_model,Q,QDot,Tau,QDDot,f_ext);
 
+    
+    //solve constraints?
+    if (has_contacts)
+    {
+	    RigidBodyDynamics::ComputeConstraintImpulsesDirect(m_rbdl_model, Q, QDot, constraint_set, QDot);
+        RigidBodyDynamics::ForwardDynamicsConstraintsDirect (m_rbdl_model, Q, QDot, Tau, constraint_set, QDDot);
+    } else
+    {
+        RigidBodyDynamics::ForwardDynamics(m_rbdl_model,Q,QDot,Tau,QDDot,f_ext);
+    }
+
+    //integration
     QDot += QDDot*dt;
 
     //in case spherical joints and floating base, need to switch
@@ -158,22 +254,11 @@ void step_rbdl(Eigen::VectorXd& Q,Eigen::VectorXd& QDot, double dt)
         {
         case RigidBodyDynamics::JointTypeSpherical:
         {
-#if 0
-            auto orn = Algebra::quat_from_xyzw(Q[q_index],
-                Q[q_index + 1],
-                Q[q_index + 2],
-                Q[multdof3_w_index]);
-            auto angvel = Algebra::Vector3(QDot[q_index],QDot[q_index+1],QDot[q_index+2]);
-            //auto new_orn = Algebra::quat_integrate(orn,angvel,dt);
-
-            Algebra::quat_increment(
-                orn,Algebra::quat_velocity(orn,angvel,dt));
-
-            Q(q_index+0) = orn.x();
-            Q[q_index+1] = orn.y();
-            Q[q_index+2] = orn.z();
-            Q[multdof3_w_index] = orn.w();
-#endif
+            RigidBodyDynamics::Math::Quaternion orn = m_rbdl_model.GetQuaternion (i, Q);
+            RigidBodyDynamics::Math::Vector3d angvel(QDot[q_index],QDot[q_index+1],QDot[q_index+2]);
+            rbdl_quat_increment(orn, rbdl_quat_velocity(orn, angvel, dt));
+            orn.normalize();
+            m_rbdl_model.SetQuaternion(i, orn, Q);
             break;
         }
         case     RigidBodyDynamics::JointTypeRevolute:
@@ -218,7 +303,7 @@ int main(int argc, char* argv[]) {
     RigidBodyDynamics::Addons::URDFReadFromFile(urdf_filename.c_str(),&m_rbdl_model,floating_base,verbose);
     m_rbdl_model.gravity.set(0,0,-10);// = to_rbdl<Algebra>(world.get_gravity());
     Eigen::VectorXd Q(m_rbdl_model.q_size);
-    Eigen::VectorXd QDot(m_rbdl_model.qdot_size);
+    Eigen::VectorXd QDot1(m_rbdl_model.qdot_size);
     
     int rbdl_index_without_w = 0;
     //order of floating base RBDL is:
@@ -237,8 +322,9 @@ int main(int argc, char* argv[]) {
 
     for(int k=0;k<m_rbdl_model.qdot_size;k++)
     {
-        QDot(k) = 0.;
+        QDot1(k) = 0.;
     }
+    QDot1(3) = 1;
 
 
     TinyOpenGL3App app("test", 1920, 1080);
@@ -338,7 +424,7 @@ int main(int argc, char* argv[]) {
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    if (0)
+    if (1)
     {
       float SCALE = 2.0f;
       ImFontConfig cfg;
@@ -372,7 +458,7 @@ int main(int argc, char* argv[]) {
         //const char* bla = "3d label";
         //app.draw_text_3d(bla, 0, 0, 1, 1);
 
-        step_rbdl(Q,QDot, 0.001);
+        step_rbdl(Q,QDot1, 0.001);
         
 
         bool update_kinematics = true;
@@ -429,7 +515,7 @@ int main(int argc, char* argv[]) {
         ImGui::NewFrame();
 
         
-        
+#if 0
         ImGui::ShowDemoWindow();
      
         ImGui::SetNextWindowSize(ImVec2(300,300));
@@ -448,7 +534,7 @@ int main(int argc, char* argv[]) {
             }
             ImGui::End();
         }
-       
+#endif
 
         ImGui::Render();
         ImGui::EndFrame();
