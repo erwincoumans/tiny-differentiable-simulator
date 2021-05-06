@@ -207,20 +207,23 @@ struct OpenGLUrdfVisualizer {
         }
         case ::tds::TINY_SPHERE_TYPE: {
           int textureIndex = -1;
+
+          // Experimental texture binding
           if (v.material_name.size() > 0) {
-            // std::string texture_file = v.material.texture_filename;
             ::tds::VisualMaterial<Algebra> material = urdf.materials[v.material_name];
             std::string texture_file = material.texture_filename;
-            std::string texture_path;
-            ::tds::FileUtils::find_file(texture_file, texture_path);
-            std::vector<unsigned char> buffer;
-            int width, height, n;
-            unsigned char* image =
-                stbi_load(texture_path.c_str(), &width, &height, &n, 3);
+            if (!texture_file.empty()) {
+              std::string texture_path;
+              ::tds::FileUtils::find_file(texture_file, texture_path);
+              std::vector<unsigned char> buffer;
+              int width, height, n;
+              unsigned char* image =
+                  stbi_load(texture_path.c_str(), &width, &height, &n, 3);
 
-            textureIndex =
-                m_opengl_app.m_renderer->register_texture(image, width, height);
-            free(image);
+              textureIndex =
+                  m_opengl_app.m_renderer->register_texture(image, width, height);
+              free(image);
+            }
           }
 #if USE_SDF_TO_MESH
           // Yizhou: Instead of hardcoding the mesh, use the sdf_to_mesh
@@ -276,7 +279,7 @@ struct OpenGLUrdfVisualizer {
           b2v.shape_colors.push_back(color);
           break;
         }
-        // Add the cylinder type rendered by SDF
+        // TODO: Add the cylinder type rendered by SDF. Requires change in the URDF parser
         case ::tds::TINY_BOX_TYPE: {
           float half_extentsx =
               0.5 * Algebra::to_double(v.geometry.box.extents[0]);
