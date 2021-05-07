@@ -32,7 +32,7 @@
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
 
-#define USE_SDF_TO_MESH 0
+#define USE_SDF_TO_MESH 1
 
 template <typename Algebra>
 struct OpenGLUrdfVisualizer {
@@ -279,7 +279,21 @@ struct OpenGLUrdfVisualizer {
           b2v.shape_colors.push_back(color);
           break;
         }
-        // TODO: Add the cylinder type rendered by SDF. Requires change in the URDF parser
+
+        case ::tds::TINY_CYLINDER_TYPE: {
+          ::tds::Cylinder<Algebra> gen_cylinder(v.geometry.cylinder.radius,
+                                              v.geometry.cylinder.length);
+          ::tds::RenderShape gen_mesh =
+              ::tds::convert_sdf_to_mesh(gen_cylinder, 100);
+          int shape_id = m_opengl_app.m_instancingRenderer->register_shape(
+              &gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
+              &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
+              -1);
+          b2v.visual_shape_uids.push_back(shape_id);
+          ::TINY::TinyVector3f color(1, 1, 1);
+          b2v.shape_colors.push_back(color);
+          break;
+        }
         case ::tds::TINY_BOX_TYPE: {
           float half_extentsx =
               0.5 * Algebra::to_double(v.geometry.box.extents[0]);
