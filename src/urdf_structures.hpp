@@ -103,6 +103,16 @@ struct UrdfCollisionCapsule {
 };
 
 template <typename Algebra>
+struct UrdfCollisionCylinder {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+
+  UrdfCollisionCylinder() : radius(Algebra::one()), length(Algebra::one()) {}
+  Scalar radius;
+  Scalar length;
+};
+
+template <typename Algebra>
 struct UrdfCollisionBox {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
@@ -138,6 +148,7 @@ struct UrdfGeometry {
   UrdfCollisionBox<Algebra> box;
   UrdfCollisionMesh<Algebra> mesh;
   UrdfCollisionPlane<Algebra> plane;
+  UrdfCollisionCylinder<Algebra> cylinder;
 };
 
 template <typename Algebra>

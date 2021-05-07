@@ -58,6 +58,12 @@
 				<capsule length="0.40000" radius="0.05000"/>
 			</geometry>
 		</collision>
+		<visual>
+			<origin rpy="3.14159 -0.00000 3.14159" xyz="0.00000 0.00000 1.25000"/>
+			<geometry>
+				<capsule length="0.40000" radius="0.05000"/>
+			</geometry>
+		</visual>
 	</link>
 	<link name="link0_6">
 		<inertial>
@@ -78,6 +84,12 @@
 				<capsule length="0.45000" radius="0.05000"/>
 			</geometry>
 		</collision>
+		<visual>
+			<origin rpy="3.14159 -0.00000 3.14159" xyz="0.00000 0.00000 0.82500"/>
+			<geometry>
+				<capsule length="0.45000" radius="0.05000"/>
+			</geometry>
+		</visual>
 	</link>
 	<link name="link0_8">
 		<inertial>
@@ -98,6 +110,12 @@
 				<capsule length="0.50000" radius="0.04000"/>
 			</geometry>
 		</collision>
+		<visual>
+			<origin rpy="3.14159 -0.00000 3.14159" xyz="0.00000 0.00000 0.35000"/>
+			<geometry>
+				<capsule length="0.50000" radius="0.04000"/>
+			</geometry>
+		</visual>
 	</link>
 	<link name="link0_10">
 		<inertial>
@@ -118,6 +136,12 @@
 				<capsule length="0.39000" radius="0.06000"/>
 			</geometry>
 		</collision>
+		<visual>
+			<origin rpy="0.00000 1.57080 -0.00000" xyz="0.06500 0.00000 0.10000"/>
+			<geometry>
+				<capsule length="0.39000" radius="0.06000"/>
+			</geometry>
+		</visual>
 	</link>
 	<joint name="ignore1" type="prismatic">
 		<parent link="link0_1"/>
