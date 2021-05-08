@@ -54,7 +54,9 @@ struct LaikagoSimulation {
         tds::FileUtils::find_file("laikago/laikago_toes_zup.urdf", m_urdf_filename);
         system = cache.construct(m_urdf_filename, world, false, true);
         system->base_X_world().translation = Algebra::unit3_z();
+        world.num_solver_iterations = 1;
         world.get_mb_constraint_solver()->keep_all_points_ = true;
+        world.get_mb_constraint_solver()->pgs_iterations_ = 1;
     }
 
     std::vector<Scalar> operator()(const std::vector<Scalar>& v) {

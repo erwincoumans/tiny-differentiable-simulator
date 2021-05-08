@@ -58,7 +58,7 @@ class MultiBodyConstraintSolver {
 
  public:
   bool keep_all_points_{false};
-  int pgs_iterations_{50};
+  int pgs_iterations_{1};//increase if solver doesn't converge
   double least_squares_residual_threshold_{0};
   std::vector<int> limit_dependency_;
 

@@ -908,6 +908,14 @@
                      &CartpoleEnvOutput::done)
       ;
 
+   py::class_<CartpoleRolloutOutput>(m, "CartpoleRolloutOutput")
+      .def(py::init<>())
+      .def_readwrite("total_reward",
+                     &CartpoleRolloutOutput::total_reward)
+      .def_readwrite("num_steps",
+                     &CartpoleRolloutOutput::num_steps)
+      ;
+
   py::class_<CartpoleContactSimulation<MyAlgebra>>(m, "CartpoleSimulation")
       .def(py::init<>())
       .def_readwrite("m_urdf_filename",
@@ -918,6 +926,8 @@
       .def(py::init<CartpoleContactSimulation<MyAlgebra>&>())
       .def("reset", &CartpoleEnv<MyAlgebra>::reset2)
       .def("step", &CartpoleEnv<MyAlgebra>::step2)
+      .def("rollout", &CartpoleEnv<MyAlgebra>::rollout)
+      .def("update_weights", &CartpoleEnv<MyAlgebra>::init_neural_network)
       .def("seed", &CartpoleEnv<MyAlgebra>::seed)
       .def("init_neural_network", &CartpoleEnv<MyAlgebra>::init_neural_network)
       .def("policy", &CartpoleEnv<MyAlgebra>::policy)

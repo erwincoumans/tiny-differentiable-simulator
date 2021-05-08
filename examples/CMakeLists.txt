@@ -1,3 +1,4 @@
+SUBDIRS(ars)
 # first the examples that have no dependencies 
 # then examples with only included third_party dependencies
 # at the end, optional complex examples with complicated dependencies (PyTorch, STAN, BOOST etc)
@@ -207,11 +208,10 @@ IF (WIN32)
   target_compile_definitions(pagmo2_example PRIVATE -D_CPPUNWIND)
 ENDIF()
 
-
-  add_executable(environment_train environment_train.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS} )
-  target_link_libraries(environment_train tinyxml2 Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
-  target_include_directories(environment_train PRIVATE ../src ../third_party/tinyobjloader ../third_party)
+  add_executable(environment_train_pagmo environment_train.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS} )
+  target_link_libraries(environment_train_pagmo tinyxml2 Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
+  target_include_directories(environment_train_pagmo PRIVATE ../src ../third_party/tinyobjloader ../third_party)
 IF (WIN32)
-  target_compile_definitions(environment_train PRIVATE -D_CPPUNWIND)
+  target_compile_definitions(environment_train_pagmo PRIVATE -D_CPPUNWIND)
 ENDIF()
 ENDIF()

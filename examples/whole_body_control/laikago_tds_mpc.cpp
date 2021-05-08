@@ -56,16 +56,18 @@ int main(int argc,char* argv[]) {
     tds::RaibertSwingLegController
         raibert_swing_leg_controller(&robot,&openloop_gait_generator,
             &com_velocity_estimator);
+    bool use_cpp_mpc=true;//set to false for neural network qp solver
     tds::TorqueStanceLegController
-        torque_stance_leg_controller(&robot, /*use_cpp_mpc=*/true);
+        torque_stance_leg_controller(&robot, use_cpp_mpc);
 
     robot.Reset();
     openloop_gait_generator.Reset();
     com_velocity_estimator.Reset();
     raibert_swing_leg_controller.Reset();
 
-    int secs_since_start = 0;
+    double secs_since_start = 0;
     while(secs_since_start < TOTAL_SECS) {
+        //printf("secs_since_start=%f\n", secs_since_start);
         //std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
         secs_since_start = robot.GetTimeSinceReset();
 

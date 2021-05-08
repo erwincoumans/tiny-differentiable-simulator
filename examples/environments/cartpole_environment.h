@@ -8,7 +8,9 @@
 #include "utils/file_utils.hpp"
 #include "urdf/urdf_parser.hpp"
 #include "cartpole_urdf.h"
+#include "math.h"
 
+//#define COMPATIBILITY
 template <typename Algebra>
 struct CartpoleContactSimulation {
   using Scalar = typename Algebra::Scalar;
@@ -33,8 +35,8 @@ struct CartpoleContactSimulation {
     std::string plane_filename;
     world.set_gravity(Vector3(0., 0., -10));
 
-    tds::StdLogger logger;
-    // NullLogger logger;
+    //tds::StdLogger logger;
+    tds::NullLogger logger;
     {
       m_urdf_filename = "cartpole.urdf";
       int flags = 0;
@@ -85,9 +87,9 @@ struct CartpoleContactSimulation {
       tds::forward_dynamics(*mb_, world.get_gravity());
       mb_->clear_forces();
 
-      integrate_euler_qdd(*mb_, dt);
+      //integrate_euler_qdd(*mb_, dt);
 
-      world.step(dt);
+      //world.step(dt);
 
       tds::integrate_euler(*mb_, dt);
 
@@ -99,6 +101,7 @@ struct CartpoleContactSimulation {
       for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
         result[j] = mb_->qd(i);
       }
+#if 1
       for (const auto& link : *mb_) {
         if (link.X_visuals.size()) {
           Transform visual_X_world = link.X_world * link.X_visuals[0];
@@ -116,6 +119,7 @@ struct CartpoleContactSimulation {
           j += 7;
         }
       }
+#endif
     }
     return result;
   }
@@ -128,31 +132,59 @@ struct CartpoleEnvOutput
     bool done;
 };
 
+struct CartpoleRolloutOutput
+{
+    CartpoleRolloutOutput()
+        :total_reward(0),
+        num_steps(0)
+    {
+    }
+    double total_reward;
+    int num_steps;
+};
+
+
 template <typename Algebra>
 struct CartpoleEnv {
   using Scalar = typename Algebra::Scalar;
   CartpoleContactSimulation<Algebra>& contact_sim;
+  Scalar action_low_;
+  Scalar action_high_;
 
+  int action_dim_{1};
+  int observation_dim_{4};
+  int counter_{-1};
   CartpoleEnv(CartpoleContactSimulation<Algebra>& cartpole) : contact_sim(cartpole) {
     bool use_input_bias = false;
+    static int counter=0;
+    counter_ = counter++;
+    printf("CartPoleEnv counter_=%d\n", counter_);
     int observation_size = contact_sim.input_dim();
     neural_network.set_input_dim(observation_size, use_input_bias);
     bool learn_bias = true;
     neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, 1,
                                     learn_bias);  // action is 1 number
+
+    action_high_ = 10;
+    action_low_ = -action_high_;
   }
-  virtual ~CartpoleEnv() {}
+  virtual ~CartpoleEnv() {
+      printf("~CartPoleEnv counter_=%d\n", counter_);
+  }
 
   std::vector<Scalar> sim_state;
   std::vector<Scalar> sim_state_with_graphics;
 
   std::vector<double> reset() {
-    sim_state.resize(contact_sim.input_dim());
+    //std::srand(0);
+    int input_dim = contact_sim.input_dim();
+    sim_state.resize(input_dim);
     for (int i = 0; i < sim_state.size(); i++) {
       sim_state[i] = 0.05 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
     }
-    // for (auto v : sim_state)
-    //     std::cout << v << std::endl;
+     //for (auto v : sim_state)
+     //    std::cout << v << ",";
+    //std::cout << std::endl;
     return sim_state;
   }
 
@@ -161,10 +193,19 @@ struct CartpoleEnv {
     std::vector<double> obs = reset();
     std::vector<double> sim_state;
     // change layout to [q1,qd1, q0, qd0] to be compatible with
+#ifdef COMPATIBILITY
+#error
     sim_state.push_back(obs[1]);
     sim_state.push_back(obs[3]);
     sim_state.push_back(obs[0]);
     sim_state.push_back(obs[2]);
+#else
+    sim_state.push_back(obs[0]);
+    sim_state.push_back(obs[1]);
+    sim_state.push_back(obs[2]);
+    sim_state.push_back(obs[3]);
+#endif
+    
     return sim_state;
   }
 
@@ -183,24 +224,51 @@ struct CartpoleEnv {
       // obs in format [q0,q1,qd0,qd1]
       // change layout to [q1,qd1, q0, qd0] to be compatible with
       // PyBullet'CartPoleContinuousBulletEnv-v0'
+#ifdef COMPATIBILITY
+#error
       env_out.obs.push_back(obs[1]);
       env_out.obs.push_back(obs[3]);
       env_out.obs.push_back(obs[0]);
       env_out.obs.push_back(obs[2]);
+#else
+      env_out.obs.push_back(obs[0]);
+      env_out.obs.push_back(obs[1]);
+      env_out.obs.push_back(obs[2]);
+      env_out.obs.push_back(obs[3]);
+#endif
       //std::cout << "env_out.done=" << env_out.done << std::endl;
       //std::cout << "env_out.reward=" << env_out.done << std::endl;
       //std::cout << "obs=" << obs << std::endl;
       return env_out;
   }
   
+  CartpoleRolloutOutput rollout(int rollout_length, double shift) {
+      //std::cout << "action:" << action << std::endl;
+
+      CartpoleRolloutOutput rollout_out;
+      std::vector<double> obs = reset();
+      bool done = false;
+      int steps=0;
+      while (rollout_out.num_steps<rollout_length && !done)
+      {
+         //double action = 0.f;
+         auto action = policy(obs);
+         double reward;
+         step(action, obs, reward, done);
+         rollout_out.total_reward += reward;
+         rollout_out.num_steps++;
+      }
+      return rollout_out;
+  }
+  
 
   void step(double action, std::vector<double>& obs, double& reward,
             bool& done) {
-    // clamp and scale action
-
-    if (action < -1) action = -1;
-    if (action > 1) action = 1;
-    action *= 10;
+    //clip
+    if (action < action_low_) 
+        action = action_low_;
+    if (action > action_high_) 
+        action = action_high_;
 
     // sim_state = [q0, q1, qd0, qd1]
 
@@ -228,6 +296,21 @@ struct CartpoleEnv {
   inline double policy(const std::vector<double>& obs) {
     std::vector<double> action;
     neural_network.compute(obs, action);
+
+    //normalize actions
+    
+    for (int i=0;i<action.size();i++)
+    {
+
+        if (action[i]<-1.0)
+            action[i]=-1.0;
+        if (action[i]>1.0)
+            action[i]=1.0;
+        action[i] *= (action_high_ - action_low_)/2.0;
+        action[i] += (action_low_ + action_high_)/2.0;
+
+    }
+
     return action[0];
   }
 
@@ -239,6 +322,13 @@ struct CartpoleEnv {
       action += x[i] * obs[i];  // identity activation
     }
     action += x[4];  // bias
+
+    if (action<-1.0)
+        action=-1.0;
+    if (action>1.0)
+        action=1.0;
+    action *= (action_high_ - action_low_)/2.0;
+    action += (action_low_ + action_high_)/2.0;
 
     return action;
   }
