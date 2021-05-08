@@ -390,6 +390,7 @@ class NeuralNetwork : public NeuralNetworkSpecification {
     this->template compute<Algebra>(weights, biases, input, output);
   }
 
+
   void set_parameters(const std::vector<typename Algebra::Scalar>& params) {
     int params_size = params.size();
     int num_actual_params = num_parameters();
@@ -401,6 +402,12 @@ class NeuralNetwork : public NeuralNetworkSpecification {
               params.begin() + num_weights() + num_biases(), biases.begin());
   }
 
+  void get_parameters(std::vector<typename Algebra::Scalar>& params) {
+      int num_actual_params = num_parameters();
+      params.resize(num_actual_params);
+      std::copy(weights.begin(), weights.begin() + num_weights(), params.begin());
+      std::copy(biases.begin(),biases.begin()+num_biases(), params.begin() + num_weights());
+  }
   void print_params() const {
     printf("NN weights:  ");
     this->template print_states<Algebra>(weights);
