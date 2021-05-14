@@ -64,11 +64,11 @@ class MultiBodyConstraintSolverSpring
   /**
    * Spring stiffness k.
    */
-  Scalar spring_k_{Algebra::fraction(50000, 1)};
+  Scalar spring_k_{Algebra::fraction(800, 1)};
   /**
    * Damper coefficient d.
    */
-  Scalar damper_d_{Algebra::fraction(50000, 1)};
+  Scalar damper_d_{Algebra::fraction(5000, 1)};
   /**
    * Exponent `n` used in the Hunt-Crossley contact model.
    * 3/2 corresponds to contacting spheres under static conditions (Hertz).
@@ -127,7 +127,7 @@ class MultiBodyConstraintSolverSpring
    */
   Scalar v_transition_{Algebra::fraction(1, 100)};
 
-  FrictionForceModel friction_model_{FRICTION_BROWN};
+  FrictionForceModel friction_model_{FRICTION_COULOMB};//FRICTION_BROWN};
 
  protected:
   using MultiBodyConstraintSolver<Algebra>::needs_outer_iterations_;
@@ -335,18 +335,18 @@ class MultiBodyConstraintSolverSpring
     for (const ContactPoint& cp : cps) {
       const Vector3& world_point_a = cp.world_point_on_a;
       const Vector3& world_point_b = cp.world_point_on_b;
-      const Vector3& world_normal = -cp.world_normal_on_b;  // !!!
+      const Vector3& world_normal = cp.world_normal_on_b;
       Matrix3X jac_a =
-          point_jacobian(*mb_a, mb_a->q(), cp.link_a, world_point_a, false);
+          point_jacobian2(*mb_a, cp.link_a, world_point_a, false);
       Matrix3X jac_b =
-          point_jacobian(*mb_b, mb_b->q(), cp.link_b, world_point_b, false);
+          point_jacobian2(*mb_b,  cp.link_b, world_point_b, false);
 
       // Algebra::print("jac_b", jac_b);
       // mb_b->print_state();
       // Matrix3X jac_a =
-      //     point_jacobian_fd(*mb_a, mb_a->q(), cp.link_a, world_point_a);
-      // Matrix3X jac_b_fd =
-      //     point_jacobian_fd(*mb_b, mb_b->q(), cp.link_b, world_point_b);
+      //     point_jacobian(*mb_a, mb_a->q(), cp.link_a, world_point_a, false);
+      // Matrix3X jac_b =
+      //     point_jacobian(*mb_b, mb_b->q(), cp.link_b, world_point_b, false);
       // Algebra::print("jac_b_fd", jac_b_fd);
 
       // jac_b = jac_b_fd;
@@ -360,19 +360,27 @@ class MultiBodyConstraintSolverSpring
 
       // contact normal force
       Scalar normal_rel_vel = world_normal.dot(rel_vel);
-      Scalar force_normal = compute_contact_force(-cp.distance, normal_rel_vel);
+      Scalar dist = cp.distance;
+      
+      Scalar force_normal_actual = compute_contact_force(-cp.distance, normal_rel_vel);
+      Scalar force_normal_friction = compute_contact_force(-dist, normal_rel_vel);
 #ifdef DEBUG
       printf("Contact normal force magnitude: %.5f\n", force_normal);
 #endif
-      Vector3 force_vector = world_normal * force_normal;
+      Vector3 force_vector_actual = world_normal * force_normal_actual;
+      Vector3 force_vector_friction = world_normal * force_normal_friction;
 
       // only apply force if distance < 0
       Scalar collision = where_lt(cp.distance, Algebra::zero(), Algebra::one(),
                                   Algebra::zero());
-      force_vector *= collision;
+      if (cp.distance>0)
+          continue;
+      force_vector_actual *= collision;
+      force_vector_friction *= collision;
 
-      tau_a += Algebra::mul_transpose(jac_a, force_vector);
-      tau_b -= Algebra::mul_transpose(jac_b, force_vector);
+
+      tau_a += Algebra::mul_transpose(jac_a, force_vector_actual);
+      tau_b -= Algebra::mul_transpose(jac_b, force_vector_actual);
 
       if (friction_model_ == FRICTION_NONE) {
         continue;
@@ -380,6 +388,7 @@ class MultiBodyConstraintSolverSpring
       
       // unilateral friction force
       Vector3 lateral_rel_vel = rel_vel - normal_rel_vel * cp.world_normal_on_b;
+      //Scalar lateral3 = lateral_rel_vel.dot(lateral_rel_vel);
       // Algebra::print("lateral_rel_vel", lateral_rel_vel);
 
       // to prevent division by zero in norm function
@@ -396,25 +405,22 @@ class MultiBodyConstraintSolverSpring
       // Scalar fr_case = where_lt(lateral, Algebra::fraction(1, 1000),
       //                           Algebra::one(), Algebra::zero());
       Vector3 fr_direction1;
+      Vector3 fr_direction2;
       // if constexpr (is_cppad_scalar<Scalar>::value) {
-      if constexpr (true) {
-        // use the negative lateral velocity and its orthogonal as friction
-        // directions
-        fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
-      } else {
-        if (lateral < Algebra::fraction(1, 1000)) {
-          Vector3 plane_fr_direction1, plane_fr_direction2;
-          // use the plane space of the contact normal as friction directions
+      if (1) {//lateral3 < Algebra::fraction(1, 1000)) {
+          //Vector3 plane_fr_direction1, plane_fr_direction2;
+          //// use the plane space of the contact normal as friction directions
           MultiBodyConstraintSolver<Algebra>::plane_space(
-              cp.world_normal_on_b, plane_fr_direction1, plane_fr_direction2);
-          fr_direction1 = plane_fr_direction1;
-        } else {
+              cp.world_normal_on_b, fr_direction1, fr_direction2);
+          //continue;
+
+      } else {
           // use the negative lateral velocity and its orthogonal as friction
           // directions
           fr_direction1 = lateral_rel_vel * (Algebra::one() / lateral);
-        }
+          Algebra::set_zero(fr_direction2);
       }
-
+      
       // if (lateral > Algebra::fraction(10000, 1)) {
       //   lateral_rel_vel.print("lateral_rel_vel");
       //   printf("lateral_rel_vel.length(): %.6f\n",
@@ -424,8 +430,10 @@ class MultiBodyConstraintSolverSpring
       //   // lateral = Algebra::fraction(10000, 1);
       // }
 
-      Scalar friction = collision * compute_friction_force(
-                                        force_normal, lateral, cp.friction);
+      Scalar lateral1 = fr_direction1.dot(lateral_rel_vel);
+      Scalar lateral2 = fr_direction2.dot(lateral_rel_vel);
+      Scalar friction1 = -collision * compute_friction_force(force_normal_friction, lateral1, cp.friction);
+      Scalar friction2 = -collision * compute_friction_force(force_normal_friction, lateral2, cp.friction);
       // if (friction > Algebra::fraction(10000, 1)) {
       // printf("friction: %.6f\n", Algebra::getDouble(friction));
 
@@ -434,7 +442,10 @@ class MultiBodyConstraintSolverSpring
       // Algebra::getDouble(lateral)); friction =
       // Algebra::fraction(10000, 1);
       // }
-      Vector3 friction_vector = fr_direction1 * friction;
+      
+      
+      
+      //Algebra::print("friction_vector=",friction_vector);
 
       if constexpr (is_neural_algebra<Algebra>::value) {
         force_normal.assign("friction/fn");
@@ -453,12 +464,24 @@ class MultiBodyConstraintSolverSpring
         // Algebra::print("friction_vector", friction_vector);
       }
 
+      Scalar max_friction = 100;
+      if (friction1>max_friction)
+          friction1=max_friction;
+      if (friction1<-max_friction)
+          friction1=-max_friction;
+
+      if (friction2>max_friction)
+          friction2=max_friction;
+      if (friction2<-max_friction)
+          friction2=-max_friction;
+
+      Vector3 friction_vector = fr_direction1 * friction1;
       tau_a += Algebra::mul_transpose(jac_a, friction_vector);
       tau_b -= Algebra::mul_transpose(jac_b, friction_vector);
 
-      // friction_vector = fr_direction2 * friction;
-      // tau_a += Algebra::mul_transpose(jac_a, friction_vector);
-      // tau_b -= Algebra::mul_transpose(jac_b, friction_vector);
+      friction_vector = fr_direction2 * friction2;
+      tau_a += Algebra::mul_transpose(jac_a, friction_vector);
+      tau_b -= Algebra::mul_transpose(jac_b, friction_vector);
     }
     // apply forces
     // Algebra::print("tau_b", tau_b);
@@ -482,8 +505,11 @@ class MultiBodyConstraintSolverSpring
         }
         tau_offset_b = 6;
       }
-      for (int i = 0; i < mb_b->dof_actuated(); ++i) {
-        mb_b->tau(i) += tau_b[i + tau_offset_b];
+      int dofact = mb_b->dof_actuated();
+      for (int i = 0; i < dofact; ++i) {
+        {
+            mb_b->tau(i) += tau_b[i + tau_offset_b];
+        }
       }
     }
   }

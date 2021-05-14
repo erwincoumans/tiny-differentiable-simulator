@@ -60,6 +60,17 @@ void my_keyboard_callback(int keycode, int state)
 }
 
 //#define USE_LAIKAGO
+#define USE_ANT
+#ifdef USE_ANT
+
+
+
+
+
+#include "../environments/ant_environment.h"
+typedef AntEnv<MyAlgebra> Environment;
+typedef AntContactSimulation<MyAlgebra> RobotSim;
+#else//USE_ANT
 #ifdef USE_LAIKAGO
 static MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
 static MyAlgebra::Quaternion start_orn (0,0,0,1);
@@ -73,19 +84,19 @@ static std::vector<double> initial_poses = {
     abduction_angle, hip_angle, knee_angle, abduction_angle, hip_angle, knee_angle,
     abduction_angle, hip_angle, knee_angle, abduction_angle, hip_angle, knee_angle,
 };
-#include "environments/laikago_environment.h"
+#include "../environments/laikago_environment.h"
 typedef LaikagoEnv Environment;
-
+typedef ContactSimulation<MyAlgebra> RobotSim;
 #else
 #include "../environments/cartpole_environment.h"
 typedef CartpoleEnv<MyAlgebra> Environment;
 //std::vector<double> trained_weights={0.069278,5.483886,4.008912,7.406968,-0.219666};
 //std::vector<double> trained_weights={0.15964059, 1.78998116, 0.79687186, 1.80107264, 0.01240305};
 std::vector<double> trained_weights={0.820749,4.480032,4.589206,5.880079,0.204528};
-
+typedef CartpoleContactSimulation<MyAlgebra> RobotSim;
                                      
-#endif
-
+#endif//USE_LAIKAGO
+#endif//USE_ANT
 
 
 
@@ -105,7 +116,7 @@ int main(int argc, char* argv[]) {
   
   visualizer.delete_all();
 
-  CartpoleContactSimulation<MyAlgebra> contact_sim;
+  RobotSim contact_sim;
   
   int input_dim = contact_sim.input_dim();
   
@@ -149,6 +160,7 @@ int main(int argc, char* argv[]) {
       TinyVector3f pos(0, 0, 0);
       TinyQuaternionf orn(0, 0, 0, 1);
       TinyVector3f scaling(1, 1, 1);
+#if 0
       int uid = urdf_structures.base_links[0].urdf_visual_shapes[0].visual_shape_uid;
       OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
       int instance = -1;
@@ -165,8 +177,10 @@ int main(int argc, char* argv[]) {
           contact_sim.mb_->visual_instance_uids().push_back(instance);
       }
       num_base_instances = num_instances_per_link;
-
-      for (int i = 0; i < contact_sim.mb_->num_links(); ++i) {
+#else
+      num_base_instances = 0;
+#endif
+      for (int i = 5; i < contact_sim.mb_->num_links(); ++i) {
          
 
           int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
@@ -191,7 +205,7 @@ int main(int argc, char* argv[]) {
 
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  CartpoleContactSimulation<MyAlgebra> sim;
+  RobotSim sim;
 
   Environment env(sim);
   auto obs = env.reset();
@@ -200,22 +214,21 @@ int main(int argc, char* argv[]) {
   int num_steps = 0;
 
   int num_params = env.neural_network.num_weights() + env.neural_network.num_biases();
-  std::vector<double> x(num_params);
+  //std::vector<double> x(num_params);
   //rand
-  for (int i=0;i<x.size();i++)
-  {
-      x[i] = -0.35;//*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
-  }
-  x = trained_weights;
+  //for (int i=0;i<x.size();i++)
+  //{
+  //    x[i] = -.35*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+  //}
+
+  //weights trained using c++ ars_train_policy (without observation filter)
+  std::vector<double> x = 
+{-0.330694,0.100664,-0.050100,0.010913,-0.076245,-0.096708,-0.052048,-0.022072,-0.071742,-0.141120,-0.001460,-0.091223,-0.080160,-0.143914,-0.049341,0.009960,0.073633,0.094207,-0.104590,0.126970,-0.111545,-0.205443,0.164077,0.366699,0.039011,0.047922,0.181835,-0.041931,0.081036,-0.017474,-0.046704,-0.107542,0.009476,0.275584,0.076891,0.027139,0.077219,-0.030522,-0.036556,0.096170,0.044257,0.065861,-0.069107,0.048704,-0.065532,0.101776,0.057067,-0.010219,0.001186,-0.051902,-0.082907,-0.091851,-0.114649,0.055788,-0.103413,-0.334057,-0.047808,0.088291,-0.258178,0.020027,-0.021699,0.064720,0.114032,-0.088063,0.061418,-0.123903,-0.019698,-0.214701,0.057364,0.052798,0.105946,0.013900,-0.124420,0.036956,-0.088813,-0.280787,0.110632,-0.097571,0.042996,0.138702,0.114211,0.040666,0.152882,-0.038852,0.132004,0.159409,0.248187,0.144521,0.133852,-0.098142,0.014450,0.022485,0.044374,-0.175090,0.039559,0.058260,0.178692,-0.140327,-0.019914,0.088317,0.038902,-0.011281,0.050123,-0.107991,-0.038676,-0.084500,0.050126,0.033527,0.202266,-0.070085,0.046814,0.044315,0.082971,0.028167,-0.127337,-0.118247,0.088257,0.028016,-0.031211,0.057919,0.189745,0.213504,0.011288,0.050855,0.012990,0.018937,0.004396,-0.016475,-0.138815,0.086511,-0.140102,-0.106045,0.135993,-0.135477,-0.019576,0.046984,-0.115611,-0.198333,0.094186,0.137661,0.049339,0.077401,-0.162229,0.022853,0.146213,-0.096798,0.136300,-0.024680,0.144730,0.188925,0.025122,0.032732,-0.021309,-0.042702,-0.026105,-0.127947,-0.072268,0.279763,0.010303,0.042321,0.068728,0.037936,-0.061419,-0.202066,-0.128971,-0.127879,-0.048124,-0.037882,0.187363,-0.014169,0.009729,-0.032163,-0.122680,-0.007935,0.122371,0.195222,-0.031082,-0.142409,-0.047097,-0.179822,-0.194071,0.068477,-0.024994,-0.067355,-0.000895,0.060127,0.160594,0.138485,0.155649,-0.077018,-0.035986,0.098026,0.105008,-0.234295,0.107317,0.082829,0.062446,0.084337,0.090816,-0.055368,0.050477,0.054706,-0.146131,-0.150025,0.024232,-0.084176,-0.045031,-0.001584,-0.080642,-0.162535,-0.219500,-0.148941,0.024525,-0.058704,0.126188,-0.152128,0.075867,-0.104105,0.188959,0.049782,-0.173684,-0.041281,0.060444,-0.255056,-0.030986,-0.055905,0.038094,-0.049954,-0.124161,0.230230,0.202641,-0.018996};
 
   env.init_neural_network(x);
 
-  //for (int g=0;g<10;g++) {
   while (!visualizer.m_opengl_app.m_window->requested_exit()) {
-
-
-      {
-          //auto action2 = env.policy2(x, obs);
+    {
           auto action = env.policy(obs);
           //std::cout << "state= [" << obs[0] << ", " << obs[1] << ", " << obs[2] << ", " << obs[3] << "]" << std::endl;
           
@@ -225,11 +238,11 @@ int main(int argc, char* argv[]) {
           total_reward += reward;
           num_steps++;
           int num_contacts = 0;
-          for (int c=0;c<env.contact_sim.world.mb_contacts_.size();c++)
+          for (int c=0;c<env.contact_sim_.world.mb_contacts_.size();c++)
           {
-              for (int j=0;j<env.contact_sim.world.mb_contacts_[c].size();j++)
+              for (int j=0;j<env.contact_sim_.world.mb_contacts_[c].size();j++)
               {
-                if (env.contact_sim.world.mb_contacts_[c][j].distance<0.01)
+                if (env.contact_sim_.world.mb_contacts_[c][j].distance<0.01)
                 {
                     num_contacts++;
                 }
@@ -249,7 +262,8 @@ int main(int argc, char* argv[]) {
       
       sync_counter++;
       frame += 1;
-      if (sync_counter > frameskip_gfx_sync) {
+      //if (sync_counter > frameskip_gfx_sync) 
+      {
           sync_counter = 0;
           if (1) {
               bool manual_sync = false;
@@ -295,7 +309,8 @@ int main(int argc, char* argv[]) {
                           instance_index+=num_base_instances;
                       }
                       
-                      for (int l = 0; l < contact_sim.mb_->links_.size(); l++) {
+                      for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) {
+                          int l = ll-5;
                           for (int v = 0; v < num_instances[l]; v++)
                           {
                               int visual_instance_id = visual_instances[instance_index++];

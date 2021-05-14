@@ -23,7 +23,7 @@
 #include <iostream>
 #include <random>
 #include <vector>
-
+#include <array>
 #include "math/conditionals.hpp"
 
 namespace tds {

@@ -86,8 +86,20 @@ IF(USE_CPPAD)
       Eigen3::Eigen
       differentiation
   )
+  add_executable(cuda_ant_codegen cuda_ant_codegen.cpp ${TDS_HDRS})
+  target_compile_definitions(cuda_ant_codegen PRIVATE -DUSE_CPPAD)
+  target_link_libraries(
+    cuda_ant_codegen
+    PRIVATE
+      ${CMAKE_DL_LIBS}
+      opengl_window
+      tinyxml2
+      Eigen3::Eigen
+      differentiation
+  )
   if (USE_STAN)
     target_link_libraries(cuda_laikago_codegen PRIVATE ${STAN_LIBRARIES})
+    target_link_libraries(cuda_ant_codegen PRIVATE ${STAN_LIBRARIES})
   endif(USE_STAN)
 ENDIF(USE_CPPAD)
 

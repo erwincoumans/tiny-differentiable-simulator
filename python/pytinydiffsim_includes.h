@@ -29,8 +29,9 @@
 #include "dynamics/jacobian.hpp"
 #include "math/neural_network.hpp"
 #include "utils/file_utils.hpp"
-#ifdef ENABLE_CARTPOLE_TEST_ENV
+#ifdef ENABLE_TEST_ENVS
 #include "examples/environments/cartpole_environment.h"
+#include "examples/environments/ant_environment.h"
 #endif//ENABLE_CARTPOLE_TEST_ENV
 
 #ifdef _WIN32
