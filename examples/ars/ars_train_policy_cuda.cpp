@@ -14,6 +14,7 @@
 #include <thread>
 #include <chrono>
 
+int g_num_total_threads = 256;
 
 
 //struct CudaFunctionMetaData {
@@ -252,30 +253,43 @@ struct AntVecEnv
     using Vector3 = typename Algebra::Vector3;
     using Transform = typename Algebra::Transform;
 
+    
+    std::vector<std::vector<Scalar>> sim_states_;
+    std::vector<std::vector<Scalar>> sim_states_with_action_;
+    std::vector<std::vector<Scalar>> sim_states_with_graphics_;
+
+    std::vector<tds::NeuralNetwork<Algebra> > neural_networks_;
+    int observation_dim_{28};//??
+
+
     AntVecEnv()
     {
+        neural_networks_.resize(g_num_total_threads);
+        sim_states_.resize(g_num_total_threads);
+        sim_states_with_action_.resize(g_num_total_threads);
+        sim_states_with_graphics_.resize(g_num_total_threads);
+
         int observation_size = contact_sim_.input_dim();
         bool use_input_bias = false;
-        neural_network.set_input_dim(observation_size, use_input_bias);
-        //network.add_linear_layer(tds::NN_ACT_RELU, 32);
-        //neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
-        bool learn_bias = true;
-        neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, ant_initial_poses.size(),learn_bias);
+        for (int index=0;index<g_num_total_threads;index++)
+        {
+            neural_networks_[index].set_input_dim(observation_size, use_input_bias);
+            //network.add_linear_layer(tds::NN_ACT_RELU, 32);
+            //neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
+            bool learn_bias = true;
+            neural_networks_[index].add_linear_layer(tds::NN_ACT_IDENTITY, ant_initial_poses.size(),learn_bias);
+        }
+        
     }
     virtual ~AntVecEnv()
     {
     }
 
-    void init_neural_network(const std::vector<double> &x)
+    void init_neural_network(int index, const std::vector<double> &x)
     {
-        neural_network.set_parameters(x);
+        neural_networks_[index].set_parameters(x);
     }
 
-    std::vector<Scalar> sim_state;
-    std::vector<Scalar> sim_state_with_action;
-    std::vector<Scalar> sim_state_with_graphics;
-
-    tds::NeuralNetwork<Algebra> neural_network;
 
     void seed(long long int s) {
       //std::cout<<"seed:" << s << std::endl;
@@ -283,149 +297,152 @@ struct AntVecEnv
     }
     
     
-    int observation_dim_{28};//??
 
-    std::vector<double> reset(CudaModel<MyScalar>& cuda_model_ant)
+    std::vector< std::vector<double> > reset(CudaModel<MyScalar>& cuda_model_ant)
     {
-        sim_state.resize(0);
-        sim_state.resize(contact_sim_.input_dim(), Scalar(0));
-        MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
-        MyAlgebra::Quaternion start_orn (0,0,0,1);
-
-        if (contact_sim_.mb_->is_floating())
+        for (int index=0;index<g_num_total_threads;index++)
         {
+            sim_states_[index].resize(0);
+            sim_states_[index].resize(contact_sim_.input_dim(), Scalar(0));
+            MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
+            MyAlgebra::Quaternion start_orn (0,0,0,1);
+
+            if (contact_sim_.mb_->is_floating())
+            {
             
-            //sim_state[0] = start_orn.x();
-            //sim_state[1] = start_orn.y();
-            //sim_state[2] = start_orn.z();
-            //sim_state[3] = start_orn.w();
-            sim_state[4] = start_pos.x();
-            sim_state[5] = start_pos.y();
-            sim_state[6] = start_pos.z();
-            int qoffset = 7;
-            for(int j=0;j<ant_initial_poses.size();j++)
+                //sim_state[0] = start_orn.x();
+                //sim_state[1] = start_orn.y();
+                //sim_state[2] = start_orn.z();
+                //sim_state[3] = start_orn.w();
+                sim_states_[index][4] = start_pos.x();
+                sim_states_[index][5] = start_pos.y();
+                sim_states_[index][6] = start_pos.z();
+                int qoffset = 7;
+                for(int j=0;j<ant_initial_poses.size();j++)
+                {
+                    sim_states_[index][j+qoffset] = ant_initial_poses[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+                }
+            }
+            else
             {
-                sim_state[j+qoffset] = ant_initial_poses[j];//0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+                sim_states_[index][0] = start_pos.x();
+                sim_states_[index][1] = start_pos.y();
+                sim_states_[index][2] = start_pos.z();
+                sim_states_[index][3] = 0;
+                sim_states_[index][4] = 0;
+                sim_states_[index][5] = 0;
+                int qoffset = 6;
+                for(int j=0;j<ant_initial_poses.size();j++)
+                {
+                    sim_states_[index][j+qoffset] = ant_initial_poses[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+                }
+
             }
         }
-        else
+        std::vector< std::vector<double>>  zero_actions(g_num_total_threads);
+        for (int i=0;i<g_num_total_threads;i++)
         {
-            sim_state[0] = start_pos.x();
-            sim_state[1] = start_pos.y();
-            sim_state[2] = start_pos.z();
-            sim_state[3] = 0;
-            sim_state[4] = 0;
-            sim_state[5] = 0;
-            int qoffset = 6;
-            for(int j=0;j<ant_initial_poses.size();j++)
-            {
-                sim_state[j+qoffset] = ant_initial_poses[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
-            }
-
+            zero_actions[i].resize(ant_initial_poses.size(), Scalar(0));
         }
+        std::vector< std::vector<double>> observations;
+        observations.resize(g_num_total_threads);
 
-        std::vector<double> zero_action(ant_initial_poses.size(), Scalar(0));
-        std::vector<double> observation;
-        double reward;
-        bool done;
+        std::vector<double> rewards;
+        rewards.resize(g_num_total_threads);
+
+        std::vector<bool> dones;
+        dones.resize(g_num_total_threads);
+
         //todo: tune this
         int settle_down_steps= 50;
         for (int i=0;i<settle_down_steps;i++)
         {
-            step(cuda_model_ant, zero_action, observation, reward, done);
+            step(cuda_model_ant, zero_actions, observations, rewards, dones);
         }
         
         //for (auto v : sim_state)
         //    std::cout << v << std::endl;
-        return observation;
+        return observations;
     }
-    void step(CudaModel<MyScalar>& cuda_model_ant, std::vector<double>& action,std::vector<double>& obs,double& reward,bool& done)
+    void step(CudaModel<MyScalar>& cuda_model_ant, std::vector< std::vector<double>>& actions,std::vector<std::vector<double>>& observations,
+        std::vector<double>& rewards,std::vector<bool>& dones)
     {
-        int simstate_size = sim_state.size();
-        sim_state_with_action = sim_state;
-        sim_state_with_action.resize(simstate_size+action.size());
 
-        for (int i=0;i<action.size();i++)
+        std::vector<std::vector<Scalar>> outputs(
+      g_num_total_threads, std::vector<Scalar>(contact_sim_.output_dim()));
+
+        std::vector<std::vector<Scalar>> inputs(g_num_total_threads);
+
+
+        for (int index=0;index<g_num_total_threads;index++)
         {
-            sim_state_with_action[i+simstate_size] = action[i];
+            int simstate_size = sim_states_[index].size();
+            sim_states_with_action_[index] = sim_states_[index];
+            sim_states_with_action_[index].resize(simstate_size+actions[index].size());
+
+            for (int i=0;i<actions[index].size();i++)
+            {
+                sim_states_with_action_[index][i+simstate_size] = actions[index][i];
+            }
+            inputs[index] = sim_states_with_action_[index];
         }
       
 #if 0
-        sim_state_with_graphics = contact_sim_(sim_state_with_action);
+        for (int index =0; index<g_num_total_threads;index++)
+        {
+            sim_states_with_graphics_[index] = contact_sim_(sim_states_with_action_[index]);
+        }
 #else
-        
-      std::vector<std::vector<Scalar>> outputs(
-      1, std::vector<Scalar>(contact_sim_.output_dim()));
-
-        std::vector<std::vector<Scalar>> inputs(1);
-        inputs[0] = sim_state_with_action;
-
         cuda_model_ant.forward_zero(&outputs, inputs,64);
-
-        sim_state_with_graphics = outputs[0];
-
+        for (int index=0;index<g_num_total_threads;index++)
+        {
+            sim_states_with_graphics_[index] = outputs[index];
+        }
 #endif
+        for (int index=0;index<g_num_total_threads;index++)
+        {
+            sim_states_[index] = sim_states_with_graphics_[index];
 
-        sim_state = sim_state_with_graphics;
-
-        sim_state.resize(contact_sim_.input_dim());
-        obs = sim_state;
+            sim_states_[index].resize(contact_sim_.input_dim());
+            observations[index] = sim_states_[index];
         
-        //reward forward along x-axis
-        reward = sim_state[0];
-        static double max_reward = -1e30;
-        static double min_reward = 1e30;
-        if (reward < min_reward)
-        {
-            min_reward = reward;
-            //printf("min_reward = %f\n",min_reward);
-        }
-        if (reward > max_reward)
-        {
-            max_reward = reward;
-            //printf("max_reward = %f\n",max_reward);
-        }
+            if (!dones[index])
+            {
+                //reward forward along x-axis
+                rewards[index] = sim_states_[index][0];
+                static double max_reward = -1e30;
+                static double min_reward = 1e30;
+                if (rewards[index] < min_reward)
+                {
+                    min_reward = rewards[index];
+                    //printf("min_reward = %f\n",min_reward);
+                }
+                if (rewards[index] > max_reward)
+                {
+                    max_reward = rewards[index];
+                    //printf("max_reward = %f\n",max_reward);
+                }
+            } else
+            {
+                rewards[index] = 0;
+            }
 
-        //Ant height needs to stay above 0.25
-        if (sim_state[2] < 0.26)
-        {
-            done =  true;
-        }  else
-        {
-            done = false;
+            //Ant height needs to stay above 0.25
+            if (sim_states_[index][2] < 0.26)
+            {
+                dones[index] =  true;
+            }  else
+            {
+                dones[index] = false;
+            }
         }
-    }
-    
-    AntVecEnvOutput step2(std::vector<double>& action)
-    {
-        AntVecEnvOutput output;
-        step(action, output.obs, output.reward, output.done);
-        return output;
-    }
-    
-    AntVecRolloutOutput rollout(int rollout_length, double shift)
-    {
-      AntVecRolloutOutput rollout_out;
-      std::vector<double> obs = reset();
-      bool done = false;
-      int steps=0;
-      while (rollout_out.num_steps<rollout_length && !done)
-      {
-         //double action = 0.f;
-         auto action = policy(obs);
-         double reward;
-         step(action, obs, reward, done);
-         rollout_out.total_reward += reward;
-         rollout_out.num_steps++;
-      }
-      return rollout_out;
     }
 
-    inline const std::vector<double> policy(const std::vector<double>& obs)
+    inline const std::vector<double> policy(int index, const std::vector<double>& obs)
     {
         std::vector<double> action (ant_initial_poses.size(), Scalar(0));
     
-        neural_network.compute(obs, action);
+        neural_networks_[index].compute(obs, action);
                 
         return action;
     }
@@ -438,7 +455,7 @@ struct PolicyParams
 {
 };
 
-int num_total_threads = 32;
+
 
 #ifdef ARS_VISUALIZE
 ///////////////////////////////////////////
@@ -452,44 +469,48 @@ std::vector<int> num_instances;
 int num_instances_per_robot=0;
 int num_base_instances;
 
-void visualize_trajectory(const std::vector<double>& sim_state_with_graphics, int s)
+void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& trajectories, int step, bool sleep)
 {
      float sim_spacing = 5;
      
-    const int square_id = (int)std::sqrt((double)num_total_threads);
-  int offset = contact_sim.mb_->dof() + contact_sim.mb_->dof_qd();
-  int instance_index = s*num_instances_per_robot;
+     for (int index=0;index<g_num_total_threads;index++)
+     {
+         std::vector<std::vector<double>>& sim_states_with_graphics = trajectories[index];
+          const int square_id = (int)std::sqrt((double)g_num_total_threads);
+          int offset = contact_sim.mb_->dof() + contact_sim.mb_->dof_qd();
+          int instance_index = index*num_instances_per_robot;
   
-
-  
-
-  for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) {
-        int l = ll-5;
-        for (int v = 0; v < num_instances[l]; v++)
-        {
-            int visual_instance_id = visual_instances[instance_index++];
-            if (visual_instance_id >= 0)
+          for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) {
+            int l = ll-5;
+            for (int v = 0; v < num_instances[l]; v++)
             {
+                int visual_instance_id = visual_instances[instance_index++];
+                if (visual_instance_id >= 0)
+                {
 
-                ::TINY::TinyVector3f pos(sim_state_with_graphics[offset + l * 7 + 0],
-                    sim_state_with_graphics[offset + l * 7 + 1],
-                    sim_state_with_graphics[offset + l * 7 + 2]);
-                ::TINY::TinyQuaternionf orn(
-                    sim_state_with_graphics[offset + l * 7 + 3],
-                    sim_state_with_graphics[offset + l * 7 + 4],
-                    sim_state_with_graphics[offset + l * 7 + 5],
-                    sim_state_with_graphics[offset + l * 7 + 6]);
+                    ::TINY::TinyVector3f pos(sim_states_with_graphics[step][offset + l * 7 + 0],
+                        sim_states_with_graphics[step][offset + l * 7 + 1],
+                        sim_states_with_graphics[step][offset + l * 7 + 2]);
+                    ::TINY::TinyQuaternionf orn(
+                        sim_states_with_graphics[step][offset + l * 7 + 3],
+                        sim_states_with_graphics[step][offset + l * 7 + 4],
+                        sim_states_with_graphics[step][offset + l * 7 + 5],
+                        sim_states_with_graphics[step][offset + l * 7 + 6]);
 
-                pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
-                pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
+                    pos[0] += sim_spacing * (index % square_id) - square_id * sim_spacing / 2;
+                    pos[1] += sim_spacing * (index / square_id) - square_id * sim_spacing / 2;
 
-                visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                    visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                }
             }
         }
-    }
+     }
     visualizer.render();
    
-    //std::this_thread::sleep_for(std::chrono::duration<double>(1./240.));//frameskip_gfx_sync* contact_sim.dt));
+    if (sleep)
+    {
+        std::this_thread::sleep_for(std::chrono::duration<double>(1./240.));//frameskip_gfx_sync* contact_sim.dt));
+    }
 }
 #else
 void visualize_trajectory(const std::vector<double>& sim_state_with_graphics, int s)
@@ -511,21 +532,27 @@ struct Worker
 
     SharedNoiseTable noise_table_;
 
-    std::vector<RunningStat> observation_filter_;
-    std::vector<double> observation_mean_;
-    std::vector<double> observation_std_;
+    std::vector<std::vector<RunningStat>> observation_filters_;
+    std::vector<std::vector<double> > observation_means_;
+    std::vector<std::vector<double> > observation_stds_;
 
     Worker(int env_seed, int params_dim, const PolicyParams& policy_params, const std::vector<double>& deltas, int rollout_length_train, int rollout_length_eval, double delta_std)
         :m_policy_params_(policy_params),
         rollout_length_train_ (rollout_length_train),
         rollout_length_eval_ (rollout_length_eval),
         delta_std_(delta_std),
-        noise_table_(deltas, env_seed, env_.neural_network.num_parameters())
+        noise_table_(deltas, env_seed, env_.neural_networks_[0].num_parameters())
     {
-        
         env_.seed(env_seed);
-        observation_filter_.resize(env_.observation_dim_);
-       
+
+        observation_filters_.resize(g_num_total_threads);
+        observation_means_.resize(g_num_total_threads);
+        observation_stds_.resize(g_num_total_threads);
+
+        for (int i=0;i<g_num_total_threads;i++)
+        {
+            observation_filters_[i].resize(env_.observation_dim_);
+        }
     }
         
     virtual ~Worker()
@@ -536,13 +563,12 @@ struct Worker
         //return self.policy.get_weights_plus_stats()
     }
     
-    //Performs one rollout of maximum length rollout_length. 
+    //Performs parallel rollouts of maximum length rollout_length. 
     //At each time-step it substracts shift from the reward.
-    void rollout(CudaModel<MyScalar>& cuda_model_ant, double shift, int rollout_length, double& total_reward, int& steps, std::vector<std::vector<double> >& trajectory)
+    void rollouts(CudaModel<MyScalar>& cuda_model_ant, double shift, int rollout_length, std::vector<double>& total_rewards, std::vector<int>& vec_steps, std::vector< std::vector<std::vector<double> > >& trajectories)
     {
 
-        steps = 0;
-        total_reward = 0.;
+        
 
         if (rollout_length == 0)
         {
@@ -552,36 +578,55 @@ struct Worker
         //    rollout_length = rollout_length_;
         //}
 
-        auto obs = env_.reset(cuda_model_ant);
+        auto observations = env_.reset(cuda_model_ant);
         
-        for (int i =0;i<rollout_length;i++) {
-          double reward;
-          bool  done;
-          //update running stat for the observation filter
-          for (int o=0;o<obs.size();o++)
-          {
-              observation_filter_[o].Push(obs[o]);
+        for (int index=0;index<g_num_total_threads;index++)
+        {
+            vec_steps[index] = 0;
+            total_rewards[index] = 0.;
+        }
+        std::vector<double> rewards;
+        rewards.resize(g_num_total_threads);
+        std::vector<bool>  dones;
+        dones.resize(g_num_total_threads);
 
-              if (observation_mean_.size())
-              {
-                  //apply filter
-                  obs[o] -= observation_mean_[o];
-                  if (observation_std_[o]>1e-7)
-                  {
-                      obs[o] /= observation_std_[o];
-                  }
-              }
-          }
-
-          auto action = env_.policy(obs);
+        std::vector<std::vector<double> > actions(g_num_total_threads);
+        
           
+       for (int r =0;r<rollout_length;r++) 
+       {
+           for (int index=0;index<g_num_total_threads;index++)
+           {
+                actions[index] = env_.policy(index, observations[index]);
+           }
 
-          env_.step(cuda_model_ant, action,obs,reward,done);
-          trajectory.push_back(env_.sim_state_with_graphics);
-          total_reward += (reward - shift);
-          steps++;
-          if (done)
-              break;
+           for (int index=0;index<g_num_total_threads;index++)
+           {
+                //update running stat for the observation filter
+                for (int o=0;o<observations[index].size();o++)
+                {
+                    observation_filters_[index][o].Push(observations[index][o]);
+
+                    if (observation_means_[index].size())
+                    {
+                        //apply filter
+                        observations[index][o] -= observation_means_[index][o];
+                        if (observation_stds_[index][o]>1e-7)
+                        {
+                            observations[index][o] /= observation_stds_[index][o];
+                        }
+                    }
+                }
+           }
+
+           env_.step(cuda_model_ant, actions,observations,rewards,dones);
+
+           for (int index=0;index<g_num_total_threads;index++)
+           {
+                trajectories[index].push_back(env_.sim_states_with_graphics_[index]);
+                total_rewards[index] += (rewards[index] - shift);
+                vec_steps[index]++;
+           }
         }
     }
 
@@ -615,35 +660,50 @@ struct Worker
         steps = 0;
         
         std::vector<double> tmp;
-        
+        trajectories.resize(g_num_total_threads);
+
         bool use_std_deviation = false;//!evaluate;
 
-        for (int i =0; i< num_rollouts; i++) {
-            if (evaluate) {
+        if (evaluate) {
                 
-                //policy.update_weights(w_policy);
-                env_.init_neural_network(w_policy);
+            //policy.update_weights(w_policy);
+            for (int index=0;index<g_num_total_threads;index++)
+            {
+                env_.init_neural_network(index, w_policy);
                 deltas_idx.push_back(-1);
-                
-                //set to false so that evaluation rollouts are not used for updating state statistics
-                //policy.update_filter = false;
-
-                //for evaluation we do not shift the rewards (shift = 0) and we use the default rollout_length
-                //double reward, int r_steps = rollout(shift = 0., rollout_length = self.rollout_length);
-                double reward;
-                int r_steps = 0;
-                std::vector<std::vector<double> > trajectory;
-                rollout(cuda_model_ant, 0, rollout_length_eval_, reward, r_steps, trajectory);
-                trajectories.push_back(trajectory);
-                steps += r_steps;
-                rollout_rewards.push_back(reward);
-
             }
-            else {
-                std::vector<double> delta;
-                //idx, delta = deltas.get_delta(w_policy.size)
-                int delta_idx = noise_table_.get_delta(delta_std_, delta);
+                
+            //set to false so that evaluation rollouts are not used for updating state statistics
+            //policy.update_filter = false;
 
+            //for evaluation we do not shift the rewards (shift = 0) and we use the default rollout_length
+            //double reward, int r_steps = rollout(shift = 0., rollout_length = self.rollout_length);
+            std::vector<double> rewards;
+            rewards.resize(g_num_total_threads);
+            std::vector<int> vec_r_steps;
+            vec_r_steps.resize(g_num_total_threads);
+
+            rollouts(cuda_model_ant, 0, rollout_length_eval_, rewards, vec_r_steps, trajectories);
+            
+            for (int step=0;step< trajectories[0].size();step++)
+            {
+                visualize_trajectories(trajectories, step, true);
+            }
+            for (int index=0;index<g_num_total_threads;index++)
+            {
+                steps += vec_r_steps[index];
+                rollout_rewards.push_back(rewards[index]);
+            }
+        }
+        else {
+            std::vector<std::vector<double> > deltas;
+            deltas.resize(g_num_total_threads);
+
+            //idx, delta = deltas.get_delta(w_policy.size)
+
+            for (int index=0;index<g_num_total_threads;index++)
+            {
+                int delta_idx = noise_table_.get_delta(delta_std_, deltas[index]);
                 //delta = (self.delta_std * delta).reshape(w_policy.shape)
                 deltas_idx.push_back(delta_idx);
 
@@ -655,55 +715,65 @@ struct Worker
                 weights.resize(w_policy.size());
                 for (int i=0;i<w_policy.size();i++)
                 {
-                    weights[i] = w_policy[i]+delta[i];
+                    weights[i] = w_policy[i]+deltas[index][i];
                 }
-                env_.init_neural_network(weights);
-                //self.policy.update_weights(w_policy + delta)
-                //env.update_weights(weights)
-                //pos_reward, pos_steps  = self.rollout(shift = shift)
-                double pos_reward;
-                int pos_steps;
-                std::vector<std::vector<double> > trajectory;
-                rollout(cuda_model_ant, shift, rollout_length_train_, pos_reward, pos_steps, trajectory);
-                static int cell=0;
+                env_.init_neural_network(index, weights);
+            }
 
-                for (int t=0;t<trajectory.size();t++)
-                {
-                    visualize_trajectory(trajectory[t], cell);
-                }
-                cell++;
-                if (cell>=num_total_threads)
-                    cell=0;
+            //self.policy.update_weights(w_policy + delta)
+            //env.update_weights(weights)
+            //pos_reward, pos_steps  = self.rollout(shift = shift)
+            std::vector<double> pos_rewards;
+            pos_rewards.resize(g_num_total_threads);
+            std::vector<int> vec_pos_steps;
+            vec_pos_steps.resize(g_num_total_threads);
+            
+            rollouts(cuda_model_ant, shift, rollout_length_train_, pos_rewards, vec_pos_steps, trajectories);
+            
+            for (int step=0;step< trajectories[0].size();step++)
+            {
+                visualize_trajectories(trajectories, step, false);
+            }
+            
+            for (int index=0;index<g_num_total_threads;index++)
+            {
+                std::vector<double> weights;
+                weights.resize(w_policy.size());
                 //compute reward and number of timesteps used for negative pertubation rollout
                 for (int i=0;i<w_policy.size();i++)
                 {
-                    weights[i] = w_policy[i]-delta[i];
+                    weights[i] = w_policy[i]-deltas[index][i];
                 }
-                env_.init_neural_network(weights);
-                double neg_reward;
-                int neg_steps;
-                trajectory.resize(0);
-                rollout(cuda_model_ant, shift, rollout_length_train_, neg_reward, neg_steps,trajectory);
-                for (int t=0;t<trajectory.size();t++)
-                {
-                    visualize_trajectory(trajectory[t], cell);
-                }
-                cell++;
-                if (cell>=num_total_threads)
-                    cell=0;
-                steps += pos_steps + neg_steps;
+                env_.init_neural_network(index, weights);
+                trajectories[index].resize(0);
+            }
+            std::vector<double> neg_rewards;
+            neg_rewards.resize(g_num_total_threads);
+            std::vector<int> vec_neg_steps;
+            vec_neg_steps.resize(g_num_total_threads);
+
+            rollouts(cuda_model_ant, shift, rollout_length_train_, neg_rewards, vec_neg_steps,trajectories);
+
+            //for (int step=0;step<trajectories[0].size();step++)
+            //{
+            //    visualize_trajectories(trajectories, step);
+            //}
+
+            for (int index=0;index<g_num_total_threads;index++)
+            {
+                steps += vec_pos_steps[index] + vec_neg_steps[index];
                 //rollout_rewards[:,0] - rollout_rewards[:,1]
                 if (use_std_deviation)
                 {
-                    tmp.push_back(pos_reward);
-                    tmp.push_back(neg_reward);
+                    tmp.push_back(pos_rewards[index]);
+                    tmp.push_back(neg_rewards[index]);
                 } else
                 {
-                    rollout_rewards.push_back(pos_reward-neg_reward);
+                    rollout_rewards.push_back(pos_rewards[index]-neg_rewards[index]);
                 }
             }
-        } 
-
+        }
+        
         if (use_std_deviation)
         {
             double std_dev = std_deviation(tmp);
@@ -736,7 +806,7 @@ struct ARSLearner
 
     
     Worker* worker_{0};
-    int rollout_length_train_{400};
+    int rollout_length_train_{1000};
     int rollout_length_eval_{1000};
     double delta_std_{0.03};
     double sgd_step_size { 0.02};
@@ -757,7 +827,7 @@ struct ARSLearner
         
         
         Environment tmpenv;
-        int params_dim = tmpenv.neural_network.num_parameters();
+        int params_dim = tmpenv.neural_networks_[0].num_parameters();
         
         //does it have to be random to start? deltas will take care of it
         w_policy.resize(params_dim);
@@ -765,7 +835,7 @@ struct ARSLearner
         worker_ = new Worker (env_seed, params_dim, policy_params, deltas_, rollout_length_train_, rollout_length_eval_, delta_std_);
         
         myfile_.open ("ars_cpp_log.txt");
-        myfile_ << "Time	Iteration	AverageReward	StdRewards	MaxRewardRollout	MinRewardRollout	timesteps" << std::endl;
+        myfile_ << "Time	Iteration	AverageReward	MaxRewardRollout	MinRewardRollout	timesteps" << std::endl;
 
         time_point_ = std::chrono::steady_clock::now();
 
@@ -908,7 +978,7 @@ struct ARSLearner
     {
         double best_mean_rewards = -1e30;
         
-        for (int i=0;i< num_iter;i++) {
+        for (int iter=0;iter< num_iter;iter++) {
 
             //t1 = time.time()
             train_step();
@@ -917,12 +987,15 @@ struct ARSLearner
             bool use_observation_filter = true;
             if (use_observation_filter)
             {
-                worker_->observation_mean_.resize(worker_->env_.observation_dim_);
-                worker_->observation_std_.resize(worker_->env_.observation_dim_);
-                for (int w=0;w<worker_->observation_filter_.size();w++)
+                for (int index=0;index<g_num_total_threads;index++)
                 {
-                    worker_->observation_mean_[w] = worker_->observation_filter_[w].Mean();
-                    worker_->observation_std_[w] = worker_->observation_filter_[w].StandardDeviation();
+                    worker_->observation_means_[index].resize(worker_->env_.observation_dim_);
+                    worker_->observation_stds_[index].resize(worker_->env_.observation_dim_);
+                    for (int w=0;w<worker_->observation_filters_[index].size();w++)
+                    {
+                        worker_->observation_means_[index][w] = worker_->observation_filters_[index][w].Mean();
+                        worker_->observation_stds_[index][w] = worker_->observation_filters_[index][w].StandardDeviation();
+                    }
                 }
             }
 
@@ -932,10 +1005,10 @@ struct ARSLearner
             //print('iter ', i,' done')
 
             //record statistics every 10 iterations
-            if (1)//(i + 1) % 10 == 0) 
+            if ((iter + 1) % 10 == 0) 
             {
 
-                int num_rollouts = 10;//todo: expose/tune this value (100 in ARS)
+                int num_rollouts = g_num_total_threads;//todo: expose/tune this value (100 in ARS)
                 bool evaluate = true;
                 std::vector<std::vector<std::vector<double> > > trajectories;
                 std::vector<double> rewards = aggregate_rollouts(num_rollouts, evaluate, trajectories);
@@ -945,11 +1018,10 @@ struct ARSLearner
 
                 if (rewards.size())
                 {
-
                     for (int i=0;i<rewards.size();i++)
                     {
                         double reward = rewards[i];
-                        printf("reward %d = %f\n", i, reward);
+                        //printf("reward %d = %f\n", i, reward);
                         sum += reward;
                         if (reward < min_reward)
                         {
@@ -963,49 +1035,62 @@ struct ARSLearner
                     double mean_rewards = sum / rewards.size();
                     if (mean_rewards > best_mean_rewards)
                     {
-                        
-                        std::ofstream trajfile_;
-                        std::string fileName = "trajectory_reward"+std::to_string(mean_rewards)+".bin";
-                        trajfile_.open (fileName,std::ios_base::binary);
-                        int num_steps = trajectories[i].size();
-                        trajfile_.write((char*)&num_steps, sizeof(int));
-                        int state_size = trajectories[i][0].size();
-                        trajfile_.write((char*)&state_size, sizeof(int));
-                        
-                        for (int step=0;step<num_steps;step++)
                         {
-                            
-                            for (int state=0;state < state_size;state++)
+                            std::ofstream trajfile_;
+                            std::string fileName = "ant_trajectory_reward"+std::to_string(mean_rewards)+".bin";
+                            trajfile_.open (fileName,std::ios_base::binary);
+                            int num_steps = trajectories[0].size();
+                            trajfile_.write((char*)&num_steps, sizeof(int));
+                            int state_size = trajectories[0][0].size();
+                            trajfile_.write((char*)&state_size, sizeof(int));
+                        
+                            for (int step=0;step<num_steps;step++)
                             {
-                                trajfile_.write((char*)&trajectories[i][step][state], sizeof(double));
+                            
+                                for (int state=0;state < state_size;state++)
+                                {
+                                    trajfile_.write((char*)&trajectories[0][step][state], sizeof(double));
+                                }
                             }
-                        }
-                        trajfile_.close();
-                        best_mean_rewards = mean_rewards;
-                        //save policy
-                        printf("best policy, mean = %f at %d steps\n", mean_rewards, total_timesteps);
+                            trajfile_.close();
+                            best_mean_rewards = mean_rewards;
+                            //save policy
+                            printf("best policy, mean = %f at %d steps\n", mean_rewards, total_timesteps);
                        
                    
 
-                     for (int w=0;w<this->w_policy.size();w++)
-                        {
-                            printf("%f,",w_policy[w]);
+                             for (int w=0;w<this->w_policy.size();w++)
+                                {
+                                    printf("%f,",w_policy[w]);
+                                }
+                                printf("\n");
+                         }
+                            {
+                            std::ofstream weightsfile_;
+                            std::string fileName = "ant_weights_"+std::to_string(mean_rewards)+".bin";
+                            weightsfile_.open (fileName,std::ios_base::binary);
+                            int num_weights =w_policy.size();
+                            weightsfile_.write((char*)&num_weights, sizeof(int));
+                            for (int i=0;i<num_weights;i++)
+                            {
+                                weightsfile_.write((char*)&w_policy[i], sizeof(double));
+                            }
+                            weightsfile_.close();
                         }
-                        printf("\n");
-                    }
-                    printf("Iteration = %d\n", i+1);
+                     }
+
+                        auto cur_point_ = std::chrono::steady_clock::now();
+
+                        double past_sec = std::chrono::duration_cast<std::chrono::milliseconds>(cur_point_ - time_point_).count();
+                        //time_point_ = cur_point_;
+
+                        myfile_ << past_sec/1000. << "    " << std::to_string(iter+1) << " " << std::to_string(mean_rewards) << "  " << max_reward << "    " << min_reward << "    " << total_timesteps << std::endl;
+
+                    printf("Iteration = %d\n", iter+1);
                     printf("total_timesteps=%d\n", total_timesteps);
                     printf("AverageReward=%f\n", mean_rewards);
                     printf("MaxReward=%f\n", max_reward);
                     printf("MinReward=%f\n", min_reward);
-                    
-                    auto cur_point_ = std::chrono::steady_clock::now();
-
-                    double past_sec = std::chrono::duration_cast<std::chrono::milliseconds>(cur_point_ - time_point_).count();
-                    //time_point_ = cur_point_;
-
-                    myfile_ << past_sec/1000. << "    " << std::to_string(i+1) << " " << std::to_string(mean_rewards) << "  " << max_reward << "    " << min_reward << "    " << total_timesteps << std::endl;
-                    
                 }
 #if 0
                 w = ray.get(self.workers[0].get_weights_plus_stats.remote())
@@ -1067,7 +1152,7 @@ int main()
     CudaModel<MyScalar> cuda_model_ant(model_name);
 
     
-    cuda_model_ant.forward_zero.allocate(1);//num_total_threads);
+    cuda_model_ant.forward_zero.allocate(g_num_total_threads);
 
   
 #ifdef ARS_VISUALIZE
@@ -1105,7 +1190,7 @@ int main()
   
 
 
-  for (int t = 0;t< num_total_threads;t++)
+  for (int t = 0;t< g_num_total_threads;t++)
   {
       num_instances_per_robot=0;
       TinyVector3f pos(0, 0, 0);
@@ -1183,6 +1268,11 @@ int main()
   trajfile_.close();
   #endif
 
+  for (int i=0;i<240;i++)
+  {
+      visualizer.render();
+      std::this_thread::sleep_for(std::chrono::duration<double>(1./240.));//frameskip_gfx_sync* contact_sim.dt));
+  }
    //srand(123);
   {
     ARSLearner ars(cuda_model_ant);
@@ -1194,8 +1284,8 @@ int main()
 
 #if 0
   std::vector<std::vector<Scalar>> outputs(
-      num_total_threads, std::vector<Scalar>(simulation.output_dim()));
+      g_num_total_threads, std::vector<Scalar>(simulation.output_dim()));
 
-  std::vector<std::vector<Scalar>> inputs(num_total_threads);
+  std::vector<std::vector<Scalar>> inputs(g_num_total_threads);
 
 #endif
