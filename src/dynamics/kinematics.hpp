@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../multi_body.hpp"
-
+#include "math/conditionals.hpp"
 
 namespace tds {
 /**
