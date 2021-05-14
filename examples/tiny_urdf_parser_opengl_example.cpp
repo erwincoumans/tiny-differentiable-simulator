@@ -68,7 +68,7 @@ bool is_floating = false;
 //std::string urdf_name = "humanoid_partial.urdf";
 // std::string urdf_name = "pendulum5spherical.urdf"; bool is_floating = false;
 //std::string urdf_name = "humanoid.urdf"; bool is_floating = true;
-// std::string urdf_name = "hopper_link0_1_visual.urdf"; bool is_floating = false;
+// std::string urdf_name = "hopper_link0_1.urdf"; bool is_floating = false;
 // std::string urdf_name = "sphere_small_visual.urdf"; bool is_floating = false;
 
 

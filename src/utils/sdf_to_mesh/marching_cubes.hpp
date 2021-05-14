@@ -133,7 +133,7 @@ typename Algebra::Vector3 LinearInterp(const Vector4<Algebra> &p1,
   typename Algebra::Vector3 p;
   if (abs(Algebra::to_double(p1.getVal()) - Algebra::to_double(p2.getVal())) >
       0.00001) {
-    auto diff = p2_v - p1_v;
+    typename Algebra::Vector3 diff = p2_v - p1_v;
     diff *= 1 / (p2.val - p1.val);
     diff *= (value - p1.val);
     p = p1_v + diff;
@@ -355,9 +355,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
                 Vector4(1.0, 1.0, 1.0, 1.0);
           indGrad |= 3;
           grads[0] = LinearInterp(gradVerts[0], gradVerts[1], minValue);
-          grads[0].setX(grads[0].x() * factor.x());
-          grads[0].setY(grads[0].y() * factor.y());
-          grads[0].setZ(grads[0].z() * factor.z());
+          grads[0][0] *= factor[0];
+          grads[0][1] *= factor[1];
+          grads[0][2] *= factor[2];
 
           UPDATE_INDEX(0, 0, 1);
         }
@@ -374,9 +374,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
                 Vector4(1.0, 1.0, 1.0, 1.0);
           indGrad |= 4;
           grads[1] = LinearInterp(gradVerts[1], gradVerts[2], minValue);
-          grads[1].setX(grads[1].x() * factor.x());
-          grads[1].setY(grads[1].y() * factor.y());
-          grads[1].setZ(grads[1].z() * factor.z());
+          grads[1][0] *= factor[0];
+          grads[1][1] *= factor[1];
+          grads[1][2] *= factor[2];
 
           UPDATE_INDEX(1, 1, 2);
         }
@@ -393,9 +393,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
                 Vector4(1.0, 1.0, 1.0, 1.0);
           indGrad |= 8;
           grads[2] = LinearInterp(gradVerts[2], gradVerts[3], minValue);
-          grads[2].setX(grads[2].x() * factor.x());
-          grads[2].setY(grads[2].y() * factor.y());
-          grads[2].setZ(grads[2].z() * factor.z());
+          grads[2][0] *= factor[0];
+          grads[2][1] *= factor[1];
+          grads[2][2] *= factor[2];
 
           UPDATE_INDEX(2, 2, 3);
         }
@@ -414,9 +414,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
             indGrad |= 1;
           }
           grads[3] = LinearInterp(gradVerts[3], gradVerts[0], minValue);
-          grads[3].setX(grads[3].x() * factor.x());
-          grads[3].setY(grads[3].y() * factor.y());
-          grads[3].setZ(grads[3].z() * factor.z());
+          grads[3][0] *= factor[0];
+          grads[3][1] *= factor[1];
+          grads[3][2] *= factor[2];
 
           UPDATE_INDEX(3, 3, 0);
         }
@@ -433,9 +433,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
 
           indGrad |= 48;
           grads[4] = LinearInterp(gradVerts[4], gradVerts[5], minValue);
-          grads[4].setX(grads[4].x() * factor.x());
-          grads[4].setY(grads[4].y() * factor.y());
-          grads[4].setZ(grads[4].z() * factor.z());
+          grads[4][0] *= factor[0];
+          grads[4][1] *= factor[1];
+          grads[4][2] *= factor[2];
 
           UPDATE_INDEX(4, 4, 5);
         }
@@ -453,9 +453,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
                 Vector4(1.0, 1.0, 1.0, 1.0);
           indGrad |= 64;
           grads[5] = LinearInterp(gradVerts[5], gradVerts[6], minValue);
-          grads[5].setX(grads[5].x() * factor.x());
-          grads[5].setY(grads[5].y() * factor.y());
-          grads[5].setZ(grads[5].z() * factor.z());
+          grads[5][0] *= factor[0];
+          grads[5][1] *= factor[1];
+          grads[5][2] *= factor[2];
 
           UPDATE_INDEX(5, 5, 6);
         }
@@ -473,9 +473,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
                 Vector4(1.0, 1.0, 1.0, 1.0);
           indGrad |= 128;
           grads[6] = LinearInterp(gradVerts[6], gradVerts[7], minValue);
-          grads[6].setX(grads[6].x() * factor.x());
-          grads[6].setY(grads[6].y() * factor.y());
-          grads[6].setZ(grads[6].z() * factor.z());
+          grads[6][0] *= factor[0];
+          grads[6][1] *= factor[1];
+          grads[6][2] *= factor[2];
 
           UPDATE_INDEX(6, 6, 7);
         }
@@ -494,9 +494,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
             indGrad |= 16;
           }
           grads[7] = LinearInterp(gradVerts[7], gradVerts[4], minValue);
-          grads[7].setX(grads[7].x() * factor.x());
-          grads[7].setY(grads[7].y() * factor.y());
-          grads[7].setZ(grads[7].z() * factor.z());
+          grads[7][0] *= factor[0];
+          grads[7][1] *= factor[1];
+          grads[7][2] *= factor[2];
 
           UPDATE_INDEX(7, 7, 4);
         }
@@ -515,9 +515,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
             indGrad |= 16;
           }
           grads[8] = LinearInterp(gradVerts[0], gradVerts[4], minValue);
-          grads[8].setX(grads[8].x() * factor.x());
-          grads[8].setY(grads[8].y() * factor.y());
-          grads[8].setZ(grads[8].z() * factor.z());
+          grads[8][0] *= factor[0];
+          grads[8][1] *= factor[1];
+          grads[8][2] *= factor[2];
 
           UPDATE_INDEX(8, 0, 4);
         }
@@ -536,9 +536,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
             indGrad |= 32;
           }
           grads[9] = LinearInterp(gradVerts[1], gradVerts[5], minValue);
-          grads[9].setX(grads[9].x() * factor.x());
-          grads[9].setY(grads[9].y() * factor.y());
-          grads[9].setZ(grads[9].z() * factor.z());
+          grads[9][0] *= factor[0];
+          grads[9][1] *= factor[1];
+          grads[9][2] *= factor[2];
 
           UPDATE_INDEX(9, 1, 5);
         }
@@ -557,10 +557,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
             indGrad |= 64;
           }
           grads[10] = LinearInterp(gradVerts[2], gradVerts[6], minValue);
-          grads[10].setX(grads[10].x() * factor.x());
-          grads[10].setY(grads[10].y() * factor.y());
-          grads[10].setZ(grads[10].z() * factor.z());
-
+          grads[10][0] *= factor[0];
+          grads[10][1] *= factor[1];
+          grads[10][2] *= factor[2];
           UPDATE_INDEX(10, 2, 6);
         }
         if (edgeIndex & 2048) {
@@ -578,9 +577,9 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
             indGrad |= 128;
           }
           grads[11] = LinearInterp(gradVerts[3], gradVerts[7], minValue);
-          grads[11].setX(grads[11].x() * factor.x());
-          grads[11].setY(grads[11].y() * factor.y());
-          grads[11].setZ(grads[11].z() * factor.z());
+          grads[11][0] *= factor[0];
+          grads[11][1] *= factor[1];
+          grads[11][2] *= factor[2];
 
           UPDATE_INDEX(11, 3, 7);
         }
