@@ -53,14 +53,12 @@ struct CartpoleContactSimulation {
       }
     }
 
-
-
     mb_->base_X_world().translation = Algebra::unit3_z();
-    std::cout << "CartpoleContactSimulation!" << std::endl;
+    //std::cout << "CartpoleContactSimulation!" << std::endl;
   }
 
   virtual ~CartpoleContactSimulation() {
-    std::cout << "~CartpoleContactSimulation" << std::endl;
+    //std::cout << "~CartpoleContactSimulation" << std::endl;
   }
   std::vector<Scalar> operator()(const std::vector<Scalar>& v,
                                  Scalar tau = 0.) {

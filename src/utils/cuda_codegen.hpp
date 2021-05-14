@@ -460,7 +460,7 @@ class CudaLibraryProcessor {
   std::string forward_zero_src_name_;
 
   std::string nvcc_path_{"/usr/bin/nvcc"};
-  int optimization_level_{0};
+  int optimization_level_{3};
 
  public:
   CudaLibraryProcessor(CudaSourceGen<Base>* cgen) : cgen_(cgen) {}
@@ -501,6 +501,8 @@ class CudaLibraryProcessor {
         << "-o " << cgen_->getName() << ".so "
 #endif
         << "--shared " << forward_zero_src_name_;
+
+    std::cout << cmd.str() << std::endl;
     tds::Stopwatch timer;
     timer.start();
     int return_code = std::system(cmd.str().c_str());

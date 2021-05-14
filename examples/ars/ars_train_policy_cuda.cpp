@@ -14,6 +14,204 @@
 #include <thread>
 #include <chrono>
 
+
+
+//struct CudaFunctionMetaData {
+//  int output_dim;
+//  int local_input_dim;
+//  int global_input_dim;
+//  bool accumulated_output;
+//};
+
+struct CudaFunctionMetaData {
+  int output_dim;
+  int input_dim;
+  int global_dim;
+};
+
+
+template <typename FunctionPtrT>
+FunctionPtrT load_function(const std::string& function_name, void* lib_handle) {
+#if _WIN32
+  auto ptr =
+      (FunctionPtrT)GetProcAddress((HMODULE)lib_handle, function_name.c_str());
+  if (!ptr) {
+    throw std::runtime_error("Cannot load symbol '" + function_name +
+                             "': error code " + std::to_string(GetLastError()));
+  }
+#else
+  auto ptr = (FunctionPtrT)dlsym(lib_handle, function_name.c_str());
+  const char* dlsym_error = dlerror();
+  if (dlsym_error) {
+    throw std::runtime_error("Cannot load symbol '" + function_name +
+                             "': " + std::string(dlsym_error));
+  }
+#endif
+  return ptr;
+}
+
+template <typename Scalar>
+using DefaultCudaFunctionPtrT = void (*)(int, int, int, Scalar*, const Scalar*);
+using MetaDataFunctionPtrT = CudaFunctionMetaData (*)();
+using AllocateFunctionPtrT = void (*)(int);
+using DeallocateFunctionPtrT = void (*)();
+
+template <typename Scalar,
+          typename kFunctionPtrT = DefaultCudaFunctionPtrT<Scalar>>
+struct CudaFunction {
+  using FunctionPtrT = kFunctionPtrT;
+
+  std::string function_name;
+
+  CudaFunctionMetaData meta_data;
+
+  CudaFunction() = default;
+
+  CudaFunction(const std::string& function_name, void* lib_handle)
+      : function_name(function_name) {
+    fun_ = load_function<FunctionPtrT>(function_name, lib_handle);
+    auto meta_data_fun = load_function<MetaDataFunctionPtrT>(
+        function_name + "_meta", lib_handle);
+    meta_data = meta_data_fun();
+    allocate_ = load_function<AllocateFunctionPtrT>(function_name + "_allocate",
+                                                    lib_handle);
+    deallocate_ = load_function<DeallocateFunctionPtrT>(
+        function_name + "_deallocate", lib_handle);
+  }
+
+  inline void allocate(int num_total_threads) const {
+    allocate_(num_total_threads);
+  }
+
+  inline void deallocate() const { deallocate_(); }
+
+  inline bool operator()(int num_total_threads, int num_blocks,
+                         int num_threads_per_block, Scalar* output,
+                         const Scalar* input) const {
+    assert(fun_);
+    fun_(num_total_threads, num_blocks, num_threads_per_block, output, input);
+    return true;
+  }
+
+  inline bool operator()(std::vector<std::vector<Scalar>>* thread_outputs,
+                         const std::vector<std::vector<Scalar>>& thread_inputs,
+                         int num_threads_per_block = 32,
+                         const std::vector<Scalar>& global_input = {}) const {
+    assert(fun_);
+    if (thread_outputs == nullptr || thread_outputs->empty() ||
+        (*thread_outputs)[0].empty()) {
+      assert(false);
+      return false;
+    }
+    if (thread_outputs->size() != thread_inputs.size()) {
+      assert(false);
+      return false;
+    }
+    if (static_cast<int>(thread_inputs[0].size()) != meta_data.input_dim) {
+      assert(false);
+      return false;
+    }
+    if (static_cast<int>((*thread_outputs)[0].size()) != meta_data.output_dim) {
+      assert(false);
+      return false;
+    }
+    if (static_cast<int>(global_input.size()) != meta_data.global_dim) {
+      assert(false);
+      return false;
+    }
+
+    auto num_total_threads = static_cast<int>(thread_inputs.size());
+    // concatenate thread-wise inputs and global memory into contiguous input
+    // array
+    Scalar* input = new Scalar[global_input.size() +
+                               thread_inputs[0].size() * num_total_threads];
+    std::size_t i = 0;
+    for (; i < global_input.size(); ++i) {
+      input[i] = global_input[i];
+    }
+    for (const auto& thread : thread_inputs) {
+      for (const Scalar& t : thread) {
+        input[i] = t;
+        ++i;
+      }
+    }
+    Scalar* output =
+        new Scalar[(*thread_outputs)[0].size() * num_total_threads];
+
+    int num_blocks = ceil(num_total_threads * 1. / num_threads_per_block);
+
+    // call GPU kernel
+    fun_(num_total_threads, num_blocks, num_threads_per_block, output, input);
+
+    // assign thread-wise outputs
+    i = 0;
+    for (auto& thread : *thread_outputs) {
+      for (Scalar& t : thread) {
+        t = output[i];
+        ++i;
+      }
+    }
+
+    delete[] input;
+    delete[] output;
+    return true;
+  }
+
+ protected:
+  FunctionPtrT fun_{nullptr};
+  AllocateFunctionPtrT allocate_{nullptr};
+  DeallocateFunctionPtrT deallocate_{nullptr};
+};
+
+template <typename Scalar>
+struct CudaModel {
+ protected:
+  const std::string model_name_;
+  void* lib_handle_;
+
+  CudaFunctionMetaData meta_data_;
+
+ public:
+  CudaFunction<Scalar> forward_zero;
+
+#ifdef _WIN32
+  CudaModel(const std::string& model_name) : model_name_(model_name) {
+    // load the dynamic library
+    std::string path = model_name + ".dll";
+    std::string abs_path;
+    bool found = tds::FileUtils::find_file(path, abs_path);
+    assert(found);
+    lib_handle_ = LoadLibrary(abs_path.c_str());
+    if (lib_handle_ == nullptr) {
+      throw std::runtime_error("Failed to dynamically load library '" +
+                               model_name + "': error code " +
+                               std::to_string(GetLastError()));
+    }
+    forward_zero =
+        CudaFunction<Scalar>(model_name + "_forward_zero", lib_handle_);
+  }
+#else
+  // loads the shared library
+  CudaModel(const std::string& model_name, int dlOpenMode = RTLD_NOW)
+      : model_name_(model_name) {
+    // load the dynamic library
+    std::string path = model_name + ".so";
+    std::string abs_path;
+    bool found = tds::FileUtils::find_file(path, abs_path);
+    assert(found);
+    lib_handle_ = dlopen(abs_path.c_str(), dlOpenMode);
+    // _dynLibHandle = dlmopen(LM_ID_NEWLM, path.c_str(), RTLD_NOW);
+    if (lib_handle_ == nullptr) {
+      throw std::runtime_error("Failed to dynamically load library '" +
+                               model_name + "': " + std::string(dlerror()));
+    }
+    forward_zero =
+        CudaFunction<Scalar>(model_name + "_forward_zero", lib_handle_);
+  }
+#endif
+};
+
+
 using namespace TINY;
 using namespace tds;
 typedef double TinyDualScalar;
@@ -22,7 +220,219 @@ typedef ::TINY::DoubleUtils MyTinyConstants;
 typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
 //typedef CartpoleEnv<MyAlgebra> Environment;
-typedef AntEnv<MyAlgebra> Environment;
+//typedef AntEnv<MyAlgebra> Environment;
+
+
+
+struct AntVecEnvOutput
+{
+    std::vector<double> obs;
+    double reward;
+    bool done;
+};
+
+struct AntVecRolloutOutput
+{
+    AntVecRolloutOutput()
+        :total_reward(0),
+        num_steps(0)
+    {
+    }
+    double total_reward;
+    int num_steps;
+};
+
+
+
+template <typename Algebra>
+struct AntVecEnv
+{
+    AntContactSimulation<Algebra> contact_sim_;
+    using Scalar = typename Algebra::Scalar;
+    using Vector3 = typename Algebra::Vector3;
+    using Transform = typename Algebra::Transform;
+
+    AntVecEnv()
+    {
+        int observation_size = contact_sim_.input_dim();
+        bool use_input_bias = false;
+        neural_network.set_input_dim(observation_size, use_input_bias);
+        //network.add_linear_layer(tds::NN_ACT_RELU, 32);
+        //neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
+        bool learn_bias = true;
+        neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, ant_initial_poses.size(),learn_bias);
+    }
+    virtual ~AntVecEnv()
+    {
+    }
+
+    void init_neural_network(const std::vector<double> &x)
+    {
+        neural_network.set_parameters(x);
+    }
+
+    std::vector<Scalar> sim_state;
+    std::vector<Scalar> sim_state_with_action;
+    std::vector<Scalar> sim_state_with_graphics;
+
+    tds::NeuralNetwork<Algebra> neural_network;
+
+    void seed(long long int s) {
+      //std::cout<<"seed:" << s << std::endl;
+      std::srand(s);
+    }
+    
+    
+    int observation_dim_{28};//??
+
+    std::vector<double> reset(CudaModel<MyScalar>& cuda_model_ant)
+    {
+        sim_state.resize(0);
+        sim_state.resize(contact_sim_.input_dim(), Scalar(0));
+        MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
+        MyAlgebra::Quaternion start_orn (0,0,0,1);
+
+        if (contact_sim_.mb_->is_floating())
+        {
+            
+            //sim_state[0] = start_orn.x();
+            //sim_state[1] = start_orn.y();
+            //sim_state[2] = start_orn.z();
+            //sim_state[3] = start_orn.w();
+            sim_state[4] = start_pos.x();
+            sim_state[5] = start_pos.y();
+            sim_state[6] = start_pos.z();
+            int qoffset = 7;
+            for(int j=0;j<ant_initial_poses.size();j++)
+            {
+                sim_state[j+qoffset] = ant_initial_poses[j];//0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+            }
+        }
+        else
+        {
+            sim_state[0] = start_pos.x();
+            sim_state[1] = start_pos.y();
+            sim_state[2] = start_pos.z();
+            sim_state[3] = 0;
+            sim_state[4] = 0;
+            sim_state[5] = 0;
+            int qoffset = 6;
+            for(int j=0;j<ant_initial_poses.size();j++)
+            {
+                sim_state[j+qoffset] = ant_initial_poses[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+            }
+
+        }
+
+        std::vector<double> zero_action(ant_initial_poses.size(), Scalar(0));
+        std::vector<double> observation;
+        double reward;
+        bool done;
+        //todo: tune this
+        int settle_down_steps= 50;
+        for (int i=0;i<settle_down_steps;i++)
+        {
+            step(cuda_model_ant, zero_action, observation, reward, done);
+        }
+        
+        //for (auto v : sim_state)
+        //    std::cout << v << std::endl;
+        return observation;
+    }
+    void step(CudaModel<MyScalar>& cuda_model_ant, std::vector<double>& action,std::vector<double>& obs,double& reward,bool& done)
+    {
+        int simstate_size = sim_state.size();
+        sim_state_with_action = sim_state;
+        sim_state_with_action.resize(simstate_size+action.size());
+
+        for (int i=0;i<action.size();i++)
+        {
+            sim_state_with_action[i+simstate_size] = action[i];
+        }
+      
+#if 0
+        sim_state_with_graphics = contact_sim_(sim_state_with_action);
+#else
+        
+      std::vector<std::vector<Scalar>> outputs(
+      1, std::vector<Scalar>(contact_sim_.output_dim()));
+
+        std::vector<std::vector<Scalar>> inputs(1);
+        inputs[0] = sim_state_with_action;
+
+        cuda_model_ant.forward_zero(&outputs, inputs,64);
+
+        sim_state_with_graphics = outputs[0];
+
+#endif
+
+        sim_state = sim_state_with_graphics;
+
+        sim_state.resize(contact_sim_.input_dim());
+        obs = sim_state;
+        
+        //reward forward along x-axis
+        reward = sim_state[0];
+        static double max_reward = -1e30;
+        static double min_reward = 1e30;
+        if (reward < min_reward)
+        {
+            min_reward = reward;
+            //printf("min_reward = %f\n",min_reward);
+        }
+        if (reward > max_reward)
+        {
+            max_reward = reward;
+            //printf("max_reward = %f\n",max_reward);
+        }
+
+        //Ant height needs to stay above 0.25
+        if (sim_state[2] < 0.26)
+        {
+            done =  true;
+        }  else
+        {
+            done = false;
+        }
+    }
+    
+    AntVecEnvOutput step2(std::vector<double>& action)
+    {
+        AntVecEnvOutput output;
+        step(action, output.obs, output.reward, output.done);
+        return output;
+    }
+    
+    AntVecRolloutOutput rollout(int rollout_length, double shift)
+    {
+      AntVecRolloutOutput rollout_out;
+      std::vector<double> obs = reset();
+      bool done = false;
+      int steps=0;
+      while (rollout_out.num_steps<rollout_length && !done)
+      {
+         //double action = 0.f;
+         auto action = policy(obs);
+         double reward;
+         step(action, obs, reward, done);
+         rollout_out.total_reward += reward;
+         rollout_out.num_steps++;
+      }
+      return rollout_out;
+    }
+
+    inline const std::vector<double> policy(const std::vector<double>& obs)
+    {
+        std::vector<double> action (ant_initial_poses.size(), Scalar(0));
+    
+        neural_network.compute(obs, action);
+                
+        return action;
+    }
+
+};
+
+typedef AntVecEnv<MyAlgebra> Environment;
 
 struct PolicyParams
 {
@@ -128,33 +538,9 @@ struct Worker
     
     //Performs one rollout of maximum length rollout_length. 
     //At each time-step it substracts shift from the reward.
-    void rollout(double shift, int rollout_length, double& total_reward, int& steps, std::vector<std::vector<double> >& trajectory)
+    void rollout(CudaModel<MyScalar>& cuda_model_ant, double shift, int rollout_length, double& total_reward, int& steps, std::vector<std::vector<double> >& trajectory)
     {
-#if 0
-        std::vector<double> params;
-        env_.neural_network.get_parameters(params);
-        double sum=0;
-        for (int i=0;i<5;i++)
-        {
-            if (i==2)
-            {
-                double v = (params[i]-4.);
-                sum -= v*v;
-            } 
-            //else if (i==4)
-            //{
-            //    double v = (params[i]+1000);
-            //    sum -= v*v;
-            //    
-            else
-            {
-                //sum -= params[i]*params[i];
-            }
-        }
-        total_reward = sum;
-        steps = 1;
-        return;
-#endif
+
         steps = 0;
         total_reward = 0.;
 
@@ -166,7 +552,7 @@ struct Worker
         //    rollout_length = rollout_length_;
         //}
 
-        auto obs = env_.reset();
+        auto obs = env_.reset(cuda_model_ant);
         
         for (int i =0;i<rollout_length;i++) {
           double reward;
@@ -190,7 +576,7 @@ struct Worker
           auto action = env_.policy(obs);
           
 
-          env_.step(action,obs,reward,done);
+          env_.step(cuda_model_ant, action,obs,reward,done);
           trajectory.push_back(env_.sim_state_with_graphics);
           total_reward += (reward - shift);
           steps++;
@@ -222,7 +608,7 @@ struct Worker
 
 
     //Generate multiple rollouts with a policy parametrized by w_policy.
-    void do_rollouts(std::vector<double>& rollout_rewards, std::vector<int>& deltas_idx, int& steps, 
+    void do_rollouts(CudaModel<MyScalar>& cuda_model_ant, std::vector<double>& rollout_rewards, std::vector<int>& deltas_idx, int& steps, 
         const std::vector<double>& w_policy, int num_rollouts, int shift, bool evaluate,
         std::vector<std::vector<std::vector<double> > >& trajectories) {
 
@@ -247,7 +633,7 @@ struct Worker
                 double reward;
                 int r_steps = 0;
                 std::vector<std::vector<double> > trajectory;
-                rollout(0, rollout_length_eval_, reward, r_steps, trajectory);
+                rollout(cuda_model_ant, 0, rollout_length_eval_, reward, r_steps, trajectory);
                 trajectories.push_back(trajectory);
                 steps += r_steps;
                 rollout_rewards.push_back(reward);
@@ -278,7 +664,7 @@ struct Worker
                 double pos_reward;
                 int pos_steps;
                 std::vector<std::vector<double> > trajectory;
-                rollout(shift, rollout_length_train_, pos_reward, pos_steps, trajectory);
+                rollout(cuda_model_ant, shift, rollout_length_train_, pos_reward, pos_steps, trajectory);
                 static int cell=0;
 
                 for (int t=0;t<trajectory.size();t++)
@@ -297,7 +683,7 @@ struct Worker
                 double neg_reward;
                 int neg_steps;
                 trajectory.resize(0);
-                rollout(shift, rollout_length_train_, neg_reward, neg_steps,trajectory);
+                rollout(cuda_model_ant, shift, rollout_length_train_, neg_reward, neg_steps,trajectory);
                 for (int t=0;t<trajectory.size();t++)
                 {
                     visualize_trajectory(trajectory[t], cell);
@@ -358,8 +744,10 @@ struct ARSLearner
     std::ofstream myfile_;
 
     std::chrono::steady_clock::time_point time_point_;
+    CudaModel<MyScalar>& cuda_model_ant_;
 
-    ARSLearner()
+    ARSLearner(CudaModel<MyScalar>& cuda_model_ant)
+        :cuda_model_ant_(cuda_model_ant)
     {
         init_deltas();
 
@@ -462,7 +850,7 @@ struct ARSLearner
         std::vector<double> rollout_rewards;
         std::vector<int> deltas_idx;
         int steps;
-        worker_->do_rollouts(rollout_rewards, deltas_idx, steps, w_policy, num_rollouts, shift_, evaluate, trajectories);
+        worker_->do_rollouts(cuda_model_ant_, rollout_rewards, deltas_idx, steps, w_policy, num_rollouts, shift_, evaluate, trajectories);
         
         total_timesteps += steps;
 
@@ -673,8 +1061,13 @@ int main()
 {
   
   
-  
 
+    std::string model_name = "cuda_model_ant";
+    
+    CudaModel<MyScalar> cuda_model_ant(model_name);
+
+    
+    cuda_model_ant.forward_zero.allocate(1);//num_total_threads);
 
   
 #ifdef ARS_VISUALIZE
@@ -791,6 +1184,18 @@ int main()
   #endif
 
    //srand(123);
-    ARSLearner ars;
+  {
+    ARSLearner ars(cuda_model_ant);
     ars.train(50*1024*1024);
+  }
+
+    cuda_model_ant.forward_zero.deallocate();
 }
+
+#if 0
+  std::vector<std::vector<Scalar>> outputs(
+      num_total_threads, std::vector<Scalar>(simulation.output_dim()));
+
+  std::vector<std::vector<Scalar>> inputs(num_total_threads);
+
+#endif
