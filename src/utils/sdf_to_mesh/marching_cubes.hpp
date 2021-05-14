@@ -23,6 +23,7 @@
 #include <functional>
 #include <unordered_map>
 #include <vector>
+#include <array>
 
 #include "mc_table.hpp"
 
@@ -279,7 +280,7 @@ MCShape<Algebra> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
   // This should be enough space
   // If not, change 3 to 4 to reserve more space
   std::vector<IndexTriangle> triangles(3 * ncellsX * ncellsY * ncellsZ,
-                                       IndexTriangle({0, 0, 0}));
+                                       {0, 0, 0});
   size_t numTriangles = 0;
 
   int pointsZ = ncellsZ + 1;  // initialize global variable (for extra speed)
