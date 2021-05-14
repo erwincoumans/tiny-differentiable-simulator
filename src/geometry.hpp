@@ -56,8 +56,8 @@ class Sphere : public Geometry<Algebra>, public SDF<Algebra> {
  public:
   explicit Sphere(const Scalar &radius)
       : Geometry<Algebra>(TINY_SPHERE_TYPE), radius(radius) {
-    this->max_boundaries = Vector3(2 * radius, 2 * radius, 2 * radius);
-    this->min_boundaries = Vector3(-2 * radius, -2 * radius, -2 * radius);
+    this->max_boundaries = Vector3(Scalar(2) * radius, Scalar(2) * radius, Scalar(2) * radius);
+    this->min_boundaries = Vector3(Scalar(-2) * radius, Scalar(-2) * radius, Scalar(-2) * radius);
   }
 
   template <typename AlgebraTo = Algebra>
@@ -74,7 +74,7 @@ class Sphere : public Geometry<Algebra>, public SDF<Algebra> {
   }
 
   Scalar distance(const Vector3 &p) const override {
-    return p.length() - radius;
+    return Algebra::norm(p) - radius;
   }
 };
 
@@ -90,7 +90,7 @@ class Capsule : public Geometry<Algebra>, public SDF<Algebra> {
  public:
   explicit Capsule(const Scalar &radius, const Scalar &length)
       : Geometry<Algebra>(TINY_CAPSULE_TYPE), radius(radius), length(length) {
-    Scalar bound = 1.2 * (radius + length / 2);
+    Scalar bound = Scalar(1.2) * (radius + length / Scalar(2));
     this->max_boundaries = Vector3(bound, bound, bound);
     this->min_boundaries = Vector3(-bound, -bound, -bound);
   }
@@ -122,8 +122,8 @@ class Capsule : public Geometry<Algebra>, public SDF<Algebra> {
 
   Scalar distance(const Vector3 &p) const override {
     Vector3 pt(p.x(), p.y(),
-               p.z() - std::clamp(p.z(), -this->length / 2, this->length / 2));
-    return pt.length() - this->radius;
+               p.z() - std::clamp(p.z(), -this->length / Scalar(2), this->length / Scalar(2)));
+    return Algebra::norm(pt) - this->radius;
   }
 };
 
@@ -178,7 +178,7 @@ class Cylinder : public Geometry<Algebra>, public SDF<Algebra> {
  public:
   Cylinder(const Scalar &radius, const Scalar &length)
       : Geometry<Algebra>(TINY_CYLINDER_TYPE), radius(radius), length(length) {
-    Scalar bound = (radius + length / 2);
+    Scalar bound = (radius + length / Scalar(2));
     this->max_boundaries = Vector3(bound, bound, bound);
     this->min_boundaries = Vector3(-bound, -bound, -bound);
   }
@@ -195,12 +195,12 @@ class Cylinder : public Geometry<Algebra>, public SDF<Algebra> {
   Scalar distance(const Vector3 &p) const override {
     // The Marching Cubes algorithm is not very good at sharp edges
     // Define a small rounding radius to smooth the edge of the two faces
-    Scalar rb = radius / 20;  // Can be exposed to the users
+    Scalar rb = radius / Scalar(20);  // Can be exposed to the users
 
     Scalar lxy = Algebra::sqrt(p.x() * p.x() + p.y() * p.y());
     Scalar lz = Algebra::abs(p.z());
     Scalar dx = lxy - radius + rb;
-    Scalar dy = lz - length / 2 + rb;
+    Scalar dy = lz - length / Scalar(2) + rb;
     Scalar min_d = Algebra::min(Algebra::max(dx, dy), Algebra::zero());
     Scalar max_d = Algebra::sqrt(
         Algebra::max(dx, Algebra::zero()) * Algebra::max(dx, Algebra::zero()) +

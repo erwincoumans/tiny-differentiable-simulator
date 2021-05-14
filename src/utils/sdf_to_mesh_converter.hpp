@@ -65,16 +65,21 @@ RenderShape convert_sdf_to_mesh(
   const double DIFF = 1e-4;
 
   // Compute the mean of all vertices
-  Vector3 mean_origin = Vector3::zero();
+  Scalar mean_x = Algebra::zero();
+  Scalar mean_y = Algebra::zero();
+  Scalar mean_z = Algebra::zero();
+
   for (const auto &v : mesh.vertices) {
-    mean_origin.setX(mean_origin.x() + v.p.x());
-    mean_origin.setY(mean_origin.y() + v.p.y());
-    mean_origin.setZ(mean_origin.z() + v.p.z());
+    mean_x = mean_x + v.p.x();
+    mean_y = mean_y + v.p.y();
+    mean_z = mean_z + v.p.z();
   }
 
-  mean_origin.setX(mean_origin.x() / mesh.vertices.size());
-  mean_origin.setY(mean_origin.y() / mesh.vertices.size());
-  mean_origin.setZ(mean_origin.z() / mesh.vertices.size());
+  mean_x = mean_x / mesh.vertices.size();
+  mean_y = mean_y / mesh.vertices.size();
+  mean_z = mean_z / mesh.vertices.size();
+
+  Vector3 mean_origin(mean_x, mean_y, mean_z);
 
   for (const auto &v : mesh.vertices) {
     GfxVertexFormat1 vgl;
@@ -86,16 +91,20 @@ RenderShape convert_sdf_to_mesh(
     vgl.nz = Algebra::to_double(v.norm.z());
     vgl.w = 1.;
 
-    Vector3 d_normal = Algebra::normalize(v.p - mean_origin);
+    // Algebra::normalize is not supported by EigenAlgebra::Vector3
+    // Vector3 d_normal = Algebra::normalize(v.p - mean_origin);
+    Vector3 distance = v.p - mean_origin;
+    Vector3 d_normal = distance * (Algebra::one() / Algebra::norm(distance));
     vgl.u =
         0.5 + Algebra::to_double(Algebra::atan2(d_normal.x(), d_normal.y()) /
                                  (2 * Algebra::pi()));
     vgl.v =
         0.5 - Algebra::to_double(Algebra::asin(d_normal.z()) / Algebra::pi());
 
-    if (vgl.u > 1 || vgl.u < 0 || vgl.v > 1 || vgl.v < 0) {
-      printf("u: %f, v: %f\n", vgl.u, vgl.v);
-    }
+    // Debug: Check if u or v is out of bounds
+    // if (vgl.u > 1 || vgl.u < 0 || vgl.v > 1 || vgl.v < 0) {
+    //   printf("u: %f, v: %f\n", vgl.u, vgl.v);
+    // }
 
     if (compute_normals) {
       auto x = v.p.x();
