@@ -297,8 +297,8 @@ struct AntEnv
     {
         sim_state.resize(0);
         sim_state.resize(contact_sim_.input_dim(), Scalar(0));
-        MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
-        MyAlgebra::Quaternion start_orn (0,0,0,1);
+        Algebra::Vector3 start_pos(0,0,.48);//0.4002847
+        Algebra::Quaternion start_orn (0,0,0,1);
 
         if (contact_sim_.mb_->is_floating())
         {
