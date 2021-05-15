@@ -13,7 +13,9 @@
 #include "../opengl_urdf_visualizer.h"
 #include <thread>
 #include <chrono>
-
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
 int g_num_total_threads = 256;
 
 
