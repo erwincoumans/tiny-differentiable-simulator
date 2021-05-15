@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../multi_body.hpp"
-
+#include "math/conditionals.hpp"
 
 namespace tds {
 /**
@@ -34,7 +34,9 @@ void forward_kinematics(
 
   if (mb.is_floating()) {
     // if this assert fires too early, tune/lower the constant (999)
-    assert((q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]) > Algebra::fraction(999,1000));
+    if constexpr (!is_cppad_scalar<Scalar>::value) {
+        assert((q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]) > Algebra::fraction(999,1000));
+    }
     // update base-world transform from q, and update base velocity from qd
     mb.base_X_world().rotation =
         Algebra::quat_to_matrix(q[0], q[1], q[2], q[3]);

@@ -212,7 +212,7 @@ print("-----")
 
 extensions = []
 
-CXX_FLAGS_TDS = CXX_FLAGS + '-DENABLE_CARTPOLE_TEST_ENV '
+CXX_FLAGS_TDS = CXX_FLAGS + '-DENABLE_TEST_ENVS ' + '-DNOMINMAX '
 
 pytinydiffsim_ext = Extension(
     "pytinydiffsim",

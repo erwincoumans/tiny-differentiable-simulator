@@ -904,7 +904,7 @@
       .def(py::init<>())
       .def("convert2", &UrdfToMultiBody2<MyAlgebra>::convert);
 
-#ifdef ENABLE_CARTPOLE_TEST_ENV
+#ifdef ENABLE_TEST_ENVS
   py::class_<CartpoleEnvOutput>(m, "CartpoleEnvOutput")
       .def(py::init<>())
       .def_readwrite("obs",
@@ -913,6 +913,14 @@
                      &CartpoleEnvOutput::reward)
       .def_readwrite("done",
                      &CartpoleEnvOutput::done)
+      ;
+
+   py::class_<CartpoleRolloutOutput>(m, "CartpoleRolloutOutput")
+      .def(py::init<>())
+      .def_readwrite("total_reward",
+                     &CartpoleRolloutOutput::total_reward)
+      .def_readwrite("num_steps",
+                     &CartpoleRolloutOutput::num_steps)
       ;
 
   py::class_<CartpoleContactSimulation<MyAlgebra>>(m, "CartpoleSimulation")
@@ -925,12 +933,31 @@
       .def(py::init<CartpoleContactSimulation<MyAlgebra>&>())
       .def("reset", &CartpoleEnv<MyAlgebra>::reset2)
       .def("step", &CartpoleEnv<MyAlgebra>::step2)
+      .def("rollout", &CartpoleEnv<MyAlgebra>::rollout)
+      .def("update_weights", &CartpoleEnv<MyAlgebra>::init_neural_network)
       .def("seed", &CartpoleEnv<MyAlgebra>::seed)
       .def("init_neural_network", &CartpoleEnv<MyAlgebra>::init_neural_network)
       .def("policy", &CartpoleEnv<MyAlgebra>::policy)
       ;
   
-#endif//ENABLE_CARTPOLE_TEST_ENV
+   py::class_<AntContactSimulation<MyAlgebra>>(m, "AntContactSimulation")
+      .def(py::init<>())
+      .def_readwrite("m_urdf_filename",
+                     &AntContactSimulation<MyAlgebra>::m_urdf_filename)
+      ;
+
+    py::class_<AntEnv<MyAlgebra>>(m, "AntEnv")
+      .def(py::init<AntEnv<MyAlgebra>&>())
+      .def("reset", &AntEnv<MyAlgebra>::reset)
+      .def("step", &AntEnv<MyAlgebra>::step2)
+      .def("rollout", &AntEnv<MyAlgebra>::rollout)
+      .def("update_weights", &AntEnv<MyAlgebra>::init_neural_network)
+      .def("seed", &AntEnv<MyAlgebra>::seed)
+      .def("init_neural_network", &AntEnv<MyAlgebra>::init_neural_network)
+      .def("policy", &AntEnv<MyAlgebra>::policy)
+      ;
+
+#endif//ENABLE_TEST_ENVS
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
