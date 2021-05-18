@@ -565,6 +565,9 @@
   m.def("sin", &MySin);
   m.def("max", &MyMax);
   m.def("min", &MyMin);
+  m.def("where_gt", &MyWhereGT);
+  m.def("where_lt", &MyWhereLT);
+  m.def("where_eq", &MyWhereEQ);
   m.def("clip", &MyClip);
 
   
