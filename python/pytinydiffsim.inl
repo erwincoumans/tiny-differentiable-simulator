@@ -740,10 +740,10 @@
            &World<MyAlgebra>::compute_contacts_multi_body)
       .def("get_collision_dispatcher",
            &World<MyAlgebra>::get_collision_dispatcher)
-      .def("get_mb_constraint_solver",
-           &World<MyAlgebra>::get_mb_constraint_solver)
-      .def("set_mb_constraint_solver",
-           &World<MyAlgebra>::set_mb_constraint_solver)
+      //.def("get_mb_constraint_solver",
+      //     &World<MyAlgebra>::get_mb_constraint_solver)
+      //.def("set_mb_constraint_solver",
+      //     &World<MyAlgebra>::set_mb_constraint_solver)
       .def_readwrite("friction",
                      &World<MyAlgebra>::default_friction)
       .def_readwrite("restitution",
