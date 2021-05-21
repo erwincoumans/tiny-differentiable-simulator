@@ -923,7 +923,7 @@
       ;
 
   py::class_<CartpoleEnv<MyAlgebra>>(m, "CartpoleEnv")
-      .def(py::init<CartpoleContactSimulation<MyAlgebra>&>())
+      .def(py::init<>())
       .def("reset", &CartpoleEnv<MyAlgebra>::reset2)
       .def("step", &CartpoleEnv<MyAlgebra>::step2)
       .def("rollout", &CartpoleEnv<MyAlgebra>::rollout)
@@ -940,7 +940,7 @@
       ;
 
     py::class_<AntEnv<MyAlgebra>>(m, "AntEnv")
-      .def(py::init<AntEnv<MyAlgebra>&>())
+      .def(py::init<>())
       .def("reset", &AntEnv<MyAlgebra>::reset)
       .def("step", &AntEnv<MyAlgebra>::step2)
       .def("rollout", &AntEnv<MyAlgebra>::rollout)
