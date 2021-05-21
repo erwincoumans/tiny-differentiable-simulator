@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,551 +12,552 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "urdf/pybullet_urdf_import.hpp"
-#include "urdf/urdf_to_multi_body.hpp"
 
-#include <assert.h>
-#include <stdio.h>
+////////////////////
+// Use Inverse Kinematics to compute a foot trajectory, play the trajectories open loop
+////////////////////
 
 #include <chrono>
+#include <fstream>
+#include <iostream>
+#include <streambuf>
+#include <string>
 #include <thread>
 
-#include "Utils/b3Clock.h"
-#include "math/tiny/tiny_algebra.hpp"
+bool is_floating = true;
+
+//std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup_chassis_collision.urdf";
+std::string LAIKAGO_URDF_NAME="laikago/laikago_toes_zup.urdf";
+
+//#include "meshcat_urdf_visualizer.h"
+#include "opengl_urdf_visualizer.h"
+
 #include "math/tiny/tiny_double_utils.h"
-#include "tiny_inverse_kinematics.h"
-#include "dynamics/kinematics.hpp"
+#include "utils/file_utils.hpp"
+#include "urdf/urdf_parser.hpp"
+#include "urdf/urdf_to_multi_body.hpp"
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
 
-#include "mb_constraint_solver_spring.hpp"
-#include "mb_constraint_solver.hpp"
+#include "urdf/urdf_cache.hpp"
+#include "tiny_visual_instance_generator.h"
 
-#include "tiny_pd_control.h"
-
-#include "visualizer/pybullet/pybullet_visualizer_api.h"
-#include "utils/file_utils.hpp"
-using namespace TINY;
 using namespace tds;
-#undef max
-#undef min
 
-typedef PyBulletVisualizerAPI VisualizerAPI;
+double start_pos[3] = {0,0,0.52};
 
-int make_sphere(VisualizerAPI* sim, float r = 1, float g = 0.6f, float b = 0,
-                float a = 0.7f) {
-  int sphere_id = sim->loadURDF("sphere_small.urdf");
-  b3RobotSimulatorChangeVisualShapeArgs vargs;
-  vargs.m_objectUniqueId = sphere_id;
-  vargs.m_hasRgbaColor = true;
-  vargs.m_rgbaColor = btVector4(r, g, b, a);
-  sim->changeVisualShape(vargs);
-  return sphere_id;
+//#define USE_TINY
+
+#ifdef USE_TINY
+#include "math/tiny/tiny_algebra.hpp"
+using namespace TINY;
+typedef double TinyDualScalar;
+typedef double MyScalar;
+typedef ::TINY::DoubleUtils MyTinyConstants;
+typedef TinyVector3<double, DoubleUtils> Vector3;
+
+typedef TinyQuaternion<double, DoubleUtils> Quaternion;
+typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
+typedef ::TINY::TinyVectorX<MyScalar, MyTinyConstants> VectorX;
+#else
+#include "math/eigen_algebra.hpp"
+typedef EigenAlgebra MyAlgebra;
+typedef typename MyAlgebra::Scalar MyScalar;
+typedef typename MyAlgebra::Vector3 Vector3;
+typedef typename MyAlgebra::Quaternion Quarternion;
+typedef typename MyAlgebra::VectorX VectorX;
+typedef typename MyAlgebra::Matrix3 Matrix3;
+typedef typename MyAlgebra::Matrix3X Matrix3X;
+typedef typename MyAlgebra::MatrixX MatrixX;
+#endif
+
+
+#include "tiny_inverse_kinematics.h"
+
+#ifdef _DEBUG
+int frameskip_gfx_sync = 1;  // don't skip, we are debugging
+#else
+int frameskip_gfx_sync = 10;  // only sync every 10 frames (sim at 1000 Hz, gfx at ~60hz)
+#endif
+
+
+bool do_sim = true;
+
+
+TinyKeyboardCallback prev_keyboard_callback = 0;
+
+void my_keyboard_callback(int keycode, int state)
+{
+    if (keycode == 's')
+        do_sim = state;
+    prev_keyboard_callback(keycode, state);
 }
 
-void print(const std::vector<double>& v) {
-  for (std::size_t i = 0; i < v.size(); ++i) {
-    printf("%.3f", v[i]);
-    if (i < v.size() - 1) {
-      printf(", ");
-    }
-  }
-  printf("\n");
-}
+double knee_angle = -0.49;//55;
+double abduction_angle = 0.2;
 
-void update_position(VisualizerAPI* sim, int object_id, double x, double y,
-                     double z) {
-  btVector3 pos(x, y, z);
-  btQuaternion orn(0, 0, 0, 1);
-  sim->resetBasePositionAndOrientation(object_id, pos, orn);
-}
 
-template <typename Scalar, typename Util>
-void update_position(VisualizerAPI* sim, int object_id,
-                     const TinyVector3<Scalar, Util>& pos) {
-  update_position(sim, object_id, Util::getDouble(pos.m_x),
-                  Util::getDouble(pos.m_y), Util::getDouble(pos.m_z));
-}
-
-/**
- * Pattern generator for a symmetric walking gait (trotting).
- * The diagonal feet move in the same way (symmetrically).
- * Each step is a positive half-period of a sine curve.
- */
-struct GaitGenerator {
-  /**
-   * Period length in seconds.
-   */
-  double period_length{1.};
-
-  /**
-   * Extent of a single step along x.
-   */
-  double step_length{0.2};
-  /**
-   * Extent of a single step along z.
-   */
-  double step_height{0.1};
-
-  /**
-   * Time step in seconds.
-   */
-  double dt;
-
-  /**
-   * Ratio of period length (in [0,1]) for the lifting phase of each foot.
-   * Must be less than 0.5.
-   */
-  double lift_ratio{0.3};
-
-  typedef TinyVector3<double, DoubleUtils> Vector3;
-
-  explicit GaitGenerator(double dt) : dt(dt) {}
-
-  /**
-   * Computes targets (in world coordinates) for each foot at time t.
-   * @param time Time in seconds.
-   * @param fr 3D position of front-right foot.
-   * @param fl 3D position of front-left foot.
-   * @param br 3D position of back-right foot.
-   * @param bl 3D position of back-left foot.
-   */
-  virtual void compute(double time, Vector3& fr, Vector3& fl, Vector3& br,
-                       Vector3& bl) const {
-    assert(lift_ratio < 0.5);
-
-    double period = std::fmod(time, period_length);
-    double rel_period = period / period_length;
-    double rel_step = rel_period > 0.5 ? rel_period - 0.5 : rel_period;
-
-    double z, dx;
-    if (rel_step <= lift_ratio) {
-        dx = 0;// step_length / (lift_ratio * period_length) * dt;
-      z = step_height * std::max(0., std::sin(rel_step * M_PI / lift_ratio));
-    } else {
-      dx = 0;
-      z = 0;
-    }
-    if (rel_period <= 0.5) {
-      // lift FR, BL
-      fr.m_z = z;
-      bl.m_z = z;
-      fr.m_x += dx;
-      bl.m_x += dx;
-    } else {
-      // lift FL, BR
-      fl.m_z = z;
-      br.m_z = z;
-      fl.m_x += dx;
-      br.m_x += dx;
-    }
-  }
+double initial_poses[] = {
+    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
+    abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
 };
 
-int main(int argc, char* argv[]) {
-  double dt = 1. / 1000;
+MyAlgebra::VectorX all_joint_angles2(12);
 
-  // btVector3 laikago_initial_pos(0, 0.2, 1.65);
-  btVector3 laikago_initial_pos = btVector3(2, -1, 0.45);// 1, 2, .39);
-  // btVector3 laikago_initial_pos(-3, 2, .65);
-  // btVector3 laikago_initial_pos(2, 0, .65);
-  btQuaternion laikago_initial_orn(0, 0, 0, 1);
-   //laikago_initial_orn.setEulerZYX(-0.1, 0.1, 0);
-   laikago_initial_orn.setEulerZYX(1.4, 0, 0);
-  double initialXvel = 0;
-  btVector3 initialAngVel(0, 0, 0);
-  double knee_angle = -0.5;
-  double abduction_angle = 0.2;
-  double initial_poses[] = {
-      abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-      abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
-  };
+template <typename Algebra>
+struct LaikagoSimulation {
+    using Scalar = typename Algebra::Scalar;
+    tds::UrdfCache<Algebra> cache;
+    std::string m_urdf_filename;
+    tds::World<Algebra> world;
+    tds::MultiBody<Algebra>* system = nullptr;
 
-  std::string connection_mode = "gui";
+    int num_timesteps{ 1 };
+    Scalar dt{ Algebra::from_double(1e-3) };
 
-  std::string laikago_filename;
-  FileUtils::find_file("laikago/laikago_toes_zup.urdf", laikago_filename);
-
-  std::string plane_filename;
-  FileUtils::find_file("plane_implicit.urdf", plane_filename);
-
-  char path[TINY_MAX_EXE_PATH_LEN];
-  FileUtils::extract_path(plane_filename.c_str(), path,
-                              TINY_MAX_EXE_PATH_LEN);
-  std::string search_path = path;
-
-  printf("search_path=%s\n", search_path.c_str());
-  VisualizerAPI* sim2 = new VisualizerAPI();
-  bool isConnected2 =
-      sim2->connect(eCONNECT_DIRECT);  // eCONNECT_SHARED_MEMORY);
-  sim2->setAdditionalSearchPath(search_path.c_str());
-
-  VisualizerAPI* sim = new VisualizerAPI();
-  printf("mode=%s\n", connection_mode.c_str());
-  int mode = eCONNECT_GUI;
-  if (connection_mode == "direct") mode = eCONNECT_DIRECT;
-  if (connection_mode == "shared_memory") mode = eCONNECT_SHARED_MEMORY;
-
-  bool isConnected = sim->connect(mode);
-  sim->setTimeOut(1e30);
-  sim2->setTimeOut(1e30);
-  sim->setAdditionalSearchPath(search_path.c_str());
-  int logId = sim->startStateLogging(STATE_LOGGING_PROFILE_TIMINGS,
-                                     "/tmp/laikago_timing.json");
-
-  if (!isConnected || !isConnected2) {
-    printf("Cannot connect\n");
-    return -1;
-  }
-
-  sim->setTimeOut(1e30);
-  sim->resetSimulation();
-
-  b3Clock clock;
-
-  int rotateCamera = 0;
-
-  World<TinyAlgebra<double, DoubleUtils> > world;
-  typedef ::tds::RigidBody<TinyAlgebra<double, DoubleUtils> > TinyRigidBodyDouble;
-  typedef ::TinyVector3<double, DoubleUtils> TinyVector3;
-  typedef ::tds::Transform<TinyAlgebra< double,DoubleUtils> > TinySpatialTransform;
-
-  std::vector<RigidBody<TinyAlgebra<double, DoubleUtils> >*> bodies;
-  std::vector<int> visuals;
-
-  std::vector<MultiBody<TinyAlgebra<double, DoubleUtils> >*> mbbodies;
-  std::vector<int> paramUids;
-
-  int gravY_id = sim->addUserDebugParameter("gravityY", -10, 10, 0);// -9.8);
-  int gravZ_id = sim->addUserDebugParameter("gravityZ", -100, 0, -10);// -9.8);
-  int kp_id = sim->addUserDebugParameter("kp", 0, 200, 150);
-  int kd_id = sim->addUserDebugParameter("kd", 0, 13, 3.);
-  int force_id = sim->addUserDebugParameter("max force", 0, 1500, 550);
-
-  {
-    MultiBody<TinyAlgebra<double, DoubleUtils> >* mb = world.create_multi_body();
-    int robotId = sim->loadURDF(plane_filename);
-    UrdfStructures< TinyAlgebra<double, DoubleUtils> > urdf_data;
-    PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils> >::extract_urdf_structs(
-        urdf_data, robotId, sim, sim);
-    UrdfToMultiBody< TinyAlgebra<double, DoubleUtils> >::convert_to_multi_body(urdf_data,
-                                                                    world, *mb,0);
-    mb->initialize();
-    //sim->removeBody(robotId);
-  }
-  int start_index = 0;
-  MultiBody< TinyAlgebra<double, DoubleUtils> >* mb = world.create_multi_body();
-  {
-	//don't merge fixed links, we like to have the feet indices
-    //b3RobotSimulatorLoadUrdfFileArgs args;
-    //args.m_flags |= URDF_MERGE_FIXED_LINKS;
-    int robotId = sim->loadURDF(laikago_filename);
-
-    UrdfStructures< TinyAlgebra<double, DoubleUtils> > urdf_data;
-    PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils> >::extract_urdf_structs(
-        urdf_data, robotId, sim, sim);
-    UrdfToMultiBody< TinyAlgebra<double, DoubleUtils> >::convert_to_multi_body(urdf_data,
-                                                                    world, *mb,0);
-
-    mbbodies.push_back(mb);
-    mb->set_floating_base(false);
-    mb->initialize();
-    //sim->removeBody(robotId);
-    
-    
-    start_index = mb->is_floating() ? 7 : 0;
-    
-    mb->qd_[0] = initialAngVel[0];
-    mb->qd_[1] = initialAngVel[1];
-    mb->qd_[2] = initialAngVel[2];
-    mb->qd_[3] = initialXvel;
-    mb->set_position(TinyVector3(laikago_initial_pos[0], laikago_initial_pos[1], laikago_initial_pos[2]));
-    mb->set_orientation(TinyQuaternion<double, DoubleUtils>(laikago_initial_orn[0], laikago_initial_orn[1], laikago_initial_orn[2], laikago_initial_orn[3]));
-
-
-    if (mb->q_.size() >= 12) {
-      for (int cc = 0; cc < 12; cc++) {
-        mb->q_[start_index + cc] = initial_poses[cc];
-      }
+    int input_dim() const { return system->dof() + system->dof_qd(); }
+    int state_dim() const {
+        return system->dof() + system->dof_qd() + system->num_links() * 7;
     }
-  }
-  world.default_friction = 0.1;
-  world.set_mb_constraint_solver(
-      //new MultiBodyConstraintSolverSpring<TinyAlgebra<double, DoubleUtils> >);
-        new MultiBodyConstraintSolver<TinyAlgebra<double, DoubleUtils> >);
-      
-  printf("Initial state:\n");
-  mb->print_state();
-  auto q_ref = mb->q_;
+    int output_dim() const { return num_timesteps * state_dim(); }
 
-  //std::vector<double> q_target;
-  TinyVectorX q_target = mb->q_;
+    LaikagoSimulation() {
+        std::string plane_filename;
+        tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
+        cache.construct(plane_filename, world, false, false);
+        tds::FileUtils::find_file(LAIKAGO_URDF_NAME, m_urdf_filename);
+        
+        system = cache.construct(m_urdf_filename, world, false, is_floating);
+        system->base_X_world().translation = Algebra::Vector3(start_pos[0],start_pos[1],start_pos[2]);//Algebra::unit3_z();
+        //world.set_gravity(Algebra::Vector3(Algebra::zero(), Algebra::zero(), Algebra::zero()));
+    }
+
+    std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
+        assert(static_cast<int>(v.size()) == input_dim());
+        system->initialize();
+        //copy input into q, qd
+        for (int i = 0; i < system->dof(); ++i) {
+            system->q(i) = v[i];
+        }
+        for (int i = 0; i < system->dof_qd(); ++i) {
+            system->qd(i) = v[i + system->dof()];
+        }
+        std::vector<Scalar> result(output_dim());
+        for (int t = 0; t < num_timesteps; ++t) {
+
+#if 1
+            // pd control
+            if (1) {
+                // use PD controller to compute tau
+                int qd_offset = system->is_floating() ? 6 : 0;
+                int q_offset = system->is_floating() ? 7 : 0;
+                int num_targets = system->tau_.size() - qd_offset;
+                std::vector<double> q_targets;
+                q_targets.resize(system->tau_.size());
+
+                Scalar kp = 150;
+                Scalar kd = 3;
+                Scalar max_force = 550;
+                int param_index = 0;
+
+                for (int i = 0; i < system->tau_.size(); i++) {
+                    system->tau_[i] = 0;
+                }
+                int tau_index = 0;
+                int pose_index = system->is_floating() ? 7 : 0;
+                for (int i = 0; i < system->links_.size(); i++) {
+                    if (system->links_[i].joint_type != tds::JOINT_FIXED) {
+                        Scalar q_desired = all_joint_angles2[pose_index++];
+                        Scalar q_actual = system->q_[q_offset];
+                        Scalar qd_actual = system->qd_[qd_offset];
+                        Scalar position_error = (q_desired - q_actual);
+                        Scalar desired_velocity = 0;
+                        Scalar velocity_error = (desired_velocity - qd_actual);
+                        Scalar force = kp * position_error + kd * velocity_error;
+
+                        force = Algebra::max(force, -max_force);
+                        force = Algebra::min(force, max_force);
+                        
+                        system->tau_[tau_index] = force;
+                        q_offset++;
+                        qd_offset++;
+                        param_index++;
+                        tau_index++;
+                    }
+                }
+            }
+#endif
+            tds::forward_dynamics(*system, world.get_gravity());
+            system->clear_forces();
+
+            integrate_euler_qdd(*system, dt);
+
+            world.step(dt);
+
+            tds::integrate_euler(*system, dt);
+
+            //copy q, qd, link world poses (for rendering) to output
+            int j = 0;
+            for (int i = 0; i < system->dof(); ++i, ++j) {
+                result[j] = system->q(i);
+            }
+            for (int i = 0; i < system->dof_qd(); ++i, ++j) {
+                result[j] = system->qd(i);
+            }
+            for (const auto link : *system) {
+                if (link.X_visuals.size())
+                {
+                    tds::Transform visual_X_world = link.X_world * link.X_visuals[0];
+                    result[j++] = visual_X_world.translation[0];
+                    result[j++] = visual_X_world.translation[1];
+                    result[j++] = visual_X_world.translation[2];
+                    auto orn = Algebra::matrix_to_quat(visual_X_world.rotation);
+                    result[j++] = orn.x();
+                    result[j++] = orn.y();
+                    result[j++] = orn.z();
+                    result[j++] = orn.w();
+                }
+                else
+                {
+                    //check if we have links without visuals
+                    assert(0);
+                    j += 7;
+                }
+            }
+        }
+        return result;
+    }
+};
+
+
+
+int main(int argc, char* argv[]) {
+  int sync_counter = 0;
+  int frame = 0;
+ 
+  UrdfParser<MyAlgebra> parser;
+
+  // create graphics
+  OpenGLUrdfVisualizer<MyAlgebra> visualizer;
+  visualizer.delete_all();
+
+  LaikagoSimulation<MyAlgebra> contact_sim;
+  for (int l=0;l<  contact_sim.system->num_links();l++)
+  {
+      printf("link %d = %s\n", l, contact_sim.system->links()[l].link_name.c_str());
+  }
+
+  int input_dim = contact_sim.input_dim();
+  std::vector<MyAlgebra::Scalar> prep_inputs;
+  
+  std::vector<MyAlgebra::Scalar> prep_outputs;
+  prep_inputs.resize(input_dim);
+  //quaternion 'w' = 1
+  prep_inputs[3] = 1;
+  //start height at 0.7
+  prep_inputs[6] = 0.7;
+
+  //int sphere_shape = visualizer.m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
+  
+
+  {
+      std::vector<int> shape_ids;
+      std::string plane_filename;
+      FileUtils::find_file("plane100.obj", plane_filename);
+      ::TINY::TinyVector3f pos(0, 0, 0);
+      ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
+      ::TINY::TinyVector3f scaling(1, 1, 1);
+      visualizer.load_obj(plane_filename, pos, orn, scaling, shape_ids);
+  }
+
+
+  //int sphere_shape = shape_ids[0];
+  //TinyVector3f color = colors[0];
+  // typedef tds::Conversion<DiffAlgebra, tds::TinyAlgebraf> Conversion;
+  
+  bool create_instances = false;
+  char search_path[TINY_MAX_EXE_PATH_LEN];
+  std::string texture_path = "";
+  std::string file_and_path;
+  tds::FileUtils::find_file(LAIKAGO_URDF_NAME, file_and_path);
+  auto urdf_structures = contact_sim.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
+  FileUtils::extract_path(file_and_path.c_str(), search_path,
+      TINY_MAX_EXE_PATH_LEN);
+  visualizer.m_path_prefix = search_path;
+  visualizer.convert_visuals(urdf_structures, texture_path);
+  
+  
+  int num_total_threads = 1;
+  std::vector<int> visual_instances;
+  std::vector<int> num_instances;
+  int num_base_instances = 0;
+  
+  for (int t = 0;t< num_total_threads;t++)
+  {
+      ::TINY::TinyVector3f pos(0, 0, 0);
+      ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
+      ::TINY::TinyVector3f scaling(1, 1, 1);
+      int uid = urdf_structures.base_links[0].urdf_visual_shapes[0].visual_shape_uid;
+      OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+      int instance = -1;
+      int num_instances_per_link = 0;
+      for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+      {
+          int sphere_shape = vis_link.visual_shape_uids[v];
+          ::TINY::TinyVector3f color(1, 1, 1);
+          //visualizer.m_b2vis
+          instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
+              sphere_shape, pos, orn, color, scaling);
+          visual_instances.push_back(instance);
+          num_instances_per_link++;
+          contact_sim.system->visual_instance_uids().push_back(instance);
+      }
+      num_base_instances = num_instances_per_link;
+
+      for (int i = 0; i < contact_sim.system->num_links(); ++i) {
+         
+
+          int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
+          OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+          int instance = -1;
+          int num_instances_per_link = 0;
+          for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+          {
+              int sphere_shape = vis_link.visual_shape_uids[v];
+              ::TINY::TinyVector3f color(1, 1, 1);
+              //visualizer.m_b2vis
+              instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
+                  sphere_shape, pos, orn, color, scaling);
+              visual_instances.push_back(instance);
+              num_instances_per_link++;
+
+              contact_sim.system->links_[i].visual_instance_uids.push_back(instance);
+          }
+          num_instances.push_back(num_instances_per_link);
+      }
+  }
+
+  //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
+
+  
+
+  std::vector<std::vector<MyScalar>> parallel_outputs(
+      num_total_threads, std::vector<MyScalar>(contact_sim.output_dim()));
+
+  std::vector<std::vector<MyScalar>> parallel_inputs(num_total_threads);
+
+  
+  
+  for (int i = 0; i < num_total_threads; ++i) {
+      //auto quat = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0.5,1.3,i*0.3));
+      auto quat = MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0,0,i*0.3));
+      parallel_inputs[i] = std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
+      if (is_floating)
+      {
+          parallel_inputs[i][0] = quat.x();
+          parallel_inputs[i][1] = quat.y();
+          parallel_inputs[i][2] = quat.z();
+          parallel_inputs[i][3] = quat.w();
+          contact_sim.system->q_[0] = quat.x();
+          contact_sim.system->q_[1] = quat.y();
+          contact_sim.system->q_[2] = quat.z();
+          contact_sim.system->q_[3] = quat.w();
+          
+          contact_sim.system->q_[4] = start_pos[0];
+          contact_sim.system->q_[5] = start_pos[1];
+          contact_sim.system->q_[6] = start_pos[2];
+
+          //start height at 0.548
+          parallel_inputs[i][4] = start_pos[0];
+          parallel_inputs[i][5] = start_pos[1];
+          parallel_inputs[i][6] = start_pos[2];
+
+          int index=0;
+          for (int j=7;j<contact_sim.system->q_.size();j++)
+          {
+              contact_sim.system->q_[j] = initial_poses[index];
+              parallel_inputs[i][j] = initial_poses[index];
+              index++;
+          }
+
+      }
+      else
+      {
+          for (int j=0;j<contact_sim.system->q_.size();j++)
+          {
+              contact_sim.system->q_[j] = initial_poses[j];
+              parallel_inputs[i][j] = initial_poses[j];
+          }
+      }
+      
+  }
+  
   // body indices of feet
   const int foot_fr = 3;// 2;
   const int foot_fl = 7;// 5;
   const int foot_br = 11;// 8;
   const int foot_bl = 15;// 11;
-  const TinyVector3 foot_offset(0, 0, 0);// -0.24, -0.02);
+  
 
-  TinyInverseKinematics<TinyAlgebra<double, DoubleUtils>, IK_JAC_PINV> inverse_kinematics;
+  auto robot_mb_ = contact_sim.system;
+  
+
+  ::TINY::TinyInverseKinematics<MyAlgebra, ::TINY::IK_JAC_PINV> inverse_kinematics;
   // controls by how much the joint angles should be close to the initial q
   inverse_kinematics.weight_reference = 0;
   // step size
   inverse_kinematics.alpha = 0.3;
-  inverse_kinematics.targets.emplace_back(foot_fr, TinyVector3::zero());
-  inverse_kinematics.targets.emplace_back(foot_fl, TinyVector3::zero());
-  inverse_kinematics.targets.emplace_back(foot_br, TinyVector3::zero());
-  inverse_kinematics.targets.emplace_back(foot_bl, TinyVector3::zero());
-  inverse_kinematics.q_reference = q_ref;// mb->q_;
-  for (auto& target : inverse_kinematics.targets) {
-    target.body_point = foot_offset;
-  }
-
-
-  int sphere_fr = make_sphere(sim, 1, 0, 0);
-  int sphere_fl = make_sphere(sim, 1, 1, 0);
-  int sphere_br = make_sphere(sim, 0.3f, .7f, 0);
-  int sphere_bl = make_sphere(sim, 0.2f, 0.5f, 1);
-
-  int sphere_target_fr = make_sphere(sim, 1, 0, 0);
-  int sphere_target_fl = make_sphere(sim, 1, 1, 0);
-  int sphere_target_br = make_sphere(sim, 0.3f, .7f, 0);
-  int sphere_target_bl = make_sphere(sim, 0.2f, 0.5f, 1);
-
-
-  GaitGenerator gait(dt);
-  gait.step_length = 0.2;
-  gait.step_height = 0.25;
-  gait.lift_ratio = 0.3;
-  gait.period_length = 0.5;
-  int walking_start = 500;  // step number when to start walking (first settle)
-
-  //auto* servo = new TinyServoActuator<double, DoubleUtils>(
-  //    mb->dof_actuated(), 150., 3., -500., 500.);
-  //mb->set>m_actuator = servo;
-
-  sim->setTimeStep(dt);
-  double time = 0;
-  double zrot = 0;
-  ::tds::forward_kinematics<TinyAlgebra<double, DoubleUtils> >(*mb);
   
-  sim->resetDebugVisualizerCamera(1, -10, 54, laikago_initial_pos);
+  ::tds::forward_kinematics<MyAlgebra>(*contact_sim.system);
 
-  for (int step = 0; sim->isConnected(); ++step) {
-
-      if (0)
-      {
-          btQuaternion laikago_initial_orn(0, 0, 0, 1);
-          laikago_initial_orn.setEulerZYX(zrot, 0, 0);
-          //zrot += 0.001;
-          mb->set_orientation(TinyQuaternion<double, DoubleUtils>(laikago_initial_orn[0], laikago_initial_orn[1], laikago_initial_orn[2], laikago_initial_orn[3]));
-      }
-    sim->submitProfileTiming("loop");
-    {
-      sim->submitProfileTiming("sleep_for");
-      std::this_thread::sleep_for(std::chrono::duration<double>(dt));
-      sim->submitProfileTiming("");
-    }
+  inverse_kinematics.targets.emplace_back(foot_fr,  
+      contact_sim.system->links()[foot_fr].X_world.translation);
+  inverse_kinematics.targets.emplace_back(foot_fl, 
+      contact_sim.system->links()[foot_fl].X_world.translation);
+  inverse_kinematics.targets.emplace_back(foot_br, 
+      contact_sim.system->links()[foot_br].X_world.translation);
+  inverse_kinematics.targets.emplace_back(foot_bl, 
+      contact_sim.system->links()[foot_bl].X_world.translation);
+  inverse_kinematics.q_reference = contact_sim.system->q();
+  MyAlgebra::VectorX q_desired = contact_sim.system->q();
     
-    {
-      double gravY = sim->readUserDebugParameter(gravY_id);
-      double gravZ = sim->readUserDebugParameter(gravZ_id);
-      world.set_gravity(TinyVector3(0, gravY, gravZ));
-      {
-        sim->submitProfileTiming("forward_kinematics");
-        ::tds::forward_kinematics<TinyAlgebra<double, DoubleUtils> >(*mb);
-        sim->submitProfileTiming("");
-      }
 
-      {
-        TinySpatialTransform base_X_world;
-        std::vector<TinySpatialTransform> links_X_world;
-        ::tds::forward_kinematics_q<TinyAlgebra<double, DoubleUtils >>(*mb, mb->q_, &base_X_world, &links_X_world);
+  //inverse_kinematics.compute(*contact_sim.system, q_desired);
 
-        TinyVector3 foot_pos = links_X_world[foot_fr].apply(foot_offset);
-        update_position(sim, sphere_fr,
-                        foot_pos);
-        update_position(sim, sphere_fl,
-                        links_X_world[foot_fl].apply(foot_offset));
-        update_position(sim, sphere_br,
-                        links_X_world[foot_br].apply(foot_offset));
-        update_position(sim, sphere_bl,
-                        links_X_world[foot_bl].apply(foot_offset));
-
-        update_position(sim, sphere_target_fr,
-                        inverse_kinematics.targets[0].position);
-        update_position(sim, sphere_target_fl,
-                        inverse_kinematics.targets[1].position);
-        update_position(sim, sphere_target_br,
-                        inverse_kinematics.targets[2].position);
-        update_position(sim, sphere_target_bl,
-                        inverse_kinematics.targets[3].position);
-
-        if (step == walking_start) 
-        {
-          for (int i = 0; i < inverse_kinematics.targets.size(); ++i) {
-            auto& target = inverse_kinematics.targets[i];
-            auto pos = links_X_world[target.link_index].apply(foot_offset);
-            target.position = pos;
-            // printf("Initial position of foot %i:\t %.3f\t %.3f\t %.3f\n", i,pos.m_x, pos.m_y, pos.m_z);
-            target.position.m_z = 0;
-          }
-        } 
-        else if (step > walking_start) 
-        {
-          gait.compute(time - walking_start * dt,
-                       inverse_kinematics.targets[0].position,
-                       inverse_kinematics.targets[1].position,
-                       inverse_kinematics.targets[2].position,
-                       inverse_kinematics.targets[3].position);
-
-          TinyVectorX start_q = mb->q_;
-          inverse_kinematics.compute(*mb, start_q, q_target);
-        }
-      }
-      {
-        double kp = sim->readUserDebugParameter(kp_id);
-        double kd = sim->readUserDebugParameter(kd_id);
-        double max_force = sim->readUserDebugParameter(force_id);
-        double min_force = -max_force;
-        std::vector<double> control(mb->dof_actuated());
-        for (int i = 0; i < mb->dof_actuated(); ++i) {
-          control[i] = q_target[i + start_index];
-        }
-         // pd control
-        if (0) {
-            // use PD controller to compute tau
-            int qd_offset = mb->is_floating() ? 6 : 0;
-            int q_offset = mb->is_floating() ? 7 : 0;
-            int num_targets = mb->tau_.size() - qd_offset;
-            std::vector<double> q_targets;
-            q_targets.resize(mb->tau_.size());
-
-            int param_index = 0;
-
-            for (int i = 0; i < mb->tau_.size(); i++) {
-                mb->tau_[i] = 0;
-            }
-            int tau_index = 0;
-            int pose_index = 0;
-            for (int i = 0; i < mb->links_.size(); i++) {
-                if (mb->links_[i].joint_type != JOINT_FIXED) {
-                    double q_desired = control[pose_index++];//initial_poses[pose_index++];// 
-                    double q_actual = mb->q_[q_offset];
-                    double qd_actual = mb->qd_[qd_offset];
-                    double position_error = (q_desired - q_actual);
-                    double desired_velocity = 0;
-                    double velocity_error = (desired_velocity - qd_actual);
-                    double force = kp * position_error + kd * velocity_error;
-
-                    if (force < -max_force) force = -max_force;
-                    if (force > max_force) force = max_force;
-                    mb->tau_[tau_index] = force;
-                    q_offset++;
-                    qd_offset++;
-                    param_index++;
-                    tau_index++;
-                }
-            }
-        }
-        else
-        {
-            mb->q_ = q_target;
-            mb->qd_.set_zero();
-        }
-
-
-
-
-
-
-      }
-
-      if (1)
-      {
-          {
-              sim->submitProfileTiming("forwardDynamics");
-              ::tds::forward_dynamics<TinyAlgebra<double, DoubleUtils> >(*mb, world.get_gravity());
-              sim->submitProfileTiming("");
-              mb->clear_forces();
-          }
-
-          {
-              sim->submitProfileTiming("integrate_q");
-              ::tds::integrate_euler_qdd<TinyAlgebra<double, DoubleUtils> >(*mb, dt);
-              sim->submitProfileTiming("");
-          }
-
-          {
-              if (step % 1000 == 0) {
-                  printf("Step %06d \t Time: %.3f\n", step, time);
-              }
-              sim->submitProfileTiming("world_step");
-              world.step(dt);
-              sim->submitProfileTiming("");
-              
-          }
-          {
-              sim->submitProfileTiming("integrate");
-              ::tds::integrate_euler(*mb, dt);
-              sim->submitProfileTiming("");
-          }
-      }
-
-      time += dt;
-
-      if (1) {
-        sim->submitProfileTiming("sync graphics");
-
-        // sync physics to visual transforms
-        {
-          for (int b = 0; b < mbbodies.size(); b++) {
-            const MultiBody<TinyAlgebra<double, DoubleUtils>>* body = mbbodies[b];
-            PyBulletUrdfImport< TinyAlgebra<double, DoubleUtils>>::sync_graphics_transforms(
-                body, sim);
-          }
-        }
-        sim->submitProfileTiming("");
-      }
-    }
-    {
-      sim->submitProfileTiming("get_keyboard_events");
-      b3KeyboardEventsData keyEvents;
-      sim->getKeyboardEvents(&keyEvents);
-      if (keyEvents.m_numKeyboardEvents) {
-        for (int i = 0; i < keyEvents.m_numKeyboardEvents; i++) {
-          b3KeyboardEvent& e = keyEvents.m_keyboardEvents[i];
-
-          if (e.m_keyCode == 'r' && e.m_keyState & eButtonTriggered) {
-            rotateCamera = 1 - rotateCamera;
-          }
-        }
-      }
-      sim->submitProfileTiming("");
-    }
-
-    if (rotateCamera) {
-      sim->submitProfileTiming("rotateCamera");
-      static double yaw = 0;
-      double distance = 1;
-      yaw += 0.1;
-      btVector3 basePos(0, 0, 0);
-      btQuaternion baseOrn(0, 0, 0, 1);
-      sim->resetDebugVisualizerCamera(distance, -20, yaw, basePos);
-      sim->submitProfileTiming("");
-    }
-    sim->submitProfileTiming("");
+  std::vector<MyScalar> vec_x_init(4);
+  std::vector<MyScalar> vec_x(4);
+  std::vector<MyScalar> vec_y(4);
+  std::vector<MyScalar> vec_z(4);
+  for (int i=0;i<4;i++)
+  {
+      vec_x_init[i] = inverse_kinematics.targets[i].position.x();
+      vec_x[i] = inverse_kinematics.targets[i].position.x();
+      vec_y[i] = inverse_kinematics.targets[i].position.y();
+      vec_z[i] = inverse_kinematics.targets[i].position.z();
   }
 
-  sim->stopStateLogging(logId);
-  printf("sim->disconnect\n");
+  double t = 0;
+  double phases[4] = {0,3.1415,3.1415,0};
 
-  sim->disconnect();
+  std::vector<VectorX> joint_angle_array;
 
-  printf("delete sim\n");
-  delete sim;
+  while (t<2*3.141592)
+  {
+    for (int i=0;i<4;i++)
+    {
+        //MyAlgebra::Vector3 contact_sim.system->base_X_world_.apply(MyAlgebra::Vector3(0,0,0.01);
+        vec_z[i] = 0.05 + 0.15*sin(t+phases[i]);
+        vec_z[i] = MyAlgebra::max(vec_z[i],0.05);
+        vec_x[i] = vec_x_init[i] + -0.04*cos(t+phases[i]);
+        inverse_kinematics.targets[i].position = MyAlgebra::Vector3(vec_x[i],vec_y[i],vec_z[i]);
+    }
 
-  printf("exit\n");
+    inverse_kinematics.compute(*contact_sim.system, contact_sim.system->q(), all_joint_angles2);
+    joint_angle_array.push_back(all_joint_angles2);
+    t += 30.*contact_sim.dt;
+  }
+
+  int pose_index = 0;
+
+  while (!visualizer.m_opengl_app.m_window->requested_exit()) {
+    
+      all_joint_angles2 = joint_angle_array[pose_index];
+      pose_index++;
+      if (pose_index>=joint_angle_array.size())
+          pose_index=0;
+      
+
+
+      for (int i = 0; i < num_total_threads; ++i) {
+          parallel_outputs[i] = contact_sim(parallel_inputs[i]);
+          for (int j = 0; j < contact_sim.input_dim(); ++j) {
+              parallel_inputs[i][j] = parallel_outputs[i][j];
+          }
+      }
+
+      sync_counter++;
+      frame += 1;
+      if (sync_counter > frameskip_gfx_sync) {
+          sync_counter = 0;
+          if (1) {
+              bool manual_sync = false;
+              if (manual_sync)
+              {
+                  //visualizer.sync_visual_transforms(contact_sim.system);
+              }
+              else
+              {
+                  float sim_spacing = 2;
+                  const int square_id = (int)std::sqrt((double)num_total_threads);
+                  int instance_index = 0;
+                  int offset = contact_sim.system->dof() + contact_sim.system->dof_qd();
+                  for (int s = 0; s < num_total_threads; s++)
+                  {
+                      
+                      
+                      for (int v = 0; v < num_base_instances; v++)
+                      {
+                          int visual_instance_id = visual_instances[instance_index++];
+                          if (visual_instance_id >= 0)
+                          {
+                              ::TINY::TinyVector3f pos;
+                              ::TINY::TinyQuaternionf orn;
+                              if (is_floating)
+                              {
+                                  pos = ::TINY::TinyVector3f(parallel_outputs[s][4 + 0],
+                                  parallel_outputs[s][4 + 1],
+                                  parallel_outputs[s][4 + 2]);
+                                  orn = ::TINY::TinyQuaternionf (parallel_outputs[s][0],
+                                  parallel_outputs[s][1],
+                                  parallel_outputs[s][2],
+                                  parallel_outputs[s][3]);
+                              } else
+                              {
+                                  auto base_pos = contact_sim.system->base_X_world().translation;
+                                  auto base_orn = MyAlgebra::matrix_to_quat(contact_sim.system->base_X_world().rotation);
+
+                                  pos = ::TINY::TinyVector3f(base_pos.x(),base_pos.y(),base_pos.z());
+                                  orn = ::TINY::TinyQuaternionf(base_orn.x(),base_orn.y(),base_orn.z(),base_orn.w());
+                              }
+                              pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
+                              pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
+
+                              visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                          }
+                      }
+                      
+                      for (int l = 0; l < contact_sim.system->links_.size(); l++) {
+                          for (int v = 0; v < num_instances[l]; v++)
+                          {
+                              int visual_instance_id = visual_instances[instance_index++];
+                              if (visual_instance_id >= 0)
+                              {
+
+                                  ::TINY::TinyVector3f pos(parallel_outputs[s][offset + l * 7 + 0],
+                                      parallel_outputs[s][offset + l * 7 + 1],
+                                      parallel_outputs[s][offset + l * 7 + 2]);
+                                  ::TINY::TinyQuaternionf orn(parallel_outputs[s][offset + l * 7 + 3],
+                                      parallel_outputs[s][offset + l * 7 + 4],
+                                      parallel_outputs[s][offset + l * 7 + 5],
+                                      parallel_outputs[s][offset + l * 7 + 6]);
+
+                                  pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
+                                  pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
+
+                                  visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          visualizer.render();
+          std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync* contact_sim.dt));
+      }
+  }
+
+  printf("finished\n");
+  return EXIT_SUCCESS;
+
 }
 
-#pragma clang diagnostic pop

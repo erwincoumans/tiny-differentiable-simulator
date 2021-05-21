@@ -145,14 +145,14 @@ struct CartpoleRolloutOutput
 template <typename Algebra>
 struct CartpoleEnv {
   using Scalar = typename Algebra::Scalar;
-  CartpoleContactSimulation<Algebra>& contact_sim;
+  CartpoleContactSimulation<Algebra> contact_sim;
   Scalar action_low_;
   Scalar action_high_;
 
   int action_dim_{1};
   int observation_dim_{4};
   int counter_{-1};
-  CartpoleEnv(CartpoleContactSimulation<Algebra>& cartpole) : contact_sim(cartpole) {
+  CartpoleEnv() {
     bool use_input_bias = false;
     static int counter=0;
     counter_ = counter++;

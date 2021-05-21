@@ -55,6 +55,19 @@ struct EigenAlgebraT {
     return matrix.inverse();
   }
 
+#if 0
+  template <typename T>
+  EIGEN_ALWAYS_INLINE static auto pseudo_inverse(const T &matrix) {
+
+    Eigen::CompleteOrthogonalDecomposition<
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>
+    cod(matrix);
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> J_pinv =
+    cod.pseudoInverse();
+    return J_pinv;
+  }
+#endif 
+
   template <typename T>
   EIGEN_ALWAYS_INLINE static auto inverse_transpose(const T &matrix) {
     return matrix.inverse().transpose();
