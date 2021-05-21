@@ -181,6 +181,18 @@ MyScalar MyMin(MyScalar a, MyScalar b)
     return MyAlgebra::min(a, b);
 }
 
+MyScalar MyWhereGT(MyScalar a, MyScalar b, MyScalar x, MyScalar y) {
+    return tds::where_gt(a, b, x, y);
+}
+
+MyScalar MyWhereLT(MyScalar a, MyScalar b, MyScalar x, MyScalar y) {
+    return tds::where_lt(a, b, x, y);
+}
+
+MyScalar MyWhereEQ(MyScalar a, MyScalar b, MyScalar x, MyScalar y) {
+    return tds::where_eq(a, b, x, y);
+}
+
 MyScalar MyClip(MyScalar v, MyScalar low, MyScalar high) {
     return MyAlgebra::max(MyAlgebra::min(v, high), low);
 }
