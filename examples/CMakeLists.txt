@@ -35,7 +35,7 @@ target_include_directories(laikago_opengl_tiny_example PRIVATE ../third_party/ti
 target_include_directories(laikago_opengl_tiny_example PRIVATE ../third_party ../src)
 target_compile_definitions(laikago_opengl_tiny_example PRIVATE USE_TINY )
 
-endif()
+endif(Eigen3_FOUND)
 
 
 add_executable(spherical_joint_test_tiny spherical_joint_test.cpp  ${TDS_HDRS})
@@ -46,6 +46,12 @@ target_include_directories(spherical_joint_test_tiny PRIVATE ../src)
 add_executable(billiard_opt_example_gui billiard_opt_example_gui.cpp  ${TDS_HDRS})
 target_link_libraries(billiard_opt_example_gui opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(billiard_opt_example_gui PRIVATE ../src)
+
+add_executable(soft_contact_example soft_contact_example.cpp  ${TDS_HDRS})
+target_link_libraries(soft_contact_example opengl_window Eigen3::Eigen  ${CMAKE_DL_LIBS})
+target_compile_definitions(soft_contact_example PRIVATE USE_TINY )
+target_include_directories(soft_contact_example PRIVATE ../src)
+
 
 
 add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS}) 
