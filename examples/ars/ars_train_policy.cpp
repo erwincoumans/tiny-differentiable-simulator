@@ -1,8 +1,16 @@
 #define ARS_VISUALIZE
 
 #define NOMINMAX 
-//#include "../environments/cartpole_environment.h"
+
+#define USE_ANT
+#ifdef USE_ANT
 #include "../environments/ant_environment.h"
+#else
+
+#include "../environments/laikago_environment.h"
+//#include "../environments/cartpole_environment.h"
+#endif
+
 
 #include "math/tiny/tiny_algebra.hpp"
 #include "math/tiny/tiny_double_utils.h"
@@ -21,8 +29,14 @@ typedef double MyScalar;
 typedef ::TINY::DoubleUtils MyTinyConstants;
 typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
-//typedef CartpoleEnv<MyAlgebra> Environment;
+#ifdef USE_ANT
 typedef AntEnv<MyAlgebra> Environment;
+#else//USE_ANT
+//typedef CartpoleEnv<MyAlgebra> Environment;
+typedef LaikagoEnv<MyAlgebra> Environment;
+
+
+#endif//USE_ANT
 
 struct PolicyParams
 {
@@ -34,7 +48,14 @@ int num_total_threads = 32;
 ///////////////////////////////////////////
 // create graphics
 OpenGLUrdfVisualizer<MyAlgebra> visualizer;
+#ifdef USE_ANT
 AntContactSimulation<MyAlgebra> contact_sim;
+#else
+//CartpoleContactSimulation<MyAlgebra> contact_sim;
+ContactSimulation<MyAlgebra> contact_sim;
+#endif
+
+
 tds::UrdfStructures<MyAlgebra> urdf_structures;
 
 std::vector<int> visual_instances;
@@ -520,7 +541,7 @@ struct ARSLearner
     {
         double best_mean_rewards = -1e30;
         
-        for (int i=0;i< num_iter;i++) {
+        for (int iter=0;iter< num_iter;iter++) {
 
             //t1 = time.time()
             train_step();
@@ -579,9 +600,9 @@ struct ARSLearner
                         std::ofstream trajfile_;
                         std::string fileName = "trajectory_reward"+std::to_string(mean_rewards)+".bin";
                         trajfile_.open (fileName,std::ios_base::binary);
-                        int num_steps = trajectories[i].size();
+                        int num_steps = trajectories[0].size();
                         trajfile_.write((char*)&num_steps, sizeof(int));
-                        int state_size = trajectories[i][0].size();
+                        int state_size = trajectories[0][0].size();
                         trajfile_.write((char*)&state_size, sizeof(int));
                         
                         for (int step=0;step<num_steps;step++)
@@ -589,7 +610,7 @@ struct ARSLearner
                             
                             for (int state=0;state < state_size;state++)
                             {
-                                trajfile_.write((char*)&trajectories[i][step][state], sizeof(double));
+                                trajfile_.write((char*)&trajectories[0][step][state], sizeof(double));
                             }
                         }
                         trajfile_.close();
@@ -605,7 +626,7 @@ struct ARSLearner
                         }
                         printf("\n");
                     }
-                    printf("Iteration = %d\n", i+1);
+                    printf("Iteration = %d\n", iter+1);
                     printf("total_timesteps=%d\n", total_timesteps);
                     printf("AverageReward=%f\n", mean_rewards);
                     printf("MaxReward=%f\n", max_reward);
@@ -616,7 +637,7 @@ struct ARSLearner
                     double past_sec = std::chrono::duration_cast<std::chrono::milliseconds>(cur_point_ - time_point_).count();
                     //time_point_ = cur_point_;
 
-                    myfile_ << past_sec/1000. << "    " << std::to_string(i+1) << " " << std::to_string(mean_rewards) << "  " << max_reward << "    " << min_reward << "    " << total_timesteps << std::endl;
+                    myfile_ << past_sec/1000. << "    " << std::to_string(iter+1) << " " << std::to_string(mean_rewards) << "  " << max_reward << "    " << min_reward << "    " << total_timesteps << std::endl;
                     
                 }
 #if 0

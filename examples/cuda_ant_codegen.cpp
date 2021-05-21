@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
               ::TINY::TinyVector3f color(1, 1, 1);
               //visualizer.m_b2vis
               instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
-                  sphere_shape, pos, orn, color, scaling);
+                  sphere_shape, pos, orn, color, scaling, 1., false);
               visual_instances.push_back(instance);
               num_instances_per_link++;
               simulation.mb_->visual_instance_uids().push_back(instance);
@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
                   ::TINY::TinyVector3f color(1, 1, 1);
                   //visualizer.m_b2vis
                   instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
-                      sphere_shape, pos, orn, color, scaling);
+                      sphere_shape, pos, orn, color, scaling, 1., false);
                   visual_instances.push_back(instance);
                   num_instances_per_link++;
                   simulation.mb_->links_[i].visual_instance_uids.push_back(instance);
@@ -203,6 +203,8 @@ int main(int argc, char* argv[]) {
           
       }
   }
+
+  visualizer.m_opengl_app.m_renderer->rebuild_graphics_instances();
 
 #ifndef DEBUG_MODEL
   cuda_model_ant.forward_zero.allocate(num_total_threads);

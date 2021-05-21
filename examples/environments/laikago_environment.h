@@ -3,6 +3,27 @@
 
 
 #include "math/neural_network.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "dynamics/integrator.hpp"
+#include "urdf/urdf_cache.hpp"
+#include "utils/file_utils.hpp"
+#include "urdf/urdf_parser.hpp"
+#include "math.h"
+#include "math/neural_network.hpp"
+
+
+static double start_pos[] = {0,0,1.};
+static double start_orn[] = {0,0,0,1};
+
+static bool laikago_is_floating = false;
+static double laikago_knee_angle = -0.7;
+double laikago_abduction_angle = 0.2;
+std::vector<double> initial_poses_laikago2 = {
+    laikago_abduction_angle, 0, laikago_knee_angle, 
+    laikago_abduction_angle, 0, laikago_knee_angle,
+    laikago_abduction_angle, 0, laikago_knee_angle, 
+    laikago_abduction_angle, 0, laikago_knee_angle,
+};
 
 
 template <typename Algebra>
@@ -16,34 +37,51 @@ struct ContactSimulation {
     int num_timesteps{ 1 };
     Scalar dt{ Algebra::from_double(1e-3) };
 
-    int input_dim() const { return mb_->dof() + mb_->dof_qd(); }
+    int input_dim() const { 
+        return mb_->dof() + mb_->dof_qd(); 
+    }
+
+    int input_dim_with_action() const { 
+        return mb_->dof() + mb_->dof_qd() + initial_poses_laikago2.size();
+    }
+
     int state_dim() const {
         return mb_->dof() + mb_->dof_qd() + mb_->num_links() * 7;
     }
-    int output_dim() const { return num_timesteps * state_dim(); }
+    int output_dim() const { return state_dim(); }
+
+    int action_dim_{(int)initial_poses_laikago2.size()};
+    std::vector<Scalar> action_;
 
     ContactSimulation() {
         std::string plane_filename;
         tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
         cache.construct(plane_filename, world, false, false);
+        //std::string urdf_name = "laikago/laikago_toes_zup_chassis_collision.urdf";
+        std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
+        //std::string urdf_name = "laikago/laikago_toes_zup.urdf";
 
         tds::FileUtils::find_file(urdf_name, m_urdf_filename);
         
+        action_.resize(action_dim_);
         
-        mb_ = cache.construct(m_urdf_filename, world, false, is_floating);
-        mb_->base_X_world().translation = start_pos;
-        mb_->base_X_world().rotation = Algebra::quat_to_matrix(start_orn);
+        mb_ = cache.construct(m_urdf_filename, world, false, laikago_is_floating);
+        mb_->base_X_world().set_identity();
+        //mb_->base_X_world().translation = Algebra::Vector3(start_pos[0],start_pos[1],start_pos[2]);
+        //mb_->base_X_world().rotation = Algebra::quat_to_matrix(Algebra::Quaternion(start_orn[0],start_orn[1],start_orn[2],start_orn[3]));
         world.default_friction = 1;
+
+        world.get_mb_constraint_solver()->keep_all_points_ = true;
         //world.set_gravity(Algebra::Vector3(0,0,0));
-        //initial_poses.resize(mb_->q_.size());
+        //initial_poses_laikago.resize(mb_->q_.size());
         //for (int i=0;i<mb_->q_.size();i++)
         //{
-        //    initial_poses[i] = mb_->q_[i];
+        //    initial_poses_laikago[i] = mb_->q_[i];
         //}
     }
 
-    std::vector<Scalar> operator()(const std::vector<Scalar>& v, const std::vector<Scalar>& action) {
-        assert(static_cast<int>(v.size()) == input_dim());
+    std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
+        //assert(static_cast<int>(v.size()) == input_dim());
         mb_->initialize();
         //copy input into q, qd
         for (int i = 0; i < mb_->dof(); ++i) {
@@ -52,51 +90,59 @@ struct ContactSimulation {
         for (int i = 0; i < mb_->dof_qd(); ++i) {
             mb_->qd(i) = v[i + mb_->dof()];
         }
+
+        for (int i=0;i<action_dim_;i++)
+        {
+            action_[i] = v[i+ mb_->dof()+mb_->dof_qd()];
+        }
+
         std::vector<Scalar> result(output_dim());
         for (int t = 0; t < num_timesteps; ++t) {
 
             // pd control
             if (1) {
                 // use PD controller to compute tau
-                int qd_offset = mb_->is_floating() ? 6 : 0;
-                int q_offset = mb_->is_floating() ? 7 : 0;
+                int qd_offset = mb_->is_floating() ? 6 : 6;
+                int q_offset = mb_->is_floating() ? 7 : 6;
                 int num_targets = mb_->tau_.size() - qd_offset;
                 std::vector<double> q_targets;
                 q_targets.resize(mb_->tau_.size());
 
-                double kp = 150;
-                double kd = 3;
-                double max_force = 50;
+                Scalar kp = 100.;
+                Scalar kd = 2.;
+                Scalar max_force = 50.;
                 int param_index = 0;
 
                 for (int i = 0; i < mb_->tau_.size(); i++) {
                     mb_->tau_[i] = 0;
                 }
-                int tau_index = 0;
+                
                 int pose_index = 0;
-                for (int i = 0; i < mb_->links_.size(); i++) {
-                    if (mb_->links_[i].joint_type != JOINT_FIXED) {
+                int start_link = mb_->is_floating() ? 0 : 6;
+                int tau_index = mb_->is_floating() ? 0 : 6;
+                for (int i = start_link; i < mb_->links_.size(); i++) {
+                    if (mb_->links_[i].joint_type != tds::JOINT_FIXED) {
 
-                        if (pose_index<initial_poses.size())
+                        if (pose_index<initial_poses_laikago2.size())
                         {
                             //clamp action 
-                            double clamped_action = action[pose_index];
-                            double ACTION_LIMIT = 1;
+                            Scalar clamped_action = action_[pose_index];
+                            Scalar ACTION_LIMIT = 0.4;
                             clamped_action = Algebra::min(clamped_action, ACTION_LIMIT);
                             clamped_action = Algebra::max(clamped_action, -ACTION_LIMIT);
 
 
-                            double q_desired = initial_poses[pose_index++] + clamped_action;
+                            Scalar q_desired = initial_poses_laikago2[pose_index++] + clamped_action;
                             
-                            double q_actual = mb_->q_[q_offset];
-                            double qd_actual = mb_->qd_[qd_offset];
-                            double position_error = (q_desired - q_actual);
-                            double desired_velocity = 0;
-                            double velocity_error = (desired_velocity - qd_actual);
-                            double force = kp * position_error + kd * velocity_error;
+                            Scalar q_actual = mb_->q_[q_offset];
+                            Scalar qd_actual = mb_->qd_[qd_offset];
+                            Scalar position_error = (q_desired - q_actual);
+                            Scalar desired_velocity = 0;
+                            Scalar velocity_error = (desired_velocity - qd_actual);
+                            Scalar force = kp * position_error + kd * velocity_error;
 
-                            if (force < -max_force) force = -max_force;
-                            if (force > max_force) force = max_force;
+                            force = Algebra::max(force, -max_force);
+                            force = Algebra::min(force, max_force);
                             mb_->tau_[tau_index] = force;
                             q_offset++;
                             qd_offset++;
@@ -115,48 +161,58 @@ struct ContactSimulation {
             world.step(dt);
             
             tds::integrate_euler(*mb_, dt);
-
-            //copy q, qd, link world poses (for rendering) to output
-            int j = 0;
-            for (int i = 0; i < mb_->dof(); ++i, ++j) {
-                result[j] = mb_->q(i);
-            }
-            for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
-                result[j] = mb_->qd(i);
-            }
-            for (const auto link : *mb_) {
-                //just copy the link world transform. Still have to multiple with visual transform for each instance.
-                Transform visual_X_world = link.X_world * link.X_visuals[0];//
-                result[j++] = visual_X_world.translation[0];
-                result[j++] = visual_X_world.translation[1];
-                result[j++] = visual_X_world.translation[2];
+         }
+        //copy q, qd, link world poses (for rendering) to output
+        int j = 0;
+        for (int i = 0; i < mb_->dof(); ++i, ++j) {
+            result[j] = mb_->q(i);
+        }
+        for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
+            result[j] = mb_->qd(i);
+        }
+        for (const auto link : *mb_) {
+            //just copy the link world transform. Still have to multiple with visual transform for each instance.
+            if (link.X_visuals.size())
+            {
+                tds::Transform visual_X_world = link.X_world * link.X_visuals[0];//
+                {
+                    result[j++] = visual_X_world.translation[0];
+                    result[j++] = visual_X_world.translation[1];
+                    result[j++] = visual_X_world.translation[2];
+                }
                 auto orn = Algebra::matrix_to_quat(visual_X_world.rotation);
-                result[j++] = orn[0];
-                result[j++] = orn[1];
-                result[j++] = orn[2];
-                result[j++] = orn[3];
+                {
+                    result[j++] = orn.x();
+                    result[j++] = orn.y();
+                    result[j++] = orn.z();
+                    result[j++] = orn.w();
+                }
             }
         }
+        
         return result;
     }
 };
 
 
 
-
+template <typename Algebra>
 struct LaikagoEnv
 {
-    
-    ContactSimulation<MyAlgebra>& contact_sim;
+    using Scalar = typename Algebra::Scalar;
 
-    LaikagoEnv(ContactSimulation<MyAlgebra>& sim)
-        :contact_sim(sim)
+    ContactSimulation<Algebra> contact_sim;
+
+    int observation_dim_{0};
+    LaikagoEnv()
     {
-        int observation_size = contact_sim.input_dim();
-        neural_network.set_input_dim(observation_size, true);
-        neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);//128);
-        neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
-        neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, initial_poses.size());
+        observation_dim_ = contact_sim.input_dim();
+        bool use_input_bias = false;
+        neural_network.set_input_dim(observation_dim_, use_input_bias);
+        //neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);//128);
+        //neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
+        bool learn_bias = true;
+        neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, initial_poses_laikago2.size(), learn_bias);
     }
     virtual ~LaikagoEnv()
     {
@@ -167,40 +223,56 @@ struct LaikagoEnv
         neural_network.set_parameters(x);
     }
 
-    std::vector<MyScalar> sim_state;
-    std::vector<MyScalar> sim_state_with_graphics;
+    std::vector<Scalar> sim_state;
+    std::vector<Scalar> sim_state_with_graphics;
 
-    NeuralNetwork<MyAlgebra> neural_network;
+    tds::NeuralNetwork<Algebra> neural_network;
 
     std::vector<double> reset()
     {
+        
+
         sim_state.resize(0);
         sim_state.resize(contact_sim.input_dim(), MyScalar(0));
 
         if (contact_sim.mb_->is_floating())
         {
-            sim_state[0] = start_orn.x();
-            sim_state[1] = start_orn.y();
-            sim_state[2] = start_orn.z();
-            sim_state[3] = start_orn.w();
-            sim_state[4] = start_pos.x();
-            sim_state[5] = start_pos.y();
-            sim_state[6] = start_pos.z();
+            sim_state[0] = start_orn[0];
+            sim_state[1] = start_orn[1];
+            sim_state[2] = start_orn[2];
+            sim_state[3] = start_orn[3];
+            sim_state[4] = start_pos[0];
+            sim_state[5] = start_pos[1];
+            sim_state[6] = start_pos[2];
             int qoffset = 7;
-            for(int j=0;j<initial_poses.size();j++)
+            for(int j=0;j<initial_poses_laikago2.size();j++)
             {
-                sim_state[j+qoffset] = initial_poses[j];//0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+                sim_state[j+qoffset] = initial_poses_laikago2[j];//0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
             }
         }
         else
         {
-            for(int i=0;i<sim_state.size();i++)
+            sim_state[0] = start_pos[0];
+            sim_state[1] = start_pos[1];
+            sim_state[2] = start_pos[2];
+            sim_state[3] = 0;
+            sim_state[4] = 0;
+            sim_state[5] = 0;
+
+            //for(int i=0;i<sim_state.size();i++)
+            //{
+            //    sim_state[i] = 0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+            //}
+
+            int qoffset = 6;
+            for(int j=0;j<initial_poses_laikago2.size();j++)
             {
-                sim_state[i] = 0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+                sim_state[j+qoffset] = initial_poses_laikago2[j];//0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
             }
+
         }
 
-        std::vector<double> zero_action(initial_poses.size(), MyScalar(0));
+        std::vector<double> zero_action(initial_poses_laikago2.size(), MyScalar(0));
         std::vector<double> observation;
         double reward;
         bool done;
@@ -225,17 +297,28 @@ struct LaikagoEnv
         obs = sim_state;
         reward = 1;
         double x = sim_state[0];
-        double theta = sim_state[1];
+        
 
         double theta_threshold_radians = 12. * 2. * M_PI / 360.;
         double x_threshold = 0.4;//  #2.4
         auto base_tr = contact_sim.mb_->get_world_transform(-1);
         
         //reward forward along x-axis
-        reward = base_tr.translation[0];
+
+        reward = sim_state[0];
+        if (std::isnan(reward) || std::isinf(reward) || (reward!=reward))
+        {
+            reward = 0;
+            done = true;
+        }
+
         MyScalar up_dot_world_z = base_tr.rotation(2,2);
         //Laikago needs to point up, angle > 30 degree (0.523599 radians)
-        if (up_dot_world_z < 0.85 || base_tr.translation.z() < 0.3)
+        //if (up_dot_world_z < 0.85 || sim_state[2] < 0.3)
+        if ((sim_state[2] < 0.3) || (sim_state[2] > 1.) || 
+            (sim_state[3] < 0.8) || (sim_state[3] > 1.2) ||
+            (sim_state[4] < 0.8) || (sim_state[4] > 1.2) ||
+            (sim_state[5] < 0.8) || (sim_state[5] > 1.2))
         {
             done =  true;
         }  else
@@ -248,7 +331,7 @@ struct LaikagoEnv
 
     inline const std::vector<double> policy(const std::vector<double>& obs)
     {
-        std::vector<double> action (initial_poses.size(), MyScalar(0));
+        std::vector<double> action (initial_poses_laikago2.size(), MyScalar(0));
     
         neural_network.compute(obs, action);
                 
