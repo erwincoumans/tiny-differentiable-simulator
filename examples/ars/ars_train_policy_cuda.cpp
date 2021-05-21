@@ -4,13 +4,16 @@
 #include <string>
 
 //#include "../environments/cartpole_environment.h"
+#ifdef USE_ANT
 #include "../environments/ant_environment.h"
 #define ContactSimulation AntContactSimulation
 std::string model_name = "cuda_model_ant";
 #define ContactSimulation AntContactSimulation
-//#include "../environments/laikago_environment.h"
-//#define ant_initial_poses initial_poses_laikago2
-//std::string model_name = "cuda_model_laikago";
+#else
+#include "../environments/laikago_environment.h"
+#define ant_initial_poses initial_poses_laikago2
+std::string model_name = "cuda_model_laikago";
+#endif
 
 #include "math/tiny/tiny_algebra.hpp"
 #include "math/tiny/tiny_double_utils.h"
@@ -24,7 +27,7 @@ std::string model_name = "cuda_model_ant";
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
-int g_num_total_threads = 256;
+int g_num_total_threads = 128;
 
 
 //struct CudaFunctionMetaData {
@@ -419,8 +422,14 @@ struct AntVecEnv
         
             if (!dones[index])
             {
+
+#ifdef USE_ANT
                 //reward forward along x-axis
                 rewards[index] = sim_states_[index][0];
+#else
+                //reward forward along x-axis, minus angles to keep chassis straight
+                rewards[index] = sim_states_[index][0];// - fabs(sim_states_[index][3]) - fabs(sim_states_[index][4]) - fabs(sim_states_[index][5]);
+#endif
                 static double max_reward = -1e30;
                 static double min_reward = 1e30;
                 if (rewards[index] < min_reward)
@@ -438,8 +447,16 @@ struct AntVecEnv
                 rewards[index] = 0;
             }
 
-            //Ant height needs to stay above 0.25
+            //Ant height needs to stay above 0.25a
+#ifdef USE_ANT
             if (sim_states_[index][2] < 0.26)
+#else
+
+            double threshold = 0.6;
+            if ((sim_states_[index][3] < -threshold) ||(sim_states_[index][3] > threshold) ||
+                (sim_states_[index][4] < -threshold) ||(sim_states_[index][4] > threshold) ||
+                (sim_states_[index][5] < -threshold) ||(sim_states_[index][5] > threshold))
+#endif
             {
                 dones[index] =  true;
             }  else
@@ -646,9 +663,22 @@ struct Worker
 
            for (int index=0;index<g_num_total_threads;index++)
            {
-                trajectories[index].push_back(env_.sim_states_with_graphics_[index]);
-                total_rewards[index] += (rewards[index] - shift);
-                vec_steps[index]++;
+               if (dones[index])
+               {
+                   int sz = trajectories[index].size();
+                   if (sz)
+                   {
+                       const auto& prev = trajectories[index][sz-1];
+                        trajectories[index].push_back(prev);
+                   }
+               } else
+               {
+                    trajectories[index].push_back(env_.sim_states_with_graphics_[index]);
+                    total_rewards[index] += (rewards[index] - shift);
+                    vec_steps[index]++;
+               }
+               
+                
            }
         }
     }
@@ -710,7 +740,7 @@ struct Worker
             
             for (int step=0;step< trajectories[0].size();step++)
             {
-                visualize_trajectories(trajectories, step, true);
+                visualize_trajectories(trajectories, step, false);
             }
             for (int index=0;index<g_num_total_threads;index++)
             {
@@ -753,10 +783,10 @@ struct Worker
             
             rollouts(cuda_model_ant, shift, rollout_length_train_, pos_rewards, vec_pos_steps, trajectories);
             
-            for (int step=0;step< trajectories[0].size();step++)
-            {
-                visualize_trajectories(trajectories, step, false);
-            }
+            //for (int step=0;step< trajectories[0].size();step++)
+            //{
+            //    visualize_trajectories(trajectories, step, false);
+            //}
                         
             for (int index=0;index<g_num_total_threads;index++)
             {
@@ -829,8 +859,8 @@ struct ARSLearner
 
     
     Worker* worker_{0};
-    int rollout_length_train_{1000};
-    int rollout_length_eval_{1000};
+    int rollout_length_train_{2000};
+    int rollout_length_eval_{2000};
     double delta_std_{0.03};
     double sgd_step_size { 0.02};
 

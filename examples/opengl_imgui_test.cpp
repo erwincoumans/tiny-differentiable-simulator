@@ -723,7 +723,7 @@ int main(int argc, char* argv[]) {
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    if (0)
+    if (1)
     {
       float SCALE = 2.0f;
       ImFontConfig cfg;
