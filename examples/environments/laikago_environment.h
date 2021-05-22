@@ -233,7 +233,7 @@ struct LaikagoEnv
         
 
         sim_state.resize(0);
-        sim_state.resize(contact_sim.input_dim(), MyScalar(0));
+        sim_state.resize(contact_sim.input_dim(), Scalar(0));
 
         if (contact_sim.mb_->is_floating())
         {
@@ -272,7 +272,7 @@ struct LaikagoEnv
 
         }
 
-        std::vector<double> zero_action(initial_poses_laikago2.size(), MyScalar(0));
+        std::vector<double> zero_action(initial_poses_laikago2.size(), Scalar(0));
         std::vector<double> observation;
         double reward;
         bool done;
@@ -312,7 +312,7 @@ struct LaikagoEnv
             done = true;
         }
 
-        MyScalar up_dot_world_z = base_tr.rotation(2,2);
+        Scalar up_dot_world_z = base_tr.rotation(2,2);
         //Laikago needs to point up, angle > 30 degree (0.523599 radians)
         //if (up_dot_world_z < 0.85 || sim_state[2] < 0.3)
         if ((sim_state[2] < 0.3) || (sim_state[2] > 1.) || 
@@ -331,7 +331,7 @@ struct LaikagoEnv
 
     inline const std::vector<double> policy(const std::vector<double>& obs)
     {
-        std::vector<double> action (initial_poses_laikago2.size(), MyScalar(0));
+        std::vector<double> action (initial_poses_laikago2.size(), Scalar(0));
     
         neural_network.compute(obs, action);
                 

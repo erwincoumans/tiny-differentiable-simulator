@@ -107,6 +107,7 @@ MyAlgebra::VectorX all_joint_angles2(12);
 template <typename Algebra>
 struct LaikagoSimulation {
     using Scalar = typename Algebra::Scalar;
+    using Vector3 = typename Algebra::Vector3;
     tds::UrdfCache<Algebra> cache;
     std::string m_urdf_filename;
     tds::World<Algebra> world;
@@ -128,7 +129,7 @@ struct LaikagoSimulation {
         tds::FileUtils::find_file(LAIKAGO_URDF_NAME, m_urdf_filename);
         
         system = cache.construct(m_urdf_filename, world, false, is_floating);
-        system->base_X_world().translation = Algebra::Vector3(start_pos[0],start_pos[1],start_pos[2]);//Algebra::unit3_z();
+        system->base_X_world().translation = Vector3(start_pos[0],start_pos[1],start_pos[2]);//Algebra::unit3_z();
         //world.set_gravity(Algebra::Vector3(Algebra::zero(), Algebra::zero(), Algebra::zero()));
     }
 
