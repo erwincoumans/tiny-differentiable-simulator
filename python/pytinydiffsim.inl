@@ -144,6 +144,13 @@
 //      .def("print", [](const Matrix& a, const std::string &title) {
 //          MyAlgebra::print(title, a);
 //      })
+      .def("mult", [](const Matrix& a, const Matrix& b){
+          return MyAlgebra::mult(a, b);
+      })
+      .def("transpose", [](const Matrix& a) {
+          return MyAlgebra::transpose(a);
+      })
+      .def_static("eye", &MyAlgebra::eye)
       .def("__getitem__", [](const Matrix& a, py::tuple t) {
           if (t.size() != 2)
               throw std::runtime_error("Invalid indexing!");
@@ -163,6 +170,18 @@
       })
       .def_property_readonly("num_columns", [](const Matrix& a) {
           return MyAlgebra::num_cols(a);
+      })
+      .def("__repr__",
+      [](const Matrix& a) {
+          std::string values;
+          for (int i = 0; i < MyAlgebra::num_rows(a); i++) {
+              for (int j = 0; j < MyAlgebra::num_cols(a); j++) {
+                  values += std::to_string(MyAlgebra::to_double(a(i, j))) + ",";
+              }
+              if (i < MyAlgebra::num_rows(a) - 1)
+                  values += "\n";
+          }
+          return "[" + values + "]";
       })
       ;
 
