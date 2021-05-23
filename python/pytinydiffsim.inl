@@ -588,6 +588,7 @@
   m.def("where_lt", &MyWhereLT);
   m.def("where_eq", &MyWhereEQ);
   m.def("clip", &MyClip);
+  m.def("sqrt", &MySqrt);
 
   
   py::class_<NeuralNetwork<MyAlgebra>>(      m, "NeuralNetwork")
