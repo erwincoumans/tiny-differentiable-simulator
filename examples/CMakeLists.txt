@@ -137,7 +137,7 @@ ENDIF()
 
 add_executable(laikago_footstep_ik laikago_footstep_ik.cpp ${TDS_HDRS})
 target_include_directories(laikago_footstep_ik PRIVATE ../src )
-target_link_libraries(laikago_footstep_ik opengl_window tinyxml2 Eigen3::Eigen)
+target_link_libraries(laikago_footstep_ik opengl_window tinyxml2 Eigen3::Eigen ${CMAKE_DL_LIBS})
 
 if (WIN32)
     target_link_libraries(laikago_footstep_ik  Opengl32)
