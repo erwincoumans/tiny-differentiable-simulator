@@ -344,6 +344,15 @@ struct EigenAlgebraT {
     return a * b;
   }
 
+  EIGEN_ALWAYS_INLINE static VectorX mult(const MatrixX &a,
+                                          const VectorX &b) {
+    return a * b;
+  }
+  EIGEN_ALWAYS_INLINE static Vector3 mult(const MatrixX &a,
+                                          const Vector3 &b) {
+    return a * b;
+  }
+
   template <typename T1, typename T2>
   EIGEN_ALWAYS_INLINE static auto dot(const T1 &vector_a, const T2 &vector_b) {
     return vector_a.dot(vector_b);

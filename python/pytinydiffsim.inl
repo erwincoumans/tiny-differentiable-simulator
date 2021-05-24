@@ -147,6 +147,12 @@
       .def("mult", [](const Matrix& a, const Matrix& b){
           return MyAlgebra::mult(a, b);
       })
+      .def("mult", [](const Matrix& a, const VectorX& b){
+          return MyAlgebra::mult(a, b);
+      })
+      .def("mult", [](const Matrix& a, const Vector3& b){
+          return MyAlgebra::mult(a, b);
+      })
       .def("transpose", [](const Matrix& a) {
           return MyAlgebra::transpose(a);
       })
