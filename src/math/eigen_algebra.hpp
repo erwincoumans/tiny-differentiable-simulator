@@ -341,9 +341,7 @@ struct EigenAlgebraT {
   
   EIGEN_ALWAYS_INLINE static MatrixX mult(const MatrixX &a,
                                           const MatrixX &b) {
-    MatrixX res(a);
-    res.noalias() = a * b;
-    return res;
+    return a * b;
   }
 
   template <typename T1, typename T2>
