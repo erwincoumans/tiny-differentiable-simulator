@@ -106,6 +106,9 @@
       .def("inverse", [](const Quaternion &q) {
           return MyAlgebra::inverse(q);
       })
+      .def("slerp", [](const Quaternion &start, const Quaternion &end, const MyScalar t) {
+          return MyAlgebra::quaternion_slerp(start, end, t);
+      })
       .def("get_euler_rpy", [](const Quaternion &q) {
           return MyAlgebra::get_euler_rpy(q);
       })

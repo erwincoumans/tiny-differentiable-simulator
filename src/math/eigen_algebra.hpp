@@ -760,6 +760,10 @@ struct EigenAlgebraT {
     return ang_ax.axis() * ang_ax.angle();
   }
 
+  EIGEN_ALWAYS_INLINE static Quaternion quaternion_slerp(const Quaternion q_start, const Quaternion q_end, const Scalar t) {
+      return q_start.slerp(t, q_end);
+  }
+
   EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(const Quaternion &start, 
                                                               const Quaternion &end) {
     Quaternion q1 = normalize(start);
