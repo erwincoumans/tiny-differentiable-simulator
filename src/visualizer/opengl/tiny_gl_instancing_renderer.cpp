@@ -922,7 +922,7 @@ int TinyGLInstancingRenderer::register_graphics_instance_internal(
 int TinyGLInstancingRenderer::register_graphics_instance(
     int shapeIndex, const TinyVector3f& position,
     const TinyQuaternionf& quaternion, const TinyVector3f& color,
-    const TinyVector3f& scaling, float opacity) {
+    const TinyVector3f& scaling, float opacity, bool rebuild) {
   int newUid = m_data->m_publicGraphicsInstances.alloc_handle();
   TinyPublicGraphicsInstance* pg =
       m_data->m_publicGraphicsInstances.get_handle(newUid);
@@ -959,7 +959,10 @@ int TinyGLInstancingRenderer::register_graphics_instance(
     c.setInt(newUid);
     m_data->m_instance_scale_ptr[srcIndex * 4 + 3] = c.getFloat();
 
-    rebuild_graphics_instances();
+    if (rebuild)
+    {
+        rebuild_graphics_instances();
+    }
   }
 
   return newUid;
