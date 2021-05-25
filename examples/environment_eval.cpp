@@ -187,9 +187,9 @@ int main(int argc, char* argv[]) {
 
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  CartpoleContactSimulation<MyAlgebra> sim;
+  //CartpoleContactSimulation<MyAlgebra> sim;
 
-  Environment env(sim);
+  Environment env;
   auto obs = env.reset();
   double total_reward = 0;
   int max_steps = 1000;

@@ -76,9 +76,12 @@ class TinyGLInstancingRenderer {
                                           const ::TINY::TinyVector3f& color,
                                           const ::TINY::TinyVector3f& scaling,
                                           float opacity = 1.f);
-  void rebuild_graphics_instances();
+  
 
  public:
+
+  void rebuild_graphics_instances();
+
   TinyGLInstancingRenderer(int m_maxObjectCapacity,
                            int maxShapeCapacityInBytes = 56 * 1024 * 1024);
   virtual ~TinyGLInstancingRenderer();
@@ -128,7 +131,8 @@ class TinyGLInstancingRenderer {
                                          const ::TINY::TinyQuaternionf& quaternion,
                                          const ::TINY::TinyVector3f& color,
                                          const ::TINY::TinyVector3f& scaling,
-                                         float opacity = 1.f);
+                                         float opacity = 1.f,
+                                         bool rebuild = true);
 
   void write_transforms();
 

@@ -1,8 +1,19 @@
 #define ARS_VISUALIZE
 
 #define NOMINMAX 
+#include <string>
+
 //#include "../environments/cartpole_environment.h"
+#ifdef USE_ANT
 #include "../environments/ant_environment.h"
+#define ContactSimulation AntContactSimulation
+std::string model_name = "cuda_model_ant";
+#define ContactSimulation AntContactSimulation
+#else
+#include "../environments/laikago_environment.h"
+#define ant_initial_poses initial_poses_laikago2
+std::string model_name = "cuda_model_laikago";
+#endif
 
 #include "math/tiny/tiny_algebra.hpp"
 #include "math/tiny/tiny_double_utils.h"
@@ -16,7 +27,7 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
-int g_num_total_threads = 256;
+int g_num_total_threads = 128;
 
 
 //struct CudaFunctionMetaData {
@@ -250,7 +261,7 @@ struct AntVecRolloutOutput
 template <typename Algebra>
 struct AntVecEnv
 {
-    AntContactSimulation<Algebra> contact_sim_;
+    ContactSimulation<Algebra> contact_sim_;
     using Scalar = typename Algebra::Scalar;
     using Vector3 = typename Algebra::Vector3;
     using Transform = typename Algebra::Transform;
@@ -261,7 +272,7 @@ struct AntVecEnv
     std::vector<std::vector<Scalar>> sim_states_with_graphics_;
 
     std::vector<tds::NeuralNetwork<Algebra> > neural_networks_;
-    int observation_dim_{28};//??
+    int observation_dim_{0};
 
 
     AntVecEnv()
@@ -271,11 +282,11 @@ struct AntVecEnv
         sim_states_with_action_.resize(g_num_total_threads);
         sim_states_with_graphics_.resize(g_num_total_threads);
 
-        int observation_size = contact_sim_.input_dim();
+        observation_dim_ = contact_sim_.input_dim();
         bool use_input_bias = false;
         for (int index=0;index<g_num_total_threads;index++)
         {
-            neural_networks_[index].set_input_dim(observation_size, use_input_bias);
+            neural_networks_[index].set_input_dim(observation_dim_, use_input_bias);
             //network.add_linear_layer(tds::NN_ACT_RELU, 32);
             //neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
             bool learn_bias = true;
@@ -388,8 +399,9 @@ struct AntVecEnv
             }
             inputs[index] = sim_states_with_action_[index];
         }
-      
-#if 0
+    
+//define DEBUG_ON_CPU
+#ifdef DEBUG_ON_CPU
         for (int index =0; index<g_num_total_threads;index++)
         {
             sim_states_with_graphics_[index] = contact_sim_(sim_states_with_action_[index]);
@@ -410,8 +422,14 @@ struct AntVecEnv
         
             if (!dones[index])
             {
+
+#ifdef USE_ANT
                 //reward forward along x-axis
                 rewards[index] = sim_states_[index][0];
+#else
+                //reward forward along x-axis, minus angles to keep chassis straight
+                rewards[index] = sim_states_[index][0];// - fabs(sim_states_[index][3]) - fabs(sim_states_[index][4]) - fabs(sim_states_[index][5]);
+#endif
                 static double max_reward = -1e30;
                 static double min_reward = 1e30;
                 if (rewards[index] < min_reward)
@@ -429,8 +447,16 @@ struct AntVecEnv
                 rewards[index] = 0;
             }
 
-            //Ant height needs to stay above 0.25
+            //Ant height needs to stay above 0.25a
+#ifdef USE_ANT
             if (sim_states_[index][2] < 0.26)
+#else
+
+            double threshold = 0.6;
+            if ((sim_states_[index][3] < -threshold) ||(sim_states_[index][3] > threshold) ||
+                (sim_states_[index][4] < -threshold) ||(sim_states_[index][4] > threshold) ||
+                (sim_states_[index][5] < -threshold) ||(sim_states_[index][5] > threshold))
+#endif
             {
                 dones[index] =  true;
             }  else
@@ -463,7 +489,7 @@ struct PolicyParams
 ///////////////////////////////////////////
 // create graphics
 OpenGLUrdfVisualizer<MyAlgebra> visualizer;
-AntContactSimulation<MyAlgebra> contact_sim;
+ContactSimulation<MyAlgebra> contact_sim;
 tds::UrdfStructures<MyAlgebra> urdf_structures;
 
 std::vector<int> visual_instances;
@@ -482,7 +508,8 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
           int offset = contact_sim.mb_->dof() + contact_sim.mb_->dof_qd();
           int instance_index = index*num_instances_per_robot;
   
-          for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) {
+          for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) 
+          {
             int l = ll-5;
             for (int v = 0; v < num_instances[l]; v++)
             {
@@ -490,22 +517,33 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
                 if (visual_instance_id >= 0)
                 {
 
-                    ::TINY::TinyVector3f pos(sim_states_with_graphics[step][offset + l * 7 + 0],
-                        sim_states_with_graphics[step][offset + l * 7 + 1],
-                        sim_states_with_graphics[step][offset + l * 7 + 2]);
-                    ::TINY::TinyQuaternionf orn(
-                        sim_states_with_graphics[step][offset + l * 7 + 3],
-                        sim_states_with_graphics[step][offset + l * 7 + 4],
-                        sim_states_with_graphics[step][offset + l * 7 + 5],
-                        sim_states_with_graphics[step][offset + l * 7 + 6]);
+                    float x = sim_states_with_graphics[step][offset + l * 7 + 3];
+                    float y = sim_states_with_graphics[step][offset + l * 7 + 4];
+                    float z = sim_states_with_graphics[step][offset + l * 7 + 5];
+                    float w = sim_states_with_graphics[step][offset + l * 7 + 6];
 
-                    pos[0] += sim_spacing * (index % square_id) - square_id * sim_spacing / 2;
-                    pos[1] += sim_spacing * (index / square_id) - square_id * sim_spacing / 2;
+                    if (x == 0.f && y == 0.f && z == 0.f && w == 0.f) 
+                    {
+                    } else
+                    {
 
-                    visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                        ::TINY::TinyVector3f pos(sim_states_with_graphics[step][offset + l * 7 + 0],
+                            sim_states_with_graphics[step][offset + l * 7 + 1],
+                            sim_states_with_graphics[step][offset + l * 7 + 2]);
+                        ::TINY::TinyQuaternionf orn(
+                            sim_states_with_graphics[step][offset + l * 7 + 3],
+                            sim_states_with_graphics[step][offset + l * 7 + 4],
+                            sim_states_with_graphics[step][offset + l * 7 + 5],
+                            sim_states_with_graphics[step][offset + l * 7 + 6]);
+
+                        pos[0] += sim_spacing * (index % square_id) - square_id * sim_spacing / 2;
+                        pos[1] += sim_spacing * (index / square_id) - square_id * sim_spacing / 2;
+
+                        visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                    }
                 }
             }
-        }
+          }
      }
     visualizer.render();
    
@@ -625,9 +663,22 @@ struct Worker
 
            for (int index=0;index<g_num_total_threads;index++)
            {
-                trajectories[index].push_back(env_.sim_states_with_graphics_[index]);
-                total_rewards[index] += (rewards[index] - shift);
-                vec_steps[index]++;
+               if (dones[index])
+               {
+                   int sz = trajectories[index].size();
+                   if (sz)
+                   {
+                       const auto& prev = trajectories[index][sz-1];
+                        trajectories[index].push_back(prev);
+                   }
+               } else
+               {
+                    trajectories[index].push_back(env_.sim_states_with_graphics_[index]);
+                    total_rewards[index] += (rewards[index] - shift);
+                    vec_steps[index]++;
+               }
+               
+                
            }
         }
     }
@@ -689,7 +740,7 @@ struct Worker
             
             for (int step=0;step< trajectories[0].size();step++)
             {
-                visualize_trajectories(trajectories, step, true);
+                visualize_trajectories(trajectories, step, false);
             }
             for (int index=0;index<g_num_total_threads;index++)
             {
@@ -732,11 +783,11 @@ struct Worker
             
             rollouts(cuda_model_ant, shift, rollout_length_train_, pos_rewards, vec_pos_steps, trajectories);
             
-            for (int step=0;step< trajectories[0].size();step++)
-            {
-                visualize_trajectories(trajectories, step, false);
-            }
-            
+            //for (int step=0;step< trajectories[0].size();step++)
+            //{
+            //    visualize_trajectories(trajectories, step, false);
+            //}
+                        
             for (int index=0;index<g_num_total_threads;index++)
             {
                 std::vector<double> weights;
@@ -801,15 +852,15 @@ struct ARSLearner
     std::vector<double> w_policy;
 
     int total_timesteps{0};
-    int num_deltas_{32};
+    int num_deltas_{g_num_total_threads};
     int shift_{0};
     
     std::vector<double> deltas_;
 
     
     Worker* worker_{0};
-    int rollout_length_train_{1000};
-    int rollout_length_eval_{1000};
+    int rollout_length_train_{2000};
+    int rollout_length_eval_{2000};
     double delta_std_{0.03};
     double sgd_step_size { 0.02};
 
@@ -981,8 +1032,10 @@ struct ARSLearner
         double best_mean_rewards = -1e30;
         
         for (int iter=0;iter< num_iter;iter++) {
+            //printf("iteration=%d\n", iter);
 
-            //t1 = time.time()
+            auto t1 = std::chrono::steady_clock::now();
+            
             train_step();
 
             //update mean/std
@@ -1001,8 +1054,9 @@ struct ARSLearner
                 }
             }
 
-            //t2 = time.time()
-            //print('total time of one step', t2 - t1)           
+            auto t2 = std::chrono::steady_clock::now();
+            double past_sec = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+            printf("total time of step %d: %f\n", iter+1, past_sec);
 
             //print('iter ', i,' done')
 
@@ -1149,7 +1203,7 @@ int main()
   
   
 
-    std::string model_name = "cuda_model_ant";
+    
     
     CudaModel<MyScalar> cuda_model_ant(model_name);
 
@@ -1231,7 +1285,7 @@ int main()
               ::TINY::TinyVector3f color(1, 1, 1);
               //visualizer.m_b2vis
               instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
-                  sphere_shape, pos, orn, color, scaling);
+                  sphere_shape, pos, orn, color, scaling,1., false);
               visual_instances.push_back(instance);
               num_instances_per_link++;
 
@@ -1242,7 +1296,8 @@ int main()
       }
   }
 
-    
+  visualizer.m_opengl_app.m_renderer->rebuild_graphics_instances();
+
 #endif
 #if 0
   std::string file_name = "D:/dev/tds/tiny-differentiable-simulator/build_cmake/examples/ars/trajectory_reward117.566790.bin";

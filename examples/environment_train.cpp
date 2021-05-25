@@ -227,11 +227,11 @@ struct cartpole_problem {
         double avg_reward = 0;
         int num_rollouts = 20;
         
-        CartpoleContactSimulation<MyAlgebra> m_cartpole_sim;
+        //CartpoleContactSimulation<MyAlgebra> m_cartpole_sim;
 
         for(int k=0;k<num_rollouts;k++)
         {
-            CartpoleEnv env(m_cartpole_sim);
+            CartpoleEnv<MyAlgebra> env;
             env.init_neural_network(x);
             
             auto obs = env.reset();

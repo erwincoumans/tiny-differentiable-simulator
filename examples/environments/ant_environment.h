@@ -54,7 +54,7 @@ struct AntContactSimulation {
         return num_timesteps * state_dim(); 
     }
 
-    int action_dim_{8};
+    int action_dim_{(int)ant_initial_poses.size()};
     std::vector<Scalar> action_;
 
     AntContactSimulation() {
