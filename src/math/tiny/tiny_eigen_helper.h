@@ -99,6 +99,23 @@ static TinyMatrixXxX<TinyScalar, TinyConstants> pseudo_inverse(
   return from_eigen<TinyScalar, TinyConstants>(im);
 }
 
+
+template <typename Scalar>
+static Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> pseudo_inverse(
+    const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& m) {
+
+    Eigen::CompleteOrthogonalDecomposition<
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>
+    cod(m);
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> J_pinv =
+    cod.pseudoInverse();
+    return J_pinv;
+}
+
+
+
+
+
 /**
  * Solves V2 = L^-1 * V for input vector V,
  * given that this matrix is triangular so that only the lower triangular

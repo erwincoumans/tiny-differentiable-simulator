@@ -341,6 +341,8 @@ public:
       q_[3] = Algebra::one();  // make sure orientation is valid
     }
 
+    clear_forces();
+    base_acceleration_.set_zero();
     base_abi_ = base_rbi_;
 
     if (is_floating_ && !base_abi_.is_invertible()) {

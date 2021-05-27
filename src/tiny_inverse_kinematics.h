@@ -201,10 +201,11 @@ namespace TINY {
                     delta_theta = Algebra::mul_transpose(J, e);
                 }
                 if constexpr (kMethod == IK_JAC_PINV) {
-#ifdef USE_EIGEN
-//                  auto J_pinv = pseudo_inverse(J);
-//                    delta_theta = J_pinv * e;
-#endif  // USE_EIGEN
+
+                  auto J_pinv = pseudo_inverse(J);
+                  
+                  delta_theta = J_pinv * e;
+
                 } else if constexpr (kMethod == IK_DAMPED_LM) {
 #ifdef USE_EIGEN
                     MatrixXxX JJTe_lambda2_I = J * J.transpose();
@@ -242,8 +243,8 @@ namespace TINY {
             result.ik_status = IK_RESULT_FAILED;
             return result;
         }
-        bool compute(const MultiBody& mb, VectorX& q) const {
-            return compute(mb, mb.m_q, q);
+        TinyIKResult<Scalar> compute(const MultiBody& mb, VectorX& q) const {
+            return compute(mb, mb.q_, q);
         }
     };
 }; //namespace TINY

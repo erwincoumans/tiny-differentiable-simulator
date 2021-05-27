@@ -716,8 +716,8 @@ struct UrdfParser {
     urdf_string = std::string((std::istreambuf_iterator<char>(ifs)),
                               std::istreambuf_iterator<char>());
 
-    StdLogger logger;
-    //NullLogger logger;
+    //StdLogger logger;
+    NullLogger logger;
     int flags = 0;
     UrdfStructures urdf_structures;
     load_urdf_from_string(urdf_string, flags, logger, urdf_structures);
