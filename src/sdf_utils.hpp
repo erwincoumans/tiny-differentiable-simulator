@@ -34,21 +34,4 @@ struct MarchingCubesConfig {
   bool compute_normals = true;
 };
 
-template <typename Algebra>
-class SDF {
-  using Vector3 = typename Algebra::Vector3;
-
- protected:
-  Vector3 max_boundaries;
-  Vector3 min_boundaries;
-
- public:
-  // getters for the boundaries of the geometry
-  const Vector3& get_max_boundaries() const { return max_boundaries; }
-
-  const Vector3& get_min_boundaries() const { return min_boundaries; }
-
-  virtual typename Algebra::Scalar distance(
-      const typename Algebra::Vector3& point) const = 0;
-};
 }  // namespace tds
