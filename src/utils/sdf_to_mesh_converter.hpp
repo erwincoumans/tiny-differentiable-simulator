@@ -13,7 +13,7 @@ namespace tds {
 
 template <typename Algebra>
 RenderShape convert_sdf_to_mesh(
-    const SDF<Algebra> &shape, int num_cells,
+    const Geometry<Algebra> &shape, int num_cells,
     bool compute_normals = true)  // const references
 {
   using Vector3 = typename Algebra::Vector3;

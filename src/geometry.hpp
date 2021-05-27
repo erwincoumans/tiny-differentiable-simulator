@@ -44,10 +44,26 @@ class Geometry {
   explicit Geometry(int type) : type(type) {}
   virtual ~Geometry() = default;
   int get_type() const { return type; }
+
+  // SDF related members
+ public:
+  const Vector3& get_max_boundaries() const { return max_boundaries; }
+  const Vector3& get_min_boundaries() const { return min_boundaries; }
+  virtual typename Algebra::Scalar distance(
+      const typename Algebra::Vector3& point) const {
+    std::string error_str("SDF distance computation is not supported for this geometry type: ");
+    error_str += std::to_string(type);
+    throw std::runtime_error(error_str);
+  }
+
+ protected:
+  Vector3 max_boundaries;
+  Vector3 min_boundaries;
+
 };
 
 template <typename Algebra>
-class Sphere : public Geometry<Algebra>, public SDF<Algebra> {
+class Sphere : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
@@ -80,7 +96,7 @@ class Sphere : public Geometry<Algebra>, public SDF<Algebra> {
 
 // capsule aligned with the Z axis
 template <typename Algebra>
-class Capsule : public Geometry<Algebra>, public SDF<Algebra> {
+class Capsule : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
@@ -137,10 +153,16 @@ class Plane : public Geometry<Algebra> {
 
  public:
   Plane(const Vector3 &normal = Algebra::unit3_z(),
-        const Scalar &constant = Algebra::zero())
+        const Scalar &constant = Algebra::zero(),
+        const Scalar &bound = Scalar(500))
       : Geometry<Algebra>(TINY_PLANE_TYPE),
         normal(normal),
-        constant(constant) {}
+        constant(constant) {
+          // TODO: Find a good boundary for redering planes
+          // Scalar bound = constant > Scalar(5.0) ? Scalar(2) * constant : Scalar(10.);
+          this->max_boundaries = Vector3(bound, bound, bound);
+          this->min_boundaries = Vector3(-bound, -bound, -bound);
+        }
 
   template <typename AlgebraTo = Algebra>
   Plane<AlgebraTo> clone() const {
@@ -150,6 +172,10 @@ class Plane : public Geometry<Algebra> {
 
   const Vector3 &get_normal() const { return normal; }
   const Scalar &get_constant() const { return constant; }
+
+  Scalar distance(const Vector3& p) const override {
+    return Algebra::dot(p, this->normal) / Algebra::norm(this->normal) - this->constant;
+  }
 };
 
 template <typename AlgebraFrom, typename AlgebraTo>
@@ -168,7 +194,7 @@ static TINY_INLINE Geometry<AlgebraTo> *clone(const Geometry<AlgebraFrom> *g) {
 }
 
 template <typename Algebra>
-class Cylinder : public Geometry<Algebra>, public SDF<Algebra> {
+class Cylinder : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 

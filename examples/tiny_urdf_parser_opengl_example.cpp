@@ -29,6 +29,9 @@
 #include "urdf/urdf_cache.hpp"
 #include "tiny_visual_instance_generator.h"
 
+// If set to 1, uses sdf to generate the base plane. Otherwise, uses the default plane object
+#define USE_SDF_PLANE 1
+
 
 int num_total_threads = 1;
 bool enable_sleep = true;
@@ -271,6 +274,31 @@ int main(int argc, char* argv[]) {
   
   if (use_plane)
   {
+#if USE_SDF_PLANE
+      // Use the purple_checker as the texture file
+      std::string texture_filename = "checker_purple.png";
+      std::string texture_path;
+      tds::FileUtils::find_file(texture_filename, texture_path);
+      std::vector<unsigned char> buffer;
+      int width, height, n;
+      unsigned char* image =
+        stbi_load(texture_path.c_str(), &width, &height, &n, 3);
+
+      int textureIndex =
+        visualizer.m_opengl_app.m_renderer->register_texture(image, width, height);
+      free(image);
+
+      tds::Plane<MyAlgebra> base_plane;
+      tds::RenderShape gen_mesh = tds::convert_sdf_to_mesh(base_plane, 100);
+      int shape_id = visualizer.m_opengl_app.m_instancingRenderer->register_shape(&gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
+              &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
+              textureIndex);
+      TinyVector3f pos(0, 0, 0);
+      TinyQuaternionf orn(0, 0, 0, 1);
+      TinyVector3f scaling(1, 1, 1);
+      TinyVector3f color(1, 1, 1);
+      int instance_id = visualizer.m_opengl_app.m_instancingRenderer->register_graphics_instance(shape_id, pos, orn, color, scaling, 1.0);
+#else
       std::vector<int> shape_ids;
       std::string plane_filename;
       FileUtils::find_file("plane100.obj", plane_filename);
@@ -278,6 +306,7 @@ int main(int argc, char* argv[]) {
       TinyQuaternionf orn(0, 0, 0, 1);
       TinyVector3f scaling(1, 1, 1);
       visualizer.load_obj(plane_filename, pos, orn, scaling, shape_ids);
+#endif
   }
 
   //int sphere_shape = shape_ids[0];
