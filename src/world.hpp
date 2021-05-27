@@ -62,7 +62,7 @@ class World {
   std::vector<std::vector<MultiBodyContactPoint>> mb_contacts_;
 
  
-  int num_solver_iterations{50};
+  int num_solver_iterations{1};
 
   // default contact settings
   Scalar default_friction{Algebra::fraction(5, 10)};
@@ -109,6 +109,11 @@ class World {
     if (rb_constraint_solver_) {
       delete rb_constraint_solver_;
       rb_constraint_solver_ = nullptr;
+    }
+    if (mb_constraint_solver_)
+    {
+        delete mb_constraint_solver_;
+        mb_constraint_solver_ = nullptr;
     }
   }
 

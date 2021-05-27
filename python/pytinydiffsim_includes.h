@@ -29,8 +29,9 @@
 #include "dynamics/jacobian.hpp"
 #include "math/neural_network.hpp"
 #include "utils/file_utils.hpp"
-#ifdef ENABLE_CARTPOLE_TEST_ENV
+#ifdef ENABLE_TEST_ENVS
 #include "examples/environments/cartpole_environment.h"
+#include "examples/environments/ant_environment.h"
 #endif//ENABLE_CARTPOLE_TEST_ENV
 
 #ifdef _WIN32
@@ -178,6 +179,18 @@ MyScalar MyMax(MyScalar a, MyScalar b)
 MyScalar MyMin(MyScalar a, MyScalar b)
 {
     return MyAlgebra::min(a, b);
+}
+
+MyScalar MyWhereGT(MyScalar a, MyScalar b, MyScalar x, MyScalar y) {
+    return tds::where_gt(a, b, x, y);
+}
+
+MyScalar MyWhereLT(MyScalar a, MyScalar b, MyScalar x, MyScalar y) {
+    return tds::where_lt(a, b, x, y);
+}
+
+MyScalar MyWhereEQ(MyScalar a, MyScalar b, MyScalar x, MyScalar y) {
+    return tds::where_eq(a, b, x, y);
 }
 
 MyScalar MyClip(MyScalar v, MyScalar low, MyScalar high) {

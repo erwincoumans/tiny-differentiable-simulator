@@ -53,23 +53,21 @@ class CartpolePyTinyDiffSim(gym.Env):
     self.tds_env.seed(s)
     return [seed]
 
-  def step(self, action):
-    
-    force = action[0]
-    
-    result = self.tds_env.step(force)
-    
-    self.state = result.obs
-    theta, theta_dot, x, x_dot = self.state
+  def rollout(self, max_steps, shift):
+    res = self.tds_env.rollout(max_steps, shift)
+    return res.total_reward, res.num_steps
+  
+  def policy(self, ob):
+      ac = self.tds_env.policy(ob)
+      return [ac]
 
-    done =  x < -self.x_threshold \
-                or x > self.x_threshold \
-                or theta < -self.theta_threshold_radians \
-                or theta > self.theta_threshold_radians
-    done = bool(done)
-    #print("done=",done)
-    reward = 1.0
+  def step(self, action):
+    force = action[0]
+    result = self.tds_env.step(force)
+    self.state = result.obs
     #print("state=",self.state)
+    done = result.done
+    reward = 1.0
     return np.array(self.state), reward, done, {}
 
   def reset(self):
@@ -77,16 +75,21 @@ class CartpolePyTinyDiffSim(gym.Env):
     #print("self.state=", self.state)
     return np.array(self.state)
 
+  def update_weights(self, weights):
+    #print("dir(self.tds_env=)", dir(self.tds_env))
+    self.tds_env.update_weights(weights)
+    
   def render(self, mode='human', close=False):
-    if mode == "human":
-      self._renders = True
-    if mode != "rgb_array":
-      return np.array([])
-    px = np.array([[[255,255,255,255]]*self._render_width]*self._render_height, dtype=np.uint8)
-    rgb_array = np.array(px, dtype=np.uint8)
-    rgb_array = np.reshape(np.array(px), (self._render_height, self._render_width, -1))
-    rgb_array = rgb_array[:, :, :3]
-    return rgb_array
+    #print("render mode=", mode)
+    #if mode == "human":
+    #  self._renders = True
+    #if mode != "rgb_array":
+    #  return np.array([])
+    #px = np.array([[[255,255,255,255]]*self._render_width]*self._render_height, dtype=np.uint8)
+    #rgb_array = np.array(px, dtype=np.uint8)
+    #rgb_array = np.reshape(np.array(px), (self._render_height, self._render_width, -1))
+    #rgb_array = rgb_array[:, :, :3]
+    return []
 
   def configure(self, args):
     pass
