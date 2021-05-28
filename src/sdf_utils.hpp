@@ -34,4 +34,4 @@ struct MarchingCubesConfig {
   bool compute_normals = true;
 };
 
-}  // namespace tds
+} // namespace tds

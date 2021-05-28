@@ -61,7 +61,8 @@ int main(int argc, char **argv) {
 
   std::vector<unsigned char> texels;
   texels.resize(texWidth * texHeight * 3);
-  for (int i = 0; i < texWidth * texHeight * 3; i++) texels[i] = 255;
+  for (int i = 0; i < texWidth * texHeight * 3; i++)
+    texels[i] = 255;
 
   for (int i = 0; i < texWidth; i++) {
     for (int j = 0; j < texHeight; j++) {

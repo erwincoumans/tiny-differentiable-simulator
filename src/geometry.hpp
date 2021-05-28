@@ -27,57 +27,56 @@ enum GeometryTypes {
   TINY_SPHERE_TYPE = 0,
   TINY_PLANE_TYPE,
   TINY_CAPSULE_TYPE,
-  TINY_MESH_TYPE,      // only for visual shapes at the moment
-  TINY_BOX_TYPE,       // only for visual shapes at the moment
-  TINY_CYLINDER_TYPE,  // unsupported
+  TINY_MESH_TYPE,     // only for visual shapes at the moment
+  TINY_BOX_TYPE,      // only for visual shapes at the moment
+  TINY_CYLINDER_TYPE, // unsupported
   TINY_MAX_GEOM_TYPE,
 };
 
-template <typename Algebra>
-class Geometry {
+template <typename Algebra> class Geometry {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
   int type;
 
- public:
+public:
   explicit Geometry(int type) : type(type) {}
   virtual ~Geometry() = default;
   int get_type() const { return type; }
 
   // SDF related members
- public:
-  const Vector3& get_max_boundaries() const { return max_boundaries; }
-  const Vector3& get_min_boundaries() const { return min_boundaries; }
-  virtual typename Algebra::Scalar distance(
-      const typename Algebra::Vector3& point) const {
-    std::string error_str("SDF distance computation is not supported for this geometry type: ");
+public:
+  const Vector3 &get_max_boundaries() const { return max_boundaries; }
+  const Vector3 &get_min_boundaries() const { return min_boundaries; }
+  virtual typename Algebra::Scalar
+  distance(const typename Algebra::Vector3 &point) const {
+    std::string error_str(
+        "SDF distance computation is not supported for this geometry type: ");
     error_str += std::to_string(type);
     throw std::runtime_error(error_str);
   }
 
- protected:
+protected:
   Vector3 max_boundaries;
   Vector3 min_boundaries;
-
 };
 
-template <typename Algebra>
-class Sphere : public Geometry<Algebra> {
+template <typename Algebra> class Sphere : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
   Scalar radius;
 
- public:
+public:
   explicit Sphere(const Scalar &radius)
       : Geometry<Algebra>(TINY_SPHERE_TYPE), radius(radius) {
-    this->max_boundaries = Vector3(Scalar(2) * radius, Scalar(2) * radius, Scalar(2) * radius);
-    this->min_boundaries = Vector3(Scalar(-2) * radius, Scalar(-2) * radius, Scalar(-2) * radius);
+    this->max_boundaries =
+        Vector3(Scalar(2) * radius, Scalar(2) * radius, Scalar(2) * radius);
+    this->min_boundaries =
+        Vector3(Scalar(-2) * radius, Scalar(-2) * radius, Scalar(-2) * radius);
   }
 
-  template <typename AlgebraTo = Algebra>
-  Sphere<AlgebraTo> clone() const {
+  template <typename AlgebraTo = Algebra> Sphere<AlgebraTo> clone() const {
     typedef Conversion<Algebra, AlgebraTo> C;
     return Sphere<AlgebraTo>(C::convert(radius));
   }
@@ -95,15 +94,14 @@ class Sphere : public Geometry<Algebra> {
 };
 
 // capsule aligned with the Z axis
-template <typename Algebra>
-class Capsule : public Geometry<Algebra> {
+template <typename Algebra> class Capsule : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
   Scalar radius;
   Scalar length;
 
- public:
+public:
   explicit Capsule(const Scalar &radius, const Scalar &length)
       : Geometry<Algebra>(TINY_CAPSULE_TYPE), radius(radius), length(length) {
     Scalar bound = Scalar(1.2) * (radius + length / Scalar(2));
@@ -111,8 +109,7 @@ class Capsule : public Geometry<Algebra> {
     this->min_boundaries = Vector3(-bound, -bound, -bound);
   }
 
-  template <typename AlgebraTo = Algebra>
-  Capsule<AlgebraTo> clone() const {
+  template <typename AlgebraTo = Algebra> Capsule<AlgebraTo> clone() const {
     typedef Conversion<Algebra, AlgebraTo> C;
     return Capsule<AlgebraTo>(C::convert(radius), C::convert(length));
   }
@@ -138,34 +135,32 @@ class Capsule : public Geometry<Algebra> {
 
   Scalar distance(const Vector3 &p) const override {
     Vector3 pt(p.x(), p.y(),
-               p.z() - std::clamp(p.z(), -this->length / Scalar(2), this->length / Scalar(2)));
+               p.z() - std::clamp(p.z(), -this->length / Scalar(2),
+                                  this->length / Scalar(2)));
     return Algebra::norm(pt) - this->radius;
   }
 };
 
-template <typename Algebra>
-class Plane : public Geometry<Algebra> {
+template <typename Algebra> class Plane : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
   Vector3 normal;
   Scalar constant;
 
- public:
+public:
   Plane(const Vector3 &normal = Algebra::unit3_z(),
         const Scalar &constant = Algebra::zero(),
         const Scalar &bound = Scalar(500))
-      : Geometry<Algebra>(TINY_PLANE_TYPE),
-        normal(normal),
-        constant(constant) {
-          // TODO: Find a good boundary for redering planes
-          // Scalar bound = constant > Scalar(5.0) ? Scalar(2) * constant : Scalar(10.);
-          this->max_boundaries = Vector3(bound, bound, bound);
-          this->min_boundaries = Vector3(-bound, -bound, -bound);
-        }
+      : Geometry<Algebra>(TINY_PLANE_TYPE), normal(normal), constant(constant) {
+    // TODO: Find a good boundary for redering planes
+    // Scalar bound = constant > Scalar(5.0) ? Scalar(2) * constant :
+    // Scalar(10.);
+    this->max_boundaries = Vector3(bound, bound, bound);
+    this->min_boundaries = Vector3(-bound, -bound, -bound);
+  }
 
-  template <typename AlgebraTo = Algebra>
-  Plane<AlgebraTo> clone() const {
+  template <typename AlgebraTo = Algebra> Plane<AlgebraTo> clone() const {
     typedef Conversion<Algebra, AlgebraTo> C;
     return Plane<AlgebraTo>(C::convert(normal), C::convert(constant));
   }
@@ -173,35 +168,35 @@ class Plane : public Geometry<Algebra> {
   const Vector3 &get_normal() const { return normal; }
   const Scalar &get_constant() const { return constant; }
 
-  Scalar distance(const Vector3& p) const override {
-    return Algebra::dot(p, this->normal) / Algebra::norm(this->normal) - this->constant;
+  Scalar distance(const Vector3 &p) const override {
+    return Algebra::dot(p, this->normal) / Algebra::norm(this->normal) -
+           this->constant;
   }
 };
 
 template <typename AlgebraFrom, typename AlgebraTo>
 static TINY_INLINE Geometry<AlgebraTo> *clone(const Geometry<AlgebraFrom> *g) {
   switch (g->get_type()) {
-    case TINY_SPHERE_TYPE:
-      return new Sphere<AlgebraTo>(
-          ((Sphere<AlgebraFrom> *)g)->template clone<AlgebraTo>());
-    case TINY_CAPSULE_TYPE:
-      return new Capsule<AlgebraTo>(
-          ((Capsule<AlgebraFrom> *)g)->template clone<AlgebraTo>());
-    case TINY_PLANE_TYPE:
-      return new Plane<AlgebraTo>(
-          ((Plane<AlgebraFrom> *)g)->template clone<AlgebraTo>());
+  case TINY_SPHERE_TYPE:
+    return new Sphere<AlgebraTo>(
+        ((Sphere<AlgebraFrom> *)g)->template clone<AlgebraTo>());
+  case TINY_CAPSULE_TYPE:
+    return new Capsule<AlgebraTo>(
+        ((Capsule<AlgebraFrom> *)g)->template clone<AlgebraTo>());
+  case TINY_PLANE_TYPE:
+    return new Plane<AlgebraTo>(
+        ((Plane<AlgebraFrom> *)g)->template clone<AlgebraTo>());
   }
 }
 
-template <typename Algebra>
-class Cylinder : public Geometry<Algebra> {
+template <typename Algebra> class Cylinder : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
 
   Scalar radius;
   Scalar length;
 
- public:
+public:
   Cylinder(const Scalar &radius, const Scalar &length)
       : Geometry<Algebra>(TINY_CYLINDER_TYPE), radius(radius), length(length) {
     Scalar bound = (radius + length / Scalar(2));
@@ -209,8 +204,7 @@ class Cylinder : public Geometry<Algebra> {
     this->min_boundaries = Vector3(-bound, -bound, -bound);
   }
 
-  template <typename AlgebraTo = Algebra>
-  Cylinder<AlgebraTo> clone() const {
+  template <typename AlgebraTo = Algebra> Cylinder<AlgebraTo> clone() const {
     typedef Conversion<Algebra, AlgebraTo> C;
     return Cylinder<AlgebraTo>(C::convert(radius), C::convert(length));
   }
@@ -221,7 +215,7 @@ class Cylinder : public Geometry<Algebra> {
   Scalar distance(const Vector3 &p) const override {
     // The Marching Cubes algorithm is not very good at sharp edges
     // Define a small rounding radius to smooth the edge of the two faces
-    Scalar rb = radius / Scalar(20);  // Can be exposed to the users
+    Scalar rb = radius / Scalar(20); // Can be exposed to the users
 
     Scalar lxy = Algebra::sqrt(p.x() * p.x() + p.y() * p.y());
     Scalar lz = Algebra::abs(p.z());
@@ -234,4 +228,4 @@ class Cylinder : public Geometry<Algebra> {
     return min_d + max_d - rb;
   }
 };
-}  // namespace tds
+} // namespace tds
