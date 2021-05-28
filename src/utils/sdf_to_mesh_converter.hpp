@@ -12,9 +12,8 @@
 namespace tds {
 
 template <typename Algebra>
-RenderShape convert_sdf_to_mesh(
-    const Geometry<Algebra> &shape, int num_cells,
-    bool compute_normals = true)  // const references
+RenderShape convert_sdf_to_mesh(const Geometry<Algebra> &shape, int num_cells,
+                                bool compute_normals = true) // const references
 {
   using Vector3 = typename Algebra::Vector3;
   using Vector4 = MC::Vector4<Algebra>;
@@ -41,12 +40,12 @@ RenderShape convert_sdf_to_mesh(
   Vector3 stepSize((mcMaxX - mcMinX) / ncellsX, (mcMaxY - mcMinY) / ncellsY,
                    (mcMaxZ - mcMinZ) / ncellsZ);
 
-  int YtimesZ = (ncellsY + 1) * (ncellsZ + 1);  // for extra speed
+  int YtimesZ = (ncellsY + 1) * (ncellsZ + 1); // for extra speed
   for (int i = 0; i < ncellsX + 1; i++) {
-    int ni = i * YtimesZ;  // for speed
+    int ni = i * YtimesZ; // for speed
     float vertX = mcMinX + i * stepSize.x();
     for (int j = 0; j < ncellsY + 1; j++) {
-      int nj = j * (ncellsZ + 1);  // for speed
+      int nj = j * (ncellsZ + 1); // for speed
       float vertY = mcMinY + j * stepSize.y();
       for (int k = 0; k < ncellsZ + 1; k++) {
         Vector4 vert(vertX, vertY, mcMinZ + k * stepSize.z(), 0);
@@ -147,4 +146,4 @@ RenderShape convert_sdf_to_mesh(
   return render_mesh;
 }
 
-}  // namespace tds
+} // namespace tds
