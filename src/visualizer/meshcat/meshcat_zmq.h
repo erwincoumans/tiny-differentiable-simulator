@@ -287,11 +287,9 @@ inline void send_zmq(zmq::socket_t &sock, nlohmann::json cmd,
   if (recv_result) {
     memcpy(buf, reply.data(), reply.size());
     buf[reply.size()] = 0;
-    std::string d(buf);
-    nlohmann::json result = nlohmann::json::from_msgpack(d, false);
+    //nlohmann::json result = nlohmann::json::from_msgpack(buf, false);
     if (verbose) {
-      std::cout << result.dump(4) << std::endl;
-      std::cout << "Received:" << d << std::endl;
+      std::cout << buf << std::endl;
     }
   }
 }
