@@ -210,8 +210,12 @@ public:
   TINY_INLINE const ForceVector &base_bias_force() const {
     return base_bias_force_;
   }
-  TINY_INLINE RigidBodyInertia &base_rbi() { return base_rbi_; }
-  TINY_INLINE const RigidBodyInertia &base_rbi() const { return base_rbi_; }
+  TINY_INLINE RigidBodyInertia &base_rbi() { 
+      return base_rbi_; 
+  }
+  TINY_INLINE const RigidBodyInertia &base_rbi() const { 
+      return base_rbi_; 
+  }
   TINY_INLINE ArticulatedBodyInertia &base_abi() { return base_abi_; }
   TINY_INLINE const ArticulatedBodyInertia &base_abi() const {
     return base_abi_;
