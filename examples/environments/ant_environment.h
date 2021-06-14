@@ -76,8 +76,8 @@ struct AntContactSimulation {
         world.get_mb_constraint_solver()->keep_all_points_ = true;
         world.get_mb_constraint_solver()->pgs_iterations_ = 1;
         
-        Scalar combinedContactStiffness = 1.;
-        Scalar combinedContactDamping = .1;
+        Scalar combinedContactStiffness ( 1.);
+        Scalar combinedContactDamping ( .1);
 
         Scalar denom = (dt * combinedContactStiffness + combinedContactDamping);
         if (denom < 1e-6)
@@ -146,9 +146,9 @@ struct AntContactSimulation {
                     std::vector<double> q_targets;
                     q_targets.resize(mb_->tau_.size());
 
-                    Scalar kp = 15;
-                    Scalar kd = 0.3;
-                    Scalar max_force = 3.;
+                    Scalar kp (15);
+                    Scalar kd (0.3);
+                    Scalar max_force ( 3.);
                     int param_index = 0;
 
                     for (int i = 0; i < mb_->tau_.size(); i++) {
@@ -163,9 +163,9 @@ struct AntContactSimulation {
                             if (pose_index<ant_initial_poses.size())
                             {
                                 //clamp action 
-                                Scalar ACTION_LIMIT_LOW = (i%2==0)? -0.5 : -1.1+0.5;
-                                Scalar ACTION_LIMIT_HIGH = (i%2==0)? 0.5 : 0;
-                                Scalar clamped_action = action_[pose_index]*10.;
+                                Scalar ACTION_LIMIT_LOW ( (i%2==0)? -0.5 : -1.1+0.5);
+                                Scalar ACTION_LIMIT_HIGH ( (i%2==0)? 0.5 : 0);
+                                Scalar clamped_action = action_[pose_index]*Scalar(10.);
                                 clamped_action = Algebra::min(clamped_action, ACTION_LIMIT_HIGH);
                                 clamped_action = Algebra::max(clamped_action, ACTION_LIMIT_LOW);
 
@@ -174,7 +174,7 @@ struct AntContactSimulation {
                                 Scalar q_actual = mb_->q_[q_offset];
                                 Scalar qd_actual = mb_->qd_[qd_offset];
                                 Scalar position_error = (q_desired - q_actual);
-                                Scalar desired_velocity = 0;
+                                Scalar desired_velocity ( 0.);
                                 Scalar velocity_error = (desired_velocity - qd_actual);
                                 Scalar force = kp * position_error + kd * velocity_error;
 
