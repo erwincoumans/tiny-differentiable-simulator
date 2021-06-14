@@ -87,6 +87,8 @@ print(platform)
 CXX_FLAGS = ''
 CXX_FLAGS += '-fpermissive '
 CXX_FLAGS += '-D_USE_MATH_DEFINES '
+CXX_FLAGS += '-DUSE_EIGEN '
+
 
 
 # libraries += [current_python]
