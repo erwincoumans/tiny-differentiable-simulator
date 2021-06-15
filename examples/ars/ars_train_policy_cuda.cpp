@@ -4,6 +4,7 @@
 #include <string>
 
 //#include "../environments/cartpole_environment.h"
+#define USE_ANT
 #ifdef USE_ANT
 #include "../environments/ant_environment.h"
 #define ContactSimulation AntContactSimulation
