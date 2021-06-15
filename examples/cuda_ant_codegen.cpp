@@ -1,3 +1,4 @@
+//#define DISABLE_RENDERING
 //#define DEBUG_MODEL
 // clang-format off
 #include "utils/differentiation.hpp"
@@ -7,8 +8,10 @@
 #include "math/tiny/tiny_algebra.hpp"
 #include "urdf/urdf_cache.hpp"
 #include "utils/stopwatch.hpp"
+#ifndef DISABLE_RENDERING
 #include "visualizer/opengl/visualizer.h"
 #include "opengl_urdf_visualizer.h"
+#endif
 #include "utils/file_utils.hpp"
 
 #include <cstdio>
@@ -100,7 +103,11 @@ int main(int argc, char* argv[]) {
       num_total_threads, std::vector<Scalar>(simulation.output_dim()));
 
   std::vector<std::vector<Scalar>> inputs(num_total_threads);
+#ifndef DEBUG_MODEL
+  cuda_model_ant.forward_zero.allocate(num_total_threads);
+#endif //DEBUG_MODEL
 
+#ifndef DISABLE_RENDERING
   OpenGLUrdfVisualizer<DiffAlgebra> visualizer;
   visualizer.delete_all();
   TinyOpenGL3App& app = visualizer.m_opengl_app;
@@ -113,7 +120,7 @@ int main(int argc, char* argv[]) {
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
   // install ffmpeg in path and uncomment, to enable video recording
   // app.dump_frames_to_video("test.mp4");
-
+  #
 
 
 
@@ -206,9 +213,6 @@ int main(int argc, char* argv[]) {
 
   visualizer.m_opengl_app.m_renderer->rebuild_graphics_instances();
 
-#ifndef DEBUG_MODEL
-  cuda_model_ant.forward_zero.allocate(num_total_threads);
-#endif //DEBUG_MODEL
 
   std::vector< TinyVector3f> positions;
   std::vector<unsigned int> indices;
@@ -220,7 +224,11 @@ int main(int argc, char* argv[]) {
   const int square_id = (int)std::sqrt((double)num_total_threads);
   //sim_spacing is the visual distance between independent parallel simulations
   const float sim_spacing = 5.f;
+
   while (!visualizer.m_opengl_app.m_window->requested_exit()) {
+#else //DISABLE_RENDERING
+  for (int f=0;f<100;f++) {
+#endif //DISABLE_RENDERING
     for (int i = 0; i < num_total_threads; ++i) {
       inputs[i] = std::vector<Scalar>(simulation.input_dim_with_action(), Scalar(0));
 
@@ -256,8 +264,10 @@ int main(int argc, char* argv[]) {
     }
     for (int t = 0; t < 1000; ++t) {
 
+#ifndef DISABLE_RENDERING
         positions.resize(0);
         indices.resize(0);
+#endif
 
       timer.start();
       // call GPU kernel
@@ -285,6 +295,7 @@ int main(int argc, char* argv[]) {
           }
       }
 
+#ifndef DISABLE_RENDERING
       sync_counter++;
       
       if (sync_counter >= frameskip_gfx_sync) {
@@ -356,7 +367,7 @@ int main(int argc, char* argv[]) {
           visualizer.render();
           //std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync* contact_sim.dt));
       }
-
+#endif //DISABLE_RENDERING
 
     }
   }
