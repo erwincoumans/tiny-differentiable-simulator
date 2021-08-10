@@ -749,10 +749,14 @@ struct TinyAlgebra {
     return TinyConstants::sin1(s);
   }
 
+  TINY_INLINE static Scalar asin(const Scalar& s) {
+    return TinyConstants::asin(s);
+  }
+
   TINY_INLINE static Scalar cos(const Scalar &s) {
     return TinyConstants::cos1(s);
   }
-  
+
   TINY_INLINE static Scalar acos(const Scalar &s) {
     return TinyConstants::acos(s);
   }
