@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "math/pose.hpp"
-#include "sdf_utils.hpp"
+#include <cassert>
 
 namespace tds {
 enum GeometryTypes {
@@ -50,10 +50,9 @@ public:
   const Vector3 &get_min_boundaries() const { return min_boundaries; }
   virtual typename Algebra::Scalar
   distance(const typename Algebra::Vector3 &point) const {
-    std::string error_str(
-        "SDF distance computation is not supported for this geometry type: ");
-    error_str += std::to_string(type);
-    throw std::runtime_error(error_str);
+    //SDF distance computation is not supported for this geometry type
+    assert(0);
+    return Algebra::zero();
   }
 
 protected:
@@ -153,7 +152,7 @@ public:
         const Scalar &constant = Algebra::zero(),
         const Scalar &bound = Scalar(500))
       : Geometry<Algebra>(TINY_PLANE_TYPE), normal(normal), constant(constant) {
-    // TODO: Find a good boundary for redering planes
+    // TODO: Find a good boundary for rendering planes
     // Scalar bound = constant > Scalar(5.0) ? Scalar(2) * constant :
     // Scalar(10.);
     this->max_boundaries = Vector3(bound, bound, bound);

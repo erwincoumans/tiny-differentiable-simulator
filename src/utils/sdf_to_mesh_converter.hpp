@@ -8,8 +8,18 @@
 #include "sdf_utils.hpp"
 #include "utils/sdf_to_mesh/marching_cubes.hpp"
 #include "visualizer/opengl/tiny_opengl3_app.h"
+#include "visualizer/opengl/tiny_gl_instancing_renderer.h"
 
 namespace tds {
+
+struct RenderShape {
+  std::vector<GfxVertexFormat1> vertices;
+  std::vector<int> indices;
+
+  size_t num_triangles;
+  size_t num_vertices;
+};
+
 
 template <typename Algebra>
 RenderShape convert_sdf_to_mesh(const Geometry<Algebra> &shape, int num_cells,
