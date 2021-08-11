@@ -1,48 +1,35 @@
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Labeled_mesh_domain_3.h>
-#include <CGAL/Mesh_complex_3_in_triangulation_3.h>
-#include <CGAL/Mesh_criteria_3.h>
-#include <CGAL/Mesh_triangulation_3.h>
-#include <CGAL/Polygon_mesh_processing/compute_normal.h>
-#include <CGAL/Surface_mesh/Surface_mesh.h>
-#include <CGAL/make_mesh_3.h>
-
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
 
+#include "geometry.hpp"
+#include "math/tiny/tiny_algebra.hpp"
+#include "math/tiny/tiny_double_utils.h"
 #include "stb_image/stb_image.h"
 #include "tiny_obj_loader.h"
 #include "utils/file_utils.hpp"
+#include "utils/sdf_to_mesh/marching_cubes.hpp"
 #include "utils/sdf_to_mesh_converter.hpp"
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_chrome_trace_util.h"
 #include "visualizer/opengl/utils/tiny_logging.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::FT FT;
-typedef K::Point_3 Point;
-typedef FT(Function)(const Point &);
-typedef CGAL::Labeled_mesh_domain_3<K> Mesh_domain;
-
-#ifdef CGAL_CONCURRENT_MESH_3
-typedef CGAL::Parallel_tag Concurrency_tag;
-#else
-typedef CGAL::Sequential_tag Concurrency_tag;
-#endif
-
-typedef CGAL::Mesh_triangulation_3<Mesh_domain, CGAL::Default,
-                                   Concurrency_tag>::type Tr;
-typedef CGAL::Mesh_complex_3_in_triangulation_3<Tr> C3t3;
-typedef CGAL::Mesh_criteria_3<Tr> Mesh_criteria;
-using namespace CGAL::parameters;
+typedef TinyAlgebra<double, TINY::DoubleUtils> Algebra;
+using Vector3 = typename Algebra::Vector3;
 using namespace TINY;
 
-FT sphere_function(const Point &p) {
-  return CGAL::squared_distance(p, Point(CGAL::ORIGIN)) - 1.0;
+float simple_squared_distance(Vector3 p1, Vector3 p2) {
+  return sqrtf(pow(p1.x() - p2.x(), 2) + pow(p1.y() - p2.y(), 2) +
+               pow(p1.z() - p2.z(), 2));
 }
+
+double simple_sphere_function(Vector3 p) {
+  return simple_squared_distance(p, Vector3::zero()) - 1.0;
+}
+
+MC::FORMULA<Algebra> sphere_function(simple_sphere_function);
 
 int main(int argc, char **argv) {
   TinyOpenGL3App app("sdf_to_mesh_test", 1024, 768);
@@ -52,21 +39,15 @@ int main(int argc, char **argv) {
   app.m_renderer->get_active_camera()->set_camera_pitch(-30);
   app.m_renderer->get_active_camera()->set_camera_target_position(0, 0, 0);
 
-  Mesh_domain domain = Mesh_domain::create_implicit_mesh_domain(
-      sphere_function, K::Sphere_3(CGAL::ORIGIN, 3.0));
-  Mesh_criteria criteria(facet_angle = 30.0, facet_size = 0.3,
-                         facet_distance = 0.025, cell_radius_edge = 2.0,
-                         cell_size = 0.1);
+  // Shapes that can be rendered
+  tds::Sphere<Algebra> sphere(1.0);
+  tds::Capsule<Algebra> capsule(1.0, 1.0);
+  tds::Cylinder<Algebra> cylinder(1.0, 2.0);
+  tds::Plane<Algebra> plane;
 
-  // Outputing mesh in medit format to a file
-  // std::ofstream medit_file("out.mesh");
-  // c3t3.output_to_medit(medit_file);
+  tds::RenderShape shape = tds::convert_sdf_to_mesh<Algebra>(sphere, 100);
 
-  // Directly reading into local data structures
-  SdfToMeshConverter<K, Tr> mesh(sphere_function, domain, criteria);
-  auto shape = mesh.convert_to_shape();
-
-  TinyVector3f pos(0, 0, -0.02);
+  TinyVector3f pos(0, 0, 0);
   TinyQuaternionf orn(0, 0, 0, 1);
   TinyVector3f color(1, 1, 1);
   TinyVector3f scaling(1, 1, 1);
@@ -105,7 +86,7 @@ int main(int argc, char **argv) {
                                                opacity);
   }
 
-  pos.setValue(0, 0, -0.02);
+  pos.setValue(0, 0, 0);
 
   textureIndex = app.m_instancingRenderer->register_texture(
       &texels[0], texWidth, texHeight);
@@ -116,7 +97,7 @@ int main(int argc, char **argv) {
   int instance_id = app.m_renderer->register_graphics_instance(
       shape_id, pos, orn, color, scaling, 1.f);
 
-  int upAxis = 2;
+  int upAxis = 1;
   app.m_renderer->write_transforms();
   while (!app.m_window->requested_exit()) {
     app.m_renderer->update_camera(upAxis);
