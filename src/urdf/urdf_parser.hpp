@@ -197,15 +197,15 @@ struct UrdfParser {
         parse_vector3(geom.box.extents, shape->Attribute("size"), logger);
       }
     } else if (type_name == "cylinder") {
-      geom.geom_type = TINY_CAPSULE_TYPE;
+      geom.geom_type = TINY_CYLINDER_TYPE;
       if (!shape->Attribute("length") || !shape->Attribute("radius")) {
         logger.report_error(
             "Cylinder shape must have both length and radius attributes");
         return false;
       }
-      geom.capsule.radius =
+      geom.cylinder.radius =
           Algebra::scalar_from_string(shape->Attribute("radius"));
-      geom.capsule.length =
+      geom.cylinder.length =
           Algebra::scalar_from_string(shape->Attribute("length"));
     } else if (type_name == "capsule") {
       geom.geom_type = TINY_CAPSULE_TYPE;
