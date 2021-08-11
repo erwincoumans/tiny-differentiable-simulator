@@ -2,16 +2,10 @@
 
 #include <functional>
 
-#include "visualizer/opengl/tiny_gl_instancing_renderer.h"
 
 namespace tds {
-struct RenderShape {
-  std::vector<GfxVertexFormat1> vertices;
-  std::vector<int> indices;
+  
 
-  size_t num_triangles;
-  size_t num_vertices;
-};
 
 struct MarchingCubesConfig {
   float minX;

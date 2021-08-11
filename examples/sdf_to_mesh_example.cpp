@@ -41,11 +41,11 @@ int main(int argc, char **argv) {
 
   // Shapes that can be rendered
   tds::Sphere<Algebra> sphere(1.0);
-  tds::Capsule<Algebra> capsule(1.0, 1.0);
-  tds::Cylinder<Algebra> cylinder(1.0, 2.0);
+  tds::Capsule<Algebra> capsule(0.1, 1.0);
+  tds::Cylinder<Algebra> cylinder(.1, 2.0);
   tds::Plane<Algebra> plane;
-
-  tds::RenderShape shape = tds::convert_sdf_to_mesh<Algebra>(sphere, 100);
+  
+  tds::RenderShape shape = tds::convert_sdf_to_mesh<Algebra>(cylinder, 100);
 
   TinyVector3f pos(0, 0, 0);
   TinyQuaternionf orn(0, 0, 0, 1);
