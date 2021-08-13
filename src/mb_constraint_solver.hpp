@@ -154,27 +154,47 @@ class MultiBodyConstraintSolver {
     return needs_outer_iterations_;
   }
 
+  virtual std::vector<ContactPoint> resolve_collision2(const std::vector<ContactPoint>& org_cps,
+                                                      const Scalar& dt) {
+    std::vector<ContactPoint> cps;
+    for (int i=0;i<org_cps.size();i++)
+    {
+      auto cp = org_cps[i];
+      if (keep_all_points_ || cp.distance<Algebra::zero())
+              cps.push_back(org_cps[i]);
+    }
+    resolve_collision_internal(cps, dt);
+    return cps;
+  }
+
+  virtual void resolve_collision(const std::vector<ContactPoint>& org_cps, const Scalar& dt) {
+    std::vector<ContactPoint> cps;
+    cps.resize(0);
+
+    for (int i=0;i<org_cps.size();i++)
+    {
+        auto cp = org_cps[i];
+        if (keep_all_points_ || cp.distance<Algebra::zero())
+            cps.push_back(org_cps[i]);
+    }
+    resolve_collision_internal(cps, dt);
+  }
+
+  
+
   // Solve impulse-based collision response using MLCP formulation from
   // Jakub Stępień, PhD Thesis, 2013.
   //
   // Args:
   // cps: contact points with distances < 0
   // dt : delta time (in seconds)
-  virtual std::vector<ContactPoint> resolve_collision(const std::vector<ContactPoint>& org_cps,
-                                                      const Scalar& dt) {
- 
-    std::vector<ContactPoint> cps;
 
-    for (int i=0;i<org_cps.size();i++)
-    {
-        auto cp = org_cps[i];
-        
-        if (keep_all_points_ || cp.distance<Algebra::zero())
-            cps.push_back(org_cps[i]);
-    }
+  virtual void resolve_collision_internal(std::vector<ContactPoint> cps,
+                                const Scalar& dt) {
+  
 
     if (cps.empty()) 
-        return cps;
+        return;
 
     const int n_c = static_cast<int>(cps.size());
 
@@ -186,7 +206,7 @@ class MultiBodyConstraintSolver {
     const int n_a = mb_a->dof_qd();
     const int n_b = mb_b->dof_qd();
     const int n_ab = n_a + n_b;
-    if (n_ab == 0) return cps;
+    if (n_ab == 0) return;
 
     MatrixX mass_matrix_a(n_a, n_a);
     mass_matrix(*mb_a, &mass_matrix_a);
@@ -474,7 +494,6 @@ class MultiBodyConstraintSolver {
         mb_b->qd(i) -= delta_qd_b[i];
       }
     }
-    return cps;
   }
 
   /**
