@@ -160,8 +160,8 @@ class MultiBodyConstraintSolver {
   // Args:
   // cps: contact points with distances < 0
   // dt : delta time (in seconds)
-  virtual void resolve_collision(const std::vector<ContactPoint>& org_cps,
-                                 const Scalar& dt) {
+  virtual std::vector<ContactPoint> resolve_collision(const std::vector<ContactPoint>& org_cps,
+                                                      const Scalar& dt) {
  
     std::vector<ContactPoint> cps;
 
@@ -174,7 +174,7 @@ class MultiBodyConstraintSolver {
     }
 
     if (cps.empty()) 
-        return;
+        return cps;
 
     const int n_c = static_cast<int>(cps.size());
 
@@ -186,7 +186,7 @@ class MultiBodyConstraintSolver {
     const int n_a = mb_a->dof_qd();
     const int n_b = mb_b->dof_qd();
     const int n_ab = n_a + n_b;
-    if (n_ab == 0) return;
+    if (n_ab == 0) return cps;
 
     MatrixX mass_matrix_a(n_a, n_a);
     mass_matrix(*mb_a, &mass_matrix_a);
@@ -420,7 +420,15 @@ class MultiBodyConstraintSolver {
                 least_squares_residual_threshold_, &con_lo, &con_hi);
       submit_profile_timing("");
     }
-    //    lcp_p.print("MLCP impulse solution");
+    // Algebra::print("MLCP", lcp_p);
+
+    // Save forces in contact points
+    for (int i = 0; i < n_c; ++i) {
+      ContactPoint& cp = cps[i];
+      cp.normal_force = lcp_p[i * 3 + 0];
+      cp.lateral_friction_1 = lcp_p[i * 3 + 1];
+      cp.lateral_friction_2 = lcp_p[i * 3 + 2];
+    }
 
     if (n_a > 0) {
       //normal impulse
@@ -466,6 +474,7 @@ class MultiBodyConstraintSolver {
         mb_b->qd(i) -= delta_qd_b[i];
       }
     }
+    return cps;
   }
 
   /**

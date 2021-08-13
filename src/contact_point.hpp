@@ -14,6 +14,9 @@ struct ContactPoint {
   Vector3 world_point_on_a;
   Vector3 world_point_on_b;
   Scalar distance;
+  Scalar normal_force;
+  Scalar lateral_friction_1;
+  Scalar lateral_friction_2;
 
   template <typename AlgebraTo = Algebra>
   ContactPoint<AlgebraTo> clone() const {
@@ -23,6 +26,9 @@ struct ContactPoint {
     conv.world_point_on_a = C::convert(world_point_on_a);
     conv.world_point_on_b = C::convert(world_point_on_b);
     conv.distance = C::convert(distance);
+    conv.normal_force = C::convert(normal_force);
+    conv.lateral_friction_1 = C::convert(lateral_friction_1);
+    conv.lateral_friction_2 = C::convert(lateral_friction_2);
     return conv;
   }
 };
