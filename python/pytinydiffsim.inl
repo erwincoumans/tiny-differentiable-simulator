@@ -698,7 +698,7 @@
       m, "TinyMultiBodyConstraintSolver")
       .def(py::init<>())
       .def("resolve_collision",
-           &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision)
+           &MultiBodyConstraintSolver<MyAlgebra>::resolve_collision2)
       .def_readwrite("pgs_iterations_", &MultiBodyConstraintSolver<MyAlgebra>::pgs_iterations_)
       .def_readwrite("keep_all_points_", &MultiBodyConstraintSolver<MyAlgebra>::keep_all_points_)
       .def_readwrite("cfm_", &MultiBodyConstraintSolver<MyAlgebra>::cfm_)

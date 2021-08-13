@@ -31,7 +31,8 @@
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
 
-#define USE_SDF_TO_MESH 1
+// disabled #define USE_SDF_TO_MESH, since code crashes when radius == 0
+// #define USE_SDF_TO_MESH
 
 template <typename Algebra> struct OpenGLUrdfVisualizer {
   typedef ::tds::UrdfStructures<Algebra> TinyUrdfStructures;
@@ -223,7 +224,7 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
             free(image);
           }
         }
-#if USE_SDF_TO_MESH
+#ifdef USE_SDF_TO_MESH
         // Yizhou: Instead of hardcoding the mesh, use the sdf_to_mesh
         // generator to generate the mesh
         ::tds::Sphere<Algebra> gen_sphere(v.geometry.sphere.radius);
@@ -251,7 +252,7 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
         break;
       }
       case ::tds::TINY_CAPSULE_TYPE: {
-#if USE_SDF_TO_MESH
+#ifdef USE_SDF_TO_MESH
         ::tds::Capsule<Algebra> gen_capsule(v.geometry.capsule.radius,
                                             v.geometry.capsule.length);
         ::tds::RenderShape gen_mesh =
