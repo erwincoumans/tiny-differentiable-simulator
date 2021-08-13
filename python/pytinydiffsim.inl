@@ -644,7 +644,13 @@
       .def_readwrite("world_point_on_b",
                      &ContactPoint<MyAlgebra>::world_point_on_b)
       .def_readwrite("distance",
-                     &ContactPoint<MyAlgebra>::distance);
+                     &ContactPoint<MyAlgebra>::distance)
+      .def_readwrite("normal_force",
+                     &ContactPoint<MyAlgebra>::normal_force)
+      .def_readwrite("lateral_friction_1",
+                     &ContactPoint<MyAlgebra>::lateral_friction_1)
+      .def_readwrite("lateral_friction_2",
+                     &ContactPoint<MyAlgebra>::lateral_friction_2);
 
   py::class_<RigidBodyContactPoint<MyAlgebra>>(
       m, "TinyContactPointRigidBody", contact)
