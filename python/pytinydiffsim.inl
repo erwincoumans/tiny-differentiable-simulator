@@ -633,8 +633,7 @@
       .def("compute_contacts", &CollisionDispatcher<MyAlgebra>::compute_contacts2);
 
 
-  py::class_<ContactPoint<MyAlgebra>> contact(m,
-                                                            "TinyContactPoint");
+  py::class_<ContactPoint<MyAlgebra>> contact(m, "TinyContactPoint");
   contact.def(py::init<>())
       .def_readwrite(
           "world_normal_on_b",
@@ -647,10 +646,10 @@
                      &ContactPoint<MyAlgebra>::distance)
       .def_readwrite("normal_force",
                      &ContactPoint<MyAlgebra>::normal_force)
-      .def_readwrite("lateral_friction_1",
-                     &ContactPoint<MyAlgebra>::lateral_friction_1)
-      .def_readwrite("lateral_friction_2",
-                     &ContactPoint<MyAlgebra>::lateral_friction_2);
+      .def_readwrite("lateral_friction_force_1",
+                     &ContactPoint<MyAlgebra>::lateral_friction_force_1)
+      .def_readwrite("lateral_friction_force_2",
+                     &ContactPoint<MyAlgebra>::lateral_friction_force_2);
 
   py::class_<RigidBodyContactPoint<MyAlgebra>>(
       m, "TinyContactPointRigidBody", contact)
