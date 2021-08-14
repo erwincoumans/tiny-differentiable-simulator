@@ -445,9 +445,9 @@ class MultiBodyConstraintSolver {
     // Save forces in contact points
     for (int i = 0; i < n_c; ++i) {
       ContactPoint& cp = cps[i];
-      cp.normal_force = lcp_p[i * 3 + 0];
-      cp.lateral_friction_1 = lcp_p[i * 3 + 1];
-      cp.lateral_friction_2 = lcp_p[i * 3 + 2];
+      cp.normal_force = lcp_p[i * 3 + 0]/dt;
+      cp.lateral_friction_force_1 = lcp_p[i * 3 + 1]/dt;
+      cp.lateral_friction_force_2 = lcp_p[i * 3 + 2]/dt;
     }
 
     if (n_a > 0) {
