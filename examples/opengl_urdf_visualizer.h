@@ -27,12 +27,15 @@
 #include "tiny_obj_loader.h"
 #include "urdf_structures.hpp"
 #include "utils/file_utils.hpp"
-#include "utils/sdf_to_mesh_converter.hpp"
+
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
 
 // disabled #define USE_SDF_TO_MESH, since code crashes when radius == 0
 // #define USE_SDF_TO_MESH
+#ifdef USE_SDF_TO_MESH
+#include "utils/sdf_to_mesh_converter.hpp"
+#endif
 
 template <typename Algebra> struct OpenGLUrdfVisualizer {
   typedef ::tds::UrdfStructures<Algebra> TinyUrdfStructures;
@@ -276,7 +279,7 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
         b2v.shape_colors.push_back(color);
         break;
       }
-
+#ifdef USE_SDF_TO_MESH
       case ::tds::TINY_CYLINDER_TYPE: {
         ::tds::Cylinder<Algebra> gen_cylinder(v.geometry.cylinder.radius,
                                               v.geometry.cylinder.length);
@@ -291,6 +294,7 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
         b2v.shape_colors.push_back(color);
         break;
       }
+#endif
       case ::tds::TINY_BOX_TYPE: {
         float half_extentsx =
             0.5 * Algebra::to_double(v.geometry.box.extents[0]);
