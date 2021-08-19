@@ -31,7 +31,7 @@
 
 // If set to 1, uses sdf to generate the base plane. Otherwise, uses the default
 // plane object
-#define USE_SDF_PLANE 1
+//#define USE_SDF_PLANE 1
 
 int num_total_threads = 1;
 bool enable_sleep = true;

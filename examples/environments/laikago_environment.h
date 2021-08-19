@@ -1,5 +1,5 @@
-#ifndef CARTPOLE_ENVIRONMENT_H
-#define CARTPOLE_ENVIRONMENT_H
+#ifndef LAIKAGO_ENVIRONMENT_H
+#define LAIKAGO_ENVIRONMENT_H
 
 
 #include "math/neural_network.hpp"
@@ -12,8 +12,8 @@
 #include "math/neural_network.hpp"
 
 
-static double start_pos[] = {0,0,1.};
-static double start_orn[] = {0,0,0,1};
+static double start_pos1[3] = {0,0,1.};
+static double start_orn1[4] = {0,0,0,1};
 
 static bool laikago_is_floating = false;
 static double laikago_knee_angle = -0.7;
@@ -80,7 +80,18 @@ struct ContactSimulation {
         //}
     }
 
-    std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
+     std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
+
+        std::vector<Scalar> action(action_dim_);
+        for (int i=0;i<action_dim_;i++)
+        {
+            action[i] = v[i+ mb_->dof()+mb_->dof_qd()];
+        }
+        return (*this)(v,action);
+    }
+    
+
+    std::vector<Scalar> operator()(const std::vector<Scalar>& v, const std::vector<Scalar>& action) {
         //assert(static_cast<int>(v.size()) == input_dim());
         mb_->initialize();
         //copy input into q, qd
@@ -93,7 +104,7 @@ struct ContactSimulation {
 
         for (int i=0;i<action_dim_;i++)
         {
-            action_[i] = v[i+ mb_->dof()+mb_->dof_qd()];
+            action_[i] = action[i];
         }
 
         std::vector<Scalar> result(output_dim());
@@ -108,9 +119,9 @@ struct ContactSimulation {
                 std::vector<double> q_targets;
                 q_targets.resize(mb_->tau_.size());
 
-                Scalar kp ( 100.);
-                Scalar kd ( 2.);
-                Scalar max_force ( 50.);
+                Scalar kp = 100.;
+                Scalar kd = 2.;
+                Scalar max_force = 50.;
                 int param_index = 0;
 
                 for (int i = 0; i < mb_->tau_.size(); i++) {
@@ -127,7 +138,7 @@ struct ContactSimulation {
                         {
                             //clamp action 
                             Scalar clamped_action = action_[pose_index];
-                            Scalar ACTION_LIMIT ( 0.4);
+                            Scalar ACTION_LIMIT = 0.4;
                             clamped_action = Algebra::min(clamped_action, ACTION_LIMIT);
                             clamped_action = Algebra::max(clamped_action, -ACTION_LIMIT);
 
@@ -137,7 +148,7 @@ struct ContactSimulation {
                             Scalar q_actual = mb_->q_[q_offset];
                             Scalar qd_actual = mb_->qd_[qd_offset];
                             Scalar position_error = (q_desired - q_actual);
-                            Scalar desired_velocity (0.);
+                            Scalar desired_velocity = 0;
                             Scalar velocity_error = (desired_velocity - qd_actual);
                             Scalar force = kp * position_error + kd * velocity_error;
 
@@ -315,10 +326,11 @@ struct LaikagoEnv
         Scalar up_dot_world_z = base_tr.rotation(2,2);
         //Laikago needs to point up, angle > 30 degree (0.523599 radians)
         //if (up_dot_world_z < 0.85 || sim_state[2] < 0.3)
-        if ((sim_state[2] < 0.3) || (sim_state[2] > 1.) || 
-            (sim_state[3] < 0.8) || (sim_state[3] > 1.2) ||
-            (sim_state[4] < 0.8) || (sim_state[4] > 1.2) ||
-            (sim_state[5] < 0.8) || (sim_state[5] > 1.2))
+        if ((sim_state[2] < 0.3) || (sim_state[2] > 1.)  
+            //(sim_state[3] < 0.8) || (sim_state[3] > 1.2) ||
+            //(sim_state[4] < 0.8) || (sim_state[4] > 1.2) ||
+            //(sim_state[5] < 0.8) || (sim_state[5] > 1.2)
+            )
         {
             done =  true;
         }  else
@@ -343,4 +355,4 @@ struct LaikagoEnv
 
 
 
-#endif //CARTPOLE_ENVIRONMENT_H
+#endif //LAIKAGO_ENVIRONMENT_H

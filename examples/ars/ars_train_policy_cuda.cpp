@@ -4,7 +4,7 @@
 #include <string>
 
 //#include "../environments/cartpole_environment.h"
-#define USE_ANT
+//#define USE_ANT
 #ifdef USE_ANT
 #include "../environments/ant_environment.h"
 #define ContactSimulation AntContactSimulation
@@ -262,7 +262,7 @@ struct AntVecRolloutOutput
 template <typename Algebra>
 struct AntVecEnv
 {
-    ContactSimulation<Algebra> contact_sim_;
+    ContactSimulation<Algebra> contact_sim;
     using Scalar = typename Algebra::Scalar;
     using Vector3 = typename Algebra::Vector3;
     using Transform = typename Algebra::Transform;
@@ -283,7 +283,7 @@ struct AntVecEnv
         sim_states_with_action_.resize(g_num_total_threads);
         sim_states_with_graphics_.resize(g_num_total_threads);
 
-        observation_dim_ = contact_sim_.input_dim();
+        observation_dim_ = contact_sim.input_dim();
         bool use_input_bias = false;
         for (int index=0;index<g_num_total_threads;index++)
         {
@@ -317,11 +317,11 @@ struct AntVecEnv
         for (int index=0;index<g_num_total_threads;index++)
         {
             sim_states_[index].resize(0);
-            sim_states_[index].resize(contact_sim_.input_dim(), Scalar(0));
+            sim_states_[index].resize(contact_sim.input_dim(), Scalar(0));
             MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
             MyAlgebra::Quaternion start_orn (0,0,0,1);
 
-            if (contact_sim_.mb_->is_floating())
+            if (contact_sim.mb_->is_floating())
             {
             
                 //sim_state[0] = start_orn.x();
@@ -383,7 +383,7 @@ struct AntVecEnv
     {
 
         std::vector<std::vector<Scalar>> outputs(
-      g_num_total_threads, std::vector<Scalar>(contact_sim_.output_dim()));
+        g_num_total_threads, std::vector<Scalar>(contact_sim.output_dim()));
 
         std::vector<std::vector<Scalar>> inputs(g_num_total_threads);
 
@@ -418,7 +418,7 @@ struct AntVecEnv
         {
             sim_states_[index] = sim_states_with_graphics_[index];
 
-            sim_states_[index].resize(contact_sim_.input_dim());
+            sim_states_[index].resize(contact_sim.input_dim());
             observations[index] = sim_states_[index];
         
             if (!dones[index])
@@ -784,10 +784,10 @@ struct Worker
             
             rollouts(cuda_model_ant, shift, rollout_length_train_, pos_rewards, vec_pos_steps, trajectories);
             
-            //for (int step=0;step< trajectories[0].size();step++)
-            //{
-            //    visualize_trajectories(trajectories, step, false);
-            //}
+            for (int step=0;step< trajectories[0].size();step++)
+            {
+                visualize_trajectories(trajectories, step, false);
+            }
                         
             for (int index=0;index<g_num_total_threads;index++)
             {
@@ -808,10 +808,10 @@ struct Worker
 
             rollouts(cuda_model_ant, shift, rollout_length_train_, neg_rewards, vec_neg_steps,trajectories);
 
-            //for (int step=0;step<trajectories[0].size();step++)
-            //{
-            //    visualize_trajectories(trajectories, step);
-            //}
+            for (int step=0;step<trajectories[0].size();step++)
+            {
+                visualize_trajectories(trajectories, step,false);
+            }
 
             for (int index=0;index<g_num_total_threads;index++)
             {
@@ -861,7 +861,7 @@ struct ARSLearner
     
     Worker* worker_{0};
     int rollout_length_train_{2000};
-    int rollout_length_eval_{2000};
+    int rollout_length_eval_{6000};
     double delta_std_{0.03};
     double sgd_step_size { 0.02};
 

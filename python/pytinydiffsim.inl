@@ -673,9 +673,9 @@
       .def_readwrite("normal_force",
                      &ContactPoint<MyAlgebra>::normal_force)
       .def_readwrite("lateral_friction_force_1",
-                     &ContactPoint<MyAlgebra>::lateral_friction_1)
+                     &ContactPoint<MyAlgebra>::lateral_friction_force_1)
       .def_readwrite("lateral_friction_force_2",
-                     &ContactPoint<MyAlgebra>::lateral_friction_2)
+                     &ContactPoint<MyAlgebra>::lateral_friction_force_2)
       .def_readwrite("fr_direction_1",
                      &ContactPoint<MyAlgebra>::fr_direction_1)
       .def_readwrite("fr_direction_2",

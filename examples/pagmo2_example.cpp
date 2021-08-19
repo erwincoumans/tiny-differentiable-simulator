@@ -89,7 +89,7 @@ struct cartpole_problem {
         int num_rollouts = 20;
         for(int k=0;k<num_rollouts;k++)
         {
-            CartpoleEnv env(m_cartpole_sim);
+            CartpoleEnv<MyAlgebra> env;//(m_cartpole_sim);
             auto obs = env.reset();
 
             double total_reward = 0;
