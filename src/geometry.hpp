@@ -22,6 +22,8 @@
 
 #include "math/pose.hpp"
 #include <cassert>
+#undef min
+#undef max
 
 namespace tds {
 enum GeometryTypes {

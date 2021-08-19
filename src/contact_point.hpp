@@ -15,8 +15,8 @@ struct ContactPoint {
   Vector3 world_point_on_b;
   Scalar distance;
   Scalar normal_force;
-  Scalar lateral_friction_1;
-  Scalar lateral_friction_2;
+  Scalar lateral_friction_force_1;
+  Scalar lateral_friction_force_2;
   Vector3 fr_direction_1;
   Vector3 fr_direction_2;
 
