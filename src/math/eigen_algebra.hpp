@@ -50,6 +50,10 @@ struct EigenAlgebraT {
     return matrix.transpose();
   }
 
+  EIGEN_ALWAYS_INLINE static MatrixX transpose(const MatrixX &matrix) {
+    return matrix.transpose();
+  }
+
   template <typename T>
   EIGEN_ALWAYS_INLINE static auto inverse(const T &matrix) {
     return matrix.inverse();
@@ -347,6 +351,20 @@ struct EigenAlgebraT {
     }
     return res;
   }
+  
+  EIGEN_ALWAYS_INLINE static MatrixX mult(const MatrixX &a,
+                                          const MatrixX &b) {
+    return a * b;
+  }
+
+  EIGEN_ALWAYS_INLINE static VectorX mult(const MatrixX &a,
+                                          const VectorX &b) {
+    return a * b;
+  }
+  EIGEN_ALWAYS_INLINE static Vector3 mult(const MatrixX &a,
+                                          const Vector3 &b) {
+    return a * b;
+  }
 
   template <typename T1, typename T2>
   EIGEN_ALWAYS_INLINE static auto dot(const T1 &vector_a, const T2 &vector_b) {
@@ -418,6 +436,13 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 eye3() { return Matrix3::Identity(); }
+
+  EIGEN_ALWAYS_INLINE static MatrixX eye(int n) { 
+      MatrixX mat(n, n);
+      mat.setIdentity();
+      return mat;
+  }
+
   EIGEN_ALWAYS_INLINE static void set_identity(Quaternion &quat) {
     quat.setIdentity();
   }
