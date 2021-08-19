@@ -18,6 +18,7 @@
 
 #include <stdexcept>
 #include <vector>
+#include <algorithm>
 
 #include "math/pose.hpp"
 #include <cassert>
