@@ -17,6 +17,8 @@ struct ContactPoint {
   Scalar normal_force;
   Scalar lateral_friction_1;
   Scalar lateral_friction_2;
+  Vector3 fr_direction_1;
+  Vector3 fr_direction_2;
 
   template <typename AlgebraTo = Algebra>
   ContactPoint<AlgebraTo> clone() const {
@@ -29,6 +31,8 @@ struct ContactPoint {
     conv.normal_force = C::convert(normal_force);
     conv.lateral_friction_1 = C::convert(lateral_friction_1);
     conv.lateral_friction_2 = C::convert(lateral_friction_2);
+    conv.fr_direction_1 = C::convert(fr_direction_1);
+    conv.fr_direction_2 = C::convert(fr_direction_2);
     return conv;
   }
 };

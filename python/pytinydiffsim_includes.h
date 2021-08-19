@@ -197,6 +197,10 @@ MyScalar MyClip(MyScalar v, MyScalar low, MyScalar high) {
     return MyAlgebra::max(MyAlgebra::min(v, high), low);
 }
 
+MyScalar MySqrt(MyScalar v) {
+    return MyAlgebra::sqrt(v);
+}
+
 MyAlgebra::Quaternion QuaternionDifference(const MyAlgebra::Quaternion &q_start, const MyAlgebra::Quaternion &q_end) {
     return MyAlgebra::quat_difference(q_start, q_end);
 }
