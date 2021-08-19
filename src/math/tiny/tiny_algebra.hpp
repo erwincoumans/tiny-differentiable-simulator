@@ -145,6 +145,25 @@ struct TinyAlgebra {
     return res;
   }
 
+  TINY_INLINE static MatrixX mult(const MatrixX &a,
+                                  const MatrixX &b) {
+    return a * b;
+  }
+
+  TINY_INLINE static VectorX mult(const MatrixX &a,
+                                  const VectorX &b) {
+    return a * b;
+  }
+  TINY_INLINE static Vector3 mult(const MatrixX &a,
+                                  const Vector3 &b) {
+    VectorX vx = VectorX(3);
+    vx[0] = b.getX();
+    vx[1] = b.getY();
+    vx[2] = b.getZ();
+    vx = mult(a, vx);
+    return Vector3(vx[0], vx[1], vx[2]);
+  }
+
   template <typename T1, typename T2>
   TINY_INLINE static auto dot(const T1 &vector_a, const T2 &vector_b) {
     return vector_a.dot(vector_b);
@@ -242,6 +261,16 @@ struct TinyAlgebra {
    * Returns a 3x3 identity matrix.
    */
   TINY_INLINE static Matrix3 eye3() { return diagonal3(TinyConstants::one()); }
+
+  TINY_INLINE static MatrixX eye(int n) {
+    MatrixX mat = create_matrix_x(n, n);
+    mat.set_zero();
+    for (int i = 0; i < n; i++) {
+      mat(i, i) = one();
+    }
+    return mat;
+  }
+
   TINY_INLINE static void set_identity(Quaternion &quat) {
     quat.set_identity();
   }

@@ -384,6 +384,8 @@ class MultiBodyConstraintSolver {
         VectorX jac_b_i_fr2 = Algebra::mul_transpose(jac_b, fr_direction2);
         Algebra::assign_horizontal(jac_con, jac_b_i_fr2, 2 * n_c + i, n_a);
       }
+      cps[i].fr_direction_1 = fr_direction1;
+      cps[i].fr_direction_2 = fr_direction2;
     }
 
     // jac_con.print("Constraint Jacobian");
