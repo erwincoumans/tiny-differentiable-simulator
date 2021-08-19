@@ -95,7 +95,7 @@ class RaibertSwingLegController(leg_controller.LegController):
   """Controls the swing leg position using Raibert's formula.
 
   For details, please refer to chapter 2 in "Legged robbots that balance" by
-  Marc Raibert. The key idea is to stablize the swing foot's location based on
+  Marc Raibert. The key idea is to stabilize the swing foot's location based on
   the CoM moving speed.
 
   """
