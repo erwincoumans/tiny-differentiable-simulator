@@ -106,9 +106,6 @@
       .def("inverse", [](const Quaternion &q) {
           return MyAlgebra::inverse(q);
       })
-      .def("slerp", [](const Quaternion &start, const Quaternion &end, const MyScalar t) {
-          return MyAlgebra::quaternion_slerp(start, end, t);
-      })
       .def("get_euler_rpy", [](const Quaternion &q) {
           return MyAlgebra::get_euler_rpy(q);
       })
@@ -781,10 +778,10 @@
            &World<MyAlgebra>::compute_contacts_multi_body)
       .def("get_collision_dispatcher",
            &World<MyAlgebra>::get_collision_dispatcher)
-      //.def("get_mb_constraint_solver",
-      //     &World<MyAlgebra>::get_mb_constraint_solver)
-      //.def("set_mb_constraint_solver",
-      //     &World<MyAlgebra>::set_mb_constraint_solver)
+      .def("get_mb_constraint_solver",
+           &World<MyAlgebra>::get_mb_constraint_solver)
+      .def("set_mb_constraint_solver",
+           &World<MyAlgebra>::set_mb_constraint_solver)
       .def_readwrite("friction",
                      &World<MyAlgebra>::default_friction)
       .def_readwrite("restitution",

@@ -49,7 +49,7 @@ struct EigenAlgebraT {
   EIGEN_ALWAYS_INLINE static auto transpose(const T &matrix) {
     return matrix.transpose();
   }
-  
+
   EIGEN_ALWAYS_INLINE static MatrixX transpose(const MatrixX &matrix) {
     return matrix.transpose();
   }
@@ -423,11 +423,13 @@ struct EigenAlgebraT {
   }
 
   EIGEN_ALWAYS_INLINE static Matrix3 eye3() { return Matrix3::Identity(); }
+
   EIGEN_ALWAYS_INLINE static MatrixX eye(int n) { 
       MatrixX mat(n, n);
       mat.setIdentity();
       return mat;
   }
+
   EIGEN_ALWAYS_INLINE static void set_identity(Quaternion &quat) {
     quat.setIdentity();
   }
@@ -758,10 +760,6 @@ struct EigenAlgebraT {
     auto ang_ax = Eigen::AngleAxis<Scalar>(quat);
 
     return ang_ax.axis() * ang_ax.angle();
-  }
-
-  EIGEN_ALWAYS_INLINE static Quaternion quaternion_slerp(const Quaternion q_start, const Quaternion q_end, const Scalar t) {
-      return q_start.slerp(t, q_end);
   }
 
   EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(const Quaternion &start, 
