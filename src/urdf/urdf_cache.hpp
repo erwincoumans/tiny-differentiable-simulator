@@ -85,6 +85,34 @@ class UrdfCache {
     return mb;
   }
 
+    const UrdfStructures& retrieve_from_string(const std::string& urdf_filename,
+                                 const std::string& urdf_string,
+                                 bool ignore_cache = false) {
+    if (ignore_cache || data_.find(urdf_filename) == data_.end()) {
+      printf("Loading URDF \"%s\".\n", urdf_filename.c_str());
+      UrdfParser<Algebra> parser;
+      tds::UrdfStructures<Algebra> urdf_structures;
+      int flags = 0;
+      tds::NullLogger logger;
+      parser.load_urdf_from_string(urdf_string,flags, logger, urdf_structures);
+      data_[urdf_filename] = urdf_structures;
+    }
+    return data_[urdf_filename];
+  }
+  MultiBody<Algebra>* construct_from_string(const std::string& urdf_filename,
+                                const std::string& urdf_string,
+                                World<Algebra>& world,
+                                bool ignore_cache = false,
+                                bool is_floating = false,
+                                const std::string& name = "") {
+    MultiBody<Algebra>* mb = world.create_multi_body(name);
+    const auto& urdf_data = retrieve_from_string(urdf_filename, urdf_string, ignore_cache);
+    UrdfToMultiBody<Algebra>::convert_to_multi_body(urdf_data, world, *mb, 0);
+    mb->set_floating_base(is_floating);
+    mb->initialize();
+    return mb;
+  }
+
 #if USE_BULLET
   MultiBody<Algebra>* construct(const std::string& urdf_filename,
                                 World<Algebra>& world,

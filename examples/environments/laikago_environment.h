@@ -10,6 +10,8 @@
 #include "urdf/urdf_parser.hpp"
 #include "math.h"
 #include "math/neural_network.hpp"
+#include "plane_implicit_urdf.h"
+#include "laikago_toes_zup_xyz_xyzrot_urdf.h"
 
 
 static double start_pos1[3] = {0,0,1.};
@@ -27,7 +29,7 @@ std::vector<double> initial_poses_laikago2 = {
 
 
 template <typename Algebra>
-struct ContactSimulation {
+struct LaikagoContactSimulation {
     using Scalar = typename Algebra::Scalar;
     tds::UrdfCache<Algebra> cache;
     std::string m_urdf_filename;
@@ -53,19 +55,29 @@ struct ContactSimulation {
     int action_dim_{(int)initial_poses_laikago2.size()};
     std::vector<Scalar> action_;
 
-    ContactSimulation() {
-        std::string plane_filename;
-        tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
-        cache.construct(plane_filename, world, false, false);
-        //std::string urdf_name = "laikago/laikago_toes_zup_chassis_collision.urdf";
-        std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
-        //std::string urdf_name = "laikago/laikago_toes_zup.urdf";
+    LaikagoContactSimulation(bool urdf_from_file) {
 
-        tds::FileUtils::find_file(urdf_name, m_urdf_filename);
+        std::string plane_filename="plane_impl";
+        if (urdf_from_file)
+        {
+            tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
+            cache.construct(plane_filename, world, false, false);
+
+            std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
+            tds::FileUtils::find_file(urdf_name, m_urdf_filename);
+            mb_ = cache.construct(m_urdf_filename, world, false, laikago_is_floating);
+        } else
+        {
+            std::string plane_string = plane_implicit_urdf;
+            cache.construct_from_string(plane_filename, plane_string, world, false, false);
+
+            std::string urdf_name = "laikago_toes_zup_xyz_xyzrot.urdf";
+            std::string laikago_string = laikago_toes_zup_xyz_xyzrot_urdf;
+            mb_ = cache.construct_from_string(m_urdf_filename, laikago_string, world, false, laikago_is_floating);
+        }
         
         action_.resize(action_dim_);
-        
-        mb_ = cache.construct(m_urdf_filename, world, false, laikago_is_floating);
+
         mb_->base_X_world().set_identity();
         //mb_->base_X_world().translation = Algebra::Vector3(start_pos[0],start_pos[1],start_pos[2]);
         //mb_->base_X_world().rotation = Algebra::quat_to_matrix(Algebra::Quaternion(start_orn[0],start_orn[1],start_orn[2],start_orn[3]));
@@ -212,10 +224,11 @@ struct LaikagoEnv
 {
     using Scalar = typename Algebra::Scalar;
 
-    ContactSimulation<Algebra> contact_sim;
+    LaikagoContactSimulation<Algebra> contact_sim;
 
     int observation_dim_{0};
-    LaikagoEnv()
+    LaikagoEnv(bool urdf_from_file)
+        :contact_sim(urdf_from_file)
     {
         observation_dim_ = contact_sim.input_dim();
         bool use_input_bias = false;

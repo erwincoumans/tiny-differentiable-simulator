@@ -19,7 +19,7 @@
 #include <array>
 
 #include "environments/laikago_environment.h"
-#define LaikagoSimulation ContactSimulation
+#define LaikagoSimulation LaikagoContactSimulation
 #define system mb_
 using namespace TINY;
 
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
   using DiffAlgebra =
       tds::default_diff_algebra<tds::DIFF_CPPAD_CODEGEN_AUTO, 0, Scalar>::type;
 
-  LaikagoSimulation<DiffAlgebra> simulation;
+  LaikagoSimulation<DiffAlgebra> simulation(true);
 
   // trace function with all zeros as input
   std::vector<Dual> ax(simulation.input_dim_with_action(), Dual(0));

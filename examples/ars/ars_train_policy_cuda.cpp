@@ -14,6 +14,7 @@ std::string model_name = "cuda_model_ant";
 #include "../environments/laikago_environment.h"
 #define ant_initial_poses initial_poses_laikago2
 std::string model_name = "cuda_model_laikago";
+#define ContactSimulation LaikagoContactSimulation;
 #endif
 
 #include "math/tiny/tiny_algebra.hpp"
@@ -262,7 +263,7 @@ struct AntVecRolloutOutput
 template <typename Algebra>
 struct AntVecEnv
 {
-    ContactSimulation<Algebra> contact_sim;
+    LaikagoContactSimulation<Algebra> contact_sim;
     using Scalar = typename Algebra::Scalar;
     using Vector3 = typename Algebra::Vector3;
     using Transform = typename Algebra::Transform;
@@ -277,6 +278,7 @@ struct AntVecEnv
 
 
     AntVecEnv()
+        :contact_sim(true)
     {
         neural_networks_.resize(g_num_total_threads);
         sim_states_.resize(g_num_total_threads);
@@ -490,7 +492,7 @@ struct PolicyParams
 ///////////////////////////////////////////
 // create graphics
 OpenGLUrdfVisualizer<MyAlgebra> visualizer;
-ContactSimulation<MyAlgebra> contact_sim;
+LaikagoContactSimulation<MyAlgebra> contact_sim(true);
 tds::UrdfStructures<MyAlgebra> urdf_structures;
 
 std::vector<int> visual_instances;
