@@ -86,7 +86,7 @@ static std::vector<double> initial_poses = {
 };
 #include "../environments/laikago_environment.h"
 typedef LaikagoEnv<MyAlgebra> Environment;
-typedef ContactSimulation<MyAlgebra> RobotSim;
+typedef LaikagoContactSimulation<MyAlgebra> RobotSim;
 #else
 #include "../environments/cartpole_environment.h"
 typedef CartpoleEnv<MyAlgebra> Environment;
@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
   
   visualizer.delete_all();
 
-  RobotSim contact_sim;
+  RobotSim contact_sim(true);
   
   int input_dim = contact_sim.input_dim();
   
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
 
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  Environment env;
+  Environment env(true);
   auto obs = env.reset();
   double total_reward = 0;
   int max_steps = 1000;
