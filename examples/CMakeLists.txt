@@ -199,6 +199,10 @@ target_link_libraries(environment_eval  tinyxml2 opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(environment_eval PRIVATE ../third_party/tinyobjloader)
 target_include_directories(environment_eval PRIVATE ../third_party ../src)
 
+add_executable(eval_laikago_env ars/eval_laikago_env.cpp  ${TDS_HDRS}) 
+target_link_libraries(eval_laikago_env  tinyxml2  ${CMAKE_DL_LIBS}) 
+target_include_directories(eval_laikago_env PRIVATE ../third_party ../src)
+
 
 
 IF(USE_PAGMO2)
