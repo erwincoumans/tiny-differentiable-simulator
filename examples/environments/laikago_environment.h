@@ -10,6 +10,8 @@
 #include "urdf/urdf_cache.hpp"
 #include "urdf/urdf_parser.hpp"
 #include "utils/file_utils.hpp"
+#undef min
+#undef max
 
 static double start_pos1[3] = {0, 0, 0.48};
 static double start_orn1[4] = {0, 0, 0, 1};
@@ -30,7 +32,8 @@ template <typename Algebra>
 struct LaikagoContactSimulation {
   using Scalar = typename Algebra::Scalar;
   tds::UrdfCache<Algebra> cache;
-  std::string m_urdf_filename;
+  std::string m_laikago_urdf_filename;
+  std::string m_laikago_search_path;
   tds::World<Algebra> world;
   tds::MultiBody<Algebra>* mb_ = nullptr;
 
@@ -53,21 +56,27 @@ struct LaikagoContactSimulation {
 
   LaikagoContactSimulation(bool urdf_from_file) {
     std::string plane_filename = "plane_impl";
+
     if (urdf_from_file) {
       tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
       cache.construct(plane_filename, world, false, false);
 
       std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
-      tds::FileUtils::find_file(urdf_name, m_urdf_filename);
-      mb_ = cache.construct(m_urdf_filename, world, false, laikago_is_floating);
+      tds::FileUtils::find_file(urdf_name, m_laikago_urdf_filename);
+      char laikago_search_path[TINY_MAX_EXE_PATH_LEN];
+      FileUtils::extract_path(m_laikago_urdf_filename.c_str(), laikago_search_path,
+      TINY_MAX_EXE_PATH_LEN);
+      m_laikago_search_path = laikago_search_path;
+
+      mb_ = cache.construct(m_laikago_urdf_filename, world, false, laikago_is_floating);
     } else {
       std::string plane_string = plane_implicit_urdf;
       cache.construct_from_string(plane_filename, plane_string, world, false,
                                   false);
 
-      std::string urdf_name = "laikago_toes_zup_xyz_xyzrot.urdf";
+      m_laikago_urdf_filename = "laikago_toes_zup_xyz_xyzrot.urdf";
       std::string laikago_string = laikago_toes_zup_xyz_xyzrot_urdf;
-      mb_ = cache.construct_from_string(m_urdf_filename, laikago_string, world,
+      mb_ = cache.construct_from_string(m_laikago_urdf_filename, laikago_string, world,
                                         false, laikago_is_floating);
     }
 

@@ -6,6 +6,7 @@
 #include <mach-o/dyld.h> /* _NSGetExecutablePath */
 #else
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
 // not Mac, not Windows, let's cross the fingers it is Linux :-)

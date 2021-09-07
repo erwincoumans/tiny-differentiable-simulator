@@ -59,7 +59,7 @@ void my_keyboard_callback(int keycode, int state)
     prev_keyboard_callback(keycode, state);
 }
 
-#define USE_LAIKAGO
+//#define USE_LAIKAGO
 //#define USE_ANT
 #ifdef USE_ANT
 
@@ -88,12 +88,22 @@ static std::vector<double> initial_poses = {
 typedef LaikagoEnv<MyAlgebra> Environment;
 typedef LaikagoContactSimulation<MyAlgebra> RobotSim;
 #else
-#include "../environments/cartpole_environment.h"
+#define CARTPOLE
+#ifdef CARTPOLE
+    #include "../environments/cartpole_environment.h"
 typedef CartpoleEnv<MyAlgebra> Environment;
-//std::vector<double> trained_weights={0.069278,5.483886,4.008912,7.406968,-0.219666};
-//std::vector<double> trained_weights={0.15964059, 1.78998116, 0.79687186, 1.80107264, 0.01240305};
-std::vector<double> trained_weights={0.820749,4.480032,4.589206,5.880079,0.204528};
+
 typedef CartpoleContactSimulation<MyAlgebra> RobotSim;
+
+#else
+    #include "../environments/reacher_environment.h"
+typedef ReacherEnv<MyAlgebra> Environment;
+
+typedef ReacherContactSimulation<MyAlgebra> RobotSim;
+
+#endif
+
+
                                      
 #endif//USE_LAIKAGO
 #endif//USE_ANT
@@ -116,13 +126,14 @@ int main(int argc, char* argv[]) {
   
   visualizer.delete_all();
 
-  RobotSim contact_sim(true);
+  RobotSim contact_sim;
   
   int input_dim = contact_sim.input_dim();
   
 
   //int sphere_shape = visualizer.m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_LOW);
   
+  if (0)
   {
       std::vector<int> shape_ids;
       std::string plane_filename;
@@ -180,24 +191,28 @@ int main(int argc, char* argv[]) {
 #else
       num_base_instances = 0;
 #endif
-      for (int i = 5; i < contact_sim.mb_->num_links(); ++i) {
+      for (int i = 0; i < contact_sim.mb_->num_links(); ++i) {
          
 
-          int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
-          OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+          
           int instance = -1;
           int num_instances_per_link = 0;
-          for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+          if (urdf_structures.links[i].urdf_visual_shapes.size())
           {
-              int sphere_shape = vis_link.visual_shape_uids[v];
-              ::TINY::TinyVector3f color(1, 1, 1);
-              //visualizer.m_b2vis
-              instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
-                  sphere_shape, pos, orn, color, scaling);
-              visual_instances.push_back(instance);
-              num_instances_per_link++;
+              int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
+              OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+              for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+              {
+                  int sphere_shape = vis_link.visual_shape_uids[v];
+                  ::TINY::TinyVector3f color(1, 1, 1);
+                  //visualizer.m_b2vis
+                  instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
+                      sphere_shape, pos, orn, color, scaling);
+                  visual_instances.push_back(instance);
+                  num_instances_per_link++;
 
-              contact_sim.mb_->links_[i].visual_instance_uids.push_back(instance);
+                  contact_sim.mb_->links_[i].visual_instance_uids.push_back(instance);
+              }
           }
           num_instances.push_back(num_instances_per_link);
       }
@@ -205,19 +220,21 @@ int main(int argc, char* argv[]) {
 
   //app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, sphereId);
 
-  Environment env(true);
+  Environment env;
   auto obs = env.reset();
   double total_reward = 0;
   int max_steps = 1000;
   int num_steps = 0;
 
   int num_params = env.neural_network.num_weights() + env.neural_network.num_biases();
-  //std::vector<double> x(num_params);
+  
   //rand
   //for (int i=0;i<x.size();i++)
   //{
   //    x[i] = -.35*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
   //}
+
+  
 
   //weights trained using c++ ars_train_policy (without observation filter)
 #ifdef USE_ANT
@@ -245,6 +262,17 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
+#else
+#ifdef CARTPOLE
+  std::vector<double> x = {0.105781,1.614242,0.716554,1.464621,-0.001607};//0.085644,1.571287,0.743944,1.497057,-0.006282};
+#else
+  std::vector<double> x(22);
+  for (int i=0;i<x.size();i++)
+  {
+      x[i] = .35*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+  }
+
+#endif
 #endif
   env.init_neural_network(x);
 
@@ -330,27 +358,29 @@ int main(int argc, char* argv[]) {
                           instance_index+=num_base_instances;
                       }
                       
-                      for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) {
-                          int l = ll-5;
-                          for (int v = 0; v < num_instances[l]; v++)
+                      int li=0;
+                      for (int ll = 0; ll < contact_sim.mb_->links_.size(); ll++) {
+                          
+                          for (int v = 0; v < num_instances[ll]; v++)
                           {
                               int visual_instance_id = visual_instances[instance_index++];
                               if (visual_instance_id >= 0)
                               {
 
-                                  ::TINY::TinyVector3f pos(env.sim_state_with_graphics[offset + l * 7 + 0],
-                                      env.sim_state_with_graphics[offset + l * 7 + 1],
-                                      env.sim_state_with_graphics[offset + l * 7 + 2]);
+                                  ::TINY::TinyVector3f pos(env.sim_state_with_graphics[offset + li * 7 + 0],
+                                      env.sim_state_with_graphics[offset + li * 7 + 1],
+                                      env.sim_state_with_graphics[offset + li * 7 + 2]);
                                   ::TINY::TinyQuaternionf orn(
-                                      env.sim_state_with_graphics[offset + l * 7 + 3],
-                                      env.sim_state_with_graphics[offset + l * 7 + 4],
-                                      env.sim_state_with_graphics[offset + l * 7 + 5],
-                                      env.sim_state_with_graphics[offset + l * 7 + 6]);
+                                      env.sim_state_with_graphics[offset + li * 7 + 3],
+                                      env.sim_state_with_graphics[offset + li * 7 + 4],
+                                      env.sim_state_with_graphics[offset + li * 7 + 5],
+                                      env.sim_state_with_graphics[offset + li * 7 + 6]);
 
                                   pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
                                   pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
 
                                   visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+                                  li++;
                               }
                           }
                       }

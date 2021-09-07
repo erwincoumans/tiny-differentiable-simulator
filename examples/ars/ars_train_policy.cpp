@@ -2,13 +2,16 @@
 
 #define NOMINMAX 
 
-#define USE_ANT
+//#define USE_ANT
 #ifdef USE_ANT
 #include "../environments/ant_environment.h"
 #else
 
-#include "../environments/laikago_environment.h"
-//#include "../environments/cartpole_environment.h"
+//#include "../environments/laikago_environment.h"
+#include "../environments/cartpole_environment.h"
+//#include "../environments/reacher_environment.h"
+//#include "../environments/reacher_environment.h"
+
 #endif
 
 
@@ -32,8 +35,10 @@ typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 #ifdef USE_ANT
 typedef AntEnv<MyAlgebra> Environment;
 #else//USE_ANT
-//typedef CartpoleEnv<MyAlgebra> Environment;
-typedef LaikagoEnv<MyAlgebra> Environment;
+
+typedef CartpoleEnv<MyAlgebra> Environment;
+//typedef ReacherEnv<MyAlgebra> Environment;
+//typedef LaikagoEnv<MyAlgebra> Environment;
 
 
 #endif//USE_ANT
@@ -51,8 +56,8 @@ OpenGLUrdfVisualizer<MyAlgebra> visualizer;
 #ifdef USE_ANT
 AntContactSimulation<MyAlgebra> contact_sim;
 #else
-//CartpoleContactSimulation<MyAlgebra> contact_sim;
-ContactSimulation<MyAlgebra> contact_sim;
+CartpoleContactSimulation<MyAlgebra> contact_sim;
+//ReacherContactSimulation<MyAlgebra> contact_sim;
 #endif
 
 
@@ -74,8 +79,8 @@ void visualize_trajectory(const std::vector<double>& sim_state_with_graphics, in
 
   
 
-  for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) {
-        int l = ll-5;
+  for (int ll = 0; ll < contact_sim.mb_->links_.size(); ll++) {
+        int l = ll;
         for (int v = 0; v < num_instances[l]; v++)
         {
             int visual_instance_id = visual_instances[instance_index++];
@@ -759,24 +764,29 @@ int main()
 #else
       num_base_instances = 0;
 #endif
-      for (int i = 5; i < contact_sim.mb_->num_links(); ++i) {
+      for (int i = 0; i < contact_sim.mb_->num_links(); ++i) {
          
 
-          int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
-          OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+          
           int instance = -1;
           int num_instances_per_link = 0;
-          for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+          if (urdf_structures.links[i].urdf_visual_shapes.size())
           {
-              int sphere_shape = vis_link.visual_shape_uids[v];
-              ::TINY::TinyVector3f color(1, 1, 1);
-              //visualizer.m_b2vis
-              instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
-                  sphere_shape, pos, orn, color, scaling);
-              visual_instances.push_back(instance);
-              num_instances_per_link++;
+              int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
+              OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
 
-              contact_sim.mb_->links_[i].visual_instance_uids.push_back(instance);
+              for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+              {
+                  int sphere_shape = vis_link.visual_shape_uids[v];
+                  ::TINY::TinyVector3f color(1, 1, 1);
+                  //visualizer.m_b2vis
+                  instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
+                      sphere_shape, pos, orn, color, scaling);
+                  visual_instances.push_back(instance);
+                  num_instances_per_link++;
+
+                  contact_sim.mb_->links_[i].visual_instance_uids.push_back(instance);
+              }
           }
           num_instances.push_back(num_instances_per_link);
           num_instances_per_robot+=num_instances_per_link;
