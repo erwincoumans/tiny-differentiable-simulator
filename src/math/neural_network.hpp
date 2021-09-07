@@ -25,6 +25,8 @@
 #include <vector>
 #include <array>
 #include "math/conditionals.hpp"
+#undef min
+#undef max
 
 namespace tds {
 
@@ -222,8 +224,18 @@ class NeuralNetworkSpecification {
                const std::vector<typename Algebra::Scalar>& biases,
                const std::vector<typename Algebra::Scalar>& input,
                std::vector<typename Algebra::Scalar>& output) const {
+    int nw = num_weights();
+    int w = weights.size();
+
     assert(static_cast<int>(weights.size() == num_weights()));
+    
+    int nb = num_biases();
+    int b = biases.size();
+
     assert(static_cast<int>(biases.size() == num_biases()));
+    
+    int id = input_dim();
+    int isz = input.size();
     assert(static_cast<int>(input.size()) == input_dim());
 
     const typename Algebra::Scalar zero = Algebra::zero();
