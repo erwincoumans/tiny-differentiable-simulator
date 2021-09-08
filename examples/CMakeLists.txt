@@ -171,6 +171,11 @@ add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
 target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
+add_executable(eval_laikago_env ars/eval_laikago_env.cpp  ${TDS_HDRS}) 
+target_link_libraries(eval_laikago_env  tinyxml2   ${MESHCAT_LIBRARIES}) 
+target_include_directories(eval_laikago_env PRIVATE ../third_party ../third_party/nlohmann/include ../src)
+
+
 add_executable(sdf_to_mesh_example sdf_to_mesh_example.cpp)
 target_include_directories(sdf_to_mesh_example PRIVATE ../third_party ../src)
 target_link_libraries(sdf_to_mesh_example opengl_window ${CMAKE_DL_LIBS})
@@ -198,6 +203,7 @@ add_executable(environment_eval environment_eval.cpp ../third_party/stb_image/st
 target_link_libraries(environment_eval  tinyxml2 opengl_window ${CMAKE_DL_LIBS}) 
 target_include_directories(environment_eval PRIVATE ../third_party/tinyobjloader)
 target_include_directories(environment_eval PRIVATE ../third_party ../src)
+
 
 
 
