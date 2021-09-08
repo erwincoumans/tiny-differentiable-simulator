@@ -1,0 +1,101 @@
+<?xml version="0.0" ?>
+<robot name="reacher">
+	<link name="base">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<sphere radius="0.01000"/>
+			</geometry>
+			<material name="green">
+				<color rgba="0 0.8 0.8 1" />
+			</material>
+		</visual>
+	</link>
+	<link name="body0">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.03560"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00005" iyz="0" izz="0.00005"/>
+		</inertial>
+		<collision>
+			<origin rpy="0.00000 1.57080 -0.00000" xyz="0.05000 0.00000 0.00000"/>
+			<geometry>
+				<capsule length="0.10000" radius="0.01000"/>
+			</geometry>
+		</collision>
+		<visual>
+			<origin rpy="0.00000 1.57080 -0.00000" xyz="0.05000 0.00000 0.00000"/>
+			<geometry>
+				<capsule length="0.10000" radius="0.01000"/>
+			</geometry>
+			<material name="blue">
+				<color rgba="0 0 0.8 1" />
+			</material>
+		</visual>
+
+	</link>
+	<link name="body1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.01158 0.00000 0.00000"/>
+			<mass value="0.03979"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00006" iyz="0" izz="0.00006"/>
+		</inertial>
+		<collision>
+			<origin rpy="0.00000 1.57080 -0.00000" xyz="0.05000 0.00000 0.00000"/>
+			<geometry>
+				<capsule length="0.10000" radius="0.01000"/>
+			</geometry>
+			<material name="red">
+				<color rgba="0.8 0 0 1" />
+			</material>
+		</collision>
+		<visual>
+			<origin rpy="0.00000 1.57080 -0.00000" xyz="0.05000 0.00000 0.00000"/>
+			<geometry>
+				<capsule length="0.10000" radius="0.01000"/>
+			</geometry>
+		</visual>
+	</link>
+	<link name="fingertip">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00419"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<sphere radius="0.01000"/>
+			</geometry>
+			<material name="green">
+				<color rgba="0 0.8 0.8 1" />
+			</material>
+		</visual>
+	</link>
+	<joint name="joint0" type="continuous">
+		<parent link="base"/>
+		<child link="body0"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.01000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+	</joint>
+	<joint name="joint1" type="continuous">
+		<parent link="body0"/>
+		<child link="body1"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.10000 0.00000 0.00000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+	</joint>
+	<joint name="jointfix_0_3" type="fixed">
+		<parent link="body1"/>
+		<child link="fingertip"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.11000 0.00000 0.00000"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+	</joint>
+</robot>
