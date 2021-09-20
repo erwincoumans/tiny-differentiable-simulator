@@ -32,6 +32,7 @@
 #ifdef ENABLE_TEST_ENVS
 #include "examples/environments/cartpole_environment.h"
 #include "examples/environments/ant_environment.h"
+#include "examples/environments/reacher_environment.h"
 #endif//ENABLE_CARTPOLE_TEST_ENV
 
 #ifdef _WIN32
