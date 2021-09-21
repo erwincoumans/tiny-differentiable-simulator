@@ -8,6 +8,7 @@
 #include "urdf/urdf_cache.hpp"
 #include "utils/file_utils.hpp"
 #include "urdf/urdf_parser.hpp"
+#include "reacher.urdf.h"
 #include "math.h"
 
 //#define COMPATIBILITY
@@ -46,16 +47,24 @@ struct ReacherContactSimulation {
 
     //tds::StdLogger logger;
     tds::NullLogger logger;
-    {
+    bool is_floating = false;
+    bool urdf_from_file = false;
+    if (urdf_from_file) {
       std::string urdf_name = "gym/reacher.urdf";
       tds::FileUtils::find_file(urdf_name, m_urdf_filename);
       std::cout << "m_urdf_filename = " << m_urdf_filename << std::endl;
-      bool is_floating = false;
+      
       mb_ = cache.construct(m_urdf_filename, world, false, is_floating);
-      mb_->set_floating_base(is_floating);
-      mb_->initialize();
+    } else {
+      m_urdf_filename = "gym/reacher.urdf";
+      std::string reacher_string = reacher_urdf;
+      mb_ = cache.construct_from_string(m_urdf_filename, reacher_string, world,
+                                        false, is_floating);
     }
+    mb_->set_floating_base(is_floating);
+    mb_->initialize();
 
+    
     // mb_->base_X_world().translation = Algebra::unit3_z();
     std::cout << "ReacherContactSimulation!" << std::endl;
     std::cout << "\tinput_dim = "<< this->input_dim() << std::endl;
