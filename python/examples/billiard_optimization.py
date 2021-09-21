@@ -41,7 +41,7 @@ def rollout(force_x, force_y, step, render):
   target_pos = dp.Vector3(dp.fraction(35, 10),dp.fraction(8, 1), dp.fraction(0,1))
   ball_id = 0
   target_id = 5
-  
+  rebuild = True
   if render:
     orn = p.TinyQuaternionf(0.,0.,0.,1.)
     pos = p.TinyVector3f(dp.get_debug_double(target_pos[0]),dp.get_debug_double(target_pos[1]),dp.get_debug_double(target_pos[2]))
@@ -50,7 +50,7 @@ def rollout(force_x, force_y, step, render):
     scaling = p.TinyVector3f(dp.get_debug_double(radius),dp.get_debug_double(radius),dp.get_debug_double(radius))
     textureIndex = -1
     shape = app.register_graphics_unit_sphere_shape(p.EnumSphereLevelOfDetail.SPHERE_LOD_HIGH, textureIndex)
-    sphere_id = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+    sphere_id = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity, rebuild)
     
   
   geoms = []
@@ -77,7 +77,8 @@ def rollout(force_x, force_y, step, render):
         scaling = p.TinyVector3f(dp.get_debug_double(radius),dp.get_debug_double(radius),dp.get_debug_double(radius))
         textureIndex = -1
         shape = app.register_graphics_unit_sphere_shape(p.EnumSphereLevelOfDetail.SPHERE_LOD_HIGH, textureIndex)
-        sphere_id = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+        rebuild = True
+        sphere_id = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity, rebuild)
         visuals.append(sphere_id)
       
       ball_id += 1
@@ -106,7 +107,7 @@ def rollout(force_x, force_y, step, render):
                              dp.get_debug_double(radius))
     textureIndex = -1
     shape = app.register_graphics_unit_sphere_shape(p.EnumSphereLevelOfDetail.SPHERE_LOD_HIGH, textureIndex)
-    sphere_id = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+    sphere_id = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity, rebuild)
     visuals.append(sphere_id)
 
   rb_solver = dp.TinyConstraintSolver()
