@@ -64,7 +64,7 @@ struct LaikagoContactSimulation {
       std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
       tds::FileUtils::find_file(urdf_name, m_laikago_urdf_filename);
       char laikago_search_path[TINY_MAX_EXE_PATH_LEN];
-      FileUtils::extract_path(m_laikago_urdf_filename.c_str(), laikago_search_path,
+      tds::FileUtils::extract_path(m_laikago_urdf_filename.c_str(), laikago_search_path,
       TINY_MAX_EXE_PATH_LEN);
       m_laikago_search_path = laikago_search_path;
 
