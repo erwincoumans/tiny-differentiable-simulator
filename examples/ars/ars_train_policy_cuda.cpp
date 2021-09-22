@@ -3,7 +3,7 @@
 #define NOMINMAX 
 #include <string>
 
-//#include "../environments/cartpole_environment.h"
+
 //#define USE_ANT
 #ifdef USE_ANT
 #include "../environments/ant_environment.h"
@@ -12,9 +12,12 @@ std::string model_name = "cuda_model_ant";
 #define ContactSimulation AntContactSimulation
 #else
 #include "../environments/laikago_environment.h"
-#define ant_initial_poses initial_poses_laikago2
+//#define ant_initial_poses initial_poses_laikago2
 std::string model_name = "cuda_model_laikago";
 #define ContactSimulation LaikagoContactSimulation;
+
+//#include "../environments/cartpole_environment.h"
+
 #endif
 
 #include "math/tiny/tiny_algebra.hpp"
@@ -293,7 +296,7 @@ struct AntVecEnv
             //network.add_linear_layer(tds::NN_ACT_RELU, 32);
             //neural_network.add_linear_layer(tds::NN_ACT_RELU, 64);
             bool learn_bias = true;
-            neural_networks_[index].add_linear_layer(tds::NN_ACT_IDENTITY, ant_initial_poses.size(),learn_bias);
+            neural_networks_[index].add_linear_layer(tds::NN_ACT_IDENTITY, initial_poses_laikago2.size(),learn_bias);
         }
         
     }
@@ -334,9 +337,9 @@ struct AntVecEnv
                 sim_states_[index][5] = start_pos.y();
                 sim_states_[index][6] = start_pos.z();
                 int qoffset = 7;
-                for(int j=0;j<ant_initial_poses.size();j++)
+                for(int j=0;j<initial_poses_laikago2.size();j++)
                 {
-                    sim_states_[index][j+qoffset] = ant_initial_poses[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+                    sim_states_[index][j+qoffset] = initial_poses_laikago2[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
                 }
             }
             else
@@ -348,9 +351,9 @@ struct AntVecEnv
                 sim_states_[index][4] = 0;
                 sim_states_[index][5] = 0;
                 int qoffset = 6;
-                for(int j=0;j<ant_initial_poses.size();j++)
+                for(int j=0;j<initial_poses_laikago2.size();j++)
                 {
-                    sim_states_[index][j+qoffset] = ant_initial_poses[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+                    sim_states_[index][j+qoffset] = initial_poses_laikago2[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
                 }
 
             }
@@ -358,7 +361,7 @@ struct AntVecEnv
         std::vector< std::vector<double>>  zero_actions(g_num_total_threads);
         for (int i=0;i<g_num_total_threads;i++)
         {
-            zero_actions[i].resize(ant_initial_poses.size(), Scalar(0));
+            zero_actions[i].resize(initial_poses_laikago2.size(), Scalar(0));
         }
         std::vector< std::vector<double>> observations;
         observations.resize(g_num_total_threads);
@@ -403,11 +406,14 @@ struct AntVecEnv
             inputs[index] = sim_states_with_action_[index];
         }
     
-//define DEBUG_ON_CPU
+
+//#define DEBUG_ON_CPU
 #ifdef DEBUG_ON_CPU
+        
+        
         for (int index =0; index<g_num_total_threads;index++)
         {
-            sim_states_with_graphics_[index] = contact_sim_(sim_states_with_action_[index]);
+            sim_states_with_graphics_[index] = contact_sim(sim_states_with_action_[index]);
         }
 #else
         cuda_model_ant.forward_zero(&outputs, inputs,64);
@@ -418,14 +424,14 @@ struct AntVecEnv
 #endif
         for (int index=0;index<g_num_total_threads;index++)
         {
-            sim_states_[index] = sim_states_with_graphics_[index];
-
-            sim_states_[index].resize(contact_sim.input_dim());
-            observations[index] = sim_states_[index];
-        
             if (!dones[index])
             {
+                sim_states_[index] = sim_states_with_graphics_[index];
 
+                sim_states_[index].resize(contact_sim.input_dim());
+                observations[index] = sim_states_[index];
+        
+            
 #ifdef USE_ANT
                 //reward forward along x-axis
                 rewards[index] = sim_states_[index][0];
@@ -471,7 +477,7 @@ struct AntVecEnv
 
     inline const std::vector<double> policy(int index, const std::vector<double>& obs)
     {
-        std::vector<double> action (ant_initial_poses.size(), Scalar(0));
+        std::vector<double> action (initial_poses_laikago2.size(), Scalar(0));
     
         neural_networks_[index].compute(obs, action);
                 
@@ -504,6 +510,7 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
 {
      float sim_spacing = 5;
      
+
      for (int index=0;index<g_num_total_threads;index++)
      {
          std::vector<std::vector<double>>& sim_states_with_graphics = trajectories[index];
@@ -511,6 +518,13 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
           int offset = contact_sim.mb_->dof() + contact_sim.mb_->dof_qd();
           int instance_index = index*num_instances_per_robot;
   
+            {
+                char msg[1024];
+                sprintf(msg, "(%d)", index);
+                visualizer.m_opengl_app.draw_text_3d(msg, sim_spacing * (index % square_id) - square_id * sim_spacing / 2, 
+                    sim_spacing * (index / square_id) - square_id * sim_spacing / 2, 1, 1);
+            }
+
           for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) 
           {
             int l = ll-5;
@@ -542,12 +556,14 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
                         pos[0] += sim_spacing * (index % square_id) - square_id * sim_spacing / 2;
                         pos[1] += sim_spacing * (index / square_id) - square_id * sim_spacing / 2;
 
+                       
                         visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
                     }
                 }
             }
           }
      }
+
     visualizer.render();
    
     if (sleep)
@@ -786,10 +802,10 @@ struct Worker
             
             rollouts(cuda_model_ant, shift, rollout_length_train_, pos_rewards, vec_pos_steps, trajectories);
             
-            for (int step=0;step< trajectories[0].size();step++)
-            {
-                visualize_trajectories(trajectories, step, false);
-            }
+            //for (int step=0;step< trajectories[0].size();step++)
+            //{
+            //    visualize_trajectories(trajectories, step, false);
+            //}
                         
             for (int index=0;index<g_num_total_threads;index++)
             {
@@ -810,10 +826,10 @@ struct Worker
 
             rollouts(cuda_model_ant, shift, rollout_length_train_, neg_rewards, vec_neg_steps,trajectories);
 
-            for (int step=0;step<trajectories[0].size();step++)
-            {
-                visualize_trajectories(trajectories, step,false);
-            }
+            //for (int step=0;step<trajectories[0].size();step++)
+            //{
+            //    visualize_trajectories(trajectories, step,false);
+            //}
 
             for (int index=0;index<g_num_total_threads;index++)
             {
@@ -1239,7 +1255,7 @@ int main()
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
-  tds::FileUtils::find_file(contact_sim.m_urdf_filename, file_and_path);
+  tds::FileUtils::find_file(contact_sim.m_laikago_urdf_filename, file_and_path);
   urdf_structures = contact_sim.cache.retrieve(file_and_path);
   FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);
@@ -1327,6 +1343,7 @@ int main()
     
   trajfile_.close();
   #endif
+
 
   for (int i=0;i<240;i++)
   {
