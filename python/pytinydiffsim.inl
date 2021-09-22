@@ -972,7 +972,7 @@
 
      py::class_<ReacherEnv<MyAlgebra>>(m, "ReacherEnv")
       .def(py::init<>())
-      .def("reset", &ReacherEnv<MyAlgebra>::reset2)
+      .def("reset", &ReacherEnv<MyAlgebra>::reset)
       .def("step", &ReacherEnv<MyAlgebra>::step2)
       .def("rollout", &ReacherEnv<MyAlgebra>::rollout)
       .def("update_weights", &ReacherEnv<MyAlgebra>::init_neural_network)

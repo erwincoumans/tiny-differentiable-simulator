@@ -263,27 +263,6 @@ struct ReacherEnv {
     return obs_;
   }
 
-  std::vector<double> reset2() {
-    
-    std::vector<double> obs = reset();
-    std::vector<double> sim_state;
-    // change layout to [q1,qd1, q0, qd0] to be compatible with
-#ifdef COMPATIBILITY
-#error
-    sim_state.push_back(obs[1]);
-    sim_state.push_back(obs[3]);
-    sim_state.push_back(obs[0]);
-    sim_state.push_back(obs[2]);
-#else
-    sim_state.push_back(obs[0]);
-    sim_state.push_back(obs[1]);
-    sim_state.push_back(obs[2]);
-    sim_state.push_back(obs[3]);
-#endif
-    
-    return sim_state;
-  }
-
   void seed(long long int s) {
       //std::cout<<"seed:" << s << std::endl;
       std::srand(s);
