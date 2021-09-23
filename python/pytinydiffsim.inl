@@ -954,6 +954,22 @@
                      &ReacherEnvOutput::reward)
       .def_readwrite("done",
                      &ReacherEnvOutput::done)
+
+    
+      .def_readwrite("body0_graphics_pos",
+                     &ReacherEnvOutput::body0_graphics_pos)
+      .def_readwrite("body0_graphics_orn",
+                     &ReacherEnvOutput::body0_graphics_orn)
+      .def_readwrite("body1_graphics_pos",
+                     &ReacherEnvOutput::body1_graphics_pos)
+      .def_readwrite("body1_graphics_orn",
+                     &ReacherEnvOutput::body1_graphics_orn)
+      .def_readwrite("tip_graphics_pos",
+                     &ReacherEnvOutput::tip_graphics_pos)
+      .def_readwrite("tip_graphics_orn",
+                     &ReacherEnvOutput::tip_graphics_orn)
+      .def_readwrite("target_graphics_pos",
+                     &ReacherEnvOutput::target_graphics_pos)
       ;
 
    py::class_<ReacherRolloutOutput>(m, "ReacherRolloutOutput")

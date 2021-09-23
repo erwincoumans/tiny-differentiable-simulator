@@ -188,6 +188,17 @@ struct ReacherEnvOutput
     std::vector<double> obs;
     double reward;
     bool done;
+
+    std::array<double,3> body0_graphics_pos;
+    std::array<double,4> body0_graphics_orn;
+    
+    std::array<double,3> body1_graphics_pos;
+    std::array<double,4> body1_graphics_orn;
+
+    std::array<double,3> tip_graphics_pos;
+    std::array<double,4> tip_graphics_orn;
+
+    std::array<double,3> target_graphics_pos;
 };
 
 struct ReacherRolloutOutput
@@ -275,6 +286,38 @@ struct ReacherEnv {
       //std::cout << "env_out.done=" << env_out.done << std::endl;
       //std::cout << "env_out.reward=" << env_out.done << std::endl;
       //std::cout << "obs=" << obs << std::endl;
+
+      //env_out.link0_graphics_pos[0] = this->sim_state_with_graphics
+      //
+      int index=4;
+      env_out.body0_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[3] = this->sim_state_with_graphics[index++];
+
+      env_out.body1_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[3] = this->sim_state_with_graphics[index++];
+
+      env_out.tip_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[3] = this->sim_state_with_graphics[index++];
+
+      env_out.target_graphics_pos[0] = this->endeffector_target_[0];
+      env_out.target_graphics_pos[1] = this->endeffector_target_[1];
+      env_out.target_graphics_pos[2] = this->endeffector_target_[2];
+
       return env_out;
   }
   

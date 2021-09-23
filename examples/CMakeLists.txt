@@ -53,6 +53,12 @@ target_compile_definitions(soft_contact_example PRIVATE USE_TINY )
 target_include_directories(soft_contact_example PRIVATE ../src)
 
 
+add_executable(tinyrenderer_example tinyrenderer_example.cpp ${TDS_HDRS}) 
+target_link_libraries(tinyrenderer_example  tds_tinyrenderer ${CMAKE_DL_LIBS}) 
+target_include_directories(tinyrenderer_example PRIVATE ../src)
+
+
+
 
 add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS}) 
 target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window ${CMAKE_DL_LIBS}) 
