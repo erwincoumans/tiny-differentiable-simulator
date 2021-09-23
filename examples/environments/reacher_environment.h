@@ -8,6 +8,7 @@
 #include "urdf/urdf_cache.hpp"
 #include "utils/file_utils.hpp"
 #include "urdf/urdf_parser.hpp"
+#include "reacher.urdf.h"
 #include "math.h"
 
 //#define COMPATIBILITY
@@ -33,22 +34,37 @@ struct ReacherContactSimulation {
   }
   int output_dim() const { return num_timesteps * state_dim(); }
 
+  double clamp_action(double action, double low, double up)
+  {
+      double clamped_action = action;
+      clamped_action = Algebra::min(clamped_action, up);
+      clamped_action = Algebra::max(clamped_action, low);
+      return clamped_action ;
+  }
   ReacherContactSimulation() {
     std::string plane_filename;
     world.set_gravity(Vector3(0., 0., -10));
 
     //tds::StdLogger logger;
     tds::NullLogger logger;
-    {
+    bool is_floating = false;
+    bool urdf_from_file = false;
+    if (urdf_from_file) {
       std::string urdf_name = "gym/reacher.urdf";
       tds::FileUtils::find_file(urdf_name, m_urdf_filename);
       std::cout << "m_urdf_filename = " << m_urdf_filename << std::endl;
-      bool is_floating = false;
+      
       mb_ = cache.construct(m_urdf_filename, world, false, is_floating);
-      mb_->set_floating_base(is_floating);
-      mb_->initialize();
+    } else {
+      m_urdf_filename = "gym/reacher.urdf";
+      std::string reacher_string = reacher_urdf;
+      mb_ = cache.construct_from_string(m_urdf_filename, reacher_string, world,
+                                        false, is_floating);
     }
+    mb_->set_floating_base(is_floating);
+    mb_->initialize();
 
+    
     // mb_->base_X_world().translation = Algebra::unit3_z();
     std::cout << "ReacherContactSimulation!" << std::endl;
     std::cout << "\tinput_dim = "<< this->input_dim() << std::endl;
@@ -63,7 +79,7 @@ struct ReacherContactSimulation {
     //std::cout << "~ReacherContactSimulation" << std::endl;
   }
   std::vector<Scalar> operator()(const std::vector<Scalar>& v,
-                                 const std::vector<Scalar>& pd_target_angles) {
+                                 const std::vector<Scalar>& torques) {
     assert(static_cast<int>(v.size()) == input_dim());
     mb_->initialize();
     // copy input into q, qd
@@ -79,18 +95,26 @@ struct ReacherContactSimulation {
     t += dt;
     std::vector<Scalar> result(output_dim());
     for (int t = 0; t < num_timesteps; ++t) {
-      double kp = 0.01;
-      double kd = 0.1 * kp;
-      mb_->tau_[0] = kp * (pd_target_angles[0] - mb_->q(0)) - kd * mb_->qd(0);
-      mb_->tau_[1] = kp * (pd_target_angles[1] - mb_->q(1)) - kd * mb_->qd(1);
-      // mb_->tau_[0] = 0.001;
-      // mb_->tau_[1] = -0.001;
+
+      mb_->tau_[0] = clamp_action(torques[0],-1,1);
+      mb_->tau_[1] = clamp_action(torques[1],-1,1);
+
+      //apply explicit joint damping
+      double joint_damping = 0.001;
+      mb_->tau_[0] -= joint_damping* mb_->qd()[0];
+      mb_->tau_[1] -= joint_damping* mb_->qd()[1];
 
       torqueSqSum = mb_->tau_.sqnorm();
-      // std::vector<Scalar> tau = policy(observation)
 
       tds::forward_dynamics(*mb_, world.get_gravity());
       mb_->clear_forces();
+
+      mb_->qdd()[0] = clamp_action(mb_->qdd()[0], -1000, 1000);
+      mb_->qdd()[1] = clamp_action(mb_->qdd()[1], -1000, 1000);
+
+
+      mb_->qd()[0] = clamp_action(mb_->qd()[0], -1,1);
+      mb_->qd()[1] = clamp_action(mb_->qd()[1], -1,1);
 
       //integrate_euler_qdd(*mb_, dt);
 
@@ -164,6 +188,17 @@ struct ReacherEnvOutput
     std::vector<double> obs;
     double reward;
     bool done;
+
+    std::array<double,3> body0_graphics_pos;
+    std::array<double,4> body0_graphics_orn;
+    
+    std::array<double,3> body1_graphics_pos;
+    std::array<double,4> body1_graphics_orn;
+
+    std::array<double,3> tip_graphics_pos;
+    std::array<double,4> tip_graphics_orn;
+
+    std::array<double,3> target_graphics_pos;
 };
 
 struct ReacherRolloutOutput
@@ -185,7 +220,7 @@ struct ReacherEnv {
 
   ReacherContactSimulation<Algebra> contact_sim;
   Scalar action_low_;
-  Scalar action_high_;
+  
 
   int action_dim_{2};
   int observation_dim_{10};
@@ -203,8 +238,7 @@ struct ReacherEnv {
     neural_network.add_linear_layer(tds::NN_ACT_IDENTITY, action_dim_,
                                     learn_bias);  // action is 1 number
 
-    action_high_ = 10;
-    action_low_ = -action_high_;
+    
   }
   virtual ~ReacherEnv() {
       printf("~ReacHerEnv counter_=%d\n", counter_);
@@ -220,6 +254,7 @@ struct ReacherEnv {
     for (int i = 0; i < sim_state.size(); i++) {
       sim_state[i] = 0.05 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
     }
+
 
     // Set endeffector_target_ [(-0.2, 0.2), (-0.2, 0.2), 0.01]
     endeffector_target_[0] = 0.2 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
@@ -239,57 +274,50 @@ struct ReacherEnv {
     return obs_;
   }
 
-  std::vector<double> reset2() {
-    
-    std::vector<double> obs = reset();
-    std::vector<double> sim_state;
-    // change layout to [q1,qd1, q0, qd0] to be compatible with
-#ifdef COMPATIBILITY
-#error
-    sim_state.push_back(obs[1]);
-    sim_state.push_back(obs[3]);
-    sim_state.push_back(obs[0]);
-    sim_state.push_back(obs[2]);
-#else
-    sim_state.push_back(obs[0]);
-    sim_state.push_back(obs[1]);
-    sim_state.push_back(obs[2]);
-    sim_state.push_back(obs[3]);
-#endif
-    
-    return sim_state;
-  }
-
   void seed(long long int s) {
       //std::cout<<"seed:" << s << std::endl;
       std::srand(s);
   }
 
-  ReacherEnvOutput step2(double action) {
+  ReacherEnvOutput step2(std::vector<double>& action) {
       //std::cout << "action:" << action << std::endl;
-
       ReacherEnvOutput env_out;
-      
-      std::vector<double> obs;
-      step(action, obs, env_out.reward, env_out.done);
-      // obs in format [q0,q1,qd0,qd1]
-      // change layout to [q1,qd1, q0, qd0] to be compatible with
-      // PyBullet'ReacHerContinuousBulletEnv-v0'
-#ifdef COMPATIBILITY
-#error
-      env_out.obs.push_back(obs[1]);
-      env_out.obs.push_back(obs[3]);
-      env_out.obs.push_back(obs[0]);
-      env_out.obs.push_back(obs[2]);
-#else
-      env_out.obs.push_back(obs[0]);
-      env_out.obs.push_back(obs[1]);
-      env_out.obs.push_back(obs[2]);
-      env_out.obs.push_back(obs[3]);
-#endif
+      step(action, env_out.obs, env_out.reward, env_out.done);
       //std::cout << "env_out.done=" << env_out.done << std::endl;
       //std::cout << "env_out.reward=" << env_out.done << std::endl;
       //std::cout << "obs=" << obs << std::endl;
+
+      //env_out.link0_graphics_pos[0] = this->sim_state_with_graphics
+      //
+      int index=4;
+      env_out.body0_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.body0_graphics_orn[3] = this->sim_state_with_graphics[index++];
+
+      env_out.body1_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.body1_graphics_orn[3] = this->sim_state_with_graphics[index++];
+
+      env_out.tip_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.tip_graphics_orn[3] = this->sim_state_with_graphics[index++];
+
+      env_out.target_graphics_pos[0] = this->endeffector_target_[0];
+      env_out.target_graphics_pos[1] = this->endeffector_target_[1];
+      env_out.target_graphics_pos[2] = this->endeffector_target_[2];
+
       return env_out;
   }
   
@@ -302,7 +330,6 @@ struct ReacherEnv {
       int steps=0;
       while (rollout_out.num_steps<rollout_length && !done)
       {
-         //double action = 0.f;
          auto action = policy(obs);
          double reward;
          step(action, obs, reward, done);
@@ -320,12 +347,14 @@ struct ReacherEnv {
         obs[j++] = cos(contact_sim.mb_->q_[i]);
     for (int i = 0; i < dof; i++) 
         obs[j++] = sin(contact_sim.mb_->q_[i]);
-    for (int i = 0; i < dof; i++) 
-        obs[j++] = contact_sim.mb_->q_[i];
-    for (int i = 0; i < dof; i++) 
-        obs[j++] = contact_sim.mb_->qd_[i];
     
     contact_sim.computeEndEffectorPos();
+
+    for (int i = 0; i < dof; i++) 
+        obs[j++] = endeffector_target_[i];
+
+    for (int i = 0; i < dof; i++) 
+        obs[j++] = contact_sim.mb_->qd_[i];
 
     auto diff = contact_sim.endeffector_pos - endeffector_target_;
     obs[j++] = diff[0];
@@ -334,24 +363,13 @@ struct ReacherEnv {
 
   void step(std::vector<double>& action, std::vector<double>& obs, double& reward,
             bool& done) {
-    // //clip
-    // if (action < action_low_)
-    //     action = action_low_;
-    // if (action > action_high_)
-    //     action = action_high_;
-
-    // sim_state = [q0, q1, qd0, qd1]
-
+    
     //printf("action=%f,%f\n", action[0],action[1]);
     sim_state_with_graphics = contact_sim(sim_state, action);
     sim_state = sim_state_with_graphics;
 
     sim_state.resize(contact_sim.input_dim());
     
-    //printf("sim_state=\n", action[0],action[1]);
-    //for (int i=0;i<sim_state.size();i++)
-    //   printf("%f,",sim_state[i]);
-    //printf("\n");
     // Observation
     std::vector<double> obs_(observation_dim_);
     fill_obs(obs_);
@@ -393,45 +411,7 @@ struct ReacherEnv {
 
       return action;
   }
-  // inline double policy(const std::vector<double>& obs) {
-  //   std::vector<double> action;
-  //   neural_network.compute(obs, action);
 
-  //   //normalize actions
-    
-  //   for (int i=0;i<action.size();i++)
-  //   {
-
-  //       if (action[i]<-1.0)
-  //           action[i]=-1.0;
-  //       if (action[i]>1.0)
-  //           action[i]=1.0;
-  //       action[i] *= (action_high_ - action_low_)/2.0;
-  //       action[i] += (action_low_ + action_high_)/2.0;
-
-  //   }
-
-  //   return action[0];
-  // }
-
-  inline double policy2(const std::vector<double>& x,
-                        const std::vector<double>& obs) {
-    double action = 0;
-
-    for (int i = 0; i < 4; i++) {
-      action += x[i] * obs[i];  // identity activation
-    }
-    action += x[4];  // bias
-
-    if (action<-1.0)
-        action=-1.0;
-    if (action>1.0)
-        action=1.0;
-    action *= (action_high_ - action_low_)/2.0;
-    action += (action_low_ + action_high_)/2.0;
-
-    return action;
-  }
 };
 
 #endif  // REACHER_ENVIRONMENT_H

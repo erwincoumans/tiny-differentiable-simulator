@@ -25,15 +25,17 @@ bunny_file = "../../data/cube.obj"
 #bunny_file = "../../data/laikago/chassis.obj"
 
 
+
 shapes = p.load_obj_shapes(app, bunny_file, pos, orn, scaling)
 shape = shapes[0]
 
+rebuild = True
 cube_size = 0.1
 for x in range (20):
   for y in range (20):
     for z in range (20):
       pos = p.TinyVector3f(x*cube_size,y*cube_size,z*cube_size)
-      mesh = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+      mesh = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity, rebuild)
 
 
 while not app.window.requested_exit():

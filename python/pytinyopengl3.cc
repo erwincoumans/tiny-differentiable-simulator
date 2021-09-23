@@ -136,6 +136,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("swap_buffer", &TinyOpenGL3App::swap_buffer)
       .def("register_cube_shape", &TinyOpenGL3App::register_cube_shape)
       .def("register_graphics_unit_sphere_shape", &TinyOpenGL3App::register_graphics_unit_sphere_shape)
+      .def("register_graphics_capsule_shape", &TinyOpenGL3App::register_graphics_capsule_shape)
       .def("draw_grid", (void (TinyOpenGL3App::*)())&TinyOpenGL3App::draw_grid)
       .def("draw_grid", (void (TinyOpenGL3App::*)(DrawGridData)) & TinyOpenGL3App::draw_grid)
       .def("draw_text_3d", (void (TinyOpenGL3App::*)(const char*, float [3], float[4], float[4], float, int)) &TinyOpenGL3App::draw_text_3d)
