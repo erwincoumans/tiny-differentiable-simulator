@@ -193,9 +193,12 @@ struct MeshcatUrdfVisualizer {
       {
           case tds::TINY_SPHERE_TYPE:
           {
-            nlohmann::json sphere_cmd =
-              create_sphere_cmd(v.geometry.sphere.radius, world_pos, color_rgb, meshcat_path);
-            send_zmq(m_sock, sphere_cmd);
+              if (v.geometry.sphere.radius>0)
+              {
+                nlohmann::json sphere_cmd =
+                  create_sphere_cmd(v.geometry.sphere.radius, world_pos, color_rgb, meshcat_path);
+                send_zmq(m_sock, sphere_cmd);
+              }
             break;
           }
          case tds::TINY_BOX_TYPE: 

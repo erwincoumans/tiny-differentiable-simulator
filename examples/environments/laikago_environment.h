@@ -64,7 +64,7 @@ struct LaikagoContactSimulation {
       std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
       tds::FileUtils::find_file(urdf_name, m_laikago_urdf_filename);
       char laikago_search_path[TINY_MAX_EXE_PATH_LEN];
-      FileUtils::extract_path(m_laikago_urdf_filename.c_str(), laikago_search_path,
+      tds::FileUtils::extract_path(m_laikago_urdf_filename.c_str(), laikago_search_path,
       TINY_MAX_EXE_PATH_LEN);
       m_laikago_search_path = laikago_search_path;
 
@@ -292,8 +292,9 @@ struct LaikagoEnv {
     }
 
     Scalar up_dot_world_z = base_tr.rotation(2, 2);
+    
     // Laikago torso height needs to be in range 0.3 to 1. meter
-    if ((sim_state[2] < 0.3) || (sim_state[2] > 1.)) {
+    if (up_dot_world_z < 0.8 || (sim_state[2] < 0.3) || (sim_state[2] > 1.)) {
       done = true;
     } else {
       done = false;

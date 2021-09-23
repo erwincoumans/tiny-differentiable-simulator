@@ -945,6 +945,59 @@
       .def("convert2", &UrdfToMultiBody2<MyAlgebra>::convert);
 
 #ifdef ENABLE_TEST_ENVS
+
+    py::class_<ReacherEnvOutput>(m, "ReacherEnvOutput")
+      .def(py::init<>())
+      .def_readwrite("obs",
+                     &ReacherEnvOutput::obs)
+      .def_readwrite("reward",
+                     &ReacherEnvOutput::reward)
+      .def_readwrite("done",
+                     &ReacherEnvOutput::done)
+
+    
+      .def_readwrite("body0_graphics_pos",
+                     &ReacherEnvOutput::body0_graphics_pos)
+      .def_readwrite("body0_graphics_orn",
+                     &ReacherEnvOutput::body0_graphics_orn)
+      .def_readwrite("body1_graphics_pos",
+                     &ReacherEnvOutput::body1_graphics_pos)
+      .def_readwrite("body1_graphics_orn",
+                     &ReacherEnvOutput::body1_graphics_orn)
+      .def_readwrite("tip_graphics_pos",
+                     &ReacherEnvOutput::tip_graphics_pos)
+      .def_readwrite("tip_graphics_orn",
+                     &ReacherEnvOutput::tip_graphics_orn)
+      .def_readwrite("target_graphics_pos",
+                     &ReacherEnvOutput::target_graphics_pos)
+      ;
+
+   py::class_<ReacherRolloutOutput>(m, "ReacherRolloutOutput")
+      .def(py::init<>())
+      .def_readwrite("total_reward",
+                     &ReacherRolloutOutput::total_reward)
+      .def_readwrite("num_steps",
+                     &ReacherRolloutOutput::num_steps)
+      ;
+   py::class_<ReacherContactSimulation<MyAlgebra> >(m, "ReacherSimulation")
+      .def(py::init<>())
+      .def_readwrite("m_urdf_filename",
+                     &ReacherContactSimulation<MyAlgebra>::m_urdf_filename)
+
+      ;
+
+     py::class_<ReacherEnv<MyAlgebra>>(m, "ReacherEnv")
+      .def(py::init<>())
+      .def("reset", &ReacherEnv<MyAlgebra>::reset)
+      .def("step", &ReacherEnv<MyAlgebra>::step2)
+      .def("rollout", &ReacherEnv<MyAlgebra>::rollout)
+      .def("update_weights", &ReacherEnv<MyAlgebra>::init_neural_network)
+      .def("seed", &ReacherEnv<MyAlgebra>::seed)
+      .def("init_neural_network", &ReacherEnv<MyAlgebra>::init_neural_network)
+      .def("policy", &ReacherEnv<MyAlgebra>::policy)
+      ;
+
+
   py::class_<CartpoleEnvOutput>(m, "CartpoleEnvOutput")
       .def(py::init<>())
       .def_readwrite("obs",

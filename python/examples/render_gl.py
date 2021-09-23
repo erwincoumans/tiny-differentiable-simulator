@@ -36,12 +36,15 @@ orn = p.TinyQuaternionf(0.,0.,0.,1.)
 color = p.TinyVector3f(1.,1.,1.)
 scaling = p.TinyVector3f(1.,1.,1.)
 opacity = 1
-app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+rebuild = True
+app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity, rebuild)
 
 pos = p.TinyVector3f(0.,0.,1.)
 scaling = p.TinyVector3f(0.1,0.1,0.1)
-shape = app.register_graphics_unit_sphere_shape(p.EnumSphereLevelOfDetail.SPHERE_LOD_HIGH, textureIndex)
-sphere = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity)
+#shape = app.register_graphics_unit_sphere_shape(p.EnumSphereLevelOfDetail.SPHERE_LOD_HIGH, textureIndex)
+shape = app.register_cube_shape(1,1,1, textureIndex,4)
+
+sphere = app.renderer.register_graphics_instance(shape, pos, orn, color, scaling, opacity, rebuild)
 
 app.renderer.write_transforms()
 

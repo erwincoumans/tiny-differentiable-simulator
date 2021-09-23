@@ -10,8 +10,8 @@ class CartpolePyTinyDiffSim(gym.Env):
   metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
 
   def __init__(self):
-    self.tds_sim = pytinydiffsim.CartpoleSimulation()
-    self.tds_env = pytinydiffsim.CartpoleEnv(self.tds_sim)
+    
+    self.tds_env = pytinydiffsim.CartpoleEnv()
 
     self._render_width = 320
     self._render_height = 200
@@ -96,4 +96,4 @@ class CartpolePyTinyDiffSim(gym.Env):
     
   def close(self):
     del self.tds_env
-    del self.tds_sim
+    
