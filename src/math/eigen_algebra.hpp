@@ -877,7 +877,7 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Vector3 rotate(const Quaternion &q,
                                             const Vector3 &w) {
-    return q * w;
+    return normalize(q) * w;
 
  /* Rotating with an all zero quaternion results in
        a rotation with the identity quaternion in Eigen.
