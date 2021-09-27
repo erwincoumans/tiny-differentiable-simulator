@@ -569,7 +569,7 @@
       .def_readwrite("qd_index", &Link<MyAlgebra>::qd_index)
       .def_readwrite("world_transform", &Link<MyAlgebra>::X_world)
       .def_readwrite("index", &Link<MyAlgebra>::index)
-      .def_readwrite("parent_index", &Link<MyAlgebra>::paent_index)
+      .def_readwrite("parent_index", &Link<MyAlgebra>::parent_index)
       .def_readwrite("X_T", &Link<MyAlgebra>::X_T)
       .def_readwrite("X_J", &Link<MyAlgebra>::X_J)
       .def_readwrite("X_parent", &Link<MyAlgebra>::X_parent)
