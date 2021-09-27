@@ -256,6 +256,35 @@
           a(row, col) = v;
       })
       ;
+
+  typedef typename MyAlgebra::Matrix6x3 Matrix6x3;
+  py::class_<Matrix6x3>(m, "Matrix6x3")
+      .def(py::init<>())
+      .def_property_readonly("num_rows", [](const Matrix6x3& a) {
+          return MyAlgebra::num_rows(a);
+      })
+      .def_property_readonly("num_columns", [](const Matrix6x3& a) {
+          return MyAlgebra::num_cols(a);
+      })
+     .def("get_at", [](const Matrix6x3& a, const int row, const int col) {
+          return a( row, col);
+      })
+      //.def("print", &Matrix6x3::print)
+      .def("__getitem__", [](const Matrix6x3& a, py::tuple t) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          return a(row, col);
+      })
+      .def("__setitem__", [](Matrix6x3& a, py::tuple t, MyScalar v) {
+          if (t.size() != 2)
+              throw std::runtime_error("Invalid indexing!");
+          int row = t[0].cast<int>();
+          int col = t[1].cast<int>();
+          a(row, col) = v;
+      })
+      ;
 /*
   py::class_<TinyVectorX<MyScalar, MyTinyConstants>>(m, "TinyVectorX")
       .def(py::init<int>())
@@ -322,7 +351,14 @@
              std::unique_ptr<Plane<MyAlgebra>>>(m, "TinyPlane",
                                                               geom)
       .def(py::init<>())
-      .def("get_normal", &Plane<MyAlgebra>::get_normal);
+      .def("get_normal", &Plane<MyAlgebra>::get_normal)
+      .def("get_constant", &Plane<MyAlgebra>::get_constant);
+
+  py::class_<Capsule<MyAlgebra>,
+             std::unique_ptr<Capsule<MyAlgebra>>>(m, "TinyCapsule", geom)
+      .def(py::init<MyScalar, MyScalar>())
+      .def("get_radius", &Capsule<MyAlgebra>::get_radius)
+      .def("get_length", &Capsule<MyAlgebra>::get_length);
 
 
   py::class_<RigidBody<MyAlgebra>,
@@ -453,7 +489,15 @@
           "bottomVec",
           &MotionVector<MyAlgebra>::bottom);
 
-  
+
+  py::class_<ForceVector<MyAlgebra>>(
+      m, "TinySpatialForceVector")
+      //.def(py::init<int>())
+      .def_readwrite("topVec",
+                     &ForceVector<MyAlgebra>::top)
+      .def_readwrite(
+          "bottomVec",
+          &ForceVector<MyAlgebra>::bottom);
 
   m.def("get_debug_double", &MyTinyConstants::getDouble<MyScalar>);
 #if 0    
@@ -524,14 +568,52 @@
       .def_readwrite("q_index", &Link<MyAlgebra>::q_index)
       .def_readwrite("qd_index", &Link<MyAlgebra>::qd_index)
       .def_readwrite("world_transform", &Link<MyAlgebra>::X_world)
+      .def_readwrite("index", &Link<MyAlgebra>::index)
+      .def_readwrite("parent_index", &Link<MyAlgebra>::paent_index)
+      .def_readwrite("X_T", &Link<MyAlgebra>::X_T)
+      .def_readwrite("X_J", &Link<MyAlgebra>::X_J)
+      .def_readwrite("X_parent", &Link<MyAlgebra>::X_parent)
+      .def_readwrite("X_world", &Link<MyAlgebra>::X_world)
+      .def_readwrite("vJ", &Link<MyAlgebra>::vJ)
+      .def_readwrite("cJ", &Link<MyAlgebra>::cJ)
+      .def_readwrite("v", &Link<MyAlgebra>::v)
+      .def_readwrite("a", &Link<MyAlgebra>::a)
+      .def_readwrite("c", &Link<MyAlgebra>::c)
+      .def_readwrite("rbi", &Link<MyAlgebra>::rbi)
+      .def_readwrite("abi", &Link<MyAlgebra>::abi)
+      .def_readwrite("pA", &Link<MyAlgebra>::pA)
+      .def_readwrite("S", &Link<MyAlgebra>::S)
+      .def_readwrite("U", &Link<MyAlgebra>::U)
+      .def_readwrite("D", &Link<MyAlgebra>::D)
+      .def_readwrite("u", &Link<MyAlgebra>::u)
+      .def_readwrite("f", &Link<MyAlgebra>::f)
+      .def_readwrite("S_3d", &Link<MyAlgebra>::S_3d)
+      .def_readwrite("U_3d", &Link<MyAlgebra>::U_3d)
+      .def_readwrite("D_3d", &Link<MyAlgebra>::D_3d)
+      .def_readwrite("invD_3d", &Link<MyAlgebra>::invD_3d)
+      .def_readwrite("u_3d", &Link<MyAlgebra>::u_3d)
+      .def_readwrite("f_ext", &Link<MyAlgebra>::f_ext)
       ;
-
   
   py::class_<RigidBodyInertia<MyAlgebra>,
       std::unique_ptr<RigidBodyInertia<MyAlgebra>>>(m, "RigidBodyInertia")
       .def(py::init<const MyAlgebra::Scalar&, const MyAlgebra::Vector3&,
           const MyAlgebra::Matrix3&>())
-      .def("set_zero", &RigidBodyInertia<MyAlgebra>::set_zero);
+      .def("set_zero", &RigidBodyInertia<MyAlgebra>::set_zero)
+      .def_readwrite("mass", &RigidBodyInertia<MyAlgebra>::mass)
+      .def_readwrite("com", &RigidBodyInertia<MyAlgebra>::com)
+      .def_readwrite("inertia", &RigidBodyInertia<MyAlgebra>::inertia)
+      ;
+      
+  py::class_<ArticulatedBodyInertia<MyAlgebra>,
+      std::unique_ptr<ArticulatedBodyInertia<MyAlgebra>>>(m, "ArticulatedBodyInertia")
+      .def(py::init<const MyAlgebra::Matrix3&,
+                    const MyAlgebra::Matrix3&,
+                    const MyAlgebra::Matrix3&>())
+      .def_readwrite("I", &ArticulatedBodyInertia<MyAlgebra>::I)
+      .def_readwrite("H", &ArticulatedBodyInertia<MyAlgebra>::H)
+      .def_readwrite("M", &ArticulatedBodyInertia<MyAlgebra>::M)
+      ;
 
   py::class_<MultiBody<MyAlgebra>,
              std::unique_ptr<MultiBody<MyAlgebra>>>(
@@ -567,6 +649,16 @@
       .def_readwrite("qd", &MultiBody<MyAlgebra>::qd_)
       .def_readwrite("qdd", &MultiBody<MyAlgebra>::qdd_)
       .def_readwrite("tau", &MultiBody<MyAlgebra>::tau_)
+      .def("base_velocity", py::overload_cast<>(&MultiBody<MyAlgebra>::base_velocity, py::const_))
+      .def("base_acceleration", py::overload_cast<>(&MultiBody<MyAlgebra>::base_acceleration, py::const_))
+      .def("base_applied_force", py::overload_cast<>(&MultiBody<MyAlgebra>::base_applied_force, py::const_))
+      .def("base_force", py::overload_cast<>(&MultiBody<MyAlgebra>::base_force, py::const_))
+      .def("base_bias_force", py::overload_cast<>(&MultiBody<MyAlgebra>::base_bias_force, py::const_))
+      .def("base_rbi", py::overload_cast<>(&MultiBody<MyAlgebra>::base_rbi, py::const_))
+      .def("base_abi", py::overload_cast<>(&MultiBody<MyAlgebra>::base_abi, py::const_))
+      .def("base_X_world", py::overload_cast<>(&MultiBody<MyAlgebra>::base_X_world, py::const_))
+      .def("collision_geometries", py::overload_cast<int>(&MultiBody<MyAlgebra>::collision_geometries, py::const_))
+      .def("collision_transforms", py::overload_cast<int>(&MultiBody<MyAlgebra>::collision_transforms, py::const_))
       ;
 
   m.def("fraction", &fraction);
@@ -583,6 +675,7 @@
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
   m.def("find_file", &MyFindFile);
   m.def("quat_difference", &QuaternionDifference);
+  m.def("mb_collision_geometries", &mb_collision_geometries);
 
   m.def("pi", &MyPi);
   m.def("cos", &MyCos);
