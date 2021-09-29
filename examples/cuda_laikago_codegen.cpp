@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
-  tds::FileUtils::find_file(simulation.m_urdf_filename, file_and_path);
+  tds::FileUtils::find_file(simulation.m_laikago_urdf_filename, file_and_path);
   auto urdf_structures = simulation.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
   tds::FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);

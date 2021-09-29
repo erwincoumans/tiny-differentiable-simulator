@@ -281,7 +281,7 @@ struct AntVecEnv
 
 
     AntVecEnv()
-        :contact_sim(true)
+        :contact_sim(false)
     {
         neural_networks_.resize(g_num_total_threads);
         sim_states_.resize(g_num_total_threads);
@@ -329,10 +329,10 @@ struct AntVecEnv
             if (contact_sim.mb_->is_floating())
             {
             
-                //sim_state[0] = start_orn.x();
-                //sim_state[1] = start_orn.y();
-                //sim_state[2] = start_orn.z();
-                //sim_state[3] = start_orn.w();
+                sim_states_[index][0] = start_orn.x();
+                sim_states_[index][1] = start_orn.y();
+                sim_states_[index][2] = start_orn.z();
+                sim_states_[index][3] = start_orn.w();
                 sim_states_[index][4] = start_pos.x();
                 sim_states_[index][5] = start_pos.y();
                 sim_states_[index][6] = start_pos.z();
@@ -431,13 +431,16 @@ struct AntVecEnv
                 sim_states_[index].resize(contact_sim.input_dim());
                 observations[index] = sim_states_[index];
         
+               
             
 #ifdef USE_ANT
                 //reward forward along x-axis
                 rewards[index] = sim_states_[index][0];
 #else
+                double laikago_x = sim_states_[index][4];
+                double laikago_z = sim_states_[index][6];
                 //reward forward along x-axis, minus angles to keep chassis straight
-                rewards[index] = sim_states_[index][0];// - fabs(sim_states_[index][3]) - fabs(sim_states_[index][4]) - fabs(sim_states_[index][5]);
+                rewards[index] = laikago_x;
 #endif
                 static double max_reward = -1e30;
                 static double min_reward = 1e30;
@@ -451,26 +454,31 @@ struct AntVecEnv
                     max_reward = rewards[index];
                     //printf("max_reward = %f\n",max_reward);
                 }
+            
+
+                //Ant height needs to stay above 0.25a
+#ifdef USE_ANT
+                if (sim_states_[index][2] < 0.26)
+#else
+
+                Algebra::Quaternion base_orn(sim_states_[index][0],sim_states_[index][1],sim_states_[index][2],sim_states_[index][3]);
+                auto base_mat = Algebra::quat_to_matrix(base_orn);
+                Scalar up_dot_world_z = base_mat(2, 2);
+    
+                // Laikago torso height needs to be in range 0.3 to 1. meter
+               
+            
+                if (up_dot_world_z < 0.8 || ( laikago_z< 0.3) || (laikago_z > 1.))
+#endif
+                {
+                    dones[index] =  true;
+                }  else
+                {
+                    dones[index] = false;
+                }
             } else
             {
                 rewards[index] = 0;
-            }
-
-            //Ant height needs to stay above 0.25a
-#ifdef USE_ANT
-            if (sim_states_[index][2] < 0.26)
-#else
-
-            double threshold = 0.6;
-            if ((sim_states_[index][3] < -threshold) ||(sim_states_[index][3] > threshold) ||
-                (sim_states_[index][4] < -threshold) ||(sim_states_[index][4] > threshold) ||
-                (sim_states_[index][5] < -threshold) ||(sim_states_[index][5] > threshold))
-#endif
-            {
-                dones[index] =  true;
-            }  else
-            {
-                dones[index] = false;
             }
         }
     }
@@ -498,7 +506,7 @@ struct PolicyParams
 ///////////////////////////////////////////
 // create graphics
 OpenGLUrdfVisualizer<MyAlgebra> visualizer;
-LaikagoContactSimulation<MyAlgebra> contact_sim(true);
+LaikagoContactSimulation<MyAlgebra> contact_sim(false);
 tds::UrdfStructures<MyAlgebra> urdf_structures;
 
 std::vector<int> visual_instances;
@@ -525,9 +533,28 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
                     sim_spacing * (index / square_id) - square_id * sim_spacing / 2, 1, 1);
             }
 
-          for (int ll = 5; ll < contact_sim.mb_->links_.size(); ll++) 
+
+          for (int v=0;v<num_base_instances;v++)
           {
-            int l = ll-5;
+              ::TINY::TinyQuaternionf orn(
+                sim_states_with_graphics[step][0],
+                sim_states_with_graphics[step][1],
+                sim_states_with_graphics[step][2],
+                sim_states_with_graphics[step][3]);
+            ::TINY::TinyVector3f pos(sim_states_with_graphics[step][4],
+                                    sim_states_with_graphics[step][5],
+                                    sim_states_with_graphics[step][6]);
+
+             pos[0] += sim_spacing * (index % square_id) - square_id * sim_spacing / 2;
+             pos[1] += sim_spacing * (index / square_id) - square_id * sim_spacing / 2;
+
+            int visual_instance_id = visual_instances[instance_index++];
+            visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
+          }
+
+          for (int l = 0; l < contact_sim.mb_->links_.size(); l++) 
+          {
+            //int l = ll-5;
             for (int v = 0; v < num_instances[l]; v++)
             {
                 int visual_instance_id = visual_instances[instance_index++];
@@ -1090,6 +1117,8 @@ struct ARSLearner
                 double sum =0;
                 double min_reward = 1e30;
                 double max_reward = -1e30;
+                int max_reward_index = -1;
+                int min_reward_index = -1;
 
                 if (rewards.size())
                 {
@@ -1101,10 +1130,12 @@ struct ARSLearner
                         if (reward < min_reward)
                         {
                             min_reward = reward;
+                            min_reward_index = i;
                         }
                         if (reward > max_reward)
                         {
                             max_reward = reward;
+                            max_reward_index = i;
                         }
                     }
                     double mean_rewards = sum / rewards.size();
@@ -1112,7 +1143,7 @@ struct ARSLearner
                     {
                         {
                             std::ofstream trajfile_;
-                            std::string fileName = "ant_trajectory_reward"+std::to_string(mean_rewards)+".bin";
+                            std::string fileName = "laikago_trajectory_reward"+std::to_string(mean_rewards)+".bin";
                             trajfile_.open (fileName,std::ios_base::binary);
                             int num_steps = trajectories[0].size();
                             trajfile_.write((char*)&num_steps, sizeof(int));
@@ -1164,8 +1195,8 @@ struct ARSLearner
                     printf("Iteration = %d\n", iter+1);
                     printf("total_timesteps=%d\n", total_timesteps);
                     printf("AverageReward=%f\n", mean_rewards);
-                    printf("MaxReward=%f\n", max_reward);
-                    printf("MinReward=%f\n", min_reward);
+                    printf("MaxReward[%d]=%f\n", max_reward_index, max_reward);
+                    printf("MinReward[%d]=%f\n", min_reward_index, min_reward);
                 }
 #if 0
                 w = ray.get(self.workers[0].get_weights_plus_stats.remote())
@@ -1271,7 +1302,7 @@ int main()
       TinyVector3f pos(0, 0, 0);
       TinyQuaternionf orn(0, 0, 0, 1);
       TinyVector3f scaling(1, 1, 1);
-#if 0
+#if 1
       int uid = urdf_structures.base_links[0].urdf_visual_shapes[0].visual_shape_uid;
       OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
       int instance = -1;
@@ -1288,10 +1319,11 @@ int main()
           contact_sim.mb_->visual_instance_uids().push_back(instance);
       }
       num_base_instances = num_instances_per_link;
+      num_instances_per_robot += num_base_instances;
 #else
       num_base_instances = 0;
 #endif
-      for (int i = 5; i < contact_sim.mb_->num_links(); ++i) {
+      for (int i = 0; i < contact_sim.mb_->num_links(); ++i) {
          
 
           int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
@@ -1348,7 +1380,7 @@ int main()
   for (int i=0;i<240;i++)
   {
       visualizer.render();
-      std::this_thread::sleep_for(std::chrono::duration<double>(1./240.));//frameskip_gfx_sync* contact_sim.dt));
+      //std::this_thread::sleep_for(std::chrono::duration<double>(1./240.));//frameskip_gfx_sync* contact_sim.dt));
   }
    //srand(123);
   {
