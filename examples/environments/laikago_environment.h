@@ -3,7 +3,7 @@
 
 #include "dynamics/forward_dynamics.hpp"
 #include "dynamics/integrator.hpp"
-#include "laikago_toes_zup_xyz_xyzrot_urdf.h"
+#include "laikago_toes_zup_urdf.h"
 #include "math.h"
 #include "math/neural_network.hpp"
 #include "plane_implicit_urdf.h"
@@ -16,7 +16,7 @@
 static double start_pos1[3] = {0, 0, 0.48};
 static double start_orn1[4] = {0, 0, 0, 1};
 
-static bool laikago_is_floating = false;
+static bool laikago_is_floating = true;
 static double laikago_knee_angle = -0.7;
 static double laikago_abduction_angle = 0.2;
 constexpr int LAIKAGO_POSE_SIZE = 12;
@@ -61,7 +61,8 @@ struct LaikagoContactSimulation {
       tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
       cache.construct(plane_filename, world, false, false);
 
-      std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
+      //std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
+      std::string urdf_name = "laikago/laikago_toes_zup.urdf";
       tds::FileUtils::find_file(urdf_name, m_laikago_urdf_filename);
       char laikago_search_path[TINY_MAX_EXE_PATH_LEN];
       tds::FileUtils::extract_path(m_laikago_urdf_filename.c_str(), laikago_search_path,
@@ -74,8 +75,8 @@ struct LaikagoContactSimulation {
       cache.construct_from_string(plane_filename, plane_string, world, false,
                                   false);
 
-      m_laikago_urdf_filename = "laikago_toes_zup_xyz_xyzrot.urdf";
-      std::string laikago_string = laikago_toes_zup_xyz_xyzrot_urdf;
+      m_laikago_urdf_filename = "laikago/laikago_toes_zup.urdf";
+      std::string laikago_string = laikago_toes_zup_urdf;
       mb_ = cache.construct_from_string(m_laikago_urdf_filename, laikago_string, world,
                                         false, laikago_is_floating);
     }

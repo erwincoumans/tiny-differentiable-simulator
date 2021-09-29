@@ -53,9 +53,9 @@ target_compile_definitions(soft_contact_example PRIVATE USE_TINY )
 target_include_directories(soft_contact_example PRIVATE ../src)
 
 
-add_executable(tinyrenderer_example tinyrenderer_example.cpp ${TDS_HDRS}) 
-target_link_libraries(tinyrenderer_example  tds_tinyrenderer ${CMAKE_DL_LIBS}) 
-target_include_directories(tinyrenderer_example PRIVATE ../src)
+#add_executable(tinyrenderer_example tinyrenderer_example.cpp ${TDS_HDRS}) 
+#target_link_libraries(tinyrenderer_example  tds_tinyrenderer ${CMAKE_DL_LIBS}) 
+#target_include_directories(tinyrenderer_example PRIVATE ../src)
 
 
 

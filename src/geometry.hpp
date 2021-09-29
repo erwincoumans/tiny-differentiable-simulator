@@ -168,6 +168,7 @@ public:
   }
 
   const Vector3 &get_normal() const { return normal; }
+  void set_normal(const Vector3& n ) { normal = n; }
   const Scalar &get_constant() const { return constant; }
 
   Scalar distance(const Vector3 &p) const override {

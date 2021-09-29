@@ -382,7 +382,7 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/pybullet)
-subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/tinyrenderer)
+#subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/tinyrenderer)
 
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cpp_base64)
 #SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cloud_seed)

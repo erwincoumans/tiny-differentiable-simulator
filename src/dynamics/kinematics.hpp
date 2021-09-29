@@ -64,7 +64,7 @@ void forward_kinematics(
     // Algebra::print("base_velocity", mb.base_velocity());
     // Algebra::print("qd", mb.qd());
 
-    ForceVector I0_mul_v0 = mb.base_abi() * v0;
+    // ForceVector I0_mul_v0 = mb.base_abi() * v0;
     // Algebra::print("ABI", mb.base_abi().matrix());
     // typedef Eigen::Matrix<double, 6, 1> Vector6;
     // Vector6 v0d;
@@ -82,7 +82,7 @@ void forward_kinematics(
     // for (int i = 0; i < 6; ++i) {
     //   I0_mul_v0[i] = I0_mul_v0d[i];
     // }
-    // ForceVector I0_mul_v0 = mb.base_abi().mul_org(mb.base_velocity());
+    ForceVector I0_mul_v0 = mb.base_abi().mul_org(mb.base_velocity());
     // Matrix6 v0x = v0.cross_matrix();
     // Algebra::print("v0x", v0x);
     // // Matrix6 v0xI = v0x * mb.base_abi().matrix().transpose();
