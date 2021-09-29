@@ -200,7 +200,14 @@ struct MeshcatUrdfVisualizer {
                 send_zmq(m_sock, sphere_cmd);
               }
             break;
-          }
+         }
+         case tds::TINY_CAPSULE_TYPE: 
+         {
+            nlohmann::json box_cmd = create_box_cmd(v.geometry.capsule.radius, 
+                v.geometry.capsule.radius, v.geometry.capsule.length, world_pos, color_rgb, meshcat_path);
+            send_zmq(m_sock, box_cmd);
+            break;
+         }
          case tds::TINY_BOX_TYPE: 
          {
            
