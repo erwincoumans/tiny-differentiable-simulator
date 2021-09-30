@@ -20,7 +20,11 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include <cppad/cg.hpp>
+#ifdef USE_CPPAD_CODEGEN
+  #include <cppad/cg.hpp>
+#else
+  #include <cppad/cppad.hpp>
+#endif
 
 #include <vector>
 #include <string>
@@ -36,8 +40,12 @@ using std::vector;
 template <typename InnerScalar = double>
 struct CppADUtils {
   typedef typename CppAD::AD<InnerScalar> Scalar;
+#ifdef USE_CPPAD_CODEGEN
   static const bool is_codegen =
      std::is_same_v<InnerScalar, CppAD::cg::CG<double>>;
+#else
+  static const bool is_codegen = false;
+#endif
 
   static Scalar zero() { return Scalar(0.); }
   static Scalar one() { return Scalar(1.); }
