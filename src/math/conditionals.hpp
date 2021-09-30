@@ -1,7 +1,13 @@
 #pragma once
 
 #ifdef USE_CPPAD
-#include <cppad/cg.hpp>
+
+  #ifdef USE_CPPAD_CODEGEN
+    #include <cppad/cg.hpp>
+  #else
+    #include <cppad/cppad.hpp>
+  #endif
+
 #endif
 
 #include "base.hpp"
@@ -25,14 +31,18 @@ struct is_cppad_scalar {
   static constexpr bool value = false;
 };
 #ifdef USE_CPPAD
-template <typename Scalar>
-struct is_cppad_scalar<CppAD::AD<Scalar>> {
-  static constexpr bool value = true;
-};
-template <typename Scalar>
-struct is_cppad_scalar<CppAD::cg::CG<Scalar>> {
-  static constexpr bool value = true;
-};
+
+#ifdef USE_CPPAD_CODEGEN
+  template <typename Scalar>
+  struct is_cppad_scalar<CppAD::cg::CG<Scalar>> {
+    static constexpr bool value = true;
+  };
+#else
+  template <typename Scalar>
+  struct is_cppad_scalar<CppAD::AD<Scalar>> {
+    static constexpr bool value = true;
+  };
+#endif
 
 template <typename Scalar>
 static TINY_INLINE CppAD::AD<Scalar> where_gt(
