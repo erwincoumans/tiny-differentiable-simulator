@@ -260,12 +260,7 @@
   typedef typename MyAlgebra::Matrix6x3 Matrix6x3;
   py::class_<Matrix6x3>(m, "Matrix6x3")
       .def(py::init<>())
-      .def_property_readonly("num_rows", [](const Matrix6x3& a) {
-          return MyAlgebra::num_rows(a);
-      })
-      .def_property_readonly("num_columns", [](const Matrix6x3& a) {
-          return MyAlgebra::num_cols(a);
-      })
+  
      .def("get_at", [](const Matrix6x3& a, const int row, const int col) {
           return a( row, col);
       })

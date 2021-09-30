@@ -295,7 +295,7 @@ struct LaikagoEnv {
     Scalar up_dot_world_z = base_tr.rotation(2, 2);
     
     // Laikago torso height needs to be in range 0.3 to 1. meter
-    if (up_dot_world_z < 0.8 || (sim_state[2] < 0.3) || (sim_state[2] > 1.)) {
+    if (up_dot_world_z < 0.7 || (sim_state[6] < 0.2) || (sim_state[6] > 2.)) {
       done = true;
     } else {
       done = false;
