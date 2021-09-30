@@ -7,7 +7,11 @@
 
 // clang-format off
 #ifdef USE_CPPAD
-#include <cppad/cg.hpp>
+  #ifdef USE_CPPAD_CODEGEN
+    #include <cppad/cg.hpp>
+  #else
+    #include <cppad/cppad.hpp>
+  #endif
 #include "math/cppad/eigen_mat_inv.hpp"
 #endif //USE_CPPAD
 // clang-format on
@@ -1159,6 +1163,7 @@ struct EigenAlgebraT {
     } else
 #endif
 #ifdef USE_CPPAD
+#if USE_CPPAD_CODEGEN
     if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
                                      CppAD::AD<CppAD::cg::CG<double>>>) {
       return CppAD::Value(CppAD::Var2Par(s)).getValue();
@@ -1166,6 +1171,12 @@ struct EigenAlgebraT {
                                         CppAD::AD<double>>) {
       return CppAD::Value(CppAD::Var2Par(s));
     } else
+#else
+    if constexpr (std::is_same_v<std::remove_cv_t<Scalar>,
+                  CppAD::AD<double>>) {
+      return CppAD::Value(CppAD::Var2Par(s));
+    } else
+#endif
 #endif  // USE_CPPAD
     {
       return static_cast<double>(s);
