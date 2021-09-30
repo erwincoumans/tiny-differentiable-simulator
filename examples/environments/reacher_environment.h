@@ -255,18 +255,17 @@ struct ReacherEnv {
       sim_state[i] = 0.05 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
     }
 
-
+    double target_x, target_y;
+    while(true) {
+      target_x = 0.2 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
+      target_y = 0.2 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
+      if (target_x * target_x + target_y * target_y <= 0.2 * 0.2) { break; }
+    }
     // Set endeffector_target_ [(-0.2, 0.2), (-0.2, 0.2), 0.01]
-    endeffector_target_[0] = 0.2 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
-    endeffector_target_[1] = 0.2 * ((std::rand() * 1. / RAND_MAX) - 0.5) * 2.0;
+    endeffector_target_[0] = target_x;
+    endeffector_target_[1] = target_y;
     endeffector_target_[2] = 0.01;
-    //std::cout << "reset: endeffector target = " << 
-    //    endeffector_target_[0] << " " << 
-    //    endeffector_target_[1] << " " << 
-    //    endeffector_target_[2] << std::endl;
-     //for (auto v : sim_state)
-     //    std::cout << v << ",";
-    //std::cout << std::endl;
+    
     // Fill observations
     std::vector<double> obs_(observation_dim_);
     fill_obs(obs_);
