@@ -1,4 +1,0 @@
-In Visual Studio, when using /fp:fast the check for nan s!=s doesn't work, we need to use std::isnan
-This patch requires C++17, CppAD and CppADCodegen is still at C++11/14
-See https://github.com/joaoleal/CppADCodeGen/pull/65
-git apply ..\patches\CppADCodeGen.diff
