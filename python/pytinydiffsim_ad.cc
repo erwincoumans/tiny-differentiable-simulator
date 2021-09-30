@@ -114,7 +114,7 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
 
     /* Algebra functions */
     m.def("quat_from_euler_rpy", &MyAlgebra::quat_from_euler_rpy);
-    
+     
 #include "pytinydiffsim.inl"
 
 }
