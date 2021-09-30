@@ -44,9 +44,9 @@ struct EstimationParameter {
                Algebra::from_double(l2_regularization);
   }
 
-  friend std::ostream& operator<<(std::ostream& stream, const EstimationParameter& p) {
-    stream << p.name << " = " << p.value;
-    return stream;
-  }
+  //friend std::ostream& operator<<(std::ostream& stream, const EstimationParameter& p) {
+  //  stream << p.name << " = " << p.value;
+  //  return stream;
+  //}
 };
 }  // namespace tds
