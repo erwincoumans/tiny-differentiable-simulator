@@ -18,7 +18,7 @@
 
 #include <crossguid/guid.hpp>
 #include <nlohmann/json.hpp>
-std::string generate_uuid() { return xg::newGuid().str(); }
+inline std::string generate_uuid() { return xg::newGuid().str(); }
 
 #include "zmq.hpp"
 #include "zmq_addon.hpp"
