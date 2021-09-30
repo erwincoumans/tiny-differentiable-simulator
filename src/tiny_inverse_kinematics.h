@@ -202,9 +202,11 @@ namespace TINY {
                 }
                 if constexpr (kMethod == IK_JAC_PINV) {
 
+#ifdef USE_EIGEN
                   auto J_pinv = pseudo_inverse(J);
                   
                   delta_theta = J_pinv * e;
+#endif
 
                 } else if constexpr (kMethod == IK_DAMPED_LM) {
 #ifdef USE_EIGEN
