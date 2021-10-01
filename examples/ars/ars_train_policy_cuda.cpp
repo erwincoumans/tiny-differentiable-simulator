@@ -429,7 +429,9 @@ struct AntVecEnv
                 sim_states_[index] = sim_states_with_graphics_[index];
 
                 sim_states_[index].resize(contact_sim.input_dim());
+
                 observations[index] = sim_states_[index];
+                
         
                
             
@@ -465,10 +467,8 @@ struct AntVecEnv
                 auto base_mat = Algebra::quat_to_matrix(base_orn);
                 Scalar up_dot_world_z = base_mat(2, 2);
     
-                // Laikago torso height needs to be in range 0.3 to 1. meter
-               
-            
-                if (up_dot_world_z < 0.8 || ( laikago_z< 0.3) || (laikago_z > 1.))
+                // terminate if Laikago position/orientation becomes invalid
+                if (up_dot_world_z < 0.6 || ( laikago_z< 0.2))
 #endif
                 {
                     dones[index] =  true;
@@ -905,8 +905,8 @@ struct ARSLearner
 
     
     Worker* worker_{0};
-    int rollout_length_train_{2000};
-    int rollout_length_eval_{6000};
+    int rollout_length_train_{3000};
+    int rollout_length_eval_{4000};
     double delta_std_{0.03};
     double sgd_step_size { 0.02};
 
@@ -1251,7 +1251,7 @@ struct ARSLearner
 int main()
 {
   
-  
+
 
     
     
