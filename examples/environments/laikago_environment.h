@@ -286,7 +286,7 @@ struct LaikagoEnv {
     auto base_tr = contact_sim.mb_->get_world_transform(-1);
 
     // reward forward along x-axis
-    reward = sim_state[0];
+    reward = sim_state[4];
     if (std::isnan(reward) || std::isinf(reward) || (reward != reward)) {
       reward = 0;
       done = true;
@@ -295,7 +295,7 @@ struct LaikagoEnv {
     Scalar up_dot_world_z = base_tr.rotation(2, 2);
     
     // Laikago torso height needs to be in range 0.3 to 1. meter
-    if (up_dot_world_z < 0.7 || (sim_state[6] < 0.2) || (sim_state[6] > 2.)) {
+    if (up_dot_world_z < 0.6 || (sim_state[6] < 0.2) || (sim_state[6] > 5.)) {
       done = true;
     } else {
       done = false;

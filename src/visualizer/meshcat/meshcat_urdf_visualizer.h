@@ -169,6 +169,16 @@ struct MeshcatUrdfVisualizer {
     }
   }
 
+  void create_sphere_instance(double radius, double world_pos[3], const std::string& meshcat_path, int color_rgb = 0xffffff )
+  {
+      if (meshcat_path.length())
+      {
+          nlohmann::json sphere_cmd =
+                      create_sphere_cmd(radius, world_pos, color_rgb, meshcat_path.c_str());
+          send_zmq(m_sock, sphere_cmd);
+      }
+  }
+
   void convert_link_visuals(TinyUrdfLink &link, int link_index,
                             bool useTextureUuid, std::vector<int>& visual_instance_uids) {
     for (int vis_index = 0; vis_index < (int)link.urdf_visual_shapes.size();
