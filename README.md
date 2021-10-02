@@ -10,6 +10,7 @@ regular float or double precision values. Another option is to use the included
 fix-point integer math, that provide cross-platform deterministic computation.
 
 TDS can run thousands of simulations in parallel on a single RTX 2080 CUDA GPU at 50 frames per second:
+
 https://user-images.githubusercontent.com/725468/135697035-7df34b85-c73e-4739-9a76-dc114ce84c4c.mp4
 
 Multiple visualizers are available, see below.
