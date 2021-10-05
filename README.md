@@ -1,6 +1,6 @@
 # Tiny Differentiable Simulator
 
-Tiny Differentiable Simulator is a header-only C++ physics library with zero dependencies.
+Tiny Differentiable Simulator is a header-only C++ (and CUDA) physics library with zero dependencies.
 
 It currently implements various rigid-body dynamics algorithms, including forward and inverse dynamics, as well as contact models based on impulse-level LCP and force-based nonlinear spring-dampers. Actuator models for motors, servos, and Series-Elastic Actuator (SEA) dynamics are implemented.
 
