@@ -88,7 +88,7 @@ IF(USE_CPPAD)
   endif(USE_STAN)
 
   add_executable(cuda_laikago_codegen cuda_laikago_codegen.cpp ${TDS_HDRS})
-  target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD)
+  target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
   target_link_libraries(
     cuda_laikago_codegen
     PRIVATE
@@ -99,7 +99,7 @@ IF(USE_CPPAD)
       differentiation
   )
   add_executable(cuda_ant_codegen cuda_ant_codegen.cpp ${TDS_HDRS})
-  target_compile_definitions(cuda_ant_codegen PRIVATE -DUSE_CPPAD )
+  target_compile_definitions(cuda_ant_codegen PRIVATE -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
   target_link_libraries(
     cuda_ant_codegen
     PRIVATE
