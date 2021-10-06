@@ -288,6 +288,8 @@ struct TinyAlgebra {
   }
   TINY_INLINE static Scalar pi() { return TinyConstants::pi(); }
 
+  TINY_INLINE static Scalar half_pi() { return TinyConstants::half_pi(); }
+
   TINY_INLINE static Scalar scalar_from_string(const std::string &s) {
     return TinyConstants::scalar_from_string(s);
   }

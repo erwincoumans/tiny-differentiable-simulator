@@ -262,7 +262,8 @@ template <typename Algebra> struct UrdfToMultiBody {
       //    break;
       //}
       case TINY_PLANE_TYPE: {
-        Geometry<Algebra> *geom = world.create_plane();
+        Plane<Algebra> *geom = world.create_plane();
+        geom->set_normal(col.geometry.plane.normal);
         l.collision_geometries.push_back(geom);
         l.X_collisions.push_back(collision_offset);
         break;
