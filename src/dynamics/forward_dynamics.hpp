@@ -28,7 +28,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
   typedef tds::RigidBodyInertia<Algebra> RigidBodyInertia;
   typedef tds::ArticulatedBodyInertia<Algebra> ArticulatedBodyInertia;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q) == mb.dof());
   assert(Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == mb.dof_qd());
   assert(Algebra::size(tau) == mb.dof_actuated());

@@ -247,7 +247,10 @@ struct ReacherEnv {
   std::vector<Scalar> sim_state;
   std::vector<Scalar> sim_state_with_graphics;
 
-  std::vector<double> reset() {
+  std::vector<double> reset(const Vector3& gravity = Vector3(0., 0., -10)) {
+
+    contact_sim.world.set_gravity(gravity);
+    
     //std::srand(0);
     int input_dim = contact_sim.input_dim();
     sim_state.resize(input_dim);

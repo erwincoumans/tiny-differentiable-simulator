@@ -37,3 +37,6 @@
 [submodule "third_party/qpOASES"]
 	path = third_party/qpOASES
 	url = https://github.com/coin-or/qpOASES.git
+[submodule "third_party/tinyrenderer"]
+	path = third_party/tinyrenderer
+	url = https://github.com/erwincoumans/tinyrenderer

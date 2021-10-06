@@ -88,7 +88,7 @@ IF(USE_CPPAD)
   endif(USE_STAN)
 
   add_executable(cuda_laikago_codegen cuda_laikago_codegen.cpp ${TDS_HDRS})
-  target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD)
+  target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
   target_link_libraries(
     cuda_laikago_codegen
     PRIVATE
@@ -99,7 +99,7 @@ IF(USE_CPPAD)
       differentiation
   )
   add_executable(cuda_ant_codegen cuda_ant_codegen.cpp ${TDS_HDRS})
-  target_compile_definitions(cuda_ant_codegen PRIVATE -DUSE_CPPAD)
+  target_compile_definitions(cuda_ant_codegen PRIVATE -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
   target_link_libraries(
     cuda_ant_codegen
     PRIVATE
@@ -169,9 +169,25 @@ IF(WIN32)
     set(MESHCAT_LIBRARIES ${MESHCAT_LIBRARIES} ws2_32 Winmm iphlpapi)
 ENDIF()
 
-add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp ${TDS_HDRS}) 
-target_link_libraries(tiny_urdf_parser_meshcat_example  tinyxml2 ${MESHCAT_LIBRARIES}) 
-target_include_directories(tiny_urdf_parser_meshcat_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
+IF(USE_TINY_RENDERER )
+
+add_executable(tiny_urdf_parser_meshcat_example tiny_urdf_parser_meshcat_example.cpp 
+../third_party/tinyrenderer/tinyrenderer.cpp 
+../third_party/tinyrenderer/geometry.cpp 
+../third_party/tinyrenderer/our_gl.cpp 
+../third_party/tinyrenderer/model.cpp
+../third_party/tinyrenderer/tgaimage.cpp
+../third_party/stb_image/stb_image.cpp
+../third_party/tinyobjloader/tiny_obj_loader.cc
+${TDS_HDRS}) 
+target_link_libraries(tiny_urdf_parser_meshcat_example   tinyxml2 ${MESHCAT_LIBRARIES}) 
+target_include_directories(tiny_urdf_parser_meshcat_example PRIVATE 
+    ../third_party 
+    ../third_party/tinyrenderer 
+    ../third_party/tinyobjloader
+    ../third_party/nlohmann/include 
+    ../src)
+ENDIF()
 
 add_executable(meshcat_zmq_example meshcat_zmq_example.cpp ${TDS_HDRS})
 target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
