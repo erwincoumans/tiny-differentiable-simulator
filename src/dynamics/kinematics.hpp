@@ -49,6 +49,8 @@ void forward_kinematics(
       mb.base_velocity().set_zero();
     }
 
+    mb.base_abi() = mb.base_rbi();
+
     const Vector3& ang_vel_world = mb.base_velocity().top;
 	const Matrix3& inertiaTensorWorld = mb.base_X_world().rotation * mb.base_rbi().inertia * Algebra::transpose(mb.base_X_world().rotation);
 	const Vector3& gyroscopic_force = ang_vel_world.cross(inertiaTensorWorld * ang_vel_world);
