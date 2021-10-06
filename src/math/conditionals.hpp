@@ -10,6 +10,7 @@
 
 #endif
 
+
 #include "base.hpp"
 // #include "math/eigen_algebra.hpp"
 
@@ -37,12 +38,13 @@ struct is_cppad_scalar {
   struct is_cppad_scalar<CppAD::cg::CG<Scalar>> {
     static constexpr bool value = true;
   };
-#else
+#endif
+
   template <typename Scalar>
   struct is_cppad_scalar<CppAD::AD<Scalar>> {
     static constexpr bool value = true;
   };
-#endif
+
 
 template <typename Scalar>
 static TINY_INLINE CppAD::AD<Scalar> where_gt(
