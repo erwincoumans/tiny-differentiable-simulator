@@ -166,6 +166,23 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
 
   void convert_link_visuals(TinyUrdfStructures &urdf, TinyUrdfLink &link,
                             int link_index, bool useTextureUuid) {
+
+    if (link.urdf_visual_shapes.empty())
+    {
+        //convert collision shapes into visual shapes
+        for (int col_index = 0; col_index < (int)link.urdf_collision_shapes.size();col_index++) {
+            const UrdfCollision<Algebra>& c = link.urdf_collision_shapes[col_index];
+            UrdfVisual v;
+            v.geometry = c.geometry;
+            v.has_local_material = false;
+            v.origin_rpy = c.origin_rpy;
+            v.origin_xyz = c.origin_xyz;
+            v.visual_name = c.collision_name;
+            v.visual_shape_uid = m_uid++;
+            link.urdf_visual_shapes.push_back(v);
+        }
+    }
+
     for (int vis_index = 0; vis_index < (int)link.urdf_visual_shapes.size();
          vis_index++) {
       UrdfVisual &v = link.urdf_visual_shapes[vis_index];

@@ -20,6 +20,7 @@
 #include <thread>
 
 #include "visualizer/meshcat/meshcat_urdf_visualizer.h"
+#include "visualizer/tinyrenderer/tinyrenderer_urdf_visualizer.h"
 #include "math/tiny/tiny_double_utils.h"
 #include "utils/file_utils.hpp"
 #include "urdf/urdf_parser.hpp"
@@ -51,8 +52,14 @@ int main(int argc, char* argv[]) {
   UrdfParser<MyAlgebra> parser;
 
   // create graphics
-  MeshcatUrdfVisualizer<MyAlgebra> meshcat_viz;
+  //MeshcatUrdfVisualizer<MyAlgebra> meshcat_viz;
+  TinyRendererUrdfVisualizer<MyAlgebra> meshcat_viz;
+
   meshcat_viz.delete_all();
+
+  //double pos[3]={0.,0.,1.};
+  //meshcat_viz.create_sphere_instance(0.01,pos ,"test", 0xff0000);
+
 
   std::string plane_file_name;
   FileUtils::find_file("plane_implicit.urdf", plane_file_name);
@@ -132,7 +139,7 @@ int main(int argc, char* argv[]) {
   int sync_counter = 0;
 
   while (1) {
-    std::this_thread::sleep_for(std::chrono::duration<double>(dt));
+    //std::this_thread::sleep_for(std::chrono::duration<double>(dt));
 
     forward_kinematics(mb);
 

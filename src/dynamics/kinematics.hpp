@@ -28,7 +28,7 @@ void forward_kinematics(
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::Link<Algebra> Link;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q) == mb.dof());
   assert(Algebra::size(qd) == 0 || Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == 0 || Algebra::size(qdd) == mb.dof_qd());
 
@@ -41,62 +41,22 @@ void forward_kinematics(
     mb.base_X_world().rotation =
         Algebra::quat_to_matrix(q[0], q[1], q[2], q[3]);
     mb.base_X_world().translation = Vector3(q[4], q[5], q[6]);
+
     if (Algebra::size(qd) != 0) {
       mb.base_velocity().top = Vector3(qd[0], qd[1], qd[2]);
-#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-      mb.base_velocity().bottom = mb.base_X_world().rotation * Vector3(qd[3], qd[4], qd[5]);
-#else
-      mb.base_velocity().bottom = Algebra::transpose(mb.base_X_world().rotation) * Vector3(qd[3], qd[4], qd[5]);
-#endif
-      // mb.base_velocity().bottom = Vector3(qd[0], qd[1], qd[2]);
-      // mb.base_velocity().top = Vector3(qd[3], qd[4], qd[5]);
+      mb.base_velocity().bottom = Vector3(qd[3], qd[4], qd[5]);
     } else {
       mb.base_velocity().set_zero();
     }
 
-    // MotionVector v0 = mb.base_velocity();
-    MotionVector v0 = mb.base_velocity();
+    const Vector3& ang_vel_world = mb.base_velocity().top;
+	const Matrix3& inertiaTensorWorld = mb.base_X_world().rotation * mb.base_rbi().inertia * Algebra::transpose(mb.base_X_world().rotation);
+	const Vector3& gyroscopic_force = ang_vel_world.cross(inertiaTensorWorld * ang_vel_world);
 
-    mb.base_abi() = mb.base_rbi();
-    //mb.base_abi().H = Algebra::zero33();
-    // Algebra::print("BASE ABI", mb.base_abi());
-    // Algebra::print("base_X_world", mb.base_X_world());
-    // Algebra::print("base_velocity", mb.base_velocity());
-    // Algebra::print("qd", mb.qd());
-
-    // ForceVector I0_mul_v0 = mb.base_abi() * v0;
-    // Algebra::print("ABI", mb.base_abi().matrix());
-    // typedef Eigen::Matrix<double, 6, 1> Vector6;
-    // Vector6 v0d;
-    // v0d[0] = v0[3];
-    // v0d[1] = v0[4];
-    // v0d[2] = v0[5];
-    // v0d[3] = v0[0];
-    // v0d[4] = v0[1];
-    // v0d[5] = v0[2];
-    // // for (int i = 0; i < 6; ++i) {
-    // //   v0d[i] = v0[i];
-    // // }
-    // Vector6 I0_mul_v0d = mb.base_abi().matrix().transpose() * v0d;
-    // ForceVector I0_mul_v0;
-    // for (int i = 0; i < 6; ++i) {
-    //   I0_mul_v0[i] = I0_mul_v0d[i];
-    // }
-    ForceVector I0_mul_v0 = mb.base_abi().mul_org(mb.base_velocity());
-    // Matrix6 v0x = v0.cross_matrix();
-    // Algebra::print("v0x", v0x);
-    // // Matrix6 v0xI = v0x * mb.base_abi().matrix().transpose();
-    // // Algebra::print("v0xI", v0xI);
-    // Vector6 bbf = v0x * I0_mul_v0d;
-    // // Vector6 bbf = v0xI * v0d;
-    // for (int i = 0; i < 6; ++i) {
-    //   mb.base_bias_force()[i] = bbf[i];
-    // }
-    mb.base_bias_force() =
-        Algebra::cross(v0, I0_mul_v0) - mb.base_applied_force();
-    // Algebra::print("I0_mul_v0", I0_mul_v0);
-    // Algebra::print("mb.base_velocity()", mb.base_velocity());
-    // Algebra::print("mb.base_bias_force()", mb.base_bias_force());
+    ForceVector gyro_term;
+    gyro_term.top = gyroscopic_force;
+    Algebra::set_zero(gyro_term.bottom);
+    mb.base_bias_force() = gyro_term - mb.base_applied_force();
   }
 
   for (int i = 0; i < static_cast<int>(mb.num_links()); i++) {
@@ -216,7 +176,7 @@ void forward_kinematics_q(
   typedef tds::ForceVector<Algebra> ForceVector;
   typedef tds::Link<Algebra> Link;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q) == mb.dof());
   assert(base_X_world != nullptr);
 
   if (mb.is_floating()) {

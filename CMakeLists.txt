@@ -382,7 +382,8 @@ set(CXXOPTS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/opengl)
 subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/pybullet)
-#subdirs(${CMAKE_CURRENT_LIST_DIR}/src/visualizer/tinyrenderer)
+
+OPTION(USE_TINY_RENDERER "Use TinyRenderer" OFF)
 
 SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cpp_base64)
 #SUBDIRS(${CMAKE_CURRENT_LIST_DIR}/third_party/cloud_seed)
@@ -402,6 +403,8 @@ target_include_directories(differentiation INTERFACE )
 
 if(USE_CPPAD)
     target_link_libraries(differentiation INTERFACE CppADCodeGen)
+    target_compile_definitions(differentiation INTERFACE -DUSE_CPPAD_CODEGEN)
+    
 endif(USE_CPPAD)
 
 
