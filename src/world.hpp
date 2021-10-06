@@ -118,10 +118,6 @@ class World {
 
   void set_gravity(const Vector3& gravity) { gravity_acceleration_ = gravity; }
 
-  // ConstraintSolver<Algebra>* get_constraint_solver() {
-  //   return constraint_solver;
-  // }
-
   Capsule* create_capsule(const Scalar& radius, const Scalar& length) {
     Capsule* capsule = new Capsule(radius, length);
     geoms_.push_back(capsule);
