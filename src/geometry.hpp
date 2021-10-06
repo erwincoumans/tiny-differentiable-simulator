@@ -316,3 +316,20 @@ static TINY_INLINE Geometry<AlgebraTo> *clone(const Geometry<AlgebraFrom> *g) {
   }
 }
 }  // namespace tds
+
+namespace std {
+std::string to_string(tds::GeometryTypes type) {
+  switch (type) {
+    case tds::TINY_SPHERE_TYPE:
+      return "sphere";
+    case tds::TINY_CAPSULE_TYPE:
+      return "capsule";
+    case tds::TINY_PLANE_TYPE:
+      return "plane";
+    case tds::TINY_BOX_TYPE:
+      return "box";
+    default:
+      return "unknown";
+  }
+}
+}  // namespace std
