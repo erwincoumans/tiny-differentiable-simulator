@@ -297,6 +297,16 @@ class MultiBody {
       q_[3] = Algebra::quat_w(initial_orientation);
     }
   }
+  void set_orientation(const Matrix3 &rotation) {
+    base_X_world_.rotation = rotation;
+    if (is_floating_) {
+      auto quat = Algebra::matrix_to_quat(rotation);
+      q_[0] = Algebra::quat_x(quat);
+      q_[1] = Algebra::quat_y(quat);
+      q_[2] = Algebra::quat_z(quat);
+      q_[3] = Algebra::quat_w(quat);
+    }
+  }
 
   Vector3 get_position() const { return get_world_transform(-1).translation; }
 
