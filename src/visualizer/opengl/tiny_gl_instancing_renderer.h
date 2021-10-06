@@ -23,6 +23,7 @@ misrepresented as being the original software.
 #include <vector>
 
 #include "tiny_camera.h"
+#include "tiny_vertex_format.h"
 
 enum { B3_GL_TRIANGLES = 1, B3_GL_POINTS };
 
@@ -43,17 +44,6 @@ enum {
   B3_SEGMENTATION_MASK_RENDERMODE,
 };
 
-struct GfxVertexFormat0 {
-  float x, y, z, w;
-  float unused0, unused1, unused2, unused3;
-  float u, v;
-};
-
-struct GfxVertexFormat1 {
-  float x, y, z, w;
-  float nx, ny, nz;
-  float u, v;
-};
 
 class TinyGLInstancingRenderer {
   std::vector<struct b3GraphicsInstance*> m_graphicsInstances;
