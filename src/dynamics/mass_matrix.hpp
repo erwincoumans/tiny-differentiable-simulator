@@ -26,7 +26,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
   typedef tds::RigidBodyInertia<Algebra> RigidBodyInertia;
   typedef tds::ArticulatedBodyInertia<Algebra> ArticulatedBodyInertia;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q) == mb.dof());
   assert(M != nullptr);
   int n = static_cast<int>(mb.num_links());
   // printf("n is %i\n", n);
@@ -81,7 +81,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
       if (mb.is_floating()) {
         Fi = mb[j].X_parent.apply(Fi, true);
         Algebra::assign_block(*M, Fi, 0, qd_i, 6, 3);
-        Algebra::assign_block(*M, Algebra::transpose(Fi), qd_i, 0, 3, 6);
+        Algebra::assign_block(*M, Algebra::transpose(Fi), 0, qd_i, 6, 3);
       }
     }else {
       ForceVector Fi = Ic * link.S;  // Ic.mul_inv(link.S);

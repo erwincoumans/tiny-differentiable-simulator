@@ -33,15 +33,20 @@ class MultiBody {
   typedef std::vector<Link> LinkCollection;
 
   /**
-   * Number of degrees of freedom, excluding floating-base coordinates.
+   * Number of positional degrees of freedom, excluding floating-base coordinates.
    */
-  int dof_{0};
-
+  int dof_q_{0};
+  
   /**
-   * A container to store the nr of spherical joints to account for the discrepancy between the size of the coordinate
-   * vector and the nr of DoF
+   * Number of velocity/acceleration degrees of freedom, excluding floating-base coordinates.
    */
-  int spherical_joints_{0};
+  int dof_qd_{0};
+
+  /** 
+   * Damping factor, applied to spherical joints, see integrator.hpp
+  */
+
+  Scalar joint_damping_{0.995}; 
 
   /**
    * Whether this system is floating or fixed to the world frame.
@@ -142,20 +147,15 @@ public:
   TINY_INLINE bool empty() const { return links_.empty(); }
 
   /**
-   * Return the number of spherical joints in the system (to account for the difference between DoF and length of q_
-   */
-  TINY_INLINE int spherical_joints() const {return spherical_joints_;}
-
-  /**
    * Dimensionality of joint positions q (including 7-DoF floating-base
    * coordinates if this system is floating-base).
    */
-  TINY_INLINE int dof() const { return is_floating_ ? dof_ + 7 : dof_; }
+  TINY_INLINE int dof() const { return is_floating_ ? dof_q_ + 7 : dof_q_; }
   /**
    * Dimensionality of joint velocities qd and accelerations qdd (including
    * 6-DoF base velocity and acceleration, if this system is floating-base).
    */
-  TINY_INLINE int dof_qd() const { return is_floating_ ? dof_ + 6 : dof_; }
+  TINY_INLINE int dof_qd() const { return is_floating_ ? dof_qd_ + 6 : dof_qd_; }
 
   /**
    * Dimensionality of control input, i.e. number of actuated DOFs.
@@ -310,8 +310,9 @@ public:
     // make sure dof and the q / qd indices in the links are accurate
     int q_index = is_floating_ ? 7 : 0;
     int qd_index = is_floating_ ? 6 : 0;
-    dof_ = 0;  // excludes floating-base DOF
-    spherical_joints_ = 0;
+    dof_q_ = 0;  // excludes floating-base DOF
+    dof_qd_ = 0;  // excludes floating-base DOF
+
     for (Link &link : links_) {
       assert(link.index >= 0);
       link.q_index = q_index;
@@ -319,12 +320,13 @@ public:
       if (link.joint_type == JOINT_SPHERICAL) {
           q_index += 4;
           qd_index += 3;
-          dof_ += 3;
-          ++spherical_joints_;
+          dof_q_ += 4;
+          dof_qd_ += 3;
       } else if(link.joint_type != JOINT_FIXED) {
         ++q_index;
         ++qd_index;
-        ++dof_;
+        ++dof_q_;
+        ++dof_qd_;
       } else {
         link.q_index = -2;
         link.qd_index = -2;
@@ -590,8 +592,8 @@ public:
       // assert(Algebra::norm(link.S) > Algebra::zero());
       link.q_index = dof();
       link.qd_index = dof_qd();
-      dof_ += 3;
-      ++spherical_joints_;
+      dof_q_ += 4;
+      dof_qd_ += 3;
       // not sure about this:
       if (is_controllable) {
         if (control_indices_.empty()) {
@@ -610,7 +612,8 @@ public:
       // Else, how to fix now that dof != length q_?
       link.q_index = dof();
       link.qd_index = dof_qd();
-      dof_++;
+      dof_q_++;
+      dof_qd_++;
       if (is_controllable) {
         if (control_indices_.empty()) {
           control_indices_.push_back(0);
@@ -632,6 +635,13 @@ public:
 #endif
     links_.push_back(link);
     return links_.size()-1;
+  }
+
+  void set_joint_damping(Scalar damping) {
+      joint_damping_ = Algebra::clamp(damping,0,1);
+  }
+  Scalar joint_damping() const {
+      return joint_damping_;
   }
 };
 

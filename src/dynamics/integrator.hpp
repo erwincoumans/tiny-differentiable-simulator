@@ -15,7 +15,7 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
   using Vector3 = typename Algebra::Vector3;
   using Quaternion = typename Algebra::Quaternion;
 
-  assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+  assert(Algebra::size(q) == mb.dof());
   assert(Algebra::size(qd) == mb.dof_qd());
   assert(Algebra::size(qdd) == mb.dof_qd());
 
@@ -44,6 +44,7 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
     // quat (TDS): ", base_rot); Algebra::print("base_rot", base_rot); update
     // 4-dimensional q from 3-dimensional qd for the base rotation
 
+//#define TDS_USE_EXPONENTIAL_MAP
 #ifndef TDS_USE_EXPONENTIAL_MAP
     Algebra::quat_increment(
         base_rot, Algebra::quat_velocity(base_rot, angular_velocity, dt));
@@ -59,13 +60,16 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
 	}
 
     Algebra::Vector3 axis;
-    axis = 
-        tds::where_gt(fAngle, Scalar(0.001),
-                // use Taylor's expansions of sync function
-                axis = angular_velocity * (Algebra::half() * dt - (dt * dt * dt) * (Scalar(0.020833333333)) * fAngle * fAngle),
-                // sync(fAngle) = sin(c*fAngle)/t
-                axis = angular_velocity * (Algebra::sin(Algebra::half() * fAngle * dt) / fAngle);
-            );
+    
+    if (fAngle<Scalar(0.001))
+    {
+        // use Taylor's expansions of sync function
+        axis = angular_velocity * (Algebra::half() * dt - (dt * dt * dt) * (Scalar(0.020833333333)) * fAngle * fAngle);
+    } else
+    {
+        // sync(fAngle) = sin(c*fAngle)/t
+        axis = angular_velocity * (Algebra::sin(Algebra::half() * fAngle * dt) / fAngle);
+    }
 
 	base_rot = Algebra::quat_from_xyzw(axis.x(), axis.y(), axis.z(), Algebra::cos(fAngle * dt * Algebra::half())) * base_rot;
     
@@ -95,6 +99,14 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
 //        auto q_now = mb.get_q_for_link(q, qindex);
 //        auto base_rot = Algebra::quat_from_xyzw(q_now[0], q_now[1], q_now[2], q_now[3]);
         auto base_rot = Algebra::quat_from_xyzw(q[qindex + 0], q[qindex + 1], q[qindex + 2], q[qindex + 3]);
+
+        //damping
+        Scalar joint_damping = mb.joint_damping();
+        Scalar damping = Algebra::pow(joint_damping, dt * 1000.);
+        
+        qd[qdindex]*=damping;
+        qd[qdindex + 1]*=damping;
+        qd[qdindex + 2]*=damping;
 
         auto tmp = Algebra::quat_velocity_spherical(base_rot, Vector3(qd[qdindex], qd[qdindex + 1], qd[qdindex + 2]), dt);
         Algebra::quat_increment(
@@ -131,7 +143,7 @@ void integrate_euler_qdd(MultiBody<Algebra>& mb, typename Algebra::VectorX& q,
     using Vector3 = typename Algebra::Vector3;
     using Quaternion = typename Algebra::Quaternion;
 
-    assert(Algebra::size(q) - mb.spherical_joints() == mb.dof());
+    assert(Algebra::size(q) == mb.dof());
     assert(Algebra::size(qd) == mb.dof_qd());
     assert(Algebra::size(qdd) == mb.dof_qd());
 
