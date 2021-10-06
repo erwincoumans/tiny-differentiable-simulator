@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base.hpp"
+
 #if USE_STAN
 #include <stan/math.hpp>
 #include <stan/math/fwd.hpp>
@@ -449,8 +451,14 @@ struct EigenAlgebraT {
   EIGEN_ALWAYS_INLINE static Scalar one() { return Scalar(1); }
   EIGEN_ALWAYS_INLINE static Scalar two() { return Scalar(2); }
   EIGEN_ALWAYS_INLINE static Scalar half() { return Scalar(0.5); }
-  EIGEN_ALWAYS_INLINE static Scalar pi() { return Scalar(M_PI); }
-  EIGEN_ALWAYS_INLINE static Scalar half_pi() { return Scalar(M_PI / 2.0); }
+  EIGEN_ALWAYS_INLINE static Scalar pi() {
+    return Scalar(
+        3.14159265358979323846264338327950288419716939937510582097494459);
+  }
+  EIGEN_ALWAYS_INLINE static Scalar half_pi() {
+    return Scalar(
+        1.57079632679489661923132169163975144209858469968755291048747230);
+  }
   EIGEN_ALWAYS_INLINE static Scalar fraction(int a, int b) {
     return (Scalar(a)) / b;
   }
