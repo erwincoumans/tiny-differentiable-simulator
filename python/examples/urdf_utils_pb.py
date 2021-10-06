@@ -36,7 +36,7 @@ class UrdfConverterPyBullet(ued.UrdfEditor):
 
   def convert_geom_type(self, geom_type):
     self.geom_map = {}
-    #self.geom_map[pybullet.GEOM_BOX]=dp.BOX_TYPE
+    self.geom_map[pybullet.GEOM_BOX]=dp.BOX_TYPE
     self.geom_map[pybullet.GEOM_SPHERE] = dp.SPHERE_TYPE
     self.geom_map[pybullet.GEOM_PLANE] = dp.PLANE_TYPE
     self.geom_map[pybullet.GEOM_CAPSULE] = dp.CAPSULE_TYPE
@@ -157,6 +157,10 @@ class UrdfConverterPyBullet(ued.UrdfEditor):
       urdf_joint.joint_type = dp.PRISMATIC_JOINT
     elif urdfJoint.joint_type == pybullet.JOINT_FIXED:
       urdf_joint.joint_type = dp.JOINT_FIXED
+      urdf_joint.joint_axis_xyz = self.convert_vec(urdfJoint.joint_axis_xyz)
+    elif urdfJoint.joint_type == pybullet.JOINT_SPHERICAL:
+      urdf_joint.joint_type = dp.JOINT_SPHERICAL
+      urdf_joint.joint_axis_xyz = self.convert_vec(urdfJoint.joint_axis_xyz)
     else:
       print("unsupported joint")
 

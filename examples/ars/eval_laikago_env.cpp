@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
 
   //RobotSim contact_sim(false);
 
-  int input_dim = 36;//contact_sim.input_dim();
+  int input_dim = 37;//contact_sim.input_dim();
 
   int num_total_threads = 1;
   std::vector<int> visual_instances;
@@ -87,6 +87,7 @@ int main(int argc, char* argv[]) {
   //env.contact_sim.
 
   meshcat_viz.m_path_prefix = env.contact_sim.m_laikago_search_path;
+  int obs_dim = env.contact_sim.input_dim();
   auto urdf_structures = env.contact_sim.cache.retrieve(env.contact_sim.m_laikago_urdf_filename);
   std::string texture_path = "laikago_tex.jpg";
   meshcat_viz.convert_visuals(urdf_structures, texture_path,env.contact_sim.mb_);
