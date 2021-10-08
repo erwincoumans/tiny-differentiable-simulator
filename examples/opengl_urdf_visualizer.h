@@ -27,7 +27,6 @@
 #include "tiny_obj_loader.h"
 #include "urdf_structures.hpp"
 #include "utils/file_utils.hpp"
-
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
 
@@ -37,7 +36,8 @@
 #include "utils/sdf_to_mesh_converter.hpp"
 #endif
 
-template <typename Algebra> struct OpenGLUrdfVisualizer {
+template <typename Algebra>
+struct OpenGLUrdfVisualizer {
   typedef ::tds::UrdfStructures<Algebra> TinyUrdfStructures;
   typedef ::tds::UrdfLink<Algebra> TinyUrdfLink;
   typedef ::tds::UrdfVisual<Algebra> UrdfVisual;
@@ -166,21 +166,20 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
 
   void convert_link_visuals(TinyUrdfStructures &urdf, TinyUrdfLink &link,
                             int link_index, bool useTextureUuid) {
-
-    if (link.urdf_visual_shapes.empty())
-    {
-        //convert collision shapes into visual shapes
-        for (int col_index = 0; col_index < (int)link.urdf_collision_shapes.size();col_index++) {
-            const UrdfCollision<Algebra>& c = link.urdf_collision_shapes[col_index];
-            UrdfVisual v;
-            v.geometry = c.geometry;
-            v.has_local_material = false;
-            v.origin_rpy = c.origin_rpy;
-            v.origin_xyz = c.origin_xyz;
-            v.visual_name = c.collision_name;
-            v.visual_shape_uid = m_uid++;
-            link.urdf_visual_shapes.push_back(v);
-        }
+    if (link.urdf_visual_shapes.empty()) {
+      // convert collision shapes into visual shapes
+      for (int col_index = 0;
+           col_index < (int)link.urdf_collision_shapes.size(); col_index++) {
+        const UrdfCollision<Algebra> &c = link.urdf_collision_shapes[col_index];
+        UrdfVisual v;
+        v.geometry = c.geometry;
+        v.has_local_material = false;
+        v.origin_rpy = c.origin_rpy;
+        v.origin_xyz = c.origin_xyz;
+        v.visual_name = c.collision_name;
+        v.visual_shape_uid = m_uid++;
+        link.urdf_visual_shapes.push_back(v);
+      }
     }
 
     for (int vis_index = 0; vis_index < (int)link.urdf_visual_shapes.size();
@@ -206,130 +205,131 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
       }
       double world_pos[3] = {0, 0, 0};
       switch (v.geometry.geom_type) {
-      case ::tds::TINY_MESH_TYPE: {
-        // printf("mesh filename=%s\n", v.geom_meshfilename.c_str());
-        std::string obj_filename;
-        std::string org_obj_filename =
-            m_path_prefix + v.geometry.mesh.file_name;
-        if (::tds::FileUtils::find_file(org_obj_filename, obj_filename)) {
-          ::TINY::TinyVector3f pos(0, 0, 0);
-          ::TINY::TinyVector3f scaling(
-              Algebra::to_double(v.geometry.mesh.scale[0]),
-              Algebra::to_double(v.geometry.mesh.scale[1]),
-              Algebra::to_double(v.geometry.mesh.scale[2]));
-          ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
-          load_obj_shapes(obj_filename, b2v.visual_shape_uids, b2v.shape_colors,
-                          scaling);
-        }
-        break;
-      }
-      case ::tds::TINY_SPHERE_TYPE: {
-        int textureIndex = -1;
-
-        // Experimental texture binding
-        if (v.material_name.size() > 0) {
-          ::tds::VisualMaterial<Algebra> material =
-              urdf.materials[v.material_name];
-          std::string texture_file = material.texture_filename;
-          if (!texture_file.empty()) {
-            std::string texture_path;
-            ::tds::FileUtils::find_file(texture_file, texture_path);
-            std::vector<unsigned char> buffer;
-            int width, height, n;
-            unsigned char *image =
-                stbi_load(texture_path.c_str(), &width, &height, &n, 3);
-
-            textureIndex =
-                m_opengl_app.m_renderer->register_texture(image, width, height);
-            free(image);
+        case ::tds::TINY_MESH_TYPE: {
+          // printf("mesh filename=%s\n", v.geom_meshfilename.c_str());
+          std::string obj_filename;
+          std::string org_obj_filename =
+              m_path_prefix + v.geometry.mesh.file_name;
+          if (::tds::FileUtils::find_file(org_obj_filename, obj_filename)) {
+            ::TINY::TinyVector3f pos(0, 0, 0);
+            ::TINY::TinyVector3f scaling(
+                Algebra::to_double(v.geometry.mesh.scale[0]),
+                Algebra::to_double(v.geometry.mesh.scale[1]),
+                Algebra::to_double(v.geometry.mesh.scale[2]));
+            ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
+            load_obj_shapes(obj_filename, b2v.visual_shape_uids,
+                            b2v.shape_colors, scaling);
           }
+          break;
+        }
+        case ::tds::TINY_SPHERE_TYPE: {
+          int textureIndex = -1;
+
+          // Experimental texture binding
+          if (v.material_name.size() > 0) {
+            ::tds::VisualMaterial<Algebra> material =
+                urdf.materials[v.material_name];
+            std::string texture_file = material.texture_filename;
+            if (!texture_file.empty()) {
+              std::string texture_path;
+              ::tds::FileUtils::find_file(texture_file, texture_path);
+              std::vector<unsigned char> buffer;
+              int width, height, n;
+              unsigned char *image =
+                  stbi_load(texture_path.c_str(), &width, &height, &n, 3);
+
+              textureIndex = m_opengl_app.m_renderer->register_texture(
+                  image, width, height);
+              free(image);
+            }
+          }
+#ifdef USE_SDF_TO_MESH
+          // Yizhou: Instead of hardcoding the mesh, use the sdf_to_mesh
+          // generator to generate the mesh
+          ::tds::Sphere<Algebra> gen_sphere(v.geometry.sphere.radius);
+          ::tds::RenderShape gen_mesh =
+              ::tds::convert_sdf_to_mesh(gen_sphere, 50);
+
+          int shape_id = m_opengl_app.m_instancingRenderer->register_shape(
+              &gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
+              &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
+              textureIndex);
+
+#else
+          // int shape_id =
+          // m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
+          int up_axis = 2;
+          int shape_id = m_opengl_app.register_graphics_capsule_shape(
+              Algebra::to_double(v.geometry.sphere.radius), 0., up_axis,
+              textureIndex);
+
+#endif
+
+          b2v.visual_shape_uids.push_back(shape_id);
+          ::TINY::TinyVector3f color(1, 1, 1);
+          b2v.shape_colors.push_back(color);
+          break;
+        }
+        case ::tds::TINY_CAPSULE_TYPE: {
+#ifdef USE_SDF_TO_MESH
+          ::tds::Capsule<Algebra> gen_capsule(v.geometry.capsule.radius,
+                                              v.geometry.capsule.length);
+          ::tds::RenderShape gen_mesh =
+              ::tds::convert_sdf_to_mesh(gen_capsule, 100);
+          int shape_id = m_opengl_app.m_instancingRenderer->register_shape(
+              &gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
+              &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
+              -1);
+
+#else
+          float radius = Algebra::to_double(v.geometry.capsule.radius);
+          float half_height =
+              Algebra::to_double(v.geometry.capsule.length) * 0.5;
+          int up_axis = 2;
+          int shape_id = m_opengl_app.register_graphics_capsule_shape(
+              radius, half_height, up_axis, -1);
+
+#endif
+
+          b2v.visual_shape_uids.push_back(shape_id);
+          ::TINY::TinyVector3f color(1, 1, 1);
+          b2v.shape_colors.push_back(color);
+          break;
         }
 #ifdef USE_SDF_TO_MESH
-        // Yizhou: Instead of hardcoding the mesh, use the sdf_to_mesh
-        // generator to generate the mesh
-        ::tds::Sphere<Algebra> gen_sphere(v.geometry.sphere.radius);
-        ::tds::RenderShape gen_mesh =
-            ::tds::convert_sdf_to_mesh(gen_sphere, 50);
-
-        int shape_id = m_opengl_app.m_instancingRenderer->register_shape(
-            &gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
-            &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
-            textureIndex);
-
-#else
-        // int shape_id =
-        // m_opengl_app.register_graphics_unit_sphere_shape(SPHERE_LOD_HIGH);
-        int up_axis = 2;
-        int shape_id = m_opengl_app.register_graphics_capsule_shape(
-            Algebra::to_double(v.geometry.sphere.radius), 0., up_axis,
-            textureIndex);
-
+        case ::tds::TINY_CYLINDER_TYPE: {
+          ::tds::Cylinder<Algebra> gen_cylinder(v.geometry.cylinder.radius,
+                                                v.geometry.cylinder.length);
+          ::tds::RenderShape gen_mesh =
+              ::tds::convert_sdf_to_mesh(gen_cylinder, 100);
+          int shape_id = m_opengl_app.m_instancingRenderer->register_shape(
+              &gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
+              &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
+              -1);
+          b2v.visual_shape_uids.push_back(shape_id);
+          ::TINY::TinyVector3f color(1, 1, 1);
+          b2v.shape_colors.push_back(color);
+          break;
+        }
 #endif
+        case ::tds::TINY_BOX_TYPE: {
+          float half_extentsx =
+              0.5 * Algebra::to_double(v.geometry.box.extents[0]);
+          float half_extents_y =
+              0.5 * Algebra::to_double(v.geometry.box.extents[1]);
+          float half_extents_z =
+              0.5 * Algebra::to_double(v.geometry.box.extents[2]);
+          int shape_id = m_opengl_app.register_cube_shape(
+              half_extentsx, half_extents_y, half_extents_z);
+          b2v.visual_shape_uids.push_back(shape_id);
+          ::TINY::TinyVector3f color(1, 1, 1);
+          b2v.shape_colors.push_back(color);
 
-        b2v.visual_shape_uids.push_back(shape_id);
-        ::TINY::TinyVector3f color(1, 1, 1);
-        b2v.shape_colors.push_back(color);
-        break;
-      }
-      case ::tds::TINY_CAPSULE_TYPE: {
-#ifdef USE_SDF_TO_MESH
-        ::tds::Capsule<Algebra> gen_capsule(v.geometry.capsule.radius,
-                                            v.geometry.capsule.length);
-        ::tds::RenderShape gen_mesh =
-            ::tds::convert_sdf_to_mesh(gen_capsule, 100);
-        int shape_id = m_opengl_app.m_instancingRenderer->register_shape(
-            &gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
-            &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
-            -1);
-
-#else
-        float radius = Algebra::to_double(v.geometry.capsule.radius);
-        float half_height = Algebra::to_double(v.geometry.capsule.length) * 0.5;
-        int up_axis = 2;
-        int shape_id = m_opengl_app.register_graphics_capsule_shape(
-            radius, half_height, up_axis, -1);
-
-#endif
-
-        b2v.visual_shape_uids.push_back(shape_id);
-        ::TINY::TinyVector3f color(1, 1, 1);
-        b2v.shape_colors.push_back(color);
-        break;
-      }
-#ifdef USE_SDF_TO_MESH
-      case ::tds::TINY_CYLINDER_TYPE: {
-        ::tds::Cylinder<Algebra> gen_cylinder(v.geometry.cylinder.radius,
-                                              v.geometry.cylinder.length);
-        ::tds::RenderShape gen_mesh =
-            ::tds::convert_sdf_to_mesh(gen_cylinder, 100);
-        int shape_id = m_opengl_app.m_instancingRenderer->register_shape(
-            &gen_mesh.vertices[0].x, gen_mesh.vertices.size(),
-            &gen_mesh.indices[0], gen_mesh.num_triangles * 3, B3_GL_TRIANGLES,
-            -1);
-        b2v.visual_shape_uids.push_back(shape_id);
-        ::TINY::TinyVector3f color(1, 1, 1);
-        b2v.shape_colors.push_back(color);
-        break;
-      }
-#endif
-      case ::tds::TINY_BOX_TYPE: {
-        float half_extentsx =
-            0.5 * Algebra::to_double(v.geometry.box.extents[0]);
-        float half_extents_y =
-            0.5 * Algebra::to_double(v.geometry.box.extents[1]);
-        float half_extents_z =
-            0.5 * Algebra::to_double(v.geometry.box.extents[2]);
-        int shape_id = m_opengl_app.register_cube_shape(
-            half_extentsx, half_extents_y, half_extents_z);
-        b2v.visual_shape_uids.push_back(shape_id);
-        ::TINY::TinyVector3f color(1, 1, 1);
-        b2v.shape_colors.push_back(color);
-
-        break;
-      }
-      default: {
-        std::cout << "Unsupported shape type" << std::endl;
-      }
+          break;
+        }
+        default: {
+          std::cout << "Unsupported shape type" << std::endl;
+        }
       }
 
       v.visual_shape_uid = m_uid;
@@ -374,16 +374,14 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
     // sync base transform
     for (int v = 0; v < body->visual_instance_uids().size(); v++) {
       int visual_instance_id = body->visual_instance_uids()[v];
-      Quaternion rot;
       Transform geom_X_world = body->base_X_world() * body->X_visuals()[v];
 
-      const TinyMatrix3 &m = geom_X_world.rotation;
-      m.getRotation(rot);
-
+      Quaternion rot = Algebra::matrix_to_quat(geom_X_world.rotation);
       ::TINY::TinyVector3f pos(geom_X_world.translation[0],
                                geom_X_world.translation[1],
                                geom_X_world.translation[2]);
-      ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+      ::TINY::TinyQuaternionf orn(Algebra::quat_x(rot), Algebra::quat_y(rot),
+                                  Algebra::quat_z(rot), Algebra::quat_w(rot));
       m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(
           pos, orn, visual_instance_id);
     }
@@ -392,16 +390,16 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
       for (int v = 0; v < body->links()[l].visual_instance_uids.size(); v++) {
         int visual_instance_id = body->links()[l].visual_instance_uids[v];
         if (visual_instance_id >= 0) {
-          Quaternion rot;
           Transform geom_X_world =
               body->links()[l].X_world * body->links()[l].X_visuals[v];
 
-          TinyMatrix3 &m = geom_X_world.rotation;
-          m.getRotation(rot);
+          Quaternion rot = Algebra::matrix_to_quat(geom_X_world.rotation);
           ::TINY::TinyVector3f pos(geom_X_world.translation[0],
                                    geom_X_world.translation[1],
                                    geom_X_world.translation[2]);
-          ::TINY::TinyQuaternionf orn(rot[0], rot[1], rot[2], rot[3]);
+          ::TINY::TinyQuaternionf orn(
+              Algebra::quat_x(rot), Algebra::quat_y(rot), Algebra::quat_z(rot),
+              Algebra::quat_w(rot));
           m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(
               pos, orn, visual_instance_id);
         }
@@ -427,4 +425,4 @@ template <typename Algebra> struct OpenGLUrdfVisualizer {
   }
 };
 
-#endif // OPENGL_URDF_VISUALIZER_H
+#endif  // OPENGL_URDF_VISUALIZER_H
