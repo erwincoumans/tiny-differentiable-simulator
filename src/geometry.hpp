@@ -145,7 +145,7 @@ class Capsule : public Geometry<Algebra> {
 
   Scalar distance(const Vector3 &p) const override {
     Vector3 pt(p.x(), p.y(),
-               p.z() - tds::clamp(p.z(), -this->length / Scalar(2),
+               p.z() - std::clamp(p.z(), -this->length / Scalar(2),
                                   this->length / Scalar(2)));
     return Algebra::norm(pt) - this->radius;
   }

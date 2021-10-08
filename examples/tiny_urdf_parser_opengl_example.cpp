@@ -150,7 +150,7 @@ template <typename Algebra> struct ContactSimulation {
     mb_->base_X_world().translation = start_pos;
     mb_->base_X_world().rotation = Algebra::quat_to_matrix(cap_start_orn);
     world.default_friction = 1;
-    world.set_gravity(Algebra::Vector3(0,2,-10));
+    world.set_gravity(Vector3(0,2,-10));
     // initial_poses.resize(mb_->q_.size());
     // for (int i=0;i<mb_->q_.size();i++)
     //{

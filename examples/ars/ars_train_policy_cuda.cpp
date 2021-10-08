@@ -463,7 +463,7 @@ struct AntVecEnv
                 if (sim_states_[index][2] < 0.26)
 #else
 
-                Algebra::Quaternion base_orn(sim_states_[index][0],sim_states_[index][1],sim_states_[index][2],sim_states_[index][3]);
+                typename Algebra::Quaternion base_orn(sim_states_[index][0],sim_states_[index][1],sim_states_[index][2],sim_states_[index][3]);
                 auto base_mat = Algebra::quat_to_matrix(base_orn);
                 Scalar up_dot_world_z = base_mat(2, 2);
     
