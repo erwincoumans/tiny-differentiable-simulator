@@ -369,14 +369,10 @@
                      &RigidBody<MyAlgebra>::linear_velocity_)
       .def_readwrite("angular_velocity",
                      &RigidBody<MyAlgebra>::angular_velocity_)
-      .def_readwrite("local_inertia",
-                     &RigidBody<MyAlgebra>::local_inertia_)
       .def_readwrite("total_force",
                      &RigidBody<MyAlgebra>::total_force_)
       .def_readwrite("total_torque",
                      &RigidBody<MyAlgebra>::total_torque_)
-      .def_readwrite("user_index",
-                     &RigidBody<MyAlgebra>::user_index_)
 
       .def("apply_gravity", &RigidBody<MyAlgebra>::apply_gravity)
       .def("apply_force_impulse",
@@ -615,13 +611,14 @@
       m, "TinyMultiBody")
       .def(py::init<bool>())
       .def("initialize", &MultiBody<MyAlgebra>::initialize)
-      .def("set_base_position",
+      .def("set_position",
            &MultiBody<MyAlgebra>::set_position)
-      .def("set_base_orientation",
-          &MultiBody<MyAlgebra>::set_orientation)
-      .def("get_base_position",
+      .def("set_orientation",
+        py::overload_cast<const Quaternion&>(
+          &MultiBody<MyAlgebra>::set_orientation))
+      .def("get_position",
           &MultiBody<MyAlgebra>::get_position)
-      .def("get_base_orientation",
+      .def("get_orientation",
           &MultiBody<MyAlgebra>::get_orientation)
       .def("get_world_transform",
            &MultiBody<MyAlgebra>::get_world_transform)
@@ -670,7 +667,8 @@
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
   m.def("find_file", &MyFindFile);
   m.def("quat_difference", &QuaternionDifference);
-  m.def("mb_collision_geometries", &mb_collision_geometries);
+  //where is the definition of mb_collision_geometries? error when compiling cppad version
+  //m.def("mb_collision_geometries", &mb_collision_geometries);
 
   m.def("pi", &MyPi);
   m.def("cos", &MyCos);
