@@ -670,7 +670,7 @@
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
   m.def("find_file", &MyFindFile);
   m.def("quat_difference", &QuaternionDifference);
-  //m.def("mb_collision_geometries", &mb_collision_geometries);
+  m.def("mb_collision_geometries", &mb_collision_geometries);
 
   m.def("pi", &MyPi);
   m.def("cos", &MyCos);
