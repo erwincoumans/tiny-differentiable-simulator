@@ -96,7 +96,8 @@ class MultiBody {
     typedef Conversion<Algebra, AlgebraTo> C;
     MultiBody<AlgebraTo> conv(is_floating_);
     conv.name_ = name_;
-    conv.dof_ = dof_;
+    conv.dof_q_ = dof_q_;
+    conv.dof_qd_ = dof_qd_;
     conv.q_ = C::convert(q_);
     conv.qd_ = C::convert(qd_);
     conv.qdd_ = C::convert(qdd_);
@@ -380,7 +381,8 @@ class MultiBody {
   template <typename Algebra2>
   MultiBody(const MultiBody<Algebra2> &mb)
       : links_(mb.links_),
-        dof_(mb.dof_),
+        dof_q_(mb.dof_q_),
+        dof_qd_(mb.dof_qd_),
         control_indices_(mb.control_indices_),
         is_floating_(mb.is_floating_),
         base_velocity_(mb.base_velocity_),

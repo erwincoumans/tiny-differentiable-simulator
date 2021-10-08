@@ -170,7 +170,7 @@ struct OpenGLUrdfVisualizer {
       // convert collision shapes into visual shapes
       for (int col_index = 0;
            col_index < (int)link.urdf_collision_shapes.size(); col_index++) {
-        const UrdfCollision<Algebra> &c = link.urdf_collision_shapes[col_index];
+        const tds::UrdfCollision<Algebra> &c = link.urdf_collision_shapes[col_index];
         UrdfVisual v;
         v.geometry = c.geometry;
         v.has_local_material = false;

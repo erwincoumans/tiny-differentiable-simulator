@@ -105,7 +105,7 @@ void integrate_euler(MultiBody<Algebra> &mb, typename Algebra::VectorX &q,
 
       // damping
       Scalar joint_damping = mb.joint_damping();
-      Scalar damping = Algebra::pow(joint_damping, dt * 1000.);
+      Scalar damping = Algebra::pow(joint_damping, dt * Algebra::fraction(1000,1));
 
       qd[qdindex] *= damping;
       qd[qdindex + 1] *= damping;
