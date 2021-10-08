@@ -18,8 +18,8 @@
 
 #include "base.hpp"
 #include "geometry.hpp"
-#include "math/pose.hpp"
 #include "math/conditionals.hpp"
+#include "math/pose.hpp"
 
 namespace tds {
 template <typename Algebra>
@@ -37,20 +37,18 @@ class RigidBody {
   Pose world_pose_;
   Vector3 linear_velocity_;
   Vector3 angular_velocity_;
-  Vector3 local_inertia_;
   Vector3 total_force_;
   Vector3 total_torque_;
   Matrix3 inv_inertia_world_;
   Scalar mass_;
   Scalar inv_mass_;
-  int user_index_;
 
   const Geometry* geometry_;
 
   RigidBody(const Scalar& mass, const Geometry* geometry)
-      : mass_(mass), user_index_(-1), geometry_(geometry) {
-    inv_mass_ =
-        mass_ == Algebra::zero() ? Algebra::zero() : Algebra::one() / mass_;
+      : mass_(mass), geometry_(geometry) {
+    inv_mass_ = tds::where_eq(mass_, Algebra::zero(), Algebra::zero(),
+                              Algebra::one() / mass_);
     inv_inertia_world_ =
         mass_ == Algebra::zero() ? Algebra::zero33() : Algebra::eye3();
     Algebra::set_zero(world_pose_.position_);
@@ -59,8 +57,6 @@ class RigidBody {
     Algebra::set_zero(angular_velocity_);
     Algebra::set_zero(total_force_);
     Algebra::set_zero(total_torque_);
-
-    // local_inertia_(local_inertia)
   }
 
   template <typename AlgebraTo = Algebra>
@@ -71,10 +67,8 @@ class RigidBody {
     conv.world_pose_ = tds::clone<Algebra, AlgebraTo>(world_pose_);
     conv.linear_velocity_ = C::convert(linear_velocity_);
     conv.angular_velocity_ = C::convert(angular_velocity_);
-    conv.local_inertia_ = C::convert(local_inertia_);
     conv.total_force_ = C::convert(total_force_);
     conv.total_torque_ = C::convert(total_torque_);
-    conv.user_index_ = user_index_;
     return conv;
   }
 
@@ -121,9 +115,9 @@ class RigidBody {
 
   void integrate(const Scalar& dt) {
     world_pose_.position_ += linear_velocity_ * dt;
-    Algebra::quat_increment(
-        world_pose_.orientation_,
-        Algebra::quat_velocity(world_pose_.orientation_, angular_velocity_, dt));
+    Algebra::quat_increment(world_pose_.orientation_,
+                            Algebra::quat_velocity(world_pose_.orientation_,
+                                                   angular_velocity_, dt));
     world_pose_.orientation_ = Algebra::normalize(world_pose_.orientation_);
   }
 };

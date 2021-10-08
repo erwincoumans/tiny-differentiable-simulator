@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cassert>
+
 #include "geometry.hpp"
 #include "math/conditionals.hpp"
-#include <cassert>
 
 namespace tds {
 template <typename Algebra>
@@ -51,8 +52,8 @@ int contact_sphere_sphere(const tds::Geometry<Algebra>* geomA,
   typedef tds::ContactPoint<Algebra> ContactPoint;
   assert(geomA->get_type() == TINY_SPHERE_TYPE);
   assert(geomB->get_type() == TINY_SPHERE_TYPE);
-  Sphere* sphereA = (Sphere*)geomA;
-  Sphere* sphereB = (Sphere*)geomB;
+  const Sphere* sphereA = (const Sphere*)geomA;
+  const Sphere* sphereB = (const Sphere*)geomB;
 
   Vector3 diff = poseA.position_ - poseB.position_;
   Scalar length = Algebra::norm(diff);
@@ -61,7 +62,7 @@ int contact_sphere_sphere(const tds::Geometry<Algebra>* geomA,
   normal_on_b = Algebra::unit3_x();
   if constexpr (is_cppad_scalar<Scalar>::value) {
     // always return contact point so that we can trace it
-    Vector3 normal_on_b = Algebra::one() / length * diff;
+    Vector3 normal_on_b = Algebra::normalize(diff);
     Vector3 point_a_world =
         poseA.position_ - sphereA->get_radius() * normal_on_b;
     Vector3 point_b_world = point_a_world - distance * normal_on_b;
@@ -103,11 +104,11 @@ int contact_plane_sphere(const tds::Geometry<Algebra>* geomA,
   typedef tds::ContactPoint<Algebra> ContactPoint;
   assert(geomA->get_type() == TINY_PLANE_TYPE);
   assert(geomB->get_type() == TINY_SPHERE_TYPE);
-  Plane* planeA = (Plane*)geomA;
-  Sphere* sphereB = (Sphere*)geomB;
+  const Plane* planeA = (const Plane*)geomA;
+  const Sphere* sphereB = (const Sphere*)geomB;
 
-  Scalar t =
-      -(Algebra::dot(poseB.position_, -planeA->get_normal()) + planeA->get_constant());
+  Scalar t = -(Algebra::dot(poseB.position_, -planeA->get_normal()) +
+               planeA->get_constant());
   Vector3 pointAWorld = poseB.position_ + t * -planeA->get_normal();
   Scalar distance = t - sphereB->get_radius();
   Vector3 pointBWorld =
@@ -136,7 +137,7 @@ int contact_plane_capsule(const tds::Geometry<Algebra>* geomA,
   typedef tds::Sphere<Algebra> Sphere;
   assert(geomA->get_type() == TINY_PLANE_TYPE);
   assert(geomB->get_type() == TINY_CAPSULE_TYPE);
-  Capsule* capsule = (Capsule*)geomB;
+  const Capsule* capsule = (const Capsule*)geomB;
 
   // create twice a plane-sphere contact
   Sphere sphere(capsule->get_radius());
@@ -147,14 +148,51 @@ int contact_plane_capsule(const tds::Geometry<Algebra>* geomA,
                              Algebra::fraction(1, 2) * capsule->get_length());
   Pose poseEndSphere = poseB * offset;
   contact_plane_sphere<Algebra>(geomA, poseA, &sphere, poseEndSphere,
-                              contactsOut);
+                                contactsOut);
   offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
                              Algebra::fraction(-1, 2) * capsule->get_length());
   poseEndSphere = poseB * offset;
   contact_plane_sphere<Algebra>(geomA, poseA, &sphere, poseEndSphere,
-                              contactsOut);
+                                contactsOut);
 
   return 2;
+}
+
+template <typename Algebra>
+int contact_plane_box(const tds::Geometry<Algebra>* geomA,
+                      const tds::Pose<Algebra>& poseA,
+                      const tds::Geometry<Algebra>* geomB,
+                      const tds::Pose<Algebra>& poseB,
+                      std::vector<ContactPoint<Algebra> >& contactsOut) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+  typedef tds::Pose<Algebra> Pose;
+  typedef tds::Plane<Algebra> Plane;
+  typedef tds::Box<Algebra> Box;
+  typedef tds::ContactPoint<Algebra> ContactPoint;
+  typedef tds::Sphere<Algebra> Sphere;
+  assert(geomA->get_type() == TINY_PLANE_TYPE);
+  assert(geomB->get_type() == TINY_BOX_TYPE);
+  const Box* box = (const Box*)geomB;
+
+  // enforce some minimum radius for the spheres at the corner points
+  const Scalar collision_radius =
+      Algebra::max(Algebra::from_double(1e-2), box->get_radius());
+
+  // create twice a plane-sphere contact
+  Sphere sphere(collision_radius);
+  // shift the sphere to each end-point
+  Pose offset;
+  Algebra::set_identity(offset.orientation_);
+  // compute contact_plane_sphere for each corner
+  for (const Vector3& corner : box->get_corner_points(collision_radius)) {
+    offset.position_ = corner;
+    Pose poseEndSphere = poseB * offset;
+    contact_plane_sphere<Algebra>(geomA, poseA, &sphere, poseEndSphere,
+                                  contactsOut);
+  }
+
+  return 8;
 }
 
 template <typename Algebra>
@@ -182,6 +220,7 @@ class CollisionDispatcher {
     contactFuncs[TINY_SPHERE_TYPE][TINY_SPHERE_TYPE] = contact_sphere_sphere;
     contactFuncs[TINY_PLANE_TYPE][TINY_SPHERE_TYPE] = contact_plane_sphere;
     contactFuncs[TINY_PLANE_TYPE][TINY_CAPSULE_TYPE] = contact_plane_capsule;
+    contactFuncs[TINY_PLANE_TYPE][TINY_BOX_TYPE] = contact_plane_box;
   }
 
   inline int compute_contacts(const Geometry* geomA, const Pose& poseA,
@@ -193,25 +232,24 @@ class CollisionDispatcher {
     }
     contact_func g = contactFuncs[geomB->get_type()][geomA->get_type()];
     if (g) {
-        int prev_contacts = contactsOut.size();
-        int num_contacts = g(geomB,poseB,geomA,poseA,contactsOut);
-        //swap normal and points a,b
-        for(int i=prev_contacts;i<num_contacts;i++)
-        {
-            auto tmp = contactsOut[i].world_point_on_a;
-            contactsOut[i].world_point_on_a = contactsOut[i].world_point_on_b;
-            contactsOut[i].world_point_on_b = tmp;
-            contactsOut[i].world_normal_on_b = -contactsOut[i].world_normal_on_b;
-        }
+      int prev_contacts = contactsOut.size();
+      int num_contacts = g(geomB, poseB, geomA, poseA, contactsOut);
+      // swap normal and points a,b
+      for (int i = prev_contacts; i < num_contacts; i++) {
+        auto tmp = contactsOut[i].world_point_on_a;
+        contactsOut[i].world_point_on_a = contactsOut[i].world_point_on_b;
+        contactsOut[i].world_point_on_b = tmp;
+        contactsOut[i].world_normal_on_b = -contactsOut[i].world_normal_on_b;
+      }
       return num_contacts;
     }
     return 0;
   }
 
   inline std::vector<ContactPoint> compute_contacts2(const Geometry* geomA,
-                                                    const Pose& poseA,
-                                                    const Geometry* geomB,
-                                                    const Pose& poseB) {
+                                                     const Pose& poseA,
+                                                     const Geometry* geomB,
+                                                     const Pose& poseB) {
     std::vector<ContactPoint> pts;
     int num = compute_contacts(geomA, poseA, geomB, poseB, pts);
     return pts;

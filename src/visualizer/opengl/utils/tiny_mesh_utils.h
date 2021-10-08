@@ -4,6 +4,7 @@
 #include <float.h>
 
 #include "math/tiny/tiny_float_utils.h"
+#include "tiny_obj_loader.h"
 
 class TinyMeshUtils {
 public:

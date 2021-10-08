@@ -25,12 +25,12 @@
 struct VisualInstanceGenerator {
   virtual void create_visual_instance(int shape_uid,
                                       std::vector<int> &instances) = 0;
-  virtual ~VisualInstanceGenerator() {
-  }
+  virtual ~VisualInstanceGenerator() {}
 };
 
 namespace tds {
-template <typename Algebra> struct UrdfToMultiBody {
+template <typename Algebra>
+struct UrdfToMultiBody {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using Matrix3 = typename Algebra::Matrix3;
@@ -107,62 +107,62 @@ template <typename Algebra> struct UrdfToMultiBody {
       // convert from enum JointType (SharedMemoryPublic.h) to JointType
       // (link.hpp)
       switch (urdf_structures.joints[i].joint_type) {
-      case JOINT_FIXED: {
-        printf("FixedType!\n");
-        l.set_joint_type(JOINT_FIXED);
-        joint_conversion_ok = true;
-        break;
-      }
-      case JOINT_REVOLUTE_AXIS: {
-        int non_zero_joint_axis_index = -1;
-        for (int j = 0; j < 3; j++) {
-          // approximate check needed?
-          if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
-            if (non_zero_joint_axis_index >= 0) {
-              break;
+        case JOINT_FIXED: {
+          printf("FixedType!\n");
+          l.set_joint_type(JOINT_FIXED);
+          joint_conversion_ok = true;
+          break;
+        }
+        case JOINT_REVOLUTE_AXIS: {
+          int non_zero_joint_axis_index = -1;
+          for (int j = 0; j < 3; j++) {
+            // approximate check needed?
+            if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
+              if (non_zero_joint_axis_index >= 0) {
+                break;
+              }
+              non_zero_joint_axis_index = j;
             }
-            non_zero_joint_axis_index = j;
           }
+          if (non_zero_joint_axis_index >= 0) {
+            l.set_joint_type(
+                JointType(JOINT_REVOLUTE_X + non_zero_joint_axis_index));
+          } else {
+            l.set_joint_type(JOINT_REVOLUTE_AXIS,
+                             urdf_structures.joints[i].joint_axis_xyz);
+          }
+          joint_conversion_ok = true;
+          break;
         }
-        if (non_zero_joint_axis_index >= 0) {
-          l.set_joint_type(
-              JointType(JOINT_REVOLUTE_X + non_zero_joint_axis_index));
-        } else {
-          l.set_joint_type(JOINT_REVOLUTE_AXIS,
-                           urdf_structures.joints[i].joint_axis_xyz);
-        }
-        joint_conversion_ok = true;
-        break;
-      }
-      case JOINT_PRISMATIC_AXIS: {
-        int non_zero_joint_axis_index = -1;
-        for (int j = 0; j < 3; j++) {
-          // approximate check needed?
-          if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
-            if (non_zero_joint_axis_index >= 0) {
-              break;
+        case JOINT_PRISMATIC_AXIS: {
+          int non_zero_joint_axis_index = -1;
+          for (int j = 0; j < 3; j++) {
+            // approximate check needed?
+            if (urdf_structures.joints[i].joint_axis_xyz[j] == Algebra::one()) {
+              if (non_zero_joint_axis_index >= 0) {
+                break;
+              }
+              non_zero_joint_axis_index = j;
             }
-            non_zero_joint_axis_index = j;
           }
+          if (non_zero_joint_axis_index >= 0) {
+            l.set_joint_type(
+                JointType(JOINT_PRISMATIC_X + non_zero_joint_axis_index));
+          } else {
+            l.set_joint_type(JOINT_PRISMATIC_AXIS,
+                             urdf_structures.joints[i].joint_axis_xyz);
+          }
+          joint_conversion_ok = true;
+          break;
         }
-        if (non_zero_joint_axis_index >= 0) {
-          l.set_joint_type(
-              JointType(JOINT_PRISMATIC_X + non_zero_joint_axis_index));
-        } else {
-          l.set_joint_type(JOINT_PRISMATIC_AXIS,
-                           urdf_structures.joints[i].joint_axis_xyz);
+        case JOINT_SPHERICAL: {
+          joint_conversion_ok = true;
+          l.set_joint_type(JOINT_SPHERICAL);
+          break;
         }
-        joint_conversion_ok = true;
-        break;
-      }
-      case JOINT_SPHERICAL: {
-        joint_conversion_ok = true;
-        l.set_joint_type(JOINT_SPHERICAL);
-        break;
-      }
-      default: {
-        return_code = kCONVERSION_JOINT_FAILED;
-      }
+        default: {
+          return_code = kCONVERSION_JOINT_FAILED;
+        }
       };
 
       if (return_code == kCONVERSION_OK) {
@@ -234,44 +234,47 @@ template <typename Algebra> struct UrdfToMultiBody {
           Algebra::rotation_zyx_matrix(rpy[0], rpy[1], rpy[2]);
 
       switch (col.geometry.geom_type) {
-      case TINY_SPHERE_TYPE: {
-        Geometry<Algebra> *geom =
-            world.create_sphere(col.geometry.sphere.radius);
-        l.collision_geometries.push_back(geom);
-        l.X_collisions.push_back(collision_offset);
-        break;
-      }
-      // case BOX_TYPE: {
-      //     // col.box.extents = Vector3(colShapeData.dimensions[0],
-      //     // colShapeData.dimensions[1], colShapeData.dimensions[2]);
-      //     // urdfLink.urdf_collision_shapes.push_back(col);
-      //     break;
-      // }
-      case TINY_CAPSULE_TYPE: {
-        Geometry<Algebra> *geom =
-            world.create_capsule(Scalar(col.geometry.capsule.radius),
-                                 Scalar(col.geometry.capsule.length));
-        l.collision_geometries.push_back(geom);
-        l.X_collisions.push_back(collision_offset);
-        break;
-      }
-      // case GEOM_MESH: {
-      //    // col.mesh.file_name = colShapeData.meshAssetFileName;
-      //    // col.mesh.scale = Vector3(colShapeData.dimensions[0],
-      //    // colShapeData.dimensions[1], colShapeData.dimensions[2]);
-      //    break;
-      //}
-      case TINY_PLANE_TYPE: {
-        Plane<Algebra> *geom = world.create_plane();
-        geom->set_normal(col.geometry.plane.normal);
-        l.collision_geometries.push_back(geom);
-        l.X_collisions.push_back(collision_offset);
-        break;
-      }
-      default: {
-      }
+        case TINY_SPHERE_TYPE: {
+          Geometry<Algebra> *geom =
+              world.create_sphere(col.geometry.sphere.radius);
+          l.collision_geometries.push_back(geom);
+          l.X_collisions.push_back(collision_offset);
+          break;
+        }
+        case TINY_BOX_TYPE: {
+          Vector3 extents(col.geometry.box.extents[0],
+                          col.geometry.box.extents[1],
+                          col.geometry.box.extents[2]);
+          Geometry<Algebra> *geom = new Box<Algebra>(extents);
+          l.collision_geometries.push_back(geom);
+          l.X_collisions.push_back(collision_offset);
+          break;
+        }
+        case TINY_CAPSULE_TYPE: {
+          Geometry<Algebra> *geom =
+              world.create_capsule(Scalar(col.geometry.capsule.radius),
+                                   Scalar(col.geometry.capsule.length));
+          l.collision_geometries.push_back(geom);
+          l.X_collisions.push_back(collision_offset);
+          break;
+        }
+        // case GEOM_MESH: {
+        //    // col.mesh.file_name = colShapeData.meshAssetFileName;
+        //    // col.mesh.scale = Vector3(colShapeData.dimensions[0],
+        //    // colShapeData.dimensions[1], colShapeData.dimensions[2]);
+        //    break;
+        //}
+        case TINY_PLANE_TYPE: {
+          Plane<Algebra> *geom = world.create_plane();
+          geom->set_normal(col.geometry.plane.normal);
+          l.collision_geometries.push_back(geom);
+          l.X_collisions.push_back(collision_offset);
+          break;
+        }
+        default: {
+        }
       };
     }
   }
 };
-} // namespace tds
+}  // namespace tds

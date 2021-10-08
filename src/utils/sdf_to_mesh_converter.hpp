@@ -5,10 +5,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include "geometry.hpp"
 #include "sdf_utils.hpp"
 #include "utils/sdf_to_mesh/marching_cubes.hpp"
-#include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/tiny_gl_instancing_renderer.h"
+#include "visualizer/opengl/tiny_opengl3_app.h"
+
 
 namespace tds {
 
@@ -20,10 +22,10 @@ struct RenderShape {
   size_t num_vertices;
 };
 
-
 template <typename Algebra>
-RenderShape convert_sdf_to_mesh(const Geometry<Algebra> &shape, int num_cells,
-                                bool compute_normals = true) // const references
+RenderShape convert_sdf_to_mesh(
+    const Geometry<Algebra> &shape, int num_cells,
+    bool compute_normals = true)  // const references
 {
   using Vector3 = typename Algebra::Vector3;
   using Vector4 = MC::Vector4<Algebra>;
@@ -32,31 +34,31 @@ RenderShape convert_sdf_to_mesh(const Geometry<Algebra> &shape, int num_cells,
   int ncellsX, ncellsY, ncellsZ;
   ncellsX = ncellsY = ncellsZ = num_cells;
 
-  float mcMaxX = Algebra::to_double(shape.get_max_boundaries().x());
-  float mcMinX = Algebra::to_double(shape.get_min_boundaries().x());
-  float mcMaxY = Algebra::to_double(shape.get_max_boundaries().y());
-  float mcMinY = Algebra::to_double(shape.get_min_boundaries().y());
-  float mcMaxZ = Algebra::to_double(shape.get_max_boundaries().z());
-  float mcMinZ = Algebra::to_double(shape.get_min_boundaries().z());
+  double mcMaxX = Algebra::to_double(shape.get_max_boundaries().x());
+  double mcMinX = Algebra::to_double(shape.get_min_boundaries().x());
+  double mcMaxY = Algebra::to_double(shape.get_max_boundaries().y());
+  double mcMinY = Algebra::to_double(shape.get_min_boundaries().y());
+  double mcMaxZ = Algebra::to_double(shape.get_max_boundaries().z());
+  double mcMinZ = Algebra::to_double(shape.get_min_boundaries().z());
 
-  float gradX = (mcMaxX - mcMinX) / ncellsX / 2;
-  float gradY = (mcMaxY - mcMinY) / ncellsY / 2;
-  float gradZ = (mcMaxZ - mcMinZ) / ncellsZ / 2;
+  double gradX = (mcMaxX - mcMinX) / ncellsX / 2;
+  double gradY = (mcMaxY - mcMinY) / ncellsY / 2;
+  double gradZ = (mcMaxZ - mcMinZ) / ncellsZ / 2;
 
-  float minValue = 0.;
+  double minValue = 0.;
 
   std::vector<Vector4> mcDataPoints((ncellsX + 1) * (ncellsY + 1) *
                                     (ncellsZ + 1));
   Vector3 stepSize((mcMaxX - mcMinX) / ncellsX, (mcMaxY - mcMinY) / ncellsY,
                    (mcMaxZ - mcMinZ) / ncellsZ);
 
-  int YtimesZ = (ncellsY + 1) * (ncellsZ + 1); // for extra speed
+  int YtimesZ = (ncellsY + 1) * (ncellsZ + 1);  // for extra speed
   for (int i = 0; i < ncellsX + 1; i++) {
-    int ni = i * YtimesZ; // for speed
-    float vertX = mcMinX + i * stepSize.x();
+    int ni = i * YtimesZ;  // for speed
+    double vertX = mcMinX + i * stepSize.x();
     for (int j = 0; j < ncellsY + 1; j++) {
-      int nj = j * (ncellsZ + 1); // for speed
-      float vertY = mcMinY + j * stepSize.y();
+      int nj = j * (ncellsZ + 1);  // for speed
+      double vertY = mcMinY + j * stepSize.y();
       for (int k = 0; k < ncellsZ + 1; k++) {
         Vector4 vert(vertX, vertY, mcMinZ + k * stepSize.z(), 0);
         vert.val = shape.distance(vert.vec);
@@ -155,5 +157,4 @@ RenderShape convert_sdf_to_mesh(const Geometry<Algebra> &shape, int num_cells,
 
   return render_mesh;
 }
-
-} // namespace tds
+}  // namespace tds
