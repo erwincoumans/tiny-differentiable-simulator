@@ -67,8 +67,8 @@ class ReacherPyTinyDiffSim(gym.Env):
     return np.array(self.state), reward, done, {}
 
   def reset(self):
-    grav = pytinydiffsim.Vector3(0,0,-10)
-    self.state = self.tds_env.reset(grav)
+    #grav = pytinydiffsim.Vector3(0,0,-10)
+    self.state = self.tds_env.reset()
     #print("reset self.state=", self.state)
     self.result = None
     return np.array(self.state)
