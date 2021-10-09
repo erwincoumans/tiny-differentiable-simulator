@@ -124,8 +124,7 @@ class CartpolePyTinyDiffSim(gym.Env):
       
       eye = [0.,-5.2,1.]
       target = [0., 0., 1.]
-      light = pytinyrenderer.TinyRenderLight()
-      light.has_shadow = False
+      light = pytinyrenderer.TinyRenderLight(has_shadow=False)
       camera = pytinyrenderer.TinyRenderCamera(viewWidth=self._render_width,
                                                viewHeight=self._render_height,
                                                 position=eye, target=target)
