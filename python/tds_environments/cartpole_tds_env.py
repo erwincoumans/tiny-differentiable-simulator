@@ -13,8 +13,8 @@ class CartpolePyTinyDiffSim(gym.Env):
     
     self.tds_env = pytinydiffsim.CartpoleEnv()
 
-    self._render_width = 640
-    self._render_height = 480
+    self._render_width = 128
+    self._render_height = 128
     
     self.theta_threshold_radians = 12 * 2 * math.pi / 360
     self.x_threshold = 0.4  #2.4
@@ -125,6 +125,7 @@ class CartpolePyTinyDiffSim(gym.Env):
       eye = [0.,-5.2,1.]
       target = [0., 0., 1.]
       light = pytinyrenderer.TinyRenderLight()
+      light.has_shadow = False
       camera = pytinyrenderer.TinyRenderCamera(viewWidth=self._render_width,
                                                viewHeight=self._render_height,
                                                 position=eye, target=target)
