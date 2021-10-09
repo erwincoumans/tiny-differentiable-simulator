@@ -206,3 +206,13 @@ MyAlgebra::Quaternion QuaternionDifference(const MyAlgebra::Quaternion &q_start,
     return MyAlgebra::quat_difference(q_start, q_end);
 }
 
+const std::vector<const tds::Geometry<MyAlgebra> *>* mb_collision_geometries(
+        const tds::MultiBody<MyAlgebra>& mb, int link_id) {
+    /* Returns a cloned copies of the collision geometries */
+    const std::vector<const tds::Geometry<MyAlgebra> *> colls = mb.collision_geometries(link_id);
+    std::vector<const tds::Geometry<MyAlgebra> *> *collision_geometries = new std::vector<const tds::Geometry<MyAlgebra> *>;
+    for (const auto *geom : colls) {
+      collision_geometries->push_back(tds::clone<MyAlgebra, MyAlgebra>(geom));
+    }
+    return collision_geometries;
+}
