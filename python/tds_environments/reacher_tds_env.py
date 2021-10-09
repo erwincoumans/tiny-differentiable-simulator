@@ -127,8 +127,7 @@ class ReacherPyTinyDiffSim(gym.Env):
       
       eye = [0.,-0.2,1.]
       target = [0., 0., 0.]
-      light = pytinyrenderer.TinyRenderLight()
-      light.has_shadow = False #twice as slow
+      light = pytinyrenderer.TinyRenderLight(has_shadow=False)
       camera = pytinyrenderer.TinyRenderCamera(viewWidth=self._render_width,
                                                viewHeight=self._render_height,
                                                 position=eye, target=target)
