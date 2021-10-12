@@ -81,6 +81,9 @@ struct TinyOpenGL3AppInternalData {
   int m_customViewPortHeight;
   int m_mp4Fps;
 
+  bool m_pauseSim;
+  bool m_resetSim;
+
   TinyOpenGL3AppInternalData()
       : m_fontTextureId(0),
         m_largeFontTextureId(0),
@@ -98,7 +101,9 @@ struct TinyOpenGL3AppInternalData {
         m_upAxis(1),
         m_customViewPortWidth(-1),
         m_customViewPortHeight(-1),
-        m_mp4Fps(60) {}
+        m_mp4Fps(60),
+        m_pauseSim(false),
+        m_resetSim(false) {}
 };
 
 static TinyOpenGL3App* gApp = 0;
@@ -116,9 +121,15 @@ static void SimpleResizeCallback(float widthf, float heightf) {
 static void SimpleKeyboardCallback(int key, int state) {
   if (key == TINY_KEY_ESCAPE && gApp && gApp->m_window) {
     gApp->m_window->set_request_exit();
-  } else {
-    // gApp->defaultKeyboardCallback(key,state);
+  } else if (key == TINY_KEY_SPACE && gApp && gApp->m_window && state==1) {
+      // std::cout << "TINY_KEY_SPACE pressed!!! state" << state << std::endl;
+      gApp->m_data->m_pauseSim = !gApp->m_data->m_pauseSim;
   }
+  else if (key == TINY_KEY_BACKSPACE && gApp && gApp->m_window && state==1) {
+      // std::cout << "TINY_KEY_BACKSPACE pressed!!! state" << state << std::endl;
+      gApp->m_data->m_resetSim = true;
+  }
+  else {}
 }
 
 void SimpleMouseButtonCallback(int button, int state, float x, float y) {
@@ -442,6 +453,18 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
 
 struct sth_stash* TinyOpenGL3App::get_font_stash() {
   return m_data->m_fontStash;
+}
+
+bool TinyOpenGL3App::get_sim_state() {
+    return m_data->m_pauseSim;
+}
+
+bool TinyOpenGL3App::get_sim_reset_flag() {
+    return m_data->m_resetSim;
+}
+
+void TinyOpenGL3App::set_sim_reset_flag(bool flag) {
+     m_data->m_resetSim = flag;
 }
 
 template <typename T>

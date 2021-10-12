@@ -76,6 +76,12 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                                   float color[4], float u0, float v0, float u1,
                                   float v1, int useRGBA);
   struct sth_stash* get_font_stash();
+
+  bool get_sim_state();
+
+  bool get_sim_reset_flag();
+
+  void set_sim_reset_flag(bool flag);
 };
 
 #endif  // TINY_OPENGL3_APP_H

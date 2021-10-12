@@ -67,30 +67,30 @@ while not app.window.requested_exit():
     app.draw_grid(dg)
     # pd.forward_kinematics(mb, mb.q, mb.qd)
 
-    # if app.get_sim_reset_flag() == True:
-    #     mb.initialize()
+    if app.get_sim_reset_flag() == True:
+        mb.initialize()
 
-    #     app.renderer.write_transforms()
-    #     mb.set_position(pd.Vector3(0, 0, 3))
+        app.renderer.write_transforms()
+        mb.set_position(pd.Vector3(0, 0, 3))
 
-    #     pd.forward_kinematics(mb, mb.q, mb.qd)
-    #     opengl_utils_pd.sync_visual_transforms(mb, robot_vis, app)
+        pd.forward_kinematics(mb, mb.q, mb.qd)
+        opengl_utils_pd.sync_visual_transforms(mb, robot_vis, app)
 
-    #     app.renderer.write_transforms()
-    #     app.set_sim_reset_flag(False)
+        app.renderer.write_transforms()
+        app.set_sim_reset_flag(False)
 
-    # if app.get_sim_state() == False and app.get_sim_reset_flag() == False:
-    # add some gravity
-    pd.forward_dynamics(mb, pd.Vector3(0., 0., -10.))
+    if app.get_sim_state() == False and app.get_sim_reset_flag() == False:
+        # add some gravity
+        pd.forward_dynamics(mb, pd.Vector3(0., 0., -10.))
 
-    # compute contacts between floor and laikago
-    multi_bodies = [plane_mb, mb]
-    contacts = world.compute_contacts_multi_body(multi_bodies, dispatcher)
+        # compute contacts between floor and laikago
+        multi_bodies = [plane_mb, mb]
+        contacts = world.compute_contacts_multi_body(multi_bodies, dispatcher)
 
-    for cps in contacts:
-        solver.resolve_collision(cps, dt)
+        for cps in contacts:
+            solver.resolve_collision(cps, dt)
 
-    pd.integrate_euler(mb, dt)
+        pd.integrate_euler(mb, dt)
 
     opengl_utils_pd.sync_visual_transforms(mb, robot_vis, app)
     app.renderer.write_transforms()

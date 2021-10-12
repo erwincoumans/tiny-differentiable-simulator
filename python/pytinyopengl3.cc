@@ -143,6 +143,9 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("draw_text_3d", (void (TinyOpenGL3App::*)(const char*, float, float, float, float)) &TinyOpenGL3App::draw_text_3d)
       .def_readwrite("renderer",&TinyOpenGL3App::m_renderer)
       .def_readwrite("window",&TinyOpenGL3App::m_window)
+      .def("get_sim_state", &TinyOpenGL3App::get_sim_state)
+      .def("get_sim_reset_flag", &TinyOpenGL3App::get_sim_reset_flag)
+      .def("set_sim_reset_flag", &TinyOpenGL3App::set_sim_reset_flag)
       ;
       
   
