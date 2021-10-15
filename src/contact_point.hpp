@@ -4,6 +4,8 @@
 
 #include "geometry.hpp"
 #include "math/conditionals.hpp"
+#undef max
+#undef min
 
 namespace tds {
 template <typename Algebra>
