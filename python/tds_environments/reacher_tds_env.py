@@ -67,6 +67,7 @@ class ReacherPyTinyDiffSim(gym.Env):
     return np.array(self.state), reward, done, {}
 
   def reset(self):
+    #grav = pytinydiffsim.Vector3(0,0,-10)
     self.state = self.tds_env.reset()
     #print("reset self.state=", self.state)
     self.result = None
@@ -124,25 +125,18 @@ class ReacherPyTinyDiffSim(gym.Env):
         self.scene.set_object_orientation(self.tip_instance, self.result.tip_graphics_orn)
         self.scene.set_object_position(self.target_instance, self.result.target_graphics_pos)
       
-      NEAR_PLANE = 0.01
-      FAR_PLANE = 1000
-      HFOV = 58.0
-      VFOV = 45.0
-      left=-math.tan(math.pi*HFOV/360.0)*NEAR_PLANE
-      right=math.tan(math.pi*HFOV/360.0)*NEAR_PLANE
-      bottom=-math.tan(math.pi*VFOV/360.0)*NEAR_PLANE
-      top=math.tan(math.pi*VFOV/360.0)*NEAR_PLANE
-      projection_matrix = pytinyrenderer.compute_projection_matrix( left, right, bottom, top, NEAR_PLANE, FAR_PLANE)
-
-      up = [0.,0.,1.]
       eye = [0.,-0.2,1.]
-      target = [0.,0.,0.]
-      view_matrix = pytinyrenderer.compute_view_matrix(eye, target, up)
-      img = self.scene.get_camera_image(self._render_width,self._render_height,[self.body0_instance,
+      target = [0., 0., 0.]
+      light = pytinyrenderer.TinyRenderLight(has_shadow=False)
+      camera = pytinyrenderer.TinyRenderCamera(viewWidth=self._render_width,
+                                               viewHeight=self._render_height,
+                                                position=eye, target=target)
+      
+      img = self.scene.get_camera_image([self.body0_instance,
                                             self.body1_instance,
                                             self.tip_instance,
-                                            self.target_instance], 
-                                            view_matrix, projection_matrix)
+                                            self.target_instance], light, camera)
+      
       rgb_array = np.reshape(np.array(img.rgb,dtype=np.uint8), (img.height, img.width, -1))
       return rgb_array
 

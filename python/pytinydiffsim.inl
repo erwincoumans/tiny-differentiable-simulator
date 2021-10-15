@@ -1073,7 +1073,7 @@
 
      py::class_<ReacherEnv<MyAlgebra>>(m, "ReacherEnv")
       .def(py::init<>())
-      .def("reset", &ReacherEnv<MyAlgebra>::reset)
+      .def("reset",&ReacherEnv<MyAlgebra>::reset, py::arg("gravity") = MyAlgebra::Vector3(0.,0.,-10.))
       .def("step", &ReacherEnv<MyAlgebra>::step2)
       .def("rollout", &ReacherEnv<MyAlgebra>::rollout)
       .def("update_weights", &ReacherEnv<MyAlgebra>::init_neural_network)
@@ -1091,6 +1091,15 @@
                      &CartpoleEnvOutput::reward)
       .def_readwrite("done",
                      &CartpoleEnvOutput::done)
+      .def_readwrite("cart_graphics_pos",
+                     &CartpoleEnvOutput::cart_graphics_pos)
+      .def_readwrite("cart_graphics_orn",
+                     &CartpoleEnvOutput::cart_graphics_orn)
+      .def_readwrite("pole_graphics_pos",
+                     &CartpoleEnvOutput::pole_graphics_pos)
+      .def_readwrite("pole_graphics_orn",
+                     &CartpoleEnvOutput::pole_graphics_orn)
+      
       ;
 
    py::class_<CartpoleRolloutOutput>(m, "CartpoleRolloutOutput")

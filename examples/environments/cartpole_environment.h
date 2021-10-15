@@ -128,6 +128,11 @@ struct CartpoleEnvOutput
     std::vector<double> obs;
     double reward;
     bool done;
+    std::array<double,3> cart_graphics_pos;
+    std::array<double,4> cart_graphics_orn;
+    
+    std::array<double,3> pole_graphics_pos;
+    std::array<double,4> pole_graphics_orn;
 };
 
 struct CartpoleRolloutOutput
@@ -237,6 +242,22 @@ struct CartpoleEnv {
       //std::cout << "env_out.done=" << env_out.done << std::endl;
       //std::cout << "env_out.reward=" << env_out.done << std::endl;
       //std::cout << "obs=" << obs << std::endl;
+      int index=4;
+      env_out.cart_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.cart_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.cart_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.cart_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.cart_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.cart_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.cart_graphics_orn[3] = this->sim_state_with_graphics[index++];
+
+      env_out.pole_graphics_pos[0] = this->sim_state_with_graphics[index++];
+      env_out.pole_graphics_pos[1] = this->sim_state_with_graphics[index++];
+      env_out.pole_graphics_pos[2] = this->sim_state_with_graphics[index++];
+      env_out.pole_graphics_orn[0] = this->sim_state_with_graphics[index++];
+      env_out.pole_graphics_orn[1] = this->sim_state_with_graphics[index++];
+      env_out.pole_graphics_orn[2] = this->sim_state_with_graphics[index++];
+      env_out.pole_graphics_orn[3] = this->sim_state_with_graphics[index++];
       return env_out;
   }
   
