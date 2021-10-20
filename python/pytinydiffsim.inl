@@ -634,6 +634,7 @@
       .def("body_to_world", &MultiBody<MyAlgebra>::body_to_world)
       .def("clear_forces", &MultiBody<MyAlgebra>::clear_forces)
       .def("is_floating", &MultiBody<MyAlgebra>::is_floating)
+      .def("joint_damping", &MultiBody<MyAlgebra>::joint_damping)
       .def_property_readonly("num_dofs", &MultiBody<MyAlgebra>::dof)
       //.def_property_readonly("num_dofs_qd", &MultiBody<MyAlgebra>::dof_qd)
       .def_readwrite("q", &MultiBody<MyAlgebra>::q_)
