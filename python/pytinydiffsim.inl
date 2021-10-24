@@ -634,6 +634,7 @@
       .def("body_to_world", &MultiBody<MyAlgebra>::body_to_world)
       .def("clear_forces", &MultiBody<MyAlgebra>::clear_forces)
       .def("is_floating", &MultiBody<MyAlgebra>::is_floating)
+      .def("joint_damping", &MultiBody<MyAlgebra>::joint_damping)
       .def_property_readonly("num_dofs", &MultiBody<MyAlgebra>::dof)
       //.def_property_readonly("num_dofs_qd", &MultiBody<MyAlgebra>::dof_qd)
       .def_readwrite("q", &MultiBody<MyAlgebra>::q_)
@@ -667,8 +668,7 @@
   m.def("link_transform_base_frame", &MyGetLinkTransformInBase);
   m.def("find_file", &MyFindFile);
   m.def("quat_difference", &QuaternionDifference);
-  //where is the definition of mb_collision_geometries? error when compiling cppad version
-  //m.def("mb_collision_geometries", &mb_collision_geometries);
+  m.def("mb_collision_geometries", &mb_collision_geometries);
 
   m.def("pi", &MyPi);
   m.def("cos", &MyCos);
