@@ -1,0 +1,27 @@
+Metadata-Version: 1.1
+Name: pytinydiffsim
+Version: 0.0.6
+Summary: Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning
+Home-page: https://github.com/google-research/tiny-differentiable-simulator
+Author: Eric Heiden, David Millard, Erwin Coumans
+Author-email: erwincoumans@google.com
+License: Apache License 2.0
+Description: Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning
+Keywords: physics simulation,optimal control,robotics,collision detection,opengl,reinforcement learning
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: zlib/libpng License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: MacOS
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Games/Entertainment :: Simulation
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Framework :: Robot Framework
