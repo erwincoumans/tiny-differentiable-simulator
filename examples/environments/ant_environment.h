@@ -212,7 +212,7 @@ struct AntContactSimulation {
                 //just copy the link world transform. Still have to multiple with visual transform for each instance.
                 if (link.X_visuals.size())
                 {
-                    tds::Transform visual_X_world = link.X_world * link.X_visuals[0];//
+                    auto visual_X_world = link.X_world * link.X_visuals[0];//
                     {
                         result[j++] = visual_X_world.translation[0];
                         result[j++] = visual_X_world.translation[1];
