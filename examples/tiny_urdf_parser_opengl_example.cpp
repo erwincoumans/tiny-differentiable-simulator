@@ -44,10 +44,8 @@ bool use_plane = true;
 #define USE_LAIKAGO
 
 #ifdef USE_LAIKAGO
- //std::string urdf_name = "laikago/laikago_toes_zup_chassis_collision.urdf";
-  std::string urdf_name = "amass_fixed.urdf";
-//std::string urdf_name = "capsule.urdf";//sphere8cube.urdf";//laikago/laikago_toes_zup.urdf";
-//std::string urdf_name = "sphere8cube.urdf";//laikago/laikago_toes_zup.urdf";
+// std::string urdf_name = "laikago/laikago_toes_zup_chassis_collision.urdf";
+std::string urdf_name = "laikago/laikago_toes_zup.urdf";
 bool is_floating = true;
 double knee_angle = -0.5;
 double abduction_angle = 0.2;
@@ -93,24 +91,16 @@ typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 typedef TinyVector3<double, DoubleUtils> Vector3;
 typedef TinyQuaternion<double, DoubleUtils> Quaternion;
 
-MyAlgebra::Vector3 start_pos(0, 0, 1.15); // 0.4002847
-Quaternion cap_start_orn = 
-    MyAlgebra::quat_from_euler_rpy(Vector3(0.,0.,0.));
-//Quaternion cap_start_orn = 
-//    MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0.1,0.2,0.3));//0,MyAlgebra::pi()/2.,0));
- //MyAlgebra::Quaternion start_orn =
- //MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(-3.14/2.,0,0));
+MyAlgebra::Vector3 start_pos(0, 0, .60); // 0.4002847
+// MyAlgebra::Quaternion start_orn =
+// MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(-3.14/2.,0,0));
 // MyAlgebra::Quaternion start_orn(0.23364591,0,0,0.97232174932);
 // MyAlgebra::Quaternion start_orn(0,0,0,1);//0.23364591,0,0,0.97232174932);
 // MyAlgebra::Quaternion start_orn =
 // MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(3.14/5.,0,0));
 // MyAlgebra::Quaternion start_orn =
 // MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0,3.14/2.,0));
-//MyAlgebra::Quaternion start_orn(0, 0, 0, 1);
-
-MyAlgebra::Quaternion plane_start_orn =
-    MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0,0,0));//0.1,0.2,0.3));
-
+MyAlgebra::Quaternion start_orn(0, 0, 0, 1);
 
 bool do_sim = true;
 
@@ -148,9 +138,9 @@ template <typename Algebra> struct ContactSimulation {
 
     mb_ = cache.construct(m_urdf_filename, world, false, is_floating);
     mb_->base_X_world().translation = start_pos;
-    mb_->base_X_world().rotation = Algebra::quat_to_matrix(cap_start_orn);
+    mb_->base_X_world().rotation = Algebra::quat_to_matrix(start_orn);
     world.default_friction = 1;
-    world.set_gravity(Vector3(0,2,-10));
+    // world.set_gravity(Algebra::Vector3(0,0,0));
     // initial_poses.resize(mb_->q_.size());
     // for (int i=0;i<mb_->q_.size();i++)
     //{
@@ -172,7 +162,7 @@ template <typename Algebra> struct ContactSimulation {
     for (int t = 0; t < num_timesteps; ++t) {
 
       // pd control
-      if (0) {
+      if (1) {
         // use PD controller to compute tau
         int qd_offset = mb_->is_floating() ? 6 : 0;
         int q_offset = mb_->is_floating() ? 7 : 0;
@@ -252,7 +242,6 @@ template <typename Algebra> struct ContactSimulation {
 };
 
 int main(int argc, char *argv[]) {
-  MyAlgebra::Vector3 n = plane_start_orn.rotate(MyAlgebra::Vector3(0,0,1));
   int sync_counter = 0;
   int frame = 0;
   World<MyAlgebra> world;
@@ -308,8 +297,7 @@ int main(int argc, char *argv[]) {
     std::string plane_filename;
     FileUtils::find_file("plane100.obj", plane_filename);
     TinyVector3f pos(0, 0, 0);
-    TinyQuaternionf orn(plane_start_orn.x(),plane_start_orn.y(),plane_start_orn.z(),plane_start_orn.w());
-    
+    TinyQuaternionf orn(0, 0, 0, 1);
     TinyVector3f scaling(1, 1, 1);
     visualizer.load_obj(plane_filename, pos, orn, scaling, shape_ids);
 #endif
@@ -404,20 +392,14 @@ int main(int argc, char *argv[]) {
     parallel_inputs[i] =
         std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
     if (contact_sim.mb_->is_floating()) {
-      parallel_inputs[i][0] = cap_start_orn.x();
-      parallel_inputs[i][1] = cap_start_orn.y();
-      parallel_inputs[i][2] = cap_start_orn.z();
-      parallel_inputs[i][3] = cap_start_orn.w();
+      parallel_inputs[i][0] = start_orn.x();
+      parallel_inputs[i][1] = start_orn.y();
+      parallel_inputs[i][2] = start_orn.z();
+      parallel_inputs[i][3] = start_orn.w();
 
       parallel_inputs[i][4] = start_pos.x();
       parallel_inputs[i][5] = start_pos.y();
       parallel_inputs[i][6] = start_pos.z();
-      parallel_inputs[i][7+3] = 1;//spherical joint
-      
-      //parallel_inputs[i][7] = 1;
-      //parallel_inputs[i][8] = 1;
-      //parallel_inputs[i][9] = 1;
-      //parallel_inputs[i][11] = 10;
     }
 
 #ifdef USE_PANDA
@@ -459,8 +441,8 @@ int main(int argc, char *argv[]) {
 
                 ::TINY::TinyVector3f pos(start_pos.x(), start_pos.y(),
                                          start_pos.z());
-                ::TINY::TinyQuaternionf orn(plane_start_orn.x(), plane_start_orn.y(),
-                                            plane_start_orn.z(), plane_start_orn.w());
+                ::TINY::TinyQuaternionf orn(start_orn.x(), start_orn.y(),
+                                            start_orn.z(), start_orn.w());
 
                 if (contact_sim.mb_->is_floating()) {
                   pos = ::TINY::TinyVector3f(parallel_outputs[s][4 + 0],
