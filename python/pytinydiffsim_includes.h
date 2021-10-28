@@ -206,6 +206,10 @@ MyAlgebra::Quaternion QuaternionDifference(const MyAlgebra::Quaternion &q_start,
     return MyAlgebra::quat_difference(q_start, q_end);
 }
 
+MyAlgebra::Vector3 Quaternion_Axis_Angle(const MyAlgebra::Quaternion &q) {
+    return MyAlgebra::quaternion_axis_angle(q);
+}
+
 const std::vector<const tds::Geometry<MyAlgebra> *>* mb_collision_geometries(
         const tds::MultiBody<MyAlgebra>& mb, int link_id) {
     /* Returns a cloned copies of the collision geometries */
