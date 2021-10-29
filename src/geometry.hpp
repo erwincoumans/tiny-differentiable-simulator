@@ -325,7 +325,7 @@ static TINY_INLINE Geometry<AlgebraTo> *clone(const Geometry<AlgebraFrom> *g) {
 }  // namespace tds
 
 namespace std {
-std::string to_string(tds::GeometryTypes type) {
+inline std::string to_string(tds::GeometryTypes type) {
   switch (type) {
     case tds::TINY_SPHERE_TYPE:
       return "sphere";
