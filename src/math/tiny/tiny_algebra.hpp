@@ -502,6 +502,10 @@ struct TinyAlgebra {
     quat.setRotation(axis, angle);
     return quat;
   }
+
+  TINY_INLINE static Scalar epsilon() {
+      return std::numeric_limits<double>::epsilon();
+  }
   TINY_INLINE static Vector3 quaternion_axis_angle(const Quaternion quat) {
       Vector3 qv(quat.getX(), quat.getY(), quat.getZ());
       Scalar qv_norm = qv.length();

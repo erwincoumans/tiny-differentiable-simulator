@@ -213,7 +213,14 @@ class Box : public Geometry<Algebra> {
     return Box<AlgebraTo>(C::convert(extents), C::convert(radius));
   }
 
-  const Vector3 &get_extents() const { return extents; }
+  const Vector3 &get_extents() const { 
+      return extents; 
+  }
+  Vector3 get_half_extents() const { 
+      Vector3 he = extents * Algebra::fraction(1, 2);
+      return he;
+  }
+
   void set_extents(const Vector3 &extents) { this->extents = extents; }
 
   const Scalar &get_radius() const { return radius; }
