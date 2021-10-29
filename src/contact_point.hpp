@@ -347,7 +347,6 @@ int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
                       std::vector<ContactPoint<Algebra> >& contactsOut) {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
-  typedef tds::Pose<Algebra> Pose;
   typedef tds::Box<Algebra> Box;
   typedef tds::ContactPoint<Algebra> ContactPoint;
   typedef tds::Sphere<Algebra> Sphere;
