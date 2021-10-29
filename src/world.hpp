@@ -50,13 +50,14 @@ class World {
 
   std::vector<Geometry*> geoms_;
 
-  SubmitProfileTiming profile_timing_func_{nullptr};
+  
 
   CollisionDispatcher<Algebra> dispatcher_;
   RigidBodyConstraintSolver<Algebra>* rb_constraint_solver_{nullptr};
   MultiBodyConstraintSolver<Algebra>* mb_constraint_solver_{nullptr};
 
  public:
+  SubmitProfileTiming profile_timing_func_{nullptr};
   std::vector<RigidBodyContactPoint> rb_contacts_;
   std::vector<std::vector<MultiBodyContactPoint>> mb_contacts_;
 
@@ -77,7 +78,7 @@ class World {
   size_t num_multi_bodies() const { return multi_bodies_.size(); }
   size_t num_geoms() const { return geoms_.size(); }
 
-  inline void submit_profile_timing(const std::string& name) const {
+  inline void submit_profile_timing(const char* name=0) const {
     if (profile_timing_func_) {
       profile_timing_func_(name);
     }
@@ -300,7 +301,7 @@ class World {
 
         b->clear_forces();
       }
-      submit_profile_timing("");
+      submit_profile_timing();
     }
 
     {
@@ -309,7 +310,7 @@ class World {
       compute_contacts_rigid_body_internal(rigid_bodies_, &dispatcher_,
                                            rb_contacts_, default_restitution,
                                            default_friction);
-      submit_profile_timing("");
+      submit_profile_timing();
     }
 
     {
@@ -317,7 +318,7 @@ class World {
       compute_contacts_multi_body_internal(multi_bodies_, &dispatcher_,
                                            mb_contacts_, default_restitution,
                                            default_friction);
-      submit_profile_timing("");
+      submit_profile_timing();
       // mb_contacts_.insert(mb_contacts_.end(),
       //                     additional_MultiBodyContacts.begin(),
       //                     additional_MultiBodyContacts.end());
@@ -345,7 +346,7 @@ class World {
           mb_constraint_solver_->resolve_collision(mb_contacts_[c], dt);
         }
       }
-      submit_profile_timing("");
+      submit_profile_timing();
     }
 
     {
@@ -353,7 +354,7 @@ class World {
       for (RigidBody* rb : rigid_bodies_) {
         rb->integrate(dt);
       }
-      submit_profile_timing("");
+      submit_profile_timing();
     }
   }
 };

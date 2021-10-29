@@ -36,4 +36,4 @@ TINY_INLINE void activate_nan_trap() {
 }
 }  // namespace tds
 
-typedef void (*SubmitProfileTiming)(const std::string& profileName);
+typedef void (*SubmitProfileTiming)(const char* profileName);
