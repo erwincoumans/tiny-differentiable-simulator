@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <limits>
 #include <string>
+#include <cmath>
 
 namespace tds {
 struct EstimationParameter {
