@@ -16,6 +16,7 @@
 //#include "mb_constraint_solver_spring.hpp"
 #include "multi_body.hpp"
 #include "math/pose.hpp"
+#include "math/matrix_utils.hpp"
 #include "math/tiny/tiny_quaternion.h"
 #include "math/tiny/tiny_raycast.h"
 #include "urdf_structures.hpp"

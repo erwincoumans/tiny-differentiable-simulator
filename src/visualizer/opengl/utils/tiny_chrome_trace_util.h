@@ -7,5 +7,7 @@
 void TinyChromeUtilsStartTimings();
 void TinyChromeUtilsStopTimingsAndWriteJsonFile(const char* fileNamePrefix);
 void TinyChromeUtilsEnableProfiling();
+void MyEnterProfileZoneFunc(const char* msg);
+void MyLeaveProfileZoneFunc();
 
 #endif  // TINY_CHROME_TRACE_UTIL_H

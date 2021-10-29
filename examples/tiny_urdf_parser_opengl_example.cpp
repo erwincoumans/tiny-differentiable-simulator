@@ -28,6 +28,8 @@
 #include "dynamics/integrator.hpp"
 #include "urdf/urdf_cache.hpp"
 #include "tiny_visual_instance_generator.h"
+#include "visualizer/opengl/utils/tiny_chrome_trace_util.h"
+#include "visualizer/opengl/utils/tiny_logging.h"
 
 // If set to 1, uses sdf to generate the base plane. Otherwise, uses the default
 // plane object
@@ -44,12 +46,14 @@ bool use_plane = true;
 #define USE_LAIKAGO
 
 #ifdef USE_LAIKAGO
-// std::string urdf_name = "laikago/laikago_toes_zup_chassis_collision.urdf";
-std::string urdf_name = "laikago/laikago_toes_zup.urdf";
-bool is_floating = true;
+ std::string urdf_name = "laikago/laikago_toes_zup_chassis_collision_xyz_spherical.urdf";
+//std::string urdf_name = "humanoid_xyz_spherical.urdf";
+bool is_floating = false;
 double knee_angle = -0.5;
 double abduction_angle = 0.2;
 std::vector<double> initial_poses = {
+    0,0,0,//append position
+    0,0,0,1,
     abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
     abduction_angle, 0., knee_angle, abduction_angle, 0., knee_angle,
 };
@@ -84,23 +88,31 @@ using namespace tds;
 
 typedef double TinyDualScalar;
 typedef double MyScalar;
-typedef ::TINY::DoubleUtils MyTinyConstants;
 #include "math/tiny/tiny_algebra.hpp"
-typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
+
+#define DO_EIGEN
+#ifdef DO_EIGEN
+    #include "math/eigen_algebra.hpp"
+    typedef EigenAlgebraT<double> MyAlgebra;
+#else
+    typedef TinyAlgebra<double, DoubleUtils> MyAlgebra;
+#endif
+
+
 
 typedef TinyVector3<double, DoubleUtils> Vector3;
 typedef TinyQuaternion<double, DoubleUtils> Quaternion;
 
-MyAlgebra::Vector3 start_pos(0, 0, .60); // 0.4002847
-// MyAlgebra::Quaternion start_orn =
-// MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(-3.14/2.,0,0));
-// MyAlgebra::Quaternion start_orn(0.23364591,0,0,0.97232174932);
+MyAlgebra::Vector3 start_pos(0, 0, 0.7);
+ //MyAlgebra::Quaternion start_orn =
+ //MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(-3.14/2.,0,0));
+ MyAlgebra::Quaternion start_orn(0.23364591,0,0,0.97232174932);
 // MyAlgebra::Quaternion start_orn(0,0,0,1);//0.23364591,0,0,0.97232174932);
 // MyAlgebra::Quaternion start_orn =
 // MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(3.14/5.,0,0));
 // MyAlgebra::Quaternion start_orn =
 // MyAlgebra::quat_from_euler_rpy(MyAlgebra::Vector3(0,3.14/2.,0));
-MyAlgebra::Quaternion start_orn(0, 0, 0, 1);
+//MyAlgebra::Quaternion start_orn(0, 0, 0, 1);
 
 bool do_sim = true;
 
@@ -110,6 +122,15 @@ void my_keyboard_callback(int keycode, int state) {
   if (keycode == 's')
     do_sim = state;
   prev_keyboard_callback(keycode, state);
+}
+#include "math/matrix_utils.hpp"
+
+void report_timing(const char* profileName) {
+    if (profileName) {
+        MyEnterProfileZoneFunc(profileName);
+    } else {
+        MyLeaveProfileZoneFunc();
+    }
 }
 
 template <typename Algebra> struct ContactSimulation {
@@ -140,7 +161,9 @@ template <typename Algebra> struct ContactSimulation {
     mb_->base_X_world().translation = start_pos;
     mb_->base_X_world().rotation = Algebra::quat_to_matrix(start_orn);
     world.default_friction = 1;
-    // world.set_gravity(Algebra::Vector3(0,0,0));
+    tds::Transform<Algebra> tr;
+    tr.rotation = Algebra::quat_to_matrix(start_orn);
+    world.set_gravity(tr.apply_inverse(Algebra::Vector3(0,0,-10)));
     // initial_poses.resize(mb_->q_.size());
     // for (int i=0;i<mb_->q_.size();i++)
     //{
@@ -149,6 +172,7 @@ template <typename Algebra> struct ContactSimulation {
   }
 
   std::vector<Scalar> operator()(const std::vector<Scalar> &v) {
+    B3_PROFILE("sim");
     assert(static_cast<int>(v.size()) == input_dim());
     mb_->initialize();
     // copy input into q, qd
@@ -163,6 +187,7 @@ template <typename Algebra> struct ContactSimulation {
 
       // pd control
       if (1) {
+          B3_PROFILE("PD");
         // use PD controller to compute tau
         int qd_offset = mb_->is_floating() ? 6 : 0;
         int q_offset = mb_->is_floating() ? 7 : 0;
@@ -170,10 +195,10 @@ template <typename Algebra> struct ContactSimulation {
         std::vector<double> q_targets;
         q_targets.resize(mb_->tau_.size());
 
-        double kp = 150;
+        double kp = 550;
         double kd = 3;
         double max_force = 550;
-        int param_index = 0;
+
 
         for (int i = 0; i < mb_->tau_.size(); i++) {
           mb_->tau_[i] = 0;
@@ -181,65 +206,142 @@ template <typename Algebra> struct ContactSimulation {
         int tau_index = 0;
         int pose_index = 0;
         for (int i = 0; i < mb_->links_.size(); i++) {
-          if (mb_->links_[i].joint_type != JOINT_FIXED) {
+            switch (mb_->links_[i].joint_type) {
+                case JOINT_FIXED:
+                {
+                    break;
+                }
+                case JOINT_SPHERICAL:
+                {
+                    int qd_index = mb_->links()[i].qd_index;
 
-            if (pose_index < initial_poses.size()) {
-              double q_desired = initial_poses[pose_index++];
-              double q_actual = mb_->q_[q_offset];
-              double qd_actual = mb_->qd_[qd_offset];
-              double position_error = (q_desired - q_actual);
-              double desired_velocity = 0;
-              double velocity_error = (desired_velocity - qd_actual);
-              double force = kp * position_error + kd * velocity_error;
+                    if (pose_index < initial_poses.size()) 
+                    {
+                      //MyAlgebra::Quaternion q_desired = MyAlgebra::quat_from_xyzw(0,0,0,1);
+                        MyAlgebra::Quaternion q_desired = MyAlgebra::quat_from_xyzw(initial_poses[pose_index],
+                                initial_poses[pose_index+1],initial_poses[pose_index+2],initial_poses[pose_index+3]);
 
-              if (force < -max_force)
-                force = -max_force;
-              if (force > max_force)
-                force = max_force;
-              mb_->tau_[tau_index] = force;
-              q_offset++;
-              qd_offset++;
-              param_index++;
-              tau_index++;
+                      MyAlgebra::Quaternion q_actual = MyAlgebra::quat_from_xyzw(mb_->q_[q_offset+0],mb_->q_[q_offset+1],mb_->q_[q_offset+2],mb_->q_[q_offset+3]);
+                      
+
+                      MyAlgebra::Vector3 qd_actual(mb_->qd_[qd_offset],mb_->qd_[qd_offset+1],mb_->qd_[qd_offset+2]);
+                      MyAlgebra::Vector3 qd_desired(0.,0.,0.);
+                      MyAlgebra::Vector3 position_error = get_axis_difference_quaternion<MyAlgebra>(q_desired, q_actual);
+                      MyAlgebra::Vector3 velocity_error = (qd_desired - qd_actual);
+                      MyAlgebra::Vector3 force = kp * position_error + kd * velocity_error;
+                      force = MyAlgebra::Vector3(std::clamp(force.x(),-max_force,max_force),
+                          std::clamp(force.y(),-max_force,max_force),
+                          std::clamp(force.z(),-max_force,max_force));
+
+                      if (mb_->is_floating() || i>=4) {
+                          mb_->tau_[tau_index++] = force.x();
+                          mb_->tau_[tau_index++] = force.y();
+                          mb_->tau_[tau_index++] = force.z();
+                      } else {
+                          tau_index+=3;
+                      }
+                      q_offset+=4;
+                      qd_offset+=3;
+                      pose_index+=4;
+                    }
+
+                    break;
+                }
+                default:
+                {
+                    if (pose_index < initial_poses.size()) 
+                    {
+                      
+                      double q_desired = initial_poses[pose_index++];
+                      //double q_desired = 0;
+                      double q_actual = mb_->q_[q_offset];
+                      double qd_actual = mb_->qd_[qd_offset];
+                      double position_error = (q_desired - q_actual);
+                      double desired_velocity = 0;
+                      double velocity_error = (desired_velocity - qd_actual);
+                      double force = kp * position_error + kd * velocity_error;
+
+                      if (force < -max_force)
+                        force = -max_force;
+                      if (force > max_force)
+                        force = max_force;
+                      if (mb_->is_floating() || i>=4) {
+                        mb_->tau_[tau_index] = force;
+                      }
+                      q_offset++;
+                      qd_offset++;
+                      
+                      tau_index++;
+                    }
+                }
             }
-          }
+
         }
       }
 
-      tds::forward_dynamics(*mb_, world.get_gravity());
-      mb_->clear_forces();
-
-      integrate_euler_qdd(*mb_, dt);
-
-      world.step(dt);
-
-      tds::integrate_euler(*mb_, dt);
-
-      // copy q, qd, link world poses (for rendering) to output
-      int j = 0;
-      for (int i = 0; i < mb_->dof(); ++i, ++j) {
-        result[j] = mb_->q(i);
+      {
+          B3_PROFILE("tds::forward_dynamics");
+            tds::forward_dynamics(*mb_, world.get_gravity());
       }
-      for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
-        result[j] = mb_->qd(i);
+      
+      {
+        B3_PROFILE("mb_->clear_forces");
+        mb_->clear_forces();
       }
-      for (const auto link : *mb_) {
-        // just copy the link world transform. Still have to multiple with
-        // visual transform for each instance.
-        Transform visual_X_world = link.X_world; //* link.X_visuals[0];//
-        result[j++] = visual_X_world.translation[0];
-        result[j++] = visual_X_world.translation[1];
-        result[j++] = visual_X_world.translation[2];
-        auto orn = Algebra::matrix_to_quat(visual_X_world.rotation);
-        result[j++] = orn[0];
-        result[j++] = orn[1];
-        result[j++] = orn[2];
-        result[j++] = orn[3];
+
+      {
+        B3_PROFILE("integrate_euler_qdd");
+        integrate_euler_qdd(*mb_, dt);
+      }
+      {
+          B3_PROFILE("world.step");
+          world.profile_timing_func_ = report_timing;
+          world.get_mb_constraint_solver()->profile_timing_func_ = report_timing;
+
+          world.step(dt);
+      }
+      {
+          B3_PROFILE("tds::integrate_euler");
+            tds::integrate_euler(*mb_, dt);
+      }
+
+      {
+          B3_PROFILE("link world poses");
+          // copy q, qd, link world poses (for rendering) to output
+          int j = 0;
+          for (int i = 0; i < mb_->dof(); ++i, ++j) {
+            result[j] = mb_->q(i);
+          }
+          for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
+            result[j] = mb_->qd(i);
+          }
+          for (const auto link : *mb_) {
+            // just copy the link world transform. Still have to multiple with
+            // visual transform for each instance.
+            Transform visual_X_world = link.X_world; //* link.X_visuals[0];//
+            result[j++] = visual_X_world.translation[0];
+            result[j++] = visual_X_world.translation[1];
+            result[j++] = visual_X_world.translation[2];
+            auto orn = Algebra::matrix_to_quat(visual_X_world.rotation);
+            result[j++] = orn.x();
+            result[j++] = orn.y();
+            result[j++] = orn.z();
+            result[j++] = orn.w();
+          }
       }
     }
     return result;
   }
 };
+
+// timer
+std::chrono::system_clock::time_point tm_start;
+double gettm(void)
+{
+    std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - tm_start;
+    return elapsed.count();
+}
+
 
 int main(int argc, char *argv[]) {
   int sync_counter = 0;
@@ -391,6 +493,8 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < num_total_threads; ++i) {
     parallel_inputs[i] =
         std::vector<MyScalar>(contact_sim.input_dim(), MyScalar(0));
+    int q_index=0;
+
     if (contact_sim.mb_->is_floating()) {
       parallel_inputs[i][0] = start_orn.x();
       parallel_inputs[i][1] = start_orn.y();
@@ -400,7 +504,39 @@ int main(int argc, char *argv[]) {
       parallel_inputs[i][4] = start_pos.x();
       parallel_inputs[i][5] = start_pos.y();
       parallel_inputs[i][6] = start_pos.z();
+      q_index = 7;
     }
+
+    for (int l=0;l<contact_sim.mb_->num_links(); l++) {
+        switch (contact_sim.mb_->links()[l].joint_type) {
+        case JOINT_FIXED:
+            break;
+        case JOINT_PRISMATIC_X:
+        case JOINT_PRISMATIC_Y:
+        case JOINT_PRISMATIC_Z:
+        case JOINT_PRISMATIC_AXIS:
+        case JOINT_REVOLUTE_X:
+        case JOINT_REVOLUTE_Y:
+        case JOINT_REVOLUTE_Z:
+        case JOINT_REVOLUTE_AXIS: {
+            parallel_inputs[i][q_index++] = 0;
+            break;
+            }
+        case JOINT_SPHERICAL: {
+            parallel_inputs[i][q_index++]=0;
+            parallel_inputs[i][q_index++]=0;
+            parallel_inputs[i][q_index++]=0;
+            parallel_inputs[i][q_index++]=1;
+            break;
+            }
+        case JOINT_INVALID:
+            default: {
+                printf("JOINT_INVALID or unknown (%d)\n",contact_sim.mb_->links()[l].joint_type);
+                assert(0);
+                }
+            }
+    }
+
 
 #ifdef USE_PANDA
     for (int j = 0; j < initial_poses.size(); j++) {
@@ -409,8 +545,15 @@ int main(int argc, char *argv[]) {
 #endif
   }
 
-  while (!visualizer.m_opengl_app.m_window->requested_exit()) {
+    //TinyChromeUtilsStartTimings();
+ 
 
+  double start = gettm();
+  int nstep = 10000;
+  //for (int i=0;i<nstep;i++)
+  while (!visualizer.m_opengl_app.m_window->requested_exit()) 
+  {
+      B3_PROFILE("mainloop");
     for (int i = 0; i < num_total_threads; ++i) {
       parallel_outputs[i] = contact_sim(parallel_inputs[i]);
       for (int j = 0; j < contact_sim.input_dim(); ++j) {
@@ -420,6 +563,7 @@ int main(int argc, char *argv[]) {
 
     sync_counter++;
     frame += 1;
+#if 1
     if (sync_counter > frameskip_gfx_sync) {
       sync_counter = 0;
       if (1) {
@@ -533,5 +677,25 @@ int main(int argc, char *argv[]) {
             std::chrono::duration<double>(frameskip_gfx_sync * contact_sim.dt));
       }
     }
+#endif
   }
+
+  
+  //TinyChromeUtilsStopTimingsAndWriteJsonFile("tds_humanoid_10000.json");
+
+  double end = gettm();
+  std::array<double,1> simtime = {end-start};
+
+ // details for thread 0
+    printf(" Simulation time      : %.2f s\n", simtime);
+    printf(" Steps per second     : %.0f\n", nstep/simtime[0]);
+    printf(" Realtime factor      : %.2f x\n", nstep*contact_sim.dt/simtime[0]);
+    printf(" Time per step        : %.4f ms\n\n", 1000*simtime[0]/nstep);
+    //printf(" Contacts per step    : %d\n", contacts[0]/nstep);
+    //printf(" Constraints per step : %d\n", constraints[0]/nstep);
+    int dof = contact_sim.mb_->dof();
+    printf(" Degrees of freedom   : %d\n\n", dof);
+    
+
+
 }
