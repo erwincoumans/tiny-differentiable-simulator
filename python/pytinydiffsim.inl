@@ -670,6 +670,8 @@
   m.def("quat_difference", &QuaternionDifference);
   m.def("quaternion_axis_angle", &Quaternion_Axis_Angle);
   m.def("mb_collision_geometries", &mb_collision_geometries);
+  m.def("matrix_to_euler_xyz", &matrix_to_euler_xyz<MyAlgebra>);
+  m.def("get_axis_difference_quaternion", &get_axis_difference_quaternion<MyAlgebra>);
 
   m.def("pi", &MyPi);
   m.def("cos", &MyCos);

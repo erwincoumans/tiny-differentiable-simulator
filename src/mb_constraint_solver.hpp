@@ -53,7 +53,6 @@ class MultiBodyConstraintSolver {
   typedef tds::Transform<Algebra> Transform;
   typedef tds::MultiBodyContactPoint<Algebra> ContactPoint;
 
- private:
   SubmitProfileTiming profile_timing_func_{nullptr};
 
  public:
@@ -226,7 +225,7 @@ class MultiBodyConstraintSolver {
       submit_profile_timing("inverse_mass_matrix_a");
       is_positive_definite_a =
           Algebra::symmetric_inverse(mass_matrix_a, mass_matrix_a_inv);
-      submit_profile_timing("");
+      submit_profile_timing();
       // }
     }
 
@@ -245,7 +244,7 @@ class MultiBodyConstraintSolver {
       submit_profile_timing("inverse_mass_matrix_b");
       is_positive_definite_b =
           Algebra::symmetric_inverse(mass_matrix_b, mass_matrix_b_inv);
-      submit_profile_timing("");
+      submit_profile_timing();
       // }
     }
     if (!is_positive_definite_a) {
@@ -396,7 +395,7 @@ class MultiBodyConstraintSolver {
     {
       submit_profile_timing("lcpA");
       lcp_A = jac_con * mass_matrix_inv * jac_con_t;
-      submit_profile_timing("");
+      submit_profile_timing();
     }
 
     // apply CFM
@@ -409,7 +408,7 @@ class MultiBodyConstraintSolver {
       for (int i = 0; i < dof_per_contact * n_c; ++i) {
         lcp_A(i, i) += cfm_;
       }
-      submit_profile_timing("");
+      submit_profile_timing();
     }
 
     //  Algebra::print("MLCP A", lcp_A);
@@ -440,7 +439,7 @@ class MultiBodyConstraintSolver {
       submit_profile_timing("solve_pgs");
       solve_pgs(lcp_A, lcp_b, lcp_p, pgs_iterations_,
                 least_squares_residual_threshold_, &con_lo, &con_hi);
-      submit_profile_timing("");
+      submit_profile_timing();
     }
     // Algebra::print("MLCP", lcp_p);
 
@@ -545,7 +544,7 @@ class MultiBodyConstraintSolver {
   }
 
  private:
-  TINY_INLINE void submit_profile_timing(const std::string& name) const {
+  TINY_INLINE void submit_profile_timing(const char* name=0) const {
     if (profile_timing_func_) {
       profile_timing_func_(name);
     }

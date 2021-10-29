@@ -67,7 +67,7 @@ target_include_directories(soft_contact_example PRIVATE ../src)
 
 
 add_executable(tiny_urdf_parser_opengl_example tiny_urdf_parser_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS}) 
-target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window ${CMAKE_DL_LIBS}) 
+target_link_libraries(tiny_urdf_parser_opengl_example  tinyxml2 opengl_window Eigen3::Eigen ${CMAKE_DL_LIBS}) 
 target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party/tinyobjloader)
 target_include_directories(tiny_urdf_parser_opengl_example PRIVATE ../third_party ../src)
 

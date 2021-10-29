@@ -108,7 +108,6 @@ struct UrdfToMultiBody {
       // (link.hpp)
       switch (urdf_structures.joints[i].joint_type) {
         case JOINT_FIXED: {
-          printf("FixedType!\n");
           l.set_joint_type(JOINT_FIXED);
           joint_conversion_ok = true;
           break;

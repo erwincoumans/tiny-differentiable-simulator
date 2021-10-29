@@ -662,6 +662,10 @@ struct EigenAlgebraT {
     return mat.transpose() * vec;
   }
 
+  TINY_INLINE static Scalar epsilon() {
+      return std::numeric_limits<double>::epsilon();
+  }
+
   /**
    * Multiplication of a 6x3 matrix with a Vector3 returns a force vector
    * @param a
