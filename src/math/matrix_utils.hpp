@@ -2,6 +2,9 @@
 #define _MATRIX_UTILS_HPP
 
 #pragma once
+
+#include "math/conditionals.hpp"
+
 namespace tds {
   
 template <typename Algebra> 
