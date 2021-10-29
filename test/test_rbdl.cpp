@@ -320,14 +320,14 @@ void test_urdf_dynamics(std::string filename, bool is_floating = false) {
 //       "/home/eric/pds-risk-aware/data/franka_panda/panda_with_pendulum.urdf");
 // }
 
-TEST(RBDLTest, FloatingCube_Tiny) {
-  test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>("sphere8cube.urdf",
-                                                             true);
-}
+//TEST(RBDLTest, FloatingCube_Tiny) {
+//  test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>("sphere8cube.urdf",
+//                                                             true);
+//}
 
-TEST(RBDLTest, FloatingCube_Eigen) {
-  test_urdf_dynamics<tds::EigenAlgebra>("sphere8cube.urdf", true);
-}
+//TEST(RBDLTest, FloatingCube_Eigen) {
+//  test_urdf_dynamics<tds::EigenAlgebra>("sphere8cube.urdf", true);
+//}
 
 // TEST(RBDLTest, PandaWithBoxDynamics) {
 //   std::cout << "\n\n### TinyAlgebra:\n";
@@ -338,14 +338,14 @@ TEST(RBDLTest, FloatingCube_Eigen) {
 //       "/home/eric/pds-risk-aware/data/franka_panda/panda_with_box.urdf");
 // }
 
-TEST(RBDLTest, LaikagoNoToesDynamics_Tiny) {
-  test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>(
-      "laikago/laikago_no_toes.urdf", true);
-}
+// TEST(RBDLTest, LaikagoNoToesDynamics_Tiny) {
+//  test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>(
+//      "laikago/laikago_no_toes.urdf", true);
+//}
 
-TEST(RBDLTest, LaikagoNoToesDynamics_Eigen) {
-  test_urdf_dynamics<tds::EigenAlgebra>("laikago/laikago_no_toes.urdf", true);
-}
+//TEST(RBDLTest, LaikagoNoToesDynamics_Eigen) {
+//  test_urdf_dynamics<tds::EigenAlgebra>("laikago/laikago_no_toes.urdf", true);
+//}
 
 TEST(RBDLTest, AntLegDynamics_Tiny) {
   test_urdf_dynamics<TinyAlgebra<double, TINY::DoubleUtils>>(
