@@ -197,6 +197,218 @@ int contact_plane_box(const tds::Geometry<Algebra>* geomA,
   return 8;
 }
 
+
+template <typename Algebra>
+struct DistNorm {
+    using Scalar = typename Algebra::Scalar;
+    using Vector3 = typename Algebra::Vector3;
+    Scalar distance;
+    Vector3 normal;
+    Vector3 closestPoint;
+};
+
+template <typename Algebra>
+DistNorm<Algebra> get_sphere_distance(const typename Algebra::Vector3& closestPoint, const typename Algebra::Vector3& n) {
+    DistNorm<Algebra> dn;
+    dn.distance = Algebra::sqrt(Algebra::dot(n,n));
+    dn.normal = n * (Algebra::one()/dn.distance);
+    dn.closestPoint = closestPoint;
+    return dn;
+}
+
+template <typename Algebra>
+DistNorm<Algebra> get_sphere_penetration(
+    const typename Algebra::Vector3& boxHalfExtent, 
+    const typename Algebra::Vector3& sphereRelPos, 
+    const typename Algebra::Vector3& closestPoint, 
+    const typename Algebra::Vector3& normal) {
+    DistNorm<Algebra> dn;
+    using Scalar = typename Algebra::Scalar;
+    using Vector3 = typename Algebra::Vector3;
+
+	//project the center of the sphere on the closest face of the box
+	Scalar faceDist = boxHalfExtent.x() - sphereRelPos.x();
+	Scalar minDist = faceDist;
+	dn.closestPoint.x() = boxHalfExtent.x();
+	dn.normal = Vector3(Scalar(1.0f), Scalar(0.0f), Scalar(0.0f));
+
+	faceDist = boxHalfExtent.x() + sphereRelPos.x();
+    
+    //branchless version
+    dn.distance = where_lt(faceDist , minDist, -faceDist, dn.distance);
+    dn.closestPoint.x() = where_lt(faceDist , minDist, sphereRelPos.x(), dn.closestPoint.x());
+    dn.closestPoint.y() = where_lt(faceDist , minDist, sphereRelPos.y(), dn.closestPoint.y());
+    dn.closestPoint.z() = where_lt(faceDist , minDist, sphereRelPos.z(), dn.closestPoint.z());
+    dn.closestPoint.x() = where_lt(faceDist , minDist, -boxHalfExtent.x(), dn.closestPoint.x());
+    dn.normal.x() = where_lt(faceDist , minDist, Scalar(-1.), dn.normal.x());
+    dn.normal.y() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.y());
+    dn.normal.z() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.z());
+
+    //original version
+#if 0
+	if (faceDist < minDist)
+	{
+		dn.distance  = -faceDist;
+		dn.closestPoint = sphereRelPos;
+		dn.closestPoint.x() = (-boxHalfExtent.x());
+		dn.normal = Vector3(Scalar(-1.0f), Scalar(0.0f), Scalar(0.0f));
+	}
+#endif
+    
+	faceDist = boxHalfExtent.y() - sphereRelPos.y();
+
+    dn.distance = where_lt(faceDist , minDist, -faceDist, dn.distance);
+    dn.closestPoint.x() = where_lt(faceDist , minDist, sphereRelPos.x(), dn.closestPoint.x());
+    dn.closestPoint.y() = where_lt(faceDist , minDist, sphereRelPos.y(), dn.closestPoint.y());
+    dn.closestPoint.z() = where_lt(faceDist , minDist, sphereRelPos.z(), dn.closestPoint.z());
+    dn.closestPoint.y() = where_lt(faceDist , minDist, boxHalfExtent.y(), dn.closestPoint.y());
+    dn.normal.x() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.x());
+    dn.normal.y() = where_lt(faceDist , minDist, Scalar(1.), dn.normal.y());
+    dn.normal.z() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.z());
+
+#if 0
+	if (faceDist < minDist)
+	{
+		dn.distance  = -faceDist;
+		dn.closestPoint = sphereRelPos;
+		dn.closestPoint.y() = (boxHalfExtent.y());
+		dn.normal = Vector3(Scalar(0.0f), Scalar(1.0f), Scalar(0.0f));
+	}
+#endif
+	faceDist = boxHalfExtent.y() + sphereRelPos.y();
+
+    dn.distance = where_lt(faceDist , minDist, -faceDist, dn.distance);
+    dn.closestPoint.x() = where_lt(faceDist , minDist, sphereRelPos.x(), dn.closestPoint.x());
+    dn.closestPoint.y() = where_lt(faceDist , minDist, sphereRelPos.y(), dn.closestPoint.y());
+    dn.closestPoint.z() = where_lt(faceDist , minDist, sphereRelPos.z(), dn.closestPoint.z());
+    dn.closestPoint.y() = where_lt(faceDist , minDist, -boxHalfExtent.y(), dn.closestPoint.y());
+    dn.normal.x() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.x());
+    dn.normal.y() = where_lt(faceDist , minDist, Scalar(-1.), dn.normal.y());
+    dn.normal.z() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.z());
+
+#if 0
+    if (faceDist < minDist)
+	{
+		dn.distance  = -faceDist;
+		dn.closestPoint = sphereRelPos;
+		dn.closestPoint.y() = (-boxHalfExtent.y());
+		dn.normal = Vector3(Scalar(0.0f), Scalar(-1.0f), Scalar(0.0f));
+	}
+#endif
+	faceDist = boxHalfExtent.z() - sphereRelPos.z();
+
+    dn.distance = where_lt(faceDist , minDist, -faceDist, dn.distance);
+    dn.closestPoint.x() = where_lt(faceDist , minDist, sphereRelPos.x(), dn.closestPoint.x());
+    dn.closestPoint.y() = where_lt(faceDist , minDist, sphereRelPos.y(), dn.closestPoint.y());
+    dn.closestPoint.z() = where_lt(faceDist , minDist, sphereRelPos.z(), dn.closestPoint.z());
+    dn.closestPoint.z() = where_lt(faceDist , minDist, boxHalfExtent.z(), dn.closestPoint.z());
+    dn.normal.x() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.x());
+    dn.normal.y() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.y());
+    dn.normal.z() = where_lt(faceDist , minDist, Scalar(1.), dn.normal.z());
+
+#if 0
+	if (faceDist < minDist)
+	{
+		dn.distance  = -faceDist;
+		dn.closestPoint = sphereRelPos;
+		dn.closestPoint.z() = (boxHalfExtent.z());
+		dn.normal = Vector3(Scalar(0.0f), Scalar(0.0f), Scalar(1.0f));
+	}
+#endif
+	faceDist = boxHalfExtent.z() + sphereRelPos.z();
+
+    dn.distance = where_lt(faceDist , minDist, -faceDist, dn.distance);
+    dn.closestPoint.x() = where_lt(faceDist , minDist, sphereRelPos.x(), dn.closestPoint.x());
+    dn.closestPoint.y() = where_lt(faceDist , minDist, sphereRelPos.y(), dn.closestPoint.y());
+    dn.closestPoint.z() = where_lt(faceDist , minDist, sphereRelPos.z(), dn.closestPoint.z());
+    dn.closestPoint.z() = where_lt(faceDist , minDist, -boxHalfExtent.z(), dn.closestPoint.z());
+    dn.normal.x() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.x());
+    dn.normal.y() = where_lt(faceDist , minDist, Scalar(0.), dn.normal.y());
+    dn.normal.z() = where_lt(faceDist , minDist, Scalar(-1.), dn.normal.z());
+
+#if 0
+	if (faceDist < minDist)
+	{
+		dn.distance = -faceDist;
+		dn.closestPoint = sphereRelPos;
+		dn.closestPoint.z() = (-boxHalfExtent.z());
+		dn.normal = Vector3(Scalar(0.0f), Scalar(0.0f), Scalar(-1.0f));
+	}
+#endif
+
+    return dn;
+}
+
+template <typename Algebra>
+int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
+                      const tds::Pose<Algebra>& poseA,
+                      const tds::Geometry<Algebra>* geomB,
+                      const tds::Pose<Algebra>& poseB,
+                      std::vector<ContactPoint<Algebra> >& contactsOut) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+  typedef tds::Pose<Algebra> Pose;
+  typedef tds::Box<Algebra> Box;
+  typedef tds::ContactPoint<Algebra> ContactPoint;
+  typedef tds::Sphere<Algebra> Sphere;
+  assert(geomA->get_type() == TINY_SPHERE_TYPE);
+  assert(geomB->get_type() == TINY_BOX_TYPE);
+  const Sphere* sphere = (const Sphere*)geomA;
+  const Box* box = (const Box*)geomB;
+  
+  // transform sphere into local box space
+  Vector3 sphereRelPos = poseB.inverse_transform(poseA.position_);
+  
+  Scalar x = Algebra::min(box->get_half_extents().x(), sphereRelPos.x());
+  x = Algebra::max(-box->get_half_extents().x(), x);
+  Scalar y = Algebra::min(box->get_half_extents().y(), sphereRelPos.y());
+  y = Algebra::max(-box->get_half_extents().y(), y);
+  Scalar z = Algebra::min(box->get_half_extents().z(), sphereRelPos.z());
+  z = Algebra::max(-box->get_half_extents().z(), z);
+  
+  Vector3 closestPoint1(x,y,z);
+  Vector3 normal = sphereRelPos - closestPoint1;
+  Scalar dist2 = Algebra::dot(normal,normal);
+  
+  
+  auto dist_norm = get_sphere_distance<Algebra>(closestPoint1, normal);
+  auto pen_norm = get_sphere_penetration<Algebra>(box->get_half_extents(), sphereRelPos, closestPoint1, normal);
+  
+  Scalar distance = where_lt(dist2, Algebra::epsilon(), pen_norm.distance, dist_norm.distance);
+  
+  normal[0] = where_lt(dist2, Algebra::epsilon(), pen_norm.normal[0], dist_norm.normal[0]);
+  normal[1] = where_lt(dist2, Algebra::epsilon(), pen_norm.normal[1], dist_norm.normal[1]);
+  normal[2] = where_lt(dist2, Algebra::epsilon(), pen_norm.normal[2], dist_norm.normal[2]);
+    
+  closestPoint1[0] = where_lt(dist2, Algebra::epsilon(), closestPoint1[0], dist_norm.closestPoint[0]);
+  closestPoint1[1] = where_lt(dist2, Algebra::epsilon(), closestPoint1[1], dist_norm.closestPoint[1]);
+  closestPoint1[2] = where_lt(dist2, Algebra::epsilon(), closestPoint1[2], dist_norm.closestPoint[2]);
+
+  Scalar penetrationDepth = distance - sphere->get_radius();
+  
+  // transform back in world space
+  Vector3 pointOnBox = poseB.transform(closestPoint1);
+  Vector3 tmp = Algebra::quat_to_matrix(poseB.orientation_) * normal;
+  
+  tmp.normalize();
+  normal = tmp;
+  Vector3 pointOnSphere = pointOnBox + normal * penetrationDepth;
+  
+  ContactPoint pt;
+  pt.world_point_on_b = pointOnBox;
+  pt.world_point_on_a = pointOnSphere;
+  pt.world_normal_on_b = normal;
+  pt.distance = penetrationDepth;
+  contactsOut.push_back(pt);
+  return 1;
+}
+
+
+
+
+
+
+
 template <typename Algebra>
 class CollisionDispatcher {
   using Scalar = typename Algebra::Scalar;
@@ -223,6 +435,8 @@ class CollisionDispatcher {
     contactFuncs[TINY_PLANE_TYPE][TINY_SPHERE_TYPE] = contact_plane_sphere;
     contactFuncs[TINY_PLANE_TYPE][TINY_CAPSULE_TYPE] = contact_plane_capsule;
     contactFuncs[TINY_PLANE_TYPE][TINY_BOX_TYPE] = contact_plane_box;
+    // contactFuncs[TINY_SPHERE_TYPE][TINY_BOX_TYPE] = contact_sphere_box;
+
   }
 
   inline int compute_contacts(const Geometry* geomA, const Pose& poseA,
