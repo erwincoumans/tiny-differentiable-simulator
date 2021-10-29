@@ -42,6 +42,7 @@ class World {
   typedef tds::Capsule<Algebra> Capsule;
   typedef tds::Sphere<Algebra> Sphere;
   typedef tds::Plane<Algebra> Plane;
+  typedef tds::Box<Algebra> Box;
 
   std::vector<RigidBody*> rigid_bodies_;
   std::vector<MultiBody*> multi_bodies_;
@@ -135,6 +136,12 @@ class World {
     Sphere* sphere = new Sphere(radius);
     geoms_.push_back(sphere);
     return sphere;
+  }
+  
+   Box* create_box (const Vector3& extents) {
+      Box* box = new Box(extents);
+      geoms_.push_back(box);
+      return box;
   }
 
   CollisionDispatcher<Algebra> get_collision_dispatcher() {
