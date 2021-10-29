@@ -135,6 +135,7 @@ void report_timing(const char* profileName) {
 
 template <typename Algebra> struct ContactSimulation {
   using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
   tds::UrdfCache<Algebra> cache;
   std::string m_urdf_filename;
   tds::World<Algebra> world;
@@ -163,7 +164,7 @@ template <typename Algebra> struct ContactSimulation {
     world.default_friction = 1;
     tds::Transform<Algebra> tr;
     tr.rotation = Algebra::quat_to_matrix(start_orn);
-    world.set_gravity(tr.apply_inverse(Algebra::Vector3(0,0,-10)));
+    world.set_gravity(tr.apply_inverse(Vector3(0,0,-10)));
     // initial_poses.resize(mb_->q_.size());
     // for (int i=0;i<mb_->q_.size();i++)
     //{
