@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
   LaikagoSimulation<DiffAlgebra> simulation(true);
 
   // trace function with all zeros as input
-  std::vector<Dual> ax(simulation.input_dim_with_action(), Dual(0));
+  std::vector<Dual> ax(simulation.input_dim_with_action_and_variables(), Dual(0));
   //quaternion 'w' = 1
   ax[3] = 1;
   //height of Laikago at 0.7 meter
@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
   const float sim_spacing = 5.f;
   while (!visualizer.m_opengl_app.m_window->requested_exit()) {
     for (int i = 0; i < num_total_threads; ++i) {
-      inputs[i] = std::vector<Scalar>(simulation.input_dim_with_action(), Scalar(0));
+      inputs[i] = std::vector<Scalar>(simulation.input_dim_with_action_and_variables(), Scalar(0));
       if (simulation.mb_->is_floating())
       {
           inputs[i][0] = 0;
@@ -230,7 +230,9 @@ int main(int argc, char* argv[]) {
           {
                 inputs[i][j+qoffset] = initial_poses_laikago2[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
           }
-
+          inputs[i][simulation.mb_->dof() + simulation.mb_->dof_qd() + LAIKAGO_POSE_SIZE + 0] = 100.;
+          inputs[i][simulation.mb_->dof() + simulation.mb_->dof_qd() + LAIKAGO_POSE_SIZE + 1] = 2.;
+          inputs[i][simulation.mb_->dof() + simulation.mb_->dof_qd() + LAIKAGO_POSE_SIZE + 2] = 50.;
       } else
       {
         inputs[i][0] = 0.;
@@ -256,6 +258,12 @@ int main(int argc, char* argv[]) {
       timer.start();
       // call GPU kernel
       model.forward_zero(&outputs, inputs, 64);
+
+      //#pragma omp parallel 
+      //#pragma omp for 
+      //for (int n=0;n<num_total_threads;n++) {
+      //  cuda_model_laikago_forward_zero_kernel(1,&outputs[n][0], &inputs[n][0]);
+      //}
       timer.stop();
       std::cout << "Kernel execution took " << timer.elapsed() << " seconds.\n";
 #endif //DEBUG_MODEL
