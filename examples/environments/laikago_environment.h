@@ -13,6 +13,10 @@
 #undef min
 #undef max
 
+void cuda_model_laikago_forward_zero_kernel(int num_total_threads,
+                                            double *output,
+                                            const double *input);
+
 static double start_pos1[3] = {0, 0, 0.48};
 static double start_orn1[4] = {0, 0, 0, 1};
 
@@ -20,12 +24,14 @@ static bool laikago_is_floating = true;
 static double laikago_knee_angle = -0.7;
 static double laikago_abduction_angle = 0.2;
 constexpr int LAIKAGO_POSE_SIZE = 12;
+//variables: kp, kd, max_force
+constexpr int VARIABLE_SIZE = 3;
 
 const std::vector<double> initial_poses_laikago2 = {
-        laikago_abduction_angle, 0, laikago_knee_angle,
-        laikago_abduction_angle, 0, laikago_knee_angle,
-        laikago_abduction_angle, 0, laikago_knee_angle,
-        laikago_abduction_angle, 0, laikago_knee_angle,
+    laikago_abduction_angle, 0, laikago_knee_angle,
+    laikago_abduction_angle, 0, laikago_knee_angle,
+    laikago_abduction_angle, 0, laikago_knee_angle,
+    laikago_abduction_angle, 0, laikago_knee_angle,
 };
 
 template <typename Algebra>
@@ -39,19 +45,29 @@ struct LaikagoContactSimulation {
 
   int num_timesteps{1};
   Scalar dt{Algebra::from_double(1e-3)};
+  Scalar kp_{Algebra::from_double(100.)};
+  Scalar kd_{Algebra::from_double(2.)};
+  Scalar max_force_{Algebra::from_double(50.)};
+
+  void set_kp(const Scalar new_kp) { kp_ = new_kp; }
+
+  void set_kd(const Scalar new_kd) { kd_ = new_kd; }
 
   int input_dim() const { return mb_->dof() + mb_->dof_qd(); }
 
-  int input_dim_with_action() const {
-    return mb_->dof() + mb_->dof_qd() + LAIKAGO_POSE_SIZE;
+  int input_dim_with_action_and_variables() const {
+    return mb_->dof() + mb_->dof_qd() + LAIKAGO_POSE_SIZE + VARIABLE_SIZE;
   }
 
+  // input, world transforms for all links and up_dot_world_z
   int state_dim() const {
-    return mb_->dof() + mb_->dof_qd() + mb_->num_links() * 7;
+    return mb_->dof() + mb_->dof_qd() + mb_->num_links() * 7 + 1;
   }
   int output_dim() const { return state_dim(); }
 
   int action_dim_{LAIKAGO_POSE_SIZE};
+  
+  int variables_dim_{VARIABLE_SIZE};
   std::vector<Scalar> action_;
 
   LaikagoContactSimulation(bool urdf_from_file) {
@@ -61,15 +77,16 @@ struct LaikagoContactSimulation {
       tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
       cache.construct(plane_filename, world, false, false);
 
-      //std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
+      // std::string urdf_name = "laikago/laikago_toes_zup_xyz_xyzrot.urdf";
       std::string urdf_name = "laikago/laikago_toes_zup.urdf";
       tds::FileUtils::find_file(urdf_name, m_laikago_urdf_filename);
       char laikago_search_path[TINY_MAX_EXE_PATH_LEN];
-      tds::FileUtils::extract_path(m_laikago_urdf_filename.c_str(), laikago_search_path,
-      TINY_MAX_EXE_PATH_LEN);
+      tds::FileUtils::extract_path(m_laikago_urdf_filename.c_str(),
+                                   laikago_search_path, TINY_MAX_EXE_PATH_LEN);
       m_laikago_search_path = laikago_search_path;
 
-      mb_ = cache.construct(m_laikago_urdf_filename, world, false, laikago_is_floating);
+      mb_ = cache.construct(m_laikago_urdf_filename, world, false,
+                            laikago_is_floating);
     } else {
       std::string plane_string = plane_implicit_urdf;
       cache.construct_from_string(plane_filename, plane_string, world, false,
@@ -77,8 +94,8 @@ struct LaikagoContactSimulation {
 
       m_laikago_urdf_filename = "laikago/laikago_toes_zup.urdf";
       std::string laikago_string = laikago_toes_zup_urdf;
-      mb_ = cache.construct_from_string(m_laikago_urdf_filename, laikago_string, world,
-                                        false, laikago_is_floating);
+      mb_ = cache.construct_from_string(m_laikago_urdf_filename, laikago_string,
+                                        world, false, laikago_is_floating);
     }
 
     action_.resize(action_dim_);
@@ -89,15 +106,20 @@ struct LaikagoContactSimulation {
   }
 
   std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
-    std::vector<Scalar> action(action_dim_);
-    for (int i = 0; i < action_dim_; i++) {
-      action[i] = v[i + mb_->dof() + mb_->dof_qd()];
-    }
-    return (*this)(v, action);
+      std::vector<Scalar> action(action_dim_);
+      for (int i = 0; i < action_dim_; i++) {
+        action[i] = v[i + mb_->dof() + mb_->dof_qd()];
+      }
+      std::vector<Scalar> variables(variables_dim_);
+      variables[0] = v[mb_->dof() + mb_->dof_qd() + LAIKAGO_POSE_SIZE + 0];//kp_
+      variables[1] = v[mb_->dof() + mb_->dof_qd() + LAIKAGO_POSE_SIZE + 1];//kd_
+      variables[2] = v[mb_->dof() + mb_->dof_qd() + LAIKAGO_POSE_SIZE + 2];//max_force_
+      return (*this)(v, action, variables);
   }
 
   std::vector<Scalar> operator()(const std::vector<Scalar>& v,
-                                 const std::vector<Scalar>& action) {
+                                 const std::vector<Scalar>& action,
+                                 const std::vector<Scalar>& variables) {
     mb_->initialize();
     // copy input into q, qd
     for (int i = 0; i < mb_->dof(); ++i) {
@@ -111,6 +133,10 @@ struct LaikagoContactSimulation {
       action_[i] = action[i];
     }
 
+    Scalar kp = variables[0];
+    Scalar kd = variables[1];
+    Scalar max_force = variables[2];
+
     std::vector<Scalar> result(output_dim());
     for (int t = 0; t < num_timesteps; ++t) {
       if (1) {
@@ -120,9 +146,7 @@ struct LaikagoContactSimulation {
         std::vector<double> q_targets;
         q_targets.resize(mb_->tau_.size());
 
-        Scalar kp = Algebra::from_double(100.);
-        Scalar kd = Algebra::from_double(2.);
-        Scalar max_force = Algebra::from_double(50.);
+        
         int param_index = 0;
 
         for (int i = 0; i < mb_->tau_.size(); i++) {
@@ -137,7 +161,7 @@ struct LaikagoContactSimulation {
             if (pose_index < LAIKAGO_POSE_SIZE) {
               // clamp action
               Scalar clamped_action = action_[pose_index];
-              Scalar ACTION_LIMIT = Algebra::from_double(0.4);
+              Scalar ACTION_LIMIT = 0.4;
               clamped_action = Algebra::min(clamped_action, ACTION_LIMIT);
               clamped_action = Algebra::max(clamped_action, -ACTION_LIMIT);
 
@@ -147,7 +171,7 @@ struct LaikagoContactSimulation {
               Scalar q_actual = mb_->q_[q_offset];
               Scalar qd_actual = mb_->qd_[qd_offset];
               Scalar position_error = (q_desired - q_actual);
-              Scalar desired_velocity = Algebra::zero();
+              Scalar desired_velocity = 0;
               Scalar velocity_error = (desired_velocity - qd_actual);
               Scalar force = kp * position_error + kd * velocity_error;
 
@@ -199,6 +223,10 @@ struct LaikagoContactSimulation {
         }
       }
     }
+    
+    auto base_tr = mb_->get_world_transform(-1);
+    Scalar up_dot_world_z = base_tr.rotation(2, 2);
+    result[j++] = up_dot_world_z;
 
     return result;
   }
@@ -227,12 +255,17 @@ struct LaikagoEnv {
 
   std::vector<Scalar> sim_state;
   std::vector<Scalar> sim_state_with_graphics;
+  double target_angle;
 
   tds::NeuralNetwork<Algebra> neural_network;
 
-  std::vector<double> reset() {
+  std::vector<double> reset(const double new_kp = 100., const double new_kd = 2.,
+                            const double target_angle_degrees = 0.) {
     sim_state.resize(0);
     sim_state.resize(contact_sim.input_dim(), Scalar(0));
+    contact_sim.set_kp(Algebra::from_double(new_kp));
+    contact_sim.set_kd(Algebra::from_double(new_kd));
+    target_angle = target_angle_degrees * M_PI / 180.;
 
     if (contact_sim.mb_->is_floating()) {
       sim_state[0] = start_orn1[0];
@@ -244,8 +277,7 @@ struct LaikagoEnv {
       sim_state[6] = start_pos1[2];
       int qoffset = 7;
       for (int j = 0; j < LAIKAGO_POSE_SIZE; j++) {
-        sim_state[j + qoffset] =
-            initial_poses_laikago2[j];
+        sim_state[j + qoffset] = initial_poses_laikago2[j];
       }
     } else {
       sim_state[0] = start_pos1[0];
@@ -277,23 +309,46 @@ struct LaikagoEnv {
   }
   void step(std::vector<double>& action, std::vector<double>& obs,
             double& reward, bool& done) {
-    sim_state_with_graphics = contact_sim(sim_state, action);
+    Scalar previous_x;
+    // Get previous x position.
+    // laikago_is_floating is assumed to be true.
+    previous_x =
+        sim_state[4] * cos(target_angle) + sim_state[5] * sin(target_angle);
+
+    std::vector<double> sim_state_with_action = sim_state;
+    sim_state_with_action.resize(contact_sim.input_dim_with_action_and_variables());
+    for (int a=0;a<action.size();a++)
+    {
+        sim_state_with_action[sim_state.size()+a] = action[a];
+    }
+    sim_state_with_action[sim_state.size() + LAIKAGO_POSE_SIZE + 0] = contact_sim.kp_;
+    sim_state_with_action[sim_state.size() + LAIKAGO_POSE_SIZE + 1] = contact_sim.kd_;
+    sim_state_with_action[sim_state.size() + LAIKAGO_POSE_SIZE + 2] = contact_sim.max_force_;
+
+    sim_state_with_graphics = contact_sim(sim_state_with_action);
+    //sim_state_with_graphics.resize(contact_sim.output_dim());
+    //cuda_model_laikago_forward_zero_kernel(1,&sim_state_with_graphics[0], &sim_state_with_action[0]);
     sim_state = sim_state_with_graphics;
 
     sim_state.resize(contact_sim.input_dim());
     obs = sim_state;
     reward = 1;
-    auto base_tr = contact_sim.mb_->get_world_transform(-1);
+    
 
-    // reward forward along x-axis
-    reward = sim_state[4];
+    // Get reward using current x position.
+    // laikago_is_floating is assumed to be true.
+    reward = sim_state[4] * cos(target_angle) +
+             sim_state[5] * sin(target_angle) - previous_x;
     if (std::isnan(reward) || std::isinf(reward) || (reward != reward)) {
       reward = 0;
       done = true;
     }
 
-    Scalar up_dot_world_z = base_tr.rotation(2, 2);
-    
+    //auto base_tr = contact_sim.mb_->get_world_transform(-1);
+    //Scalar up_dot_world_z = base_tr.rotation(2, 2);
+
+    auto up_dot_world_z = sim_state_with_graphics[contact_sim.mb_->dof() + contact_sim.mb_->dof_qd() + contact_sim.mb_->num_links() * 7];
+
     // Laikago torso height needs to be in range 0.3 to 1. meter
     if (up_dot_world_z < 0.6 || (sim_state[6] < 0.2) || (sim_state[6] > 5.)) {
       done = true;
