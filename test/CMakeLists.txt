@@ -29,7 +29,6 @@ IF(USE_RBDL)
   target_include_directories(test_rbdl_tds_left_associative PUBLIC  ../src . ../third_party/gtest/include )
   target_compile_definitions(test_rbdl_tds_left_associative PUBLIC -DTDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS -D_VARIADIC_MAX=10, -DGTEST_LANG_CXX11 -DUSE_RBDL )
   ADD_TEST(test_rbdl_tds_left_associative_PASS test_rbdl_tds)  
-
   
 
 

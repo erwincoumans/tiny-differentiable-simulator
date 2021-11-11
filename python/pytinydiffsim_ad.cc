@@ -13,8 +13,16 @@
 // limitations under the License.
 
 #define USE_CPPAD
+// #define USE_CPPAD_CODEGEN
+
 #include <vector>
-#include <cppad/cg/cppadcg.hpp>
+
+#ifdef USE_CPPAD_CODEGEN
+  #include <cppad/cg/cppadcg.hpp>
+#else
+  #include <cppad/cppad.hpp>
+#endif
+
 #include "math/tiny/cppad_utils.h"
 #include "dynamics/mass_matrix.hpp"
 #include "dynamics/kinematics.hpp"
@@ -31,7 +39,9 @@
 typedef double InnerScalar; // define underlying data type
 typedef CppAD::AD<InnerScalar> MyScalar; // wrap in Cpp::AD
 typedef CppADUtils<InnerScalar> MyTinyConstants; // Utis struct with functions
-typedef CppAD::ADFun<InnerScalar, InnerScalar> ADFun; // CppAD ADFun
+// mykhayloa: this line requires newer version of CppAD
+// typedef CppAD::ADFun<InnerScalar, InnerScalar> ADFun;  // CppAD ADFun
+typedef CppAD::ADFun<InnerScalar> ADFun; // CppAD ADFun
 typedef std::vector<InnerScalar> BaseVector; // Vector of CppAD base types
 typedef tds::EigenAlgebraT<MyScalar> MyAlgebra; 
 
@@ -48,7 +58,6 @@ typedef TinyAlgebra<MyScalar, MyTinyConstants> MyAlgebra;
 
 
 #include "pytinydiffsim_includes.h"
-#include <pybind11/iostream.h>
 
 using namespace TINY;
 using namespace tds;
@@ -95,26 +104,23 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
     m.def("independent", &TinyAD::independent<InnerScalar>);
     m.def("compute_jacobian", &TinyAD::compute_jacobian<InnerScalar>);
     m.def("print_ad", &TinyAD::print_ad<InnerScalar>);
-    m.def("hold_memory", &CppAD::thread_alloc::hold_memory);
     
     /* ADFun class */
     py::class_<ADFun>(m, "ADFun")
         .def(py::init([](vector<MyScalar>& x, vector<MyScalar>& y) {
-            return new CppAD::ADFun<InnerScalar>(x, y);
+            return std::unique_ptr<ADFun>(new CppAD::ADFun<InnerScalar>(x, y));
         }))
         .def("Forward", [](ADFun& adfun, size_t q, const BaseVector& xq) {
-            return adfun.Forward(q, xq);            
-        }, py::call_guard<py::scoped_ostream_redirect,
-                          py::scoped_estream_redirect>())
-        .def("Reverse", &ADFun::Reverse<BaseVector>,
-            py::call_guard<py::scoped_ostream_redirect,
-                           py::scoped_estream_redirect>())
+            // We have to use a lambda function because of default argument std::cout
+            return adfun.Forward(q, xq, std::cout);            
+        })
+        .def("Reverse", &ADFun::Reverse<BaseVector>)
         .def("Jacobian", &ADFun::Jacobian<BaseVector>)
         ;
 
     /* Algebra functions */
     m.def("quat_from_euler_rpy", &MyAlgebra::quat_from_euler_rpy);
-     
+    
 #include "pytinydiffsim.inl"
 
 }

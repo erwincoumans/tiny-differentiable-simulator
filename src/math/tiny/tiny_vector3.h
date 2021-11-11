@@ -55,16 +55,21 @@ namespace TINY
 
         TinyScalar x() const { return m_x; }
 
+        TinyScalar& x() { return m_x; }
+
         TinyScalar getX() const { return m_x; }
 
         void setX(TinyScalar x) { m_x = x; }
 
         TinyScalar y() const { return m_y; }
 
+        TinyScalar& y() { return m_y; }
+
         TinyScalar getY() const { return m_y; }
         void setY(TinyScalar y) { m_y = y; }
 
         TinyScalar z() const { return m_z; }
+        TinyScalar& z() { return m_z; }
         TinyScalar getZ() const { return m_z; }
         void setZ(TinyScalar z) { m_z = z; }
         void setValue(const TinyScalar& x, const TinyScalar& y, const TinyScalar& z) {

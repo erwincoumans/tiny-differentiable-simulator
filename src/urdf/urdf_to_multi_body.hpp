@@ -108,7 +108,6 @@ struct UrdfToMultiBody {
       // (link.hpp)
       switch (urdf_structures.joints[i].joint_type) {
         case JOINT_FIXED: {
-          printf("FixedType!\n");
           l.set_joint_type(JOINT_FIXED);
           joint_conversion_ok = true;
           break;
@@ -245,7 +244,7 @@ struct UrdfToMultiBody {
           Vector3 extents(col.geometry.box.extents[0],
                           col.geometry.box.extents[1],
                           col.geometry.box.extents[2]);
-          Geometry<Algebra> *geom = new Box<Algebra>(extents);
+          Geometry<Algebra> *geom = world.create_box(extents);
           l.collision_geometries.push_back(geom);
           l.X_collisions.push_back(collision_offset);
           break;
