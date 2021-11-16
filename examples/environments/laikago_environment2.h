@@ -128,10 +128,7 @@ struct LaikagoContactSimulation   : public LocomotionContactSimulation<Algebra> 
   }
     void forward_kernel(int num_total_threads,
                                             Scalar* output,
-                                            Scalar* input){
-        for (int i = 0; i < action_dim_; i++) {
-            input[i + mb_->dof() + mb_->dof_qd()] = 0;
-      }
+                                            const Scalar* input){
             omp_model_laikago_forward_zero_kernel<Scalar>(num_total_threads, output, input);
      }
 
