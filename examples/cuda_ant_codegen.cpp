@@ -26,7 +26,7 @@ using namespace TINY;
 
 
 
-#include "environments/ant_environment.h"
+#include "environments/ant_environment2.h"
 
 
 int main(int argc, char* argv[]) {
@@ -51,10 +51,11 @@ int main(int argc, char* argv[]) {
   using DiffAlgebra =
       tds::default_diff_algebra<tds::DIFF_CPPAD_CODEGEN_AUTO, 0, Scalar>::type;
 
-  AntContactSimulation<DiffAlgebra> simulation;
+  //AntContactSimulation<DiffAlgebra> simulation(true);
+  AntContactSimulation<DiffAlgebra> simulation(true,"gym/ant_org_xyz_xyzrot.urdf","",get_initial_poses<Dual>(), false);
 
   // trace function with all zeros as input
-  std::vector<Dual> ax(simulation.input_dim_with_action(), Dual(0));
+  std::vector<Dual> ax(simulation.input_dim_with_action2(), Dual(0));
   //quaternion 'w' = 1
   ax[3] = 1;
   //height of Laikago at 0.7 meter
@@ -65,7 +66,8 @@ int main(int argc, char* argv[]) {
   std::cout << "Tracing function for code generation...\n";
   std::vector<Dual> action;
   action.resize(8);
-  ay = simulation(ax);
+  ay = simulation.step_forward1(ax);
+
 
   CppAD::ADFun<CGScalar> tape;
   tape.Dependent(ax, ay);
@@ -86,14 +88,14 @@ int main(int argc, char* argv[]) {
   std::cout << "Using [" << nvcc_path << "]" << std::endl;
   p.nvcc_path() = nvcc_path;
   p.generate_code();
-  
+  exit(0);
   // create model to load shared library
 #ifndef DEBUG_MODEL
   //comment-out to re-use previously build CUDA shared library
-   if (compile_cuda)
-   {
-    p.create_library();
-   }
+   //if (compile_cuda)
+   //{
+   // p.create_library();
+   //}
   tds::CudaModel<Scalar> cuda_model_ant(model_name);
 #endif //DEBUG_MODEL
 
@@ -139,7 +141,7 @@ int main(int argc, char* argv[]) {
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
-  tds::FileUtils::find_file(simulation.m_urdf_filename, file_and_path);
+  tds::FileUtils::find_file(simulation.urdf_filename_, file_and_path);
   auto urdf_structures = simulation.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
   tds::FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);
@@ -230,7 +232,7 @@ int main(int argc, char* argv[]) {
   for (int f=0;f<100;f++) {
 #endif //DISABLE_RENDERING
     for (int i = 0; i < num_total_threads; ++i) {
-      inputs[i] = std::vector<Scalar>(simulation.input_dim_with_action(), Scalar(0));
+      inputs[i] = std::vector<Scalar>(simulation.input_dim_with_action2(), Scalar(0));
 
       if (simulation.mb_->is_floating())
       {
@@ -252,9 +254,9 @@ int main(int argc, char* argv[]) {
         inputs[i][4] = 0;
         inputs[i][5] = 0;
         int qoffset = 6;
-        for(int j=0;j<ant_initial_poses.size();j++)
+        for(int j=0;j<get_initial_poses<Scalar>().size();j++)
         {
-            inputs[i][j+qoffset] = ant_initial_poses[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+            inputs[i][j+qoffset] = get_initial_poses<Scalar>()[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
         }
       }
       //quaternion 'w' = 1
@@ -276,7 +278,7 @@ int main(int argc, char* argv[]) {
 #endif //DEBUG_MODEL
 
       timer.stop();
-      std::cout << "Kernel execution took " << timer.elapsed() << " seconds.\n";
+      //std::cout << "Kernel execution took " << timer.elapsed() << " seconds.\n";
 
       for (int i = 0; i < num_total_threads; ++i) {
 #ifdef DEBUG_MODEL

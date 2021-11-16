@@ -370,6 +370,73 @@ struct OpenGLUrdfVisualizer {
     }
   }
 
+  void convert_visuals(TinyUrdfStructures &urdf_structures, 
+                        const std::string &texture_path,
+                        TinyMultiBody *body) {
+      convert_visuals(urdf_structures, texture_path);
+
+      //create one instance
+      std::vector<int> visual_instances;
+      std::vector<int> visual_b2_uids;
+      std::vector<int> num_link_instances;
+      int num_base_instances = 0;
+
+    TinyVector3f pos(0, 0, 0);
+    TinyQuaternionf orn(0, 0, 0, 1);
+    TinyVector3f scaling(1, 1, 1);
+    num_base_instances = 0;
+    for (int bb = 0;
+            bb < urdf_structures.base_links[0].urdf_visual_shapes.size(); bb++) {
+            int uid =
+                urdf_structures.base_links[0].urdf_visual_shapes[bb].visual_shape_uid;
+            OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo &vis_link =
+                m_b2vis[uid];
+            int instance = -1;
+            int num_instances_per_link = 0;
+            for (int v = 0; v < vis_link.visual_shape_uids.size(); v++) {
+            int sphere_shape = vis_link.visual_shape_uids[v];
+            ::TINY::TinyVector3f color(1, 1, 1);
+            // visualizer.m_b2vis
+            instance =
+                m_opengl_app.m_renderer->register_graphics_instance(
+                    sphere_shape, pos, orn, color, scaling);
+            visual_instances.push_back(instance);
+            visual_b2_uids.push_back(uid);
+            num_instances_per_link++;
+            body->visual_instance_uids().push_back(instance);
+        }
+        num_base_instances += num_instances_per_link;
+    }
+
+    for (int i = 0; i < body->num_links(); ++i) {
+
+        int num_instances_per_link = 0;
+        for (int bb = 0; bb < urdf_structures.links[i].urdf_visual_shapes.size();
+            bb++) {
+        int uid =
+            urdf_structures.links[i].urdf_visual_shapes[bb].visual_shape_uid;
+        OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo &vis_link =
+            m_b2vis[uid];
+        int instance = -1;
+
+        // num_link_instances.clear();
+        for (int v = 0; v < vis_link.visual_shape_uids.size(); v++) {
+            int sphere_shape = vis_link.visual_shape_uids[v];
+            ::TINY::TinyVector3f color(1, 1, 1);
+            // visualizer.m_b2vis
+            instance =
+                m_opengl_app.m_renderer->register_graphics_instance(
+                    sphere_shape, pos, orn, color, scaling);
+            visual_instances.push_back(instance);
+            visual_b2_uids.push_back(uid);
+            num_instances_per_link++;
+            body->links_[i].visual_instance_uids.push_back(instance);
+        }
+        }
+        num_link_instances.push_back(num_instances_per_link);
+    }
+  }
+
   void sync_visual_transforms(const TinyMultiBody *body) {
     // sync base transform
     for (int v = 0; v < body->visual_instance_uids().size(); v++) {

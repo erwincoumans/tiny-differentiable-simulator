@@ -13,7 +13,7 @@ template <class Base> class LanguageCuda : public CppAD::cg::LanguageC<Base> {
     using LanguageC::isSameArgument;
     using LanguageC::_nameGen;
     using LanguageC::getVariableID;
-    using LanguageC::_auxArrayName;
+    using LanguageC::auxArrayName_;
     using LanguageC::_streamStack;
     using LanguageC::_indentation;
     using LanguageC::_info;
@@ -189,7 +189,7 @@ public:
   
   inline size_t printArrayCreationUsingLoop(
       size_t startPos, Node &array, size_t starti,
-      std::vector<const Arg *> &tmpArrayValues) override {
+      std::vector<const Arg *> &tmpArrayValues)  {
     using namespace CppAD::cg;
 
     const std::vector<Argument<Base>> &args = array.getArguments();

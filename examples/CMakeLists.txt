@@ -200,8 +200,12 @@ target_link_libraries(meshcat_zmq_example  ${MESHCAT_LIBRARIES})
 target_include_directories(meshcat_zmq_example PRIVATE ../third_party ../third_party/nlohmann/include ../src)
 
 add_executable(eval_laikago_env ars/eval_laikago_env.cpp  ${TDS_HDRS}) 
-target_link_libraries(eval_laikago_env  tinyxml2   ${MESHCAT_LIBRARIES}) 
+target_link_libraries(eval_laikago_env  tinyxml2 opengl_window ${CMAKE_DL_LIBS}  ${MESHCAT_LIBRARIES}) 
 target_include_directories(eval_laikago_env PRIVATE ../third_party ../third_party/nlohmann/include ../src)
+if (WIN32)
+    target_link_libraries(eval_laikago_env  Opengl32)
+endif(WIN32)
+
 
 
 add_executable(sdf_to_mesh_example sdf_to_mesh_example.cpp)
