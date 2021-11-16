@@ -275,8 +275,14 @@ int main()
     //AntEnv<MyAlgebra> ant_env;
     //Environment env(ant_env.contact_sim_);
     ARSLearner<VecEnvironment>::ARSLearnerConfig config;
+#ifdef TRAIN_ANT
     config.rollout_length_eval_ = 1000;
     config.rollout_length_train_ = 1000;
+#else
+    config.rollout_length_eval_ = 2000;
+    config.rollout_length_train_ = 2000;
+#endif
+
 
     ARSLearner<VecEnvironment> ars(vec_env, config);
 

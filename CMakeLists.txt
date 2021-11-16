@@ -28,7 +28,11 @@ if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
   endif()
 endif()
 
-
+OPTION(USE_APPLE_HOMEBREW_CLANG "Use homebrew clang"       OFF)
+IF(USE_APPLE_HOMEBREW_CLANG)
+  include_directories("/opt/homebrew/opt/llvm/include" )
+  link_directories("/opt/homebrew/opt/llvm/lib")
+ENDIF(USE_APPLE_HOMEBREW_CLANG)
 
 if(COMMAND cmake_policy)
 	cmake_policy(SET CMP0003 NEW)
