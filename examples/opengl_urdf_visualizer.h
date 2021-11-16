@@ -381,15 +381,15 @@ struct OpenGLUrdfVisualizer {
       std::vector<int> num_link_instances;
       int num_base_instances = 0;
 
-    TinyVector3f pos(0, 0, 0);
-    TinyQuaternionf orn(0, 0, 0, 1);
-    TinyVector3f scaling(1, 1, 1);
+    TINY::TinyVector3f pos(0, 0, 0);
+    TINY::TinyQuaternionf orn(0, 0, 0, 1);
+    TINY::TinyVector3f scaling(1, 1, 1);
     num_base_instances = 0;
     for (int bb = 0;
             bb < urdf_structures.base_links[0].urdf_visual_shapes.size(); bb++) {
             int uid =
                 urdf_structures.base_links[0].urdf_visual_shapes[bb].visual_shape_uid;
-            OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo &vis_link =
+            OpenGLUrdfVisualizer<Algebra>::TinyVisualLinkInfo &vis_link =
                 m_b2vis[uid];
             int instance = -1;
             int num_instances_per_link = 0;
@@ -415,7 +415,7 @@ struct OpenGLUrdfVisualizer {
             bb++) {
         int uid =
             urdf_structures.links[i].urdf_visual_shapes[bb].visual_shape_uid;
-        OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo &vis_link =
+        OpenGLUrdfVisualizer<Algebra>::TinyVisualLinkInfo &vis_link =
             m_b2vis[uid];
         int instance = -1;
 

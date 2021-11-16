@@ -11,12 +11,13 @@
 #include "utils/file_utils.hpp"
 #include "math/matrix_utils.hpp"
 
+constexpr int VARIABLE_SIZE = 3;
 #include "locomotion_contact_simulation.h"
 //omp_model_ant_forward_zero_kernel
 #include "omp_model_ant_forward_zero.h"
 
 //variables: kp, kd, max_force
-constexpr int VARIABLE_SIZE = 3;
+
 
 
 
@@ -40,13 +41,15 @@ static const std::vector<Scalar> get_initial_poses() {
 
 template <typename Algebra>
 struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
-
+    using Scalar = typename Algebra::Scalar;
+    using Quaternion = typename Algebra::Quaternion;
+    using Vector3 = typename Algebra::Vector3;
     AntContactSimulation(bool urdf_from_file, 
           const std::string& urdf_filename, 
           const std::string& urdf_string,
           const std::vector<Scalar>& initial_poses,
           bool floating)
-      :LocomotionContactSimulation(urdf_from_file, urdf_filename, urdf_string,initial_poses,floating, Scalar(0.01))
+      :LocomotionContactSimulation<Algebra>(urdf_from_file, urdf_filename, urdf_string,initial_poses,floating, Scalar(0.01))
     {
     }
   
@@ -72,12 +75,12 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
         
         for (int i=0;i<actions.size();i++)
         {
-            v[i+input_dim()] = actions[i];
+            v[i+this->input_dim()] = actions[i];
         }
 
-        v[input_dim_with_action2()+0] = kp_;
-        v[input_dim_with_action2()+1] = kd_;
-        v[input_dim_with_action2()+2] = max_force_;
+        v[this->input_dim_with_action2()+0] = kp_;
+        v[this->input_dim_with_action2()+1] = kd_;
+        v[this->input_dim_with_action2()+2] = max_force_;
     }
 
     void compute_reward_done(const std::vector<Scalar>& prev_state, const std::vector<Scalar>& cur_state, 
@@ -85,7 +88,7 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
         bool& done) {
             
             
-            Scalar vel_x = (cur_state[0] - prev_state[0])/dt;
+            Scalar vel_x = (cur_state[0] - prev_state[0])/this->dt;
             Scalar pos_z = cur_state[2];
             
 
@@ -114,15 +117,15 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
      }
 
   std::vector<Scalar> step_forward1(const std::vector<Scalar>& v) {
-      std::vector<Scalar> action(action_dim_);
-      for (int i = 0; i < action_dim_; i++) {
-        action[i] = v[i + mb_->dof() + mb_->dof_qd()];
+      std::vector<Scalar> action(this->action_dim_);
+      for (int i = 0; i < this->action_dim_; i++) {
+        action[i] = v[i + this->mb_->dof() + this->mb_->dof_qd()];
       }
-      std::vector<Scalar> variables(variables_dim_);
-      variables[0] = v[mb_->dof() + mb_->dof_qd() + action_dim() + 0];//kp_
-      variables[1] = v[mb_->dof() + mb_->dof_qd() + action_dim() + 1];//kd_
-      variables[2] = v[mb_->dof() + mb_->dof_qd() + action_dim() + 2];//max_force_
-      return step_forward3(v, action, variables);
+      std::vector<Scalar> variables(this->variables_dim_);
+      variables[0] = v[this->mb_->dof() + this->mb_->dof_qd() + this->action_dim() + 0];//kp_
+      variables[1] = v[this->mb_->dof() + this->mb_->dof_qd() + this->action_dim() + 1];//kd_
+      variables[2] = v[this->mb_->dof() + this->mb_->dof_qd() + this->action_dim() + 2];//max_force_
+      return this->step_forward3(v, action, variables);
   }
 
     
