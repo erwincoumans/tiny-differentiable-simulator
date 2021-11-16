@@ -72,6 +72,7 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
           int offset = locomotion_simenv.contact_sim.mb_->dof() + locomotion_simenv.contact_sim.mb_->dof_qd();
           int instance_index = index*num_instances_per_robot;
   
+#ifndef __APPLE__ //this text rendering is super slow on MacOS
           if (1)
             {
                 char msg[1024];
@@ -79,6 +80,7 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
                 visualizer.m_opengl_app.draw_text_3d(msg, sim_spacing * (index % square_id) - square_id * sim_spacing / 2, 
                     sim_spacing * (index / square_id) - square_id * sim_spacing / 2, 1, 1);
             }
+#endif //  #ifndef __APPLE__
 
 
           for (int v=0;v<num_base_instances;v++)
