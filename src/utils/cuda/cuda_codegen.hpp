@@ -348,6 +348,10 @@ public:
       }
     }
 
+
+#ifdef USE_JACOBIAN
+    auto jac = this->_fun.Jacobian(indVars);
+#else //USE_JACOBIAN
     std::vector<CGBase> jac(this->_jacSparsity.rows.size());
     bool forward = local_input_dim() + global_input_dim() <= output_dim();
     if (this->_loopTapes.empty()) {
@@ -366,7 +370,7 @@ public:
     } else {
       jac = this->prepareSparseJacobianWithLoops(handler, indVars, forward);
     }
-
+#endif //USE_JACOBIAN
     this->finishedJob();
 
     LanguageCuda<Base> langC;

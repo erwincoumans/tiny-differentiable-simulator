@@ -3,14 +3,8 @@
 #define NOMINMAX 
 #include <string>
 
-//#define USE_ANT
-#ifdef USE_ANT
-#include "../environments/ant_environment.h"
-#define ContactSimulation AntContactSimulation
-#else
-#include "../environments/laikago_environment2.h"
-#define ContactSimulation LaikagoContactSimulation;
-#endif
+
+
 
 #include "math/tiny/tiny_algebra.hpp"
 #include "math/tiny/tiny_double_utils.h"
@@ -36,6 +30,15 @@ typedef ::TINY::DoubleUtils MyTinyConstants;
 typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 
 
+#ifdef TRAIN_ANT
+//#include "../environments/ant_environment.h"
+#include "../environments/ant_environment2.h"
+typedef AntEnv<MyAlgebra> LocomotionEnvironment;
+#else
+#include "../environments/laikago_environment2.h"
+typedef LaikagoEnv<MyAlgebra> LocomotionEnvironment;
+#endif //TRAIN_ANT
+
 
 
 #ifdef ARS_VISUALIZE
@@ -43,11 +46,11 @@ typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 // create graphics
 OpenGLUrdfVisualizer<MyAlgebra> visualizer;
 bool urdf_from_file = false;
-LocomotionContactSimulation<MyAlgebra> contact_sim(urdf_from_file,
-          "laikago/laikago_toes_zup.urdf",
-          laikago_toes_zup_urdf,
-          get_initial_poses<MyScalar>(),
-          true, 1e-3);
+
+
+LocomotionEnvironment locomotion_simenv(true);
+
+
 tds::UrdfStructures<MyAlgebra> urdf_structures;
 
 std::vector<int> visual_instances;
@@ -63,16 +66,21 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
      for (int index=0;index<g_num_total_threads;index++)
      {
          std::vector<std::vector<double>>& sim_states_with_graphics = trajectories[index];
+         if (sim_states_with_graphics.size()==0)
+             continue;
           const int square_id = (int)std::sqrt((double)g_num_total_threads);
-          int offset = contact_sim.mb_->dof() + contact_sim.mb_->dof_qd();
+          int offset = locomotion_simenv.contact_sim.mb_->dof() + locomotion_simenv.contact_sim.mb_->dof_qd();
           int instance_index = index*num_instances_per_robot;
   
+#ifndef __APPLE__ //this text rendering is super slow on MacOS
+          if (1)
             {
                 char msg[1024];
                 sprintf(msg, "(%d)", index);
                 visualizer.m_opengl_app.draw_text_3d(msg, sim_spacing * (index % square_id) - square_id * sim_spacing / 2, 
                     sim_spacing * (index / square_id) - square_id * sim_spacing / 2, 1, 1);
             }
+#endif //  #ifndef __APPLE__
 
 
           for (int v=0;v<num_base_instances;v++)
@@ -93,15 +101,16 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
             visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
           }
 
-          for (int l = 0; l < contact_sim.mb_->links_.size(); l++) 
+          int num_visual_links = 0;
+          for (int li = 0; li < locomotion_simenv.contact_sim.mb_->links_.size(); li++) 
           {
             //int l = ll-5;
-            for (int v = 0; v < num_instances[l]; v++)
+            for (int v = 0; v < num_instances[li]; v++)
             {
                 int visual_instance_id = visual_instances[instance_index++];
                 if (visual_instance_id >= 0)
                 {
-
+                    int l=num_visual_links++;
                     float x = sim_states_with_graphics[step][offset + l * 7 + 3];
                     float y = sim_states_with_graphics[step][offset + l * 7 + 4];
                     float z = sim_states_with_graphics[step][offset + l * 7 + 5];
@@ -148,8 +157,12 @@ void visualize_trajectory(const std::vector<double>& sim_state_with_graphics, in
 
 #include "ars_vectorized_environment.h"
 
+#ifdef TRAIN_ANT
+typedef VectorizedEnvironment<MyAlgebra, AntContactSimulation<MyAlgebra>> VecEnvironment;
+#else
+typedef VectorizedEnvironment<MyAlgebra, LaikagoContactSimulation<MyAlgebra>> VecEnvironment;
+#endif
 
-typedef VectorizedEnvironment<MyAlgebra, LaikagoContactSimulation<MyAlgebra>> Environment;
 
 struct PolicyParams
 {
@@ -166,7 +179,7 @@ int main()
   
 #ifdef ARS_VISUALIZE
   visualizer.delete_all();
-  int input_dim = contact_sim.input_dim();
+  int input_dim = locomotion_simenv.contact_sim.input_dim();
 
   
   {
@@ -183,8 +196,8 @@ int main()
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
-  tds::FileUtils::find_file(contact_sim.urdf_filename_, file_and_path);
-  urdf_structures = contact_sim.cache.retrieve(file_and_path);
+  tds::FileUtils::find_file(locomotion_simenv.contact_sim.urdf_filename_, file_and_path);
+  urdf_structures = locomotion_simenv.contact_sim.cache.retrieve(file_and_path);
   FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);
   visualizer.m_path_prefix = search_path;
@@ -200,44 +213,50 @@ int main()
 
 #define VISUALIZE_BASE_INSTANCES
 #ifdef VISUALIZE_BASE_INSTANCES
-      int uid = urdf_structures.base_links[0].urdf_visual_shapes[0].visual_shape_uid;
-      OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
-      int instance = -1;
-      int num_instances_per_link = 0;
-      for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
-      {
-          int sphere_shape = vis_link.visual_shape_uids[v];
-          ::TINY::TinyVector3f color(1, 1, 1);
-          //visualizer.m_b2vis
-          instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
-              sphere_shape, pos, orn, color, scaling);
-          visual_instances.push_back(instance);
-          num_instances_per_link++;
-          contact_sim.mb_->visual_instance_uids().push_back(instance);
+      int num_base_instances = 0;
+      for (int b=0;b<urdf_structures.base_links.size();b++) {
+          for (int bv=0;bv<urdf_structures.base_links[b].urdf_visual_shapes.size();bv++) {
+              int uid = urdf_structures.base_links[b].urdf_visual_shapes[bv].visual_shape_uid;
+              OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+              int instance = -1;
+              
+              for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+              {
+                  int sphere_shape = vis_link.visual_shape_uids[v];
+                  ::TINY::TinyVector3f color(1, 1, 1);
+                  //visualizer.m_b2vis
+                  instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
+                      sphere_shape, pos, orn, color, scaling);
+                  visual_instances.push_back(instance);
+                  num_base_instances++;
+                  locomotion_simenv.contact_sim.mb_->visual_instance_uids().push_back(instance);
+              }
+          }
       }
-      num_base_instances = num_instances_per_link;
       num_instances_per_robot += num_base_instances;
 #else
       num_base_instances = 0;
 #endif
-      for (int i = 0; i < contact_sim.mb_->num_links(); ++i) {
+      for (int i = 0; i < locomotion_simenv.contact_sim.mb_->num_links(); ++i) {
          
-
-          int uid = urdf_structures.links[i].urdf_visual_shapes[0].visual_shape_uid;
-          OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
           int instance = -1;
           int num_instances_per_link = 0;
-          for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
-          {
-              int sphere_shape = vis_link.visual_shape_uids[v];
-              ::TINY::TinyVector3f color(1, 1, 1);
-              //visualizer.m_b2vis
-              instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
-                  sphere_shape, pos, orn, color, scaling,1., false);
-              visual_instances.push_back(instance);
-              num_instances_per_link++;
+          for (int lv=0;lv<urdf_structures.links[i].urdf_visual_shapes.size();lv++) {
+              int uid = urdf_structures.links[i].urdf_visual_shapes[lv].visual_shape_uid;
+              OpenGLUrdfVisualizer<MyAlgebra>::TinyVisualLinkInfo& vis_link = visualizer.m_b2vis[uid];
+          
+              for (int v = 0; v < vis_link.visual_shape_uids.size(); v++)
+              {
+                  int sphere_shape = vis_link.visual_shape_uids[v];
+                  ::TINY::TinyVector3f color(1, 1, 1);
+                  //visualizer.m_b2vis
+                  instance = visualizer.m_opengl_app.m_renderer->register_graphics_instance(
+                      sphere_shape, pos, orn, color, scaling,1., false);
+                  visual_instances.push_back(instance);
+                  num_instances_per_link++;
 
-              contact_sim.mb_->links_[i].visual_instance_uids.push_back(instance);
+                  locomotion_simenv.contact_sim.mb_->links_[i].visual_instance_uids.push_back(instance);
+              }
           }
           num_instances.push_back(num_instances_per_link);
           num_instances_per_robot+=num_instances_per_link;
@@ -251,11 +270,22 @@ int main()
    //srand(123);
   {
 
-    typedef LaikagoEnv<MyAlgebra> LaikagoEnvironment;
-    LaikagoEnvironment laikago_env(false);
-    Environment env(laikago_env.contact_sim);
-    ARSLearner<Environment>::ARSLearnerConfig config;
-    ARSLearner<Environment> ars(env, config);
+    
+    VecEnvironment vec_env(locomotion_simenv.contact_sim);
+    //AntEnv<MyAlgebra> ant_env;
+    //Environment env(ant_env.contact_sim_);
+    ARSLearner<VecEnvironment>::ARSLearnerConfig config;
+#ifdef TRAIN_ANT
+    config.rollout_length_eval_ = 1000;
+    config.rollout_length_train_ = 1000;
+#else
+    config.rollout_length_eval_ = 3000;
+    config.rollout_length_train_ = 3000;
+#endif
+
+
+    ARSLearner<VecEnvironment> ars(vec_env, config);
+
     ars.train(50*1024*1024);
   }
 
