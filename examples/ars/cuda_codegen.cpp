@@ -54,8 +54,6 @@ int main(int argc, char* argv[]) {
       
   }
 
-  std::string platform = use_omp? "OMP" : "CUDA";
-
   using Scalar = double;
   typedef ::TINY::DoubleUtils MyTinyConstants;
   typedef TinyAlgebra<double, MyTinyConstants> ScalarAlgebra;
@@ -287,6 +285,8 @@ int main(int argc, char* argv[]) {
         indices.resize(0);
 #endif
 
+      std::string platform = "unknown";
+
       timer.start();
       // call GPU kernel
 #ifndef DEBUG_MODEL
@@ -296,7 +296,9 @@ int main(int argc, char* argv[]) {
           for (int i = 0; i < num_total_threads; ++i) {
             simulation.forward_kernel(1,&outputs[i][0], &inputs[i][0]);
           }
+         platform = "OMP";
       } else {
+        platform = "CUDA";
         cuda_model_ptr->forward_zero(&outputs, inputs, 64);
       }
 #endif //DEBUG_MODEL
