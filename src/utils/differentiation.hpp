@@ -621,7 +621,8 @@ struct MissingGradientException : public std::exception {
   }
 
   const char *what() const noexcept override {
-    return message(missing_indices, model_name).c_str();
+    static std::string msg = message(missing_indices, model_name);
+    return msg.c_str();
   }
 };
 
