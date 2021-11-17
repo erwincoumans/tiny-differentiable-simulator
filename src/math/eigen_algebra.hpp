@@ -779,9 +779,21 @@ struct EigenAlgebraT {
 
   EIGEN_ALWAYS_INLINE static Vector3 quaternion_axis_angle(
       const Quaternion quat) {
+#if 0
+    //eigen angleAxis is non-differentiable, >=0 checks
     auto ang_ax = Eigen::AngleAxis<Scalar>(quat);
 
     return ang_ax.axis() * ang_ax.angle();
+#endif
+
+    Vector3 qv(quat.x(), quat.y(), quat.z());
+    Scalar qv_norm = norm(qv);//qv.length();
+    Scalar theta = two() * atan2(qv_norm, quat.w());
+    Scalar scaling = tds::where_lt(qv_norm, 
+                                    pow(Scalar(std::numeric_limits<double>::epsilon()), fraction(1, 4)),
+                                    one()/(half() + theta*theta*fraction(1, 48)),
+                                    (theta / qv_norm));
+    return scaling * qv;
   }
 
   EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(
