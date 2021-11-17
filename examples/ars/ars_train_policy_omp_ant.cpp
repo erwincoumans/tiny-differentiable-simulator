@@ -279,8 +279,8 @@ int main()
     config.rollout_length_eval_ = 1000;
     config.rollout_length_train_ = 1000;
 #else
-    config.rollout_length_eval_ = 2000;
-    config.rollout_length_train_ = 2000;
+    config.rollout_length_eval_ = 3000;
+    config.rollout_length_train_ = 3000;
 #endif
 
 

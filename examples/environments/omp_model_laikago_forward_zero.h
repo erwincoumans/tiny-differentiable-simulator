@@ -4,11 +4,10 @@
 
 template <typename Scalar>
 inline void omp_model_laikago_forward_zero_kernel(int num_total_threads,
-                                            Scalar *output,
-                                            const Scalar *input) {
+                                            Scalar* y,
+                                            const Scalar* xj) {
   int ti = 0;
-  const Scalar *xj = &(input[ti * 51]);  // thread-local input
-  Scalar *y = &(output[ti * 411]);
+  
   // auxiliary variables
   Scalar v[683];
 

@@ -77,50 +77,6 @@ add_executable(opengl_imgui_test opengl_imgui_test.cpp ../third_party/dear_imgui
 target_link_libraries(opengl_imgui_test opengl_window dear_imgui  ${CMAKE_DL_LIBS})
 target_include_directories(opengl_imgui_test PRIVATE ../third_party/glad ../third_party/dear_imgui ../src)
 
-IF(USE_CPPAD)
-  add_executable(cuda_codegen cuda_codegen.cpp ${TDS_HDRS})
-  target_compile_definitions(cuda_codegen PRIVATE -DUSE_CPPAD)
-  target_link_libraries(
-    cuda_codegen
-    PRIVATE
-      ${CMAKE_DL_LIBS}
-      opengl_window
-      tinyxml2
-      Eigen3::Eigen
-      differentiation
-  )
-  if (USE_STAN)
-    target_link_libraries(cuda_codegen PRIVATE ${STAN_LIBRARIES})
-  endif(USE_STAN)
-
-  add_executable(cuda_laikago_codegen cuda_laikago_codegen.cpp ${TDS_HDRS})
-  target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
-  target_link_libraries(
-    cuda_laikago_codegen
-    PRIVATE
-      ${CMAKE_DL_LIBS}
-      opengl_window
-      tinyxml2
-      Eigen3::Eigen
-      differentiation
-  )
-  add_executable(cuda_ant_codegen cuda_ant_codegen.cpp ${TDS_HDRS})
-  target_compile_definitions(cuda_ant_codegen PRIVATE -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
-  target_link_libraries(
-    cuda_ant_codegen
-    PRIVATE
-      ${CMAKE_DL_LIBS}
-      opengl_window
-      tinyxml2
-      Eigen3::Eigen
-      differentiation
-  )
-  if (USE_STAN)
-    target_link_libraries(cuda_laikago_codegen PRIVATE ${STAN_LIBRARIES})
-    target_link_libraries(cuda_ant_codegen PRIVATE ${STAN_LIBRARIES})
-  endif(USE_STAN)
-ENDIF(USE_CPPAD)
-
 IF(USE_CERES)
 message("Ceres libs:" ${CERES_LIBRARIES})
 

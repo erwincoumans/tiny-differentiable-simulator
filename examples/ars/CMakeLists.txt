@@ -11,7 +11,7 @@ target_include_directories(ars_train_policy_cuda PRIVATE ../../third_party ../..
 find_package(OpenMP)
 
 
-add_executable(ars_train_policy_omp_ant ars_train_policy_omp_ant.cpp ${TDS_HDRS})
+add_executable(ars_train_policy_omp_ant ars_train_policy_omp.cpp ${TDS_HDRS})
 
 if(OpenMP_CXX_FOUND)
     message("OpenMP_CXX_FOUND")
@@ -24,7 +24,7 @@ target_include_directories(ars_train_policy_omp_ant PRIVATE ../../third_party ..
 
 
 
-add_executable(ars_train_policy_omp_laikago ars_train_policy_omp_ant.cpp ${TDS_HDRS})
+add_executable(ars_train_policy_omp_laikago ars_train_policy_omp.cpp ${TDS_HDRS})
 
 if(OpenMP_CXX_FOUND)
     message("OpenMP_CXX_FOUND")
@@ -42,3 +42,29 @@ target_compile_definitions(ars_run_policy PRIVATE USE_TINY )
 target_include_directories(ars_run_policy PRIVATE ../../third_party ../../src )
 
 
+
+IF(USE_CPPAD)
+   add_executable(cuda_laikago_codegen cuda_codegen.cpp ${TDS_HDRS})
+  target_compile_definitions(cuda_laikago_codegen PRIVATE -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
+  target_link_libraries(
+    cuda_laikago_codegen
+    PRIVATE
+      ${CMAKE_DL_LIBS}
+      opengl_window
+      tinyxml2
+      Eigen3::Eigen
+      differentiation
+  )
+  
+  add_executable(cuda_ant_codegen cuda_codegen.cpp ${TDS_HDRS})
+  target_compile_definitions(cuda_ant_codegen PRIVATE -DUSE_ANT -DUSE_CPPAD -DUSE_CPPAD_CODEGEN)
+  target_link_libraries(
+    cuda_ant_codegen
+    PRIVATE
+      ${CMAKE_DL_LIBS}
+      opengl_window
+      tinyxml2
+      Eigen3::Eigen
+      differentiation
+  )
+ENDIF(USE_CPPAD)

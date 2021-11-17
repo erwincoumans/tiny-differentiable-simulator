@@ -114,8 +114,6 @@ struct VectorizedEnvironment
       std::srand(s);
     }
     
-    
-
     std::vector< std::vector<double> > reset()
     {
         for (int index=0;index<g_num_total_threads;index++)
@@ -172,7 +170,7 @@ struct VectorizedEnvironment
         dones.resize(g_num_total_threads);
 
         //todo: tune this
-        int settle_down_steps= 10;
+        int settle_down_steps= 50;
         for (int i=0;i<settle_down_steps;i++)
         {
             step(zero_actions, observations, rewards, dones);

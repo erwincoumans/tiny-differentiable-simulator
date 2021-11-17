@@ -21,13 +21,32 @@ struct LocomotionContactSimulation {
   int num_timesteps{1};
   Scalar dt{Algebra::from_double(1e-3)};
   
-  std::vector<Scalar> action_;
+  
   std::vector<Scalar> initial_poses_;
   bool is_floating_{false};
   int action_dim_{0};
   int num_visual_links_{0};
 
+  Scalar kp_{Algebra::zero()};
+  Scalar kd_{Algebra::zero()};
+  Scalar max_force_{Algebra::zero()};
+
+  Vector3 m_start_base_position{Scalar(0),Scalar(0),Scalar(0.48)};
+  Quaternion m_start_base_orientation{Scalar(0),Scalar(0),Scalar(0),Scalar(1)};
+
+
+  void set_kp(const Scalar new_kp) { 
+      kp_ = new_kp; 
+  }
+
+  void set_kd(const Scalar new_kd) { 
+      kd_ = new_kd; 
+  }
   
+  void set_max_force(const Scalar new_max_force) { 
+      max_force_ = new_max_force; 
+  }
+
 
   int input_dim() const { return mb_->dof() + mb_->dof_qd(); }
 
@@ -37,7 +56,12 @@ struct LocomotionContactSimulation {
 
 
   int input_dim_with_action_and_variables() const {
-    return mb_->dof() + mb_->dof_qd() + action_dim() + VARIABLE_SIZE;
+      int dof = mb_->dof();
+      int dofq = mb_->dof_qd();
+      int adim = action_dim() ;
+      int varsize = VARIABLE_SIZE;
+      return dof+dofq+adim+varsize;
+    //return mb_->dof() + mb_->dof_qd() + action_dim() + VARIABLE_SIZE;
   }
 
   // input, world transforms for all links and up_dot_world_z
@@ -96,18 +120,26 @@ struct LocomotionContactSimulation {
             }
         }
 
-    action_.resize(action_dim_);
-
     mb_->base_X_world().set_identity();
     world.default_friction = 1;
     //world.set_gravity(Vector3(Algebra::zero(),Algebra::zero(),Algebra::zero()));
     world.get_mb_constraint_solver()->keep_all_points_ = true;
   }
 
+   void prepare_sim_state_with_action_and_variables(std::vector<Scalar>& v, const std::vector<Scalar>& actions) const {
+        
+        for (int i=0;i<actions.size();i++)
+        {
+            v[i+this->input_dim()] = actions[i];
+        }
 
-  std::vector<Scalar> step_forward3(const std::vector<Scalar>& v,
-                                 const std::vector<Scalar>& action,
-                                 const std::vector<Scalar>& variables) {
+        v[this->input_dim_with_action2()+0] = kp_;
+        v[this->input_dim_with_action2()+1] = kd_;
+        v[this->input_dim_with_action2()+2] = max_force_;
+    }
+
+  //v is the input with action and variables
+  void step_forward_original(const std::vector<Scalar>& v, std::vector<Scalar>& result) {
     mb_->initialize();
     // copy input into q, qd
     for (int i = 0; i < mb_->dof(); ++i) {
@@ -117,23 +149,16 @@ struct LocomotionContactSimulation {
       mb_->qd(i) = v[i + mb_->dof()];
     }
 
-    for (int i = 0; i < action_dim_; i++) {
-      action_[i] = action[i];
-    }
+    int action_offset = input_dim();
+    int variable_index = input_dim()+action_dim();
 
-    Scalar kp = variables[0];
-    Scalar kd = variables[1];
-    Scalar max_force = variables[2];
-
-    std::vector<Scalar> result(output_dim());
+    Scalar kp = v[variable_index+0];
+    Scalar kd = v[variable_index+1];
+    Scalar max_force = v[variable_index+2];
     
     for (int t = 0; t < num_timesteps; ++t) {
       if (1) {
         // use PD controller to compute tau
-        
-        std::vector<Scalar> q_targets;
-        q_targets.resize(mb_->tau_.size());
-
         
         int param_index = 0;
 
@@ -196,7 +221,7 @@ struct LocomotionContactSimulation {
                         int tau_index = mb_->is_floating() ? mb_->links()[i].qd_index - 6 : mb_->links()[i].qd_index;
                       
                         
-                        Scalar clamped_action = action_[pose_index];
+                        Scalar clamped_action = v[action_offset+pose_index];
                         Scalar ACTION_LIMIT = 0.4;
                         clamped_action = Algebra::min(clamped_action, ACTION_LIMIT);
                         clamped_action = Algebra::max(clamped_action, -ACTION_LIMIT);
@@ -264,12 +289,9 @@ struct LocomotionContactSimulation {
         }
     }
 
-
     auto base_tr = mb_->get_world_transform(-1);
     Scalar up_dot_world_z = base_tr.rotation(2, 2);
     result[j++] = up_dot_world_z;
-
-    return result;
   }
 };
 
