@@ -54,6 +54,8 @@ int main(int argc, char* argv[]) {
       
   }
 
+  std::string platform = use_omp? "OMP" : "CUDA";
+
   using Scalar = double;
   typedef ::TINY::DoubleUtils MyTinyConstants;
   typedef TinyAlgebra<double, MyTinyConstants> ScalarAlgebra;
@@ -122,11 +124,14 @@ int main(int argc, char* argv[]) {
   
   // create model to load shared library
 #ifndef DEBUG_MODEL
-  //comment-out to re-use previously build CUDA shared library
-  if (compile_cuda ) {
+  //only compile when using CUDA (not OMP)
+  if (compile_cuda && (use_omp==0)) {
     p.create_library();
   }
-  tds::CudaModel<Scalar> cuda_model(model_name);
+  tds::CudaModel<Scalar>* cuda_model_ptr = 0;
+  if (use_omp==0) {
+    cuda_model_ptr = new tds::CudaModel<Scalar>(model_name);
+  }
   
 #endif //DEBUG_MODEL
 
@@ -137,7 +142,9 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::vector<Scalar>> inputs(num_total_threads);
 #ifndef DEBUG_MODEL
-  cuda_model.forward_zero.allocate(num_total_threads);
+  if (use_omp==0) {
+    cuda_model_ptr->forward_zero.allocate(num_total_threads);
+  }
 #endif //DEBUG_MODEL
 
 #ifndef DISABLE_RENDERING
@@ -290,17 +297,13 @@ int main(int argc, char* argv[]) {
             simulation.forward_kernel(1,&outputs[i][0], &inputs[i][0]);
           }
       } else {
-        cuda_model.forward_zero(&outputs, inputs, 64);
+        cuda_model_ptr->forward_zero(&outputs, inputs, 64);
       }
 #endif //DEBUG_MODEL
 
       timer.stop();
-      if (use_omp) 
-        {
-          std::cout << "OMP kernel execution took " << timer.elapsed() << " seconds.\n";
-        } else {
-        std::cout << "CUDA kernel execution took " << timer.elapsed() << " seconds.\n";
-      }
+      
+      std::cout << platform << " kernel execution took " << timer.elapsed() << " seconds. (" << double(num_total_threads)/timer.elapsed() << " steps per seconds)\n";
 
       for (int i = 0; i < num_total_threads; ++i) {
 #ifdef DEBUG_MODEL
@@ -396,7 +399,10 @@ int main(int argc, char* argv[]) {
     }
   }
 #ifndef DEBUG_MODEL
-  cuda_model.forward_zero.deallocate();
+  if (use_omp==0) {
+    cuda_model_ptr->forward_zero.deallocate();
+    delete cuda_model_ptr;
+  }
 #endif //DEBUG_MODEL
 
 #if 0
