@@ -222,7 +222,7 @@ struct LocomotionContactSimulation {
                       
                         
                         Scalar clamped_action = v[action_offset+pose_index];
-                        Scalar ACTION_LIMIT = 0.4;
+                        Scalar ACTION_LIMIT(0.4);
                         clamped_action = Algebra::min(clamped_action, ACTION_LIMIT);
                         clamped_action = Algebra::max(clamped_action, -ACTION_LIMIT);
 
@@ -231,7 +231,7 @@ struct LocomotionContactSimulation {
                         Scalar q_actual = mb_->q_[q_offset];
                         Scalar qd_actual = mb_->qd_[qd_offset];
                         Scalar position_error = (q_desired - q_actual);
-                        Scalar desired_velocity = 0;
+                        Scalar desired_velocity(0);
                         Scalar velocity_error = (desired_velocity - qd_actual);
                         Scalar force = kp * position_error + kd * velocity_error;
 
