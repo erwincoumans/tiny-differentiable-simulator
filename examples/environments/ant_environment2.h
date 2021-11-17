@@ -53,11 +53,11 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
           bool floating)
       :LocomotionContactSimulation<Algebra>(urdf_from_file, urdf_filename, urdf_string,initial_poses,floating, Scalar(0.01))
     {
-        set_kp(Scalar(15));
-        set_kd(Scalar(0.3));
-        set_max_force(Scalar(3));
-        m_start_base_position = Vector3 (Scalar(0),Scalar(0),Scalar(0.48));
-        m_start_base_orientation = Quaternion (Scalar(0),Scalar(0),Scalar(0),Scalar(1));
+        this->set_kp(Scalar(15));
+        this->set_kd(Scalar(0.3));
+        this->set_max_force(Scalar(3));
+        this->m_start_base_position = Vector3 (Scalar(0),Scalar(0),Scalar(0.48));
+        this->m_start_base_orientation = Quaternion (Scalar(0),Scalar(0),Scalar(0),Scalar(1));
 
 
     }
@@ -100,33 +100,33 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
     
   void reset(std::vector<Scalar>& sim_state, std::vector<Scalar>& observation) const {
 
-        if (mb_->is_floating()) {
-          sim_state[0] = m_start_base_orientation[0];
-          sim_state[1] = m_start_base_orientation[1];
-          sim_state[2] = m_start_base_orientation[2];
-          sim_state[3] = m_start_base_orientation[3];
-          sim_state[4] = m_start_base_position[0];
-          sim_state[5] = m_start_base_position[1];
-          sim_state[6] = m_start_base_position[2];
+        if (this->mb_->is_floating()) {
+          sim_state[0] = this->m_start_base_orientation[0];
+          sim_state[1] = this->m_start_base_orientation[1];
+          sim_state[2] = this->m_start_base_orientation[2];
+          sim_state[3] = this->m_start_base_orientation[3];
+          sim_state[4] = this->m_start_base_position[0];
+          sim_state[5] = this->m_start_base_position[1];
+          sim_state[6] = this->m_start_base_position[2];
           int qoffset = 7;
-          for (int j = 0; j < initial_poses_.size(); j++) {
-            sim_state[j + qoffset] = initial_poses_[j];
+          for (int j = 0; j < this->initial_poses_.size(); j++) {
+            sim_state[j + qoffset] = this->initial_poses_[j];
           }
         } else {
-          sim_state[0] = m_start_base_position[0];
-          sim_state[1] = m_start_base_position[1];
-          sim_state[2] = m_start_base_position[2];
+          sim_state[0] = this->m_start_base_position[0];
+          sim_state[1] = this->m_start_base_position[1];
+          sim_state[2] = this->m_start_base_position[2];
           sim_state[3] = 0;
           sim_state[4] = 0;
           sim_state[5] = 0;
           int qoffset = 6;
 
-          for (int j = 0; j < initial_poses_.size(); j++) {
-                sim_state[j + qoffset] = initial_poses_[j] +  0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
+          for (int j = 0; j < this->initial_poses_.size(); j++) {
+                sim_state[j + qoffset] = this->initial_poses_[j] +  0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
           }
         }
 
-        std::vector<Scalar> action(action_dim(), Scalar(0));
+        std::vector<Scalar> action(this->action_dim(), Scalar(0));
     
         Scalar reward;
         bool done;
@@ -134,15 +134,15 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
         int settle_down_steps = 10;
 
 
-        sim_state[this->input_dim_with_action2()+0] = kp_;
-        sim_state[this->input_dim_with_action2()+1] = kd_;
-        sim_state[this->input_dim_with_action2()+2] = max_force_;
+        sim_state[this->input_dim_with_action2()+0] = this->kp_;
+        sim_state[this->input_dim_with_action2()+1] = this->kd_;
+        sim_state[this->input_dim_with_action2()+2] = this->max_force_;
 
         std::vector<Scalar> output(this->output_dim());
         for (int i = 0; i < settle_down_steps; i++) {
             //this->step_forward_original(sim_state, output);
             this->forward_kernel<Scalar>(1, &output[0], &sim_state[0]);
-            for (int i=0;i<input_dim();i++) {
+            for (int i=0;i<this->input_dim();i++) {
                 sim_state[i] = output[i];
             }
         }
