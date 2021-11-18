@@ -29,7 +29,7 @@ static std::string exec(const char *cmd) {
   return result;
 }
 
-template <class Base> class CudaLibraryProcessor {
+template <class Base> class CudaLibraryProcessor2 {
 protected:
   std::string nvcc_path_{"/usr/bin/nvcc"};
   int optimization_level_{0};
@@ -58,7 +58,7 @@ protected:
   std::map<std::string, std::string> sources_;
 
 public:
-  CudaLibraryProcessor(CudaModelSourceGen<Base> *model,
+  CudaLibraryProcessor2(CudaModelSourceGen<Base> *model,
                        const std::string &library_name = "",
                        bool find_nvcc = true) {
     models_.push_back(model);
