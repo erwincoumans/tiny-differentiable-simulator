@@ -44,10 +44,10 @@ typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 OpenGLUrdfVisualizer<MyAlgebra> visualizer;
 bool urdf_from_file = false;
 LocomotionContactSimulation<MyAlgebra> contact_sim(urdf_from_file,
-          "laikago/laikago_toes_zup.urdf",
-          laikago_toes_zup_urdf,
+          "laikago/laikago_toes_zup_xyz_xyzrot.urdf",
+          laikago_toes_zup_xyz_xyzrot,
           get_initial_poses<MyScalar>(),
-          true, 1e-3);
+          false, 1e-3);
 tds::UrdfStructures<MyAlgebra> urdf_structures;
 
 std::vector<int> visual_instances;

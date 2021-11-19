@@ -13,6 +13,7 @@
 
 constexpr int VARIABLE_SIZE = 3;
 #include "locomotion_contact_simulation.h"
+#include "../environments/ant_org_xyz_xyzrot.h"
 //omp_model_ant_forward_zero_kernel
 #include "omp_model_ant_forward_zero.h"
 
@@ -44,6 +45,12 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
     using Scalar = typename Algebra::Scalar;
     using Quaternion = typename Algebra::Quaternion;
     using Vector3 = typename Algebra::Vector3;
+
+    std::string env_name() const {
+      static std::string env_name = "ant";
+      return env_name;
+    }
+
 
 
     AntContactSimulation(bool urdf_from_file, 
@@ -172,10 +179,11 @@ struct AntEnv {
   
 
   int observation_dim_{0};
+
   AntEnv(bool urdf_from_file) 
       : contact_sim(urdf_from_file,
           "gym/ant_org_xyz_xyzrot.urdf",
-          "",
+          ant_org_xyz_xyzrot,
           get_initial_poses<Scalar>(),
           false) {
     observation_dim_ = contact_sim.input_dim();

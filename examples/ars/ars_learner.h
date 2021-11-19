@@ -256,7 +256,7 @@ struct ARSLearner
                     {
                         {
                             std::ofstream trajfile_;
-                            std::string fileName = "laikago_trajectory_reward"+std::to_string(mean_rewards)+".bin";
+                            std::string fileName = worker_->env_.contact_sim.env_name() + "_trajectory_reward"+std::to_string(mean_rewards)+".bin";
                             trajfile_.open (fileName,std::ios_base::binary);
                             int num_steps = trajectories[0].size();
                             trajfile_.write((char*)&num_steps, sizeof(int));
@@ -286,7 +286,7 @@ struct ARSLearner
                          }
                             {
                             std::ofstream weightsfile_;
-                            std::string fileName = "ant_weights_"+std::to_string(mean_rewards)+".bin";
+                            std::string fileName = worker_->env_.contact_sim.env_name()+"_weights_"+std::to_string(mean_rewards)+".bin";
                             weightsfile_.open (fileName,std::ios_base::binary);
                             int num_weights =w_policy.size();
                             weightsfile_.write((char*)&num_weights, sizeof(int));
