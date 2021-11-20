@@ -65,11 +65,76 @@ void parallel_for(unsigned nb_elements,
 template <typename Algebra, typename AbstractSimulation>
 struct VectorizedEnvironment
 {
-    AbstractSimulation& contact_sim;
     using Scalar = typename Algebra::Scalar;
     using Vector3 = typename Algebra::Vector3;
     using Transform = typename Algebra::Transform;
 
+    struct CustomForwardDynamicsStepper {
+
+        CustomForwardDynamicsStepper() {};
+        virtual ~CustomForwardDynamicsStepper() {
+            }
+        virtual void step(const std::vector<std::vector<Scalar>>& thread_inputs,
+                    std::vector<std::vector<Scalar>>& thread_outputs,
+                    std::vector<bool>& dones,
+                    int num_threads_per_block = 32,
+                    const std::vector<Scalar>& global_input = {})=0;
+    };
+    
+    
+    struct SerialForwardStepper : public CustomForwardDynamicsStepper {
+
+        AbstractSimulation& contact_sim_;
+        SerialForwardStepper(AbstractSimulation& contact_sim)
+        : contact_sim_(contact_sim) {
+        };
+        virtual ~SerialForwardStepper() {
+        }
+        virtual void step(const std::vector<std::vector<Scalar>>& thread_inputs,
+                    std::vector<std::vector<Scalar>>& thread_outputs,
+                    std::vector<bool>& dones,
+                    int num_threads_per_block = 32,
+                    const std::vector<Scalar>& global_input = {}){
+
+            for (int index =0; index<thread_inputs.size();index++)
+            {
+                contact_sim_.step_forward_original(thread_inputs[index], thread_outputs[index]);
+            }
+        }
+    };
+
+    struct OpenMPForwardStepper : public CustomForwardDynamicsStepper {
+
+        AbstractSimulation& contact_sim_;
+        
+        OpenMPForwardStepper(AbstractSimulation& contact_sim)
+        : contact_sim_(contact_sim) {
+        };
+        virtual ~OpenMPForwardStepper() {
+        }
+        virtual void step(const std::vector<std::vector<Scalar>>& thread_inputs,
+                     std::vector<std::vector<Scalar>>& thread_outputs,
+                     std::vector<bool>& dones,
+                    int num_threads_per_block = 32,
+                    const std::vector<Scalar>& global_input = {}){
+
+            #pragma omp parallel
+            #pragma omp for
+            for (int index=0;index<g_num_total_threads;index++)
+            {
+                if (!dones[index]) 
+                {
+                    contact_sim_.forward_kernel(1,&thread_outputs[index][0], &thread_inputs[index][0]);
+                }
+            }
+        }
+    };
+
+
+
+
+    AbstractSimulation& contact_sim;
+ 
     
     std::vector<std::vector<Scalar>> sim_states_;
     std::vector<std::vector<Scalar>> sim_states_with_action_and_variables;
@@ -78,10 +143,18 @@ struct VectorizedEnvironment
     std::vector<tds::NeuralNetwork<Algebra> > neural_networks_;
     int observation_dim_{0};
 
+    SerialForwardStepper serial_stepper_;
+    OpenMPForwardStepper omp_stepper_;
+    CustomForwardDynamicsStepper* default_stepper_;
+
 
     VectorizedEnvironment(AbstractSimulation& sim)
-        :contact_sim(sim)
+        :contact_sim(sim),
+        serial_stepper_(sim),
+        omp_stepper_(sim),
+        default_stepper_(&omp_stepper_)
     {
+        std::cout << "Creating VectorizedEnvironment for " << sim.env_name() << std::endl;
         neural_networks_.resize(g_num_total_threads);
         sim_states_.resize(g_num_total_threads);
         sim_states_with_action_and_variables.resize(g_num_total_threads);
@@ -201,37 +274,9 @@ struct VectorizedEnvironment
                 actions[index]);
             inputs[index] = sim_states_with_action_and_variables[index];
         }
-    
-//#define DEBUG_ON_CPU
-#ifdef DEBUG_ON_CPU
         
-        
-        for (int index =0; index<g_num_total_threads;index++)
-        {
-            sim_states_with_graphics_[index] = contact_sim.step_forward1(sim_states_with_action_and_variables[index]);
-        }
-#else
-        
-#if 1
-        #pragma omp parallel
-        #pragma omp for
-        for (int index=0;index<g_num_total_threads;index++)
-        {
-            if (!dones[index]) 
-            {
-                contact_sim.forward_kernel(1,&outputs[index][0], &inputs[index][0]);
-            }
-        }
-#else
-        PARALLEL_FOR_BEGIN(g_num_total_threads)
-        {
-            if (!dones[i]) 
-            {
-                contact_sim.forward_kernel_fast(1,&outputs[i][0], &inputs[i][0]);
-            }
-        }PARALLEL_FOR_END();
+        default_stepper_->step(inputs, outputs, dones);
 
-#endif
         for (int index=0;index<g_num_total_threads;index++)
         {
             if (!dones[index]) 
@@ -239,7 +284,8 @@ struct VectorizedEnvironment
                 sim_states_with_graphics_[index] = outputs[index];
             }
         }
-#endif //DEBUG_ON_CPU
+
+
         for (int index=0;index<g_num_total_threads;index++)
         {
             if (!dones[index])
