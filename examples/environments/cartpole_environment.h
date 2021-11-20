@@ -7,6 +7,7 @@
 #include "urdf/urdf_cache.hpp"
 #include "utils/file_utils.hpp"
 #include "urdf/urdf_parser.hpp"
+#include "urdf_structures.hpp"
 #include "cartpole_urdf.h"
 #include "math.h"
 
