@@ -3,9 +3,6 @@
 #define NOMINMAX 
 #include <string>
 
-
-
-
 #include "math/tiny/tiny_algebra.hpp"
 #include "math/tiny/tiny_double_utils.h"
 #include <iostream>
@@ -13,12 +10,12 @@
 #include "shared_noise_table.h"
 #include "running_stat.h"
 #include "../opengl_urdf_visualizer.h"
+#include "visualizer/opengl/utils/tiny_chrome_trace_util.h"
 #include <thread>
 #include <chrono>
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
-int g_num_total_threads = 128;
 
 
 
@@ -37,6 +34,7 @@ typedef AntEnv<MyAlgebra> LocomotionEnvironment;
 #else
 #include "../environments/laikago_environment2.h"
 typedef LaikagoEnv<MyAlgebra> LocomotionEnvironment;
+
 #endif //TRAIN_ANT
 
 
@@ -58,21 +56,23 @@ std::vector<int> num_instances;
 int num_instances_per_robot=0;
 int num_base_instances;
 
-void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& trajectories, int step, bool sleep)
+void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& trajectories, int step, bool sleep, int batch_size)
 {
      float sim_spacing = 5;
      
+     if ((step) % 16 != 0)
+         return;
 
-     for (int index=0;index<g_num_total_threads;index++)
+     for (int index=0;index<batch_size;index++)
      {
          std::vector<std::vector<double>>& sim_states_with_graphics = trajectories[index];
          if (sim_states_with_graphics.size()==0)
              continue;
-          const int square_id = (int)std::sqrt((double)g_num_total_threads);
+          const int square_id = (int)std::sqrt((double)batch_size);
           int offset = locomotion_simenv.contact_sim.mb_->dof() + locomotion_simenv.contact_sim.mb_->dof_qd();
           int instance_index = index*num_instances_per_robot;
   
-#ifndef __APPLE__ //this text rendering is super slow on MacOS
+#if 0//ndef __APPLE__ //this text rendering is super slow on MacOS
           if (1)
             {
                 char msg[1024];
@@ -145,7 +145,7 @@ void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& traje
    
     if (sleep)
     {
-        std::this_thread::sleep_for(std::chrono::duration<double>(1./240.));//frameskip_gfx_sync* contact_sim.dt));
+        std::this_thread::sleep_for(std::chrono::duration<double>(1./60.));//frameskip_gfx_sync* contact_sim.dt));
     }
 }
 #else
@@ -173,10 +173,33 @@ struct PolicyParams
 
 #include "ars_learner.h"
 
-int main()
-{
+#include "visualizer/opengl/utils/tiny_commandline_args.h"
 
-  
+int main(int argc, char* argv[])
+{
+    TinyCommandLineArgs args(argc, argv);
+    int num_iter = 50*1000;
+    int eval_interval = 10;
+        
+    int batch_size = 128;
+    int env_seed = 42;
+    bool profile_timings = false;
+
+    args.getCmdLineArgument("batch_size", batch_size);
+    args.getCmdLineArgument("num_iter", num_iter);
+    args.getCmdLineArgument("eval_interval", eval_interval);
+    args.getCmdLineArgument("env_seed", env_seed);
+    profile_timings = args.checkCmdLineFlag("profile_timings");
+    
+    if (profile_timings)
+        TinyChromeUtilsStartTimings();
+
+    printf("batch_size = %d\n", batch_size);
+    printf("num_iter = %d\n", num_iter);
+    printf("eval_interval = %d\n", eval_interval);
+    printf("env_seed = %d\n", env_seed);
+
+
 #ifdef ARS_VISUALIZE
   visualizer.delete_all();
   int input_dim = locomotion_simenv.contact_sim.input_dim();
@@ -204,7 +227,7 @@ int main()
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  for (int t = 0;t< g_num_total_threads;t++)
+  for (int t = 0;t< batch_size;t++)
   {
       num_instances_per_robot=0;
       TinyVector3f pos(0, 0, 0);
@@ -271,10 +294,12 @@ int main()
   {
 
     
-    VecEnvironment vec_env(locomotion_simenv.contact_sim);
+    VecEnvironment vec_env(locomotion_simenv.contact_sim, batch_size);
+    //vec_env.default_stepper_ = &vec_env.serial_stepper_;
+
     //AntEnv<MyAlgebra> ant_env;
     //Environment env(ant_env.contact_sim_);
-    ARSLearner<VecEnvironment>::ARSLearnerConfig config;
+    ARSConfig config;
 #ifdef TRAIN_ANT
     config.rollout_length_eval_ = 1000;
     config.rollout_length_train_ = 1000;
@@ -283,11 +308,25 @@ int main()
     config.rollout_length_train_ = 3000;
 #endif
 
-
+    config.eval_interval = eval_interval;
+    config.batch_size = batch_size;
+    config.num_iter = num_iter;
+    config.env_seed = env_seed;
     ARSLearner<VecEnvironment> ars(vec_env, config);
 
-    ars.train(50*1024*1024);
+    ars.train();
   }
 
+      args.getCmdLineArgument("batch_size", batch_size);
+    args.getCmdLineArgument("num_iter", num_iter);
+    args.getCmdLineArgument("eval_interval", eval_interval);
+    args.getCmdLineArgument("env_seed", env_seed);
+    args.getCmdLineArgument("profile_timings", profile_timings);
+
+
+  std::string filename = "ars_train_policy_omp_seed"+std::to_string(env_seed)+"_batch"+std::to_string(batch_size)+std::string(".json");
+
+  if(profile_timings)
+    TinyChromeUtilsStopTimingsAndWriteJsonFile(filename.c_str());
 }
 

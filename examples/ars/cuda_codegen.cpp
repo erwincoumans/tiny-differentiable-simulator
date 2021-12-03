@@ -51,7 +51,6 @@ int main(int argc, char* argv[]) {
       //run on GPU
       if (!strcmp(argv[i], "-o"))
           use_omp = 1;
-      
   }
 
   using Scalar = double;
@@ -71,7 +70,7 @@ int main(int argc, char* argv[]) {
   LaikagoEnv<DiffAlgebra> diff_env(false);
   LaikagoEnv<ScalarAlgebra> scalar_env(false);
 #endif
-  //LaikagoContactSimulation<DiffAlgebra> simulation(false,"laikago/laikago_toes_zup_xyz_xyzrot.urdf",laikago_toes_zup_xyz_xyzrot,get_initial_poses<Dual>(), false);
+  
   auto& simulation = diff_env.contact_sim;
   auto& scalar_simulation = scalar_env.contact_sim;
 

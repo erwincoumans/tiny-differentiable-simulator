@@ -4,6 +4,8 @@
 #pragma once
 
 #include "ars_vectorized_worker.h"
+#include "ars_config.h"
+#include "visualizer/opengl/utils/tiny_logging.h"
 
 template <typename ARSVecEnvironment>
 struct ARSLearner 
@@ -11,7 +13,7 @@ struct ARSLearner
     std::vector<double> w_policy;
 
     int total_timesteps{0};
-    int num_deltas_{g_num_total_threads};
+    int num_deltas_{0};
     int shift_{0};
     
     std::vector<double> deltas_;
@@ -19,24 +21,14 @@ struct ARSLearner
     
     Worker<ARSVecEnvironment>* worker_{0};
 
-    struct ARSLearnerConfig {
-        int rollout_length_train_{3000};
-        int rollout_length_eval_{3000};
-        double delta_std_{0.03};
-        double sgd_step_size { 0.02};
-        //what size is reasonable?
-        int deltas_count{25000000}; //250000
-        int env_seed{12345};
-    };
-
-    ARSLearnerConfig config_;
+    ARSConfig config_;
     
     std::ofstream myfile_;
 
     std::chrono::steady_clock::time_point time_point_;
     
 
-    ARSLearner(ARSVecEnvironment& tmpenv, const ARSLearnerConfig& config) :config_(config)
+    ARSLearner(ARSVecEnvironment& tmpenv, const ARSConfig& config) :config_(config)
     {
         init_deltas();
 
@@ -47,7 +39,7 @@ struct ARSLearner
         //does it have to be random to start? deltas will take care of it
         w_policy.resize(params_dim);
         
-        worker_ = new Worker (tmpenv, config_.env_seed, params_dim, policy_params, deltas_, config_.rollout_length_train_, config_.rollout_length_eval_, config_.delta_std_);
+        worker_ = new Worker (tmpenv,  params_dim, policy_params, deltas_, config_);
         
         myfile_.open ("ars_cpp_log.txt");
         myfile_ << "Time	Iteration	AverageReward	MaxRewardRollout	MinRewardRollout	timesteps" << std::endl;
@@ -120,6 +112,7 @@ struct ARSLearner
     //Aggregate update step from rollouts generated in parallel.
     std::vector<double> aggregate_rollouts(int num_rollouts, bool evaluate, std::vector<std::vector<std::vector<double> > >& trajectories) {
           
+        B3_PROFILE("aggregate_rollouts");
         int num_deltas = (num_rollouts == 0)? num_deltas_ : num_rollouts;
             
         //# put policy weights in the object store
@@ -132,7 +125,10 @@ struct ARSLearner
         std::vector<double> rollout_rewards;
         std::vector<int> deltas_idx;
         int steps;
-        worker_->do_rollouts( rollout_rewards, deltas_idx, steps, w_policy, num_rollouts, shift_, evaluate, trajectories);
+        {
+            B3_PROFILE("weighted_sum_custom");
+            worker_->do_rollouts( rollout_rewards, deltas_idx, steps, w_policy, num_rollouts, shift_, evaluate, trajectories);
+        }
         
         total_timesteps += steps;
 
@@ -156,8 +152,10 @@ struct ARSLearner
         std::vector<double> g_hat;
         int num_items_summed=0;
 
-        weighted_sum_custom(rollout_rewards, deltas_idx, g_hat, num_items_summed);
-
+        {
+            B3_PROFILE("weighted_sum_custom");
+            weighted_sum_custom(rollout_rewards, deltas_idx, g_hat, num_items_summed);
+        }
         return g_hat;
 
     }
@@ -165,7 +163,10 @@ struct ARSLearner
         int num_rollouts = 0;
         bool evaluate = false;
         std::vector<std::vector<std::vector<double> > > trajectories;
+        
+        
         auto g_hat = aggregate_rollouts(num_rollouts, evaluate,trajectories);
+        
 #if 0
         if (g_hat.size())
         {
@@ -179,29 +180,38 @@ struct ARSLearner
         }
 #endif
 
-        //w_policy -= self.optimizer._compute_step(g_hat).reshape(self.w_policy.shape);
-        for (int i=0;i<w_policy.size();i++) {
-            w_policy[i] += config_.sgd_step_size * g_hat[i];
+        
+        {
+            B3_PROFILE("update w_policy");
+            //w_policy -= self.optimizer._compute_step(g_hat).reshape(self.w_policy.shape);
+            for (int i=0;i<w_policy.size();i++) {
+                w_policy[i] += config_.sgd_step_size * g_hat[i];
+            }
         }
     }
 
 
-    void train(int num_iter)
+    void train()
     {
         double best_mean_rewards = -1e30;
         
-        for (int iter=0;iter< num_iter;iter++) {
+        for (int iter=0;iter< config_.num_iter;iter++) {
             printf("iteration=%d\n", iter);
-
+            B3_PROFILE("iteration");
             auto t1 = std::chrono::steady_clock::now();
             
-            train_step();
+            
+            {
+                B3_PROFILE("train");
+                train_step();
+            }
 
             //update mean/std
             bool use_observation_filter = true;
             if (use_observation_filter)
             {
-                for (int index=0;index<g_num_total_threads;index++)
+                B3_PROFILE("update observation_filter");
+                for (int index=0;index<config_.batch_size;index++)
                 {
                     worker_->observation_means_[index].resize(worker_->env_.observation_dim_);
                     worker_->observation_stds_[index].resize(worker_->env_.observation_dim_);
@@ -218,12 +228,11 @@ struct ARSLearner
             printf("total time of step %d: %f\n", iter+1, past_sec);
 
             //print('iter ', i,' done')
-
-            //record statistics every 10 iterations
-            if ((iter + 1) % 10 == 0) 
+            //record statistics every n iterations
+            if ((iter + 1) % config_.eval_interval == 0) 
             {
-
-                int num_rollouts = g_num_total_threads;//todo: expose/tune this value (100 in ARS)
+                B3_PROFILE("eval");
+                int num_rollouts = config_.batch_size;
                 bool evaluate = true;
                 std::vector<std::vector<std::vector<double> > > trajectories;
                 std::vector<double> rewards = aggregate_rollouts(num_rollouts, evaluate, trajectories);

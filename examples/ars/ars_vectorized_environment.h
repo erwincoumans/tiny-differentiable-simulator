@@ -6,6 +6,9 @@
 #include <functional>
 #include <vector>
 
+#include "ars_config.h"
+#include "visualizer/opengl/utils/tiny_logging.h"
+
 /// @param[in] nb_elements : size of your for loop
 /// @param[in] functor(start, end) :
 /// your function processing a sub chunk of the for loop.
@@ -96,6 +99,7 @@ struct VectorizedEnvironment
                     int num_threads_per_block = 32,
                     const std::vector<Scalar>& global_input = {}){
 
+            B3_PROFILE("SerialForwardStepper step_forward_original");
             for (int index =0; index<thread_inputs.size();index++)
             {
                 contact_sim_.step_forward_original(thread_inputs[index], thread_outputs[index]);
@@ -106,9 +110,10 @@ struct VectorizedEnvironment
     struct OpenMPForwardStepper : public CustomForwardDynamicsStepper {
 
         AbstractSimulation& contact_sim_;
+        int batch_size_;
         
-        OpenMPForwardStepper(AbstractSimulation& contact_sim)
-        : contact_sim_(contact_sim) {
+        OpenMPForwardStepper(AbstractSimulation& contact_sim, int batch_size)
+        : contact_sim_(contact_sim), batch_size_(batch_size){
         };
         virtual ~OpenMPForwardStepper() {
         }
@@ -117,10 +122,11 @@ struct VectorizedEnvironment
                      std::vector<bool>& dones,
                     int num_threads_per_block = 32,
                     const std::vector<Scalar>& global_input = {}){
+            B3_PROFILE("OpenMPForwardStepper step_forward");
 
             #pragma omp parallel
             #pragma omp for
-            for (int index=0;index<g_num_total_threads;index++)
+            for (int index=0;index<batch_size_;index++)
             {
                 if (!dones[index]) 
                 {
@@ -148,21 +154,22 @@ struct VectorizedEnvironment
     CustomForwardDynamicsStepper* default_stepper_;
 
 
-    VectorizedEnvironment(AbstractSimulation& sim)
+    VectorizedEnvironment(AbstractSimulation& sim, int batch_size)
         :contact_sim(sim),
         serial_stepper_(sim),
-        omp_stepper_(sim),
+        omp_stepper_(sim, batch_size),
         default_stepper_(&omp_stepper_)
+        //default_stepper_(&serial_stepper_)
     {
         std::cout << "Creating VectorizedEnvironment for " << sim.env_name() << std::endl;
-        neural_networks_.resize(g_num_total_threads);
-        sim_states_.resize(g_num_total_threads);
-        sim_states_with_action_and_variables.resize(g_num_total_threads);
-        sim_states_with_graphics_.resize(g_num_total_threads);
+        neural_networks_.resize(batch_size);
+        sim_states_.resize(batch_size);
+        sim_states_with_action_and_variables.resize(batch_size);
+        sim_states_with_graphics_.resize(batch_size);
 
         observation_dim_ = contact_sim.input_dim();
         bool use_input_bias = false;
-        for (int index=0;index<g_num_total_threads;index++)
+        for (int index=0;index<batch_size;index++)
         {
             neural_networks_[index].set_input_dim(observation_dim_, use_input_bias);
             //network.add_linear_layer(tds::NN_ACT_RELU, 32);
@@ -187,97 +194,50 @@ struct VectorizedEnvironment
       std::srand(s);
     }
     
-    std::vector< std::vector<double> > reset()
+    std::vector< std::vector<double> > reset(const ARSConfig& config)
     {
-        for (int index=0;index<g_num_total_threads;index++)
+        
+        std::vector< std::vector<double>> observations;
+        observations.resize(config.batch_size);
+
+        for (int index=0;index<config.batch_size;index++)
         {
             sim_states_[index].resize(0);
-            sim_states_[index].resize(contact_sim.input_dim(), Scalar(0));
-            MyAlgebra::Vector3 start_pos(0,0,.48);//0.4002847
-            MyAlgebra::Quaternion start_orn (0,0,0,1);
+            sim_states_[index].resize(contact_sim.input_dim_with_action_and_variables(), Scalar(0));
 
-            if (contact_sim.mb_->is_floating())
-            {
-            
-                sim_states_[index][0] = start_orn.x();
-                sim_states_[index][1] = start_orn.y();
-                sim_states_[index][2] = start_orn.z();
-                sim_states_[index][3] = start_orn.w();
-                sim_states_[index][4] = start_pos.x();
-                sim_states_[index][5] = start_pos.y();
-                sim_states_[index][6] = start_pos.z();
-                int qoffset = 7;
-                for(int j=0;j<get_initial_poses<Scalar>().size();j++)
-                {
-                    sim_states_[index][j+qoffset] = get_initial_poses<Scalar>()[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
-                }
-            }
-            else
-            {
-                sim_states_[index][0] = start_pos.x();
-                sim_states_[index][1] = start_pos.y();
-                sim_states_[index][2] = start_pos.z();
-                sim_states_[index][3] = 0;
-                sim_states_[index][4] = 0;
-                sim_states_[index][5] = 0;
-                int qoffset = 6;
-                for(int j=0;j<get_initial_poses<Scalar>().size();j++)
-                {
-                    sim_states_[index][j+qoffset] = get_initial_poses<Scalar>()[j]+0.05*((std::rand() * 1. / RAND_MAX)-0.5)*2.0;
-                }
-
-            }
+            observations[index].resize(contact_sim.input_dim());
+            contact_sim.reset(sim_states_[index], observations[index]);
         }
-        std::vector< std::vector<double>>  zero_actions(g_num_total_threads);
-        for (int i=0;i<g_num_total_threads;i++)
-        {
-            zero_actions[i].resize(get_initial_poses<Scalar>().size(), Scalar(0));
-        }
-        std::vector< std::vector<double>> observations;
-        observations.resize(g_num_total_threads);
-
-        std::vector<double> rewards;
-        rewards.resize(g_num_total_threads);
-
-        std::vector<bool> dones;
-        dones.resize(g_num_total_threads);
-
-        //todo: tune this
-        int settle_down_steps= 50;
-        for (int i=0;i<settle_down_steps;i++)
-        {
-            step(zero_actions, observations, rewards, dones);
-        }
-        
-        //for (auto v : sim_state)
-        //    std::cout << v << std::endl;
         return observations;
     }
+
     void step( std::vector< std::vector<double>>& actions,std::vector<std::vector<double>>& observations,
-        std::vector<double>& rewards,std::vector<bool>& dones)
+        std::vector<double>& rewards,std::vector<bool>& dones, const ARSConfig& config)
     {
-
+        B3_PROFILE("VectorizedEnvironment step");
         std::vector<std::vector<Scalar>> outputs(
-        g_num_total_threads, std::vector<Scalar>(contact_sim.output_dim()));
+        config.batch_size, std::vector<Scalar>(contact_sim.output_dim()));
 
-        std::vector<std::vector<Scalar>> inputs(g_num_total_threads);
+        std::vector<std::vector<Scalar>> inputs(config.batch_size);
 
-
-        for (int index=0;index<g_num_total_threads;index++)
         {
-            int simstate_size = sim_states_[index].size();
-            sim_states_with_action_and_variables[index] = sim_states_[index];
-            sim_states_with_action_and_variables[index].resize(contact_sim.input_dim_with_action_and_variables());
+             B3_PROFILE("prepare_sim_state_with_action_and_variables");
+            for (int index=0;index<config.batch_size;index++)
+            {
+                int simstate_size = sim_states_[index].size();
+                sim_states_with_action_and_variables[index] = sim_states_[index];
+                sim_states_with_action_and_variables[index].resize(contact_sim.input_dim_with_action_and_variables());
             
-            contact_sim.prepare_sim_state_with_action_and_variables(
-                sim_states_with_action_and_variables[index],
-                actions[index]);
-            inputs[index] = sim_states_with_action_and_variables[index];
+                contact_sim.prepare_sim_state_with_action_and_variables(
+                    sim_states_with_action_and_variables[index],
+                    actions[index]);
+                inputs[index] = sim_states_with_action_and_variables[index];
+            }
         }
         
         default_stepper_->step(inputs, outputs, dones);
 
-        for (int index=0;index<g_num_total_threads;index++)
+        for (int index=0;index<config.batch_size;index++)
         {
             if (!dones[index]) 
             {
@@ -285,26 +245,28 @@ struct VectorizedEnvironment
             }
         }
 
-
-        for (int index=0;index<g_num_total_threads;index++)
         {
-            if (!dones[index])
+            B3_PROFILE("compute_reward_done");
+            for (int index=0;index<config.batch_size;index++)
             {
-                bool done;
-                Scalar reward;
-                contact_sim.compute_reward_done(
-                    sim_states_[index], 
-                    sim_states_with_graphics_[index],
-                    reward, done);
-                rewards[index] = reward;
-                dones[index] = done;
+                if (!dones[index])
+                {
+                    bool done;
+                    Scalar reward;
+                    contact_sim.compute_reward_done(
+                        sim_states_[index], 
+                        sim_states_with_graphics_[index],
+                        reward, done);
+                    rewards[index] = reward;
+                    dones[index] = done;
 
-                sim_states_[index] = sim_states_with_graphics_[index];
-                sim_states_[index].resize(contact_sim.input_dim());
-                observations[index] = sim_states_[index];
-            } else
-            {
-                rewards[index] = 0;
+                    sim_states_[index] = sim_states_with_graphics_[index];
+                    sim_states_[index].resize(contact_sim.input_dim());
+                    observations[index] = sim_states_[index];
+                } else
+                {
+                    rewards[index] = 0;
+                }
             }
         }
     }

@@ -18,9 +18,6 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
-int g_num_total_threads = 128;
-
-
 
 using namespace TINY;
 using namespace tds;
@@ -58,17 +55,17 @@ std::vector<int> num_instances;
 int num_instances_per_robot=0;
 int num_base_instances;
 
-void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& trajectories, int step, bool sleep)
+void visualize_trajectories(std::vector<std::vector<std::vector<double>>>& trajectories, int step, bool sleep, int batch_size)
 {
      float sim_spacing = 5;
      
 
-     for (int index=0;index<g_num_total_threads;index++)
+     for (int index=0;index<batch_size;index++)
      {
          std::vector<std::vector<double>>& sim_states_with_graphics = trajectories[index];
          if (sim_states_with_graphics.size()==0)
              continue;
-          const int square_id = (int)std::sqrt((double)g_num_total_threads);
+          const int square_id = (int)std::sqrt((double)batch_size);
           int offset = locomotion_simenv.contact_sim.mb_->dof() + locomotion_simenv.contact_sim.mb_->dof_qd();
           int instance_index = index*num_instances_per_robot;
   
@@ -367,6 +364,7 @@ struct CudaModel {
 
 int main()
 {
+    int batch_size = 128;
 
 #ifdef ARS_VISUALIZE
   visualizer.delete_all();
@@ -395,7 +393,7 @@ int main()
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  for (int t = 0;t< g_num_total_threads;t++)
+  for (int t = 0;t< batch_size;t++)
   {
       num_instances_per_robot=0;
       TinyVector3f pos(0, 0, 0);
@@ -462,10 +460,10 @@ int main()
   {
 
     
-    VecEnvironment vec_env(locomotion_simenv.contact_sim);
+    VecEnvironment vec_env(locomotion_simenv.contact_sim, batch_size);
     //AntEnv<MyAlgebra> ant_env;
     //Environment env(ant_env.contact_sim_);
-    ARSLearner<VecEnvironment>::ARSLearnerConfig config;
+    ARSConfig config;
 #ifdef TRAIN_ANT
     config.rollout_length_eval_ = 1000;
     config.rollout_length_train_ = 1000;
@@ -478,11 +476,13 @@ int main()
     struct CudaStepper : public VecEnvironment::CustomForwardDynamicsStepper {
 
         CudaModel<MyScalar> cuda_model_;
+        int batch_size_;
 
-        CudaStepper(const std::string& model_name)
-        :cuda_model_(CudaModel<MyScalar>(model_name))
+        CudaStepper(const std::string& model_name, int batch_size)
+        :cuda_model_(CudaModel<MyScalar>(model_name)),
+            batch_size_(batch_size)
         {
-            cuda_model_.forward_zero.allocate(g_num_total_threads);
+            cuda_model_.forward_zero.allocate(batch_size_);
 
         }
         virtual ~CudaStepper(){
@@ -506,12 +506,12 @@ int main()
     
     std::string model_name = "cuda_model_"+locomotion_simenv.contact_sim.env_name();
 
-    CudaStepper cuda_stepper(model_name);
+    CudaStepper cuda_stepper(model_name, config.batch_size);
 
     //ars.worker_->env_.default_stepper_ = &ars.worker_->env_.serial_stepper_;
     ars.worker_->env_.default_stepper_ = &cuda_stepper;
 
-    ars.train(50*1024*1024);
+    ars.train();
   }
   
 }
