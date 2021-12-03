@@ -16,10 +16,7 @@
 constexpr int VARIABLE_SIZE = 3;
 
 #include "locomotion_contact_simulation.h"
-
-
-
-#include "laikago_toes_zup_urdf.h"
+#include "laikago_toes_zup_xyz_xyzrot.h"
 
 template <typename Scalar>
 static const std::vector<Scalar> get_initial_poses() {
@@ -42,6 +39,11 @@ struct LaikagoContactSimulation   : public LocomotionContactSimulation<Algebra> 
     using Scalar = typename Algebra::Scalar;
     using Quaternion = typename Algebra::Quaternion;
     using Vector3 = typename Algebra::Vector3;
+
+    std::string env_name() const {
+      static std::string env_name = "laikago";
+      return env_name;
+    }
 
     LaikagoContactSimulation(bool urdf_from_file, 
           const std::string& urdf_filename, 
@@ -195,8 +197,8 @@ struct LaikagoEnv {
   int observation_dim_{0};
   LaikagoEnv(bool urdf_from_file) 
       : contact_sim(urdf_from_file,
-          "laikago/laikago_toes_zup_xyz_xyzrot.urdf",//laikago_toes_zup.urdf",
-          laikago_toes_zup_urdf,
+          "laikago/laikago_toes_zup_xyz_xyzrot.urdf",
+          laikago_toes_zup_xyz_xyzrot,
           get_initial_poses<Scalar>(),
           false) {
     observation_dim_ = contact_sim.input_dim();

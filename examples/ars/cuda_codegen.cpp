@@ -51,7 +51,6 @@ int main(int argc, char* argv[]) {
       //run on GPU
       if (!strcmp(argv[i], "-o"))
           use_omp = 1;
-      
   }
 
   using Scalar = double;
@@ -65,23 +64,17 @@ int main(int argc, char* argv[]) {
       tds::default_diff_algebra<tds::DIFF_CPPAD_CODEGEN_AUTO, 0, Scalar>::type;
 
 #ifdef USE_ANT
-  AntEnv<DiffAlgebra> env(true);
-
-  AntContactSimulation<DiffAlgebra> simulation(true,"gym/ant_org_xyz_xyzrot.urdf","",get_initial_poses<Dual>(), false);
-  AntContactSimulation<ScalarAlgebra> scalar_simulation(true,"gym/ant_org_xyz_xyzrot.urdf","",get_initial_poses<Scalar>(), false);
-  
-  std::string model_name = "cuda_model_ant";
+  AntEnv<DiffAlgebra> diff_env(false);
+  AntEnv<ScalarAlgebra> scalar_env(false);
 #else
-  LaikagoEnv<DiffAlgebra> diff_env(true);
-  LaikagoEnv<ScalarAlgebra> scalar_env(true);
+  LaikagoEnv<DiffAlgebra> diff_env(false);
+  LaikagoEnv<ScalarAlgebra> scalar_env(false);
+#endif
   
-  //LaikagoContactSimulation<DiffAlgebra> simulation(true,"laikago/laikago_toes_zup_xyz_xyzrot.urdf","",get_initial_poses<Dual>(), false);
   auto& simulation = diff_env.contact_sim;
   auto& scalar_simulation = scalar_env.contact_sim;
-  
-  std::string model_name = "cuda_model_laikago";
-#endif
 
+  std::string model_name = "cuda_model_" + scalar_env.contact_sim.env_name();
   
   // trace function with all zeros as input
   std::vector<Dual> ax(simulation.input_dim_with_action_and_variables(), Dual(0));
