@@ -195,18 +195,3 @@ target_include_directories(environment_eval PRIVATE ../third_party ../src)
 
 
 
-IF(USE_PAGMO2)
-  add_executable(pagmo2_example pagmo2_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS} )
-  target_link_libraries(pagmo2_example tinyxml2 Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
-  target_include_directories(pagmo2_example PRIVATE ../src ../third_party/tinyobjloader ../third_party)
-IF (WIN32)
-  target_compile_definitions(pagmo2_example PRIVATE -D_CPPUNWIND)
-ENDIF()
-
-  add_executable(environment_train_pagmo environment_train.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS} )
-  target_link_libraries(environment_train_pagmo tinyxml2 Eigen3::Eigen Pagmo::pagmo ${CMAKE_DL_LIBS})
-  target_include_directories(environment_train_pagmo PRIVATE ../src ../third_party/tinyobjloader ../third_party)
-IF (WIN32)
-  target_compile_definitions(environment_train_pagmo PRIVATE -D_CPPUNWIND)
-ENDIF()
-ENDIF()
