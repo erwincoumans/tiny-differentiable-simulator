@@ -122,6 +122,11 @@ struct MeshcatUrdfVisualizer {
   typedef tds::Transform<Algebra> Transform;
   typedef ::tds::MultiBody<Algebra> TinyMultiBody;
 
+  enum BASE_TRANSFORM_ORDER {
+      QUAT_XYZW_POSXYZ = 1,
+      POSXYZ_QUAT_XYZW,
+      };
+
   struct TinyVisualLinkInfo {
     std::string vis_name;
     int link_index;
@@ -360,14 +365,26 @@ struct MeshcatUrdfVisualizer {
     }
   }
 
-    void sync_visual_transforms2(const TinyMultiBody* body, const std::vector<Scalar>& params, int link_visual_transforms_start_index) {
+    void sync_visual_transforms2(const TinyMultiBody* body, const std::vector<Scalar>& params, int link_visual_transforms_start_index, BASE_TRANSFORM_ORDER base_xform_layout = QUAT_XYZW_POSXYZ) {
     // sync base transform
     int index = link_visual_transforms_start_index;
     for (int v = 0; v < body->visual_instance_uids().size(); v++) {
       int visual_id = body->visual_instance_uids()[v];
       if (m_b2vis.find(visual_id) != m_b2vis.end()) {
-        Vector3 pos(params[0],params[1],params[2]);
-        Quaternion rot(params[3],params[4],params[5],params[6]);
+        Vector3 pos(0,0,0);
+        Quaternion rot(0,0,0,1);
+        switch (base_xform_layout) { 
+            case POSXYZ_QUAT_XYZW:
+                pos = Vector3(params[0],params[1],params[2]);
+                rot = Quaternion (params[3],params[4],params[5],params[6]);
+                break;
+            case QUAT_XYZW_POSXYZ:
+                pos = Vector3(params[4],params[5],params[6]);
+                rot = Quaternion (params[0],params[1],params[2],params[3]);
+                break;
+            default: {
+                }
+         }
         Transform base_world;
         base_world.translation = pos;
         base_world.rotation = Algebra::quat_to_matrix(rot);
