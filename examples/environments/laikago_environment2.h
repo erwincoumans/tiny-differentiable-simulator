@@ -16,7 +16,8 @@
 constexpr int LAIKAGO_VARIABLE_SIZE = 3;
 
 #include "locomotion_contact_simulation.h"
-#include "laikago_toes_zup_xyz_xyzrot_urdf.h"
+//#include "laikago_toes_zup_xyz_xyzrot_urdf.h"
+#include "laikago_toes_zup_xyz_xyzrot.h"
 
 template <typename Scalar>
 static const std::vector<Scalar> get_initial_poses() {
@@ -199,7 +200,7 @@ struct LaikagoEnv {
   LaikagoEnv(bool urdf_from_file) 
       : contact_sim(urdf_from_file,
           "laikago/laikago_toes_zup_xyz_xyzrot.urdf",
-                   laikago_toes_zup_xyz_xyzrot_urdf,
+                   laikago_toes_zup_xyz_xyzrot,
           get_initial_poses<Scalar>(),
           false) {
     observation_dim_ = contact_sim.input_dim();

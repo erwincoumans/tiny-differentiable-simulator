@@ -56,7 +56,7 @@ bool do_sim = true;
 
 
 typedef LaikagoEnv<MyAlgebra> Environment;
-typedef LocomotionContactSimulation<MyAlgebra> RobotSim;
+typedef LocomotionContactSimulation<MyAlgebra, LAIKAGO_VARIABLE_SIZE> RobotSim;
 
 //typedef AntEnv<MyAlgebra> Environment;
 //typedef AntContactSimulation<MyAlgebra> RobotSim;
