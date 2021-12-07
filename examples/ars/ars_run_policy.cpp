@@ -86,7 +86,7 @@ typedef LaikagoContactSimulation<MyAlgebra> RobotSim;
 #else
 #define CARTPOLE
 #ifdef CARTPOLE
-    #include "../environments/cartpole_environment.h"
+    #include "../environments/cartpole_environment2.h"
 typedef CartpoleEnv<MyAlgebra> Environment;
 
 typedef CartpoleContactSimulation<MyAlgebra> RobotSim;

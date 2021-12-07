@@ -11,7 +11,7 @@
 #include "utils/file_utils.hpp"
 #include "math/matrix_utils.hpp"
 
-constexpr int VARIABLE_SIZE = 3;
+constexpr int ANT_VARIABLE_SIZE = 3;
 #include "locomotion_contact_simulation.h"
 #include "../environments/ant_org_xyz_xyzrot.h"
 //omp_model_ant_forward_zero_kernel
@@ -41,7 +41,7 @@ static const std::vector<Scalar> get_initial_poses() {
 
 
 template <typename Algebra>
-struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
+struct AntContactSimulation   : public LocomotionContactSimulation<Algebra, ANT_VARIABLE_SIZE> {
     using Scalar = typename Algebra::Scalar;
     using Quaternion = typename Algebra::Quaternion;
     using Vector3 = typename Algebra::Vector3;
@@ -58,7 +58,7 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra> {
           const std::string& urdf_string,
           const std::vector<Scalar>& initial_poses,
           bool floating)
-      :LocomotionContactSimulation<Algebra>(urdf_from_file, urdf_filename, urdf_string,initial_poses,floating, Scalar(0.01))
+      :LocomotionContactSimulation<Algebra, ANT_VARIABLE_SIZE>(urdf_from_file, urdf_filename, urdf_string,initial_poses,floating, Scalar(0.01))
     {
         this->set_kp(Scalar(15));
         this->set_kd(Scalar(0.3));

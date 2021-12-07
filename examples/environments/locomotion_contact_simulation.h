@@ -4,9 +4,16 @@
 #undef min
 #undef max
 
+#include "world.hpp"
+#include "urdf/urdf_cache.hpp"
+#include "dynamics/integrator.hpp"
+#include "dynamics/forward_dynamics.hpp"
+#include "plane_implicit_urdf.h"
+#include "utils/file_utils.hpp"
+#include "math/matrix_utils.hpp"
 
 
-template <typename Algebra>
+template <typename Algebra, int VARIABLE_SIZE>
 struct LocomotionContactSimulation {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
@@ -82,10 +89,10 @@ struct LocomotionContactSimulation {
           const std::vector<Scalar>& initial_poses,
           bool floating,
           Scalar delta_time)
-: initial_poses_(initial_poses),
+: dt(delta_time),
+  initial_poses_(initial_poses),
   is_floating_(floating),
-  action_dim_((int)initial_poses.size()),
-  dt(delta_time)
+  action_dim_((int)initial_poses.size())
   {
     
     std::string plane_filename = "plane_impl";

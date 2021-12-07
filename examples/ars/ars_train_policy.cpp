@@ -8,7 +8,7 @@
 #else
 
 //#include "../environments/laikago_environment.h"
-#include "../environments/cartpole_environment.h"
+#include "../environments/cartpole_environment2.h"
 //#include "../environments/reacher_environment.h"
 //#include "../environments/reacher_environment.h"
 

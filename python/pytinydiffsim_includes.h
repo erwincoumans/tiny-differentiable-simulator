@@ -31,7 +31,7 @@
 #include "math/neural_network.hpp"
 #include "utils/file_utils.hpp"
 #ifdef ENABLE_TEST_ENVS
-#include "examples/environments/cartpole_environment.h"
+#include "examples/environments/cartpole_environment2.h"
 #include "examples/environments/ant_environment.h"
 #include "examples/environments/reacher_environment.h"
 #endif//ENABLE_CARTPOLE_TEST_ENV
