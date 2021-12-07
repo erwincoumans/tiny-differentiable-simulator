@@ -147,7 +147,12 @@ int main(int argc, char* argv[]) {
 
       if (frame++>=frameskip_gfx_sync) {
           frame = 0;
+          
+#ifdef USE_MESHCAT
+          visualizer.sync_visual_transforms2(env.contact_sim.mb_,env.sim_state_with_graphics, env.contact_sim.input_dim());
+#else
           visualizer.sync_visual_transforms(env.contact_sim.mb_);
+#endif
           std::this_thread::sleep_for(std::chrono::duration<double>(frameskip_gfx_sync* env.contact_sim.dt));
           visualizer.render();
       }
