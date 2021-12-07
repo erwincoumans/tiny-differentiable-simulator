@@ -120,7 +120,7 @@ struct LocomotionContactSimulation {
                                         world, false, is_floating());
     }
      mb_->initialize();
-     for (const auto link : *mb_) {
+     for (const auto& link : *mb_) {
             for (int v=0;v<link.X_visuals.size();v++)
             {
                 num_visual_links_++;
@@ -276,7 +276,7 @@ struct LocomotionContactSimulation {
     for (int i = 0; i < mb_->dof_qd(); ++i, ++j) {
       result[j] = mb_->qd(i);
     }
-    for (const auto link : *mb_) {
+    for (const auto& link : *mb_) {
         //just copy the link world transform. Still have to multiply with visual transform for each instance.
         for (int v=0;v<link.X_visuals.size();v++)
         {
