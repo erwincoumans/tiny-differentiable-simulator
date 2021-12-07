@@ -5,7 +5,7 @@
 #include "dynamics/integrator.hpp"
 #include "math.h"
 #include "math/neural_network.hpp"
-#include "plane_implicit_urdf.h"
+
 #include "urdf/urdf_cache.hpp"
 #include "urdf/urdf_parser.hpp"
 #include "utils/file_utils.hpp"
@@ -13,10 +13,10 @@
 #include "omp_model_laikago_forward_zero.h"
 
 //variables: kp, kd, max_force
-constexpr int VARIABLE_SIZE = 3;
+constexpr int LAIKAGO_VARIABLE_SIZE = 3;
 
 #include "locomotion_contact_simulation.h"
-#include "laikago_toes_zup_xyz_xyzrot.h"
+#include "laikago_toes_zup_xyz_xyzrot_urdf.h"
 
 template <typename Scalar>
 static const std::vector<Scalar> get_initial_poses() {
@@ -35,7 +35,8 @@ static const std::vector<Scalar> get_initial_poses() {
 
 
 template <typename Algebra>
-struct LaikagoContactSimulation   : public LocomotionContactSimulation<Algebra> {
+struct LaikagoContactSimulation   :
+    public LocomotionContactSimulation<Algebra, LAIKAGO_VARIABLE_SIZE> {
     using Scalar = typename Algebra::Scalar;
     using Quaternion = typename Algebra::Quaternion;
     using Vector3 = typename Algebra::Vector3;
@@ -50,7 +51,7 @@ struct LaikagoContactSimulation   : public LocomotionContactSimulation<Algebra> 
           const std::string& urdf_string,
           const std::vector<Scalar>& initial_poses,
           bool floating)
-      :LocomotionContactSimulation<Algebra>(urdf_from_file, urdf_filename, urdf_string,initial_poses,floating, Scalar(1e-3))
+      :LocomotionContactSimulation<Algebra, LAIKAGO_VARIABLE_SIZE>(urdf_from_file, urdf_filename, urdf_string,initial_poses,floating, Scalar(1e-3))
     {
             this->set_kp(Scalar(100));
             this->set_kd(Scalar(2));
@@ -198,7 +199,7 @@ struct LaikagoEnv {
   LaikagoEnv(bool urdf_from_file) 
       : contact_sim(urdf_from_file,
           "laikago/laikago_toes_zup_xyz_xyzrot.urdf",
-          laikago_toes_zup_xyz_xyzrot,
+                   laikago_toes_zup_xyz_xyzrot_urdf,
           get_initial_poses<Scalar>(),
           false) {
     observation_dim_ = contact_sim.input_dim();

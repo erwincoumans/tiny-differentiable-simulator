@@ -29,7 +29,8 @@ using namespace TINY;
 #ifdef USE_ANT
 #include "../environments/ant_environment2.h"
 #else
-#include "../environments/laikago_environment2.h"
+//#include "../environments/laikago_environment2.h"
+#include "../environments/laikago_environment.h"
 #endif
 
 
@@ -74,7 +75,7 @@ int main(int argc, char* argv[]) {
   auto& simulation = diff_env.contact_sim;
   auto& scalar_simulation = scalar_env.contact_sim;
 
-  std::string model_name = "cuda_model_" + scalar_env.contact_sim.env_name();
+  std::string model_name = "cuda_model_laikago";// + scalar_env.contact_sim.env_name();
   
   // trace function with all zeros as input
   std::vector<Dual> ax(simulation.input_dim_with_action_and_variables(), Dual(0));
@@ -90,7 +91,7 @@ int main(int argc, char* argv[]) {
   std::vector<Dual> action;
   action.resize(8);
   ay.resize(simulation.output_dim());
-  simulation.step_forward_original(ax, ay);
+  ay = simulation(ax);
 
 
   CppAD::ADFun<CGScalar> tape;
@@ -170,7 +171,7 @@ int main(int argc, char* argv[]) {
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
   std::string file_and_path;
-  tds::FileUtils::find_file(simulation.urdf_filename_, file_and_path);
+  tds::FileUtils::find_file(simulation.m_laikago_urdf_filename, file_and_path);
   auto urdf_structures = simulation.cache.retrieve(file_and_path);// contact_sim.m_urdf_filename);
   tds::FileUtils::extract_path(file_and_path.c_str(), search_path,
       TINY_MAX_EXE_PATH_LEN);
@@ -268,7 +269,7 @@ int main(int argc, char* argv[]) {
     #pragma omp parallel
     #pragma omp for
     for (int i = 0; i < num_total_threads; ++i) {
-      scalar_simulation.reset(inputs[i], observations);
+      //scalar_simulation.reset(inputs[i], observations);
     }
 
     for (int t = 0; t < 1000; ++t) {
@@ -287,7 +288,7 @@ int main(int argc, char* argv[]) {
         #pragma omp parallel
         #pragma omp for
           for (int i = 0; i < num_total_threads; ++i) {
-            simulation.forward_kernel(1,&outputs[i][0], &inputs[i][0]);
+            //simulation.forward_kernel(1,&outputs[i][0], &inputs[i][0]);
           }
          platform = "OMP";
       } else {

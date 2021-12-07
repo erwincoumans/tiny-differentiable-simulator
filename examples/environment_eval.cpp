@@ -77,7 +77,7 @@ static std::vector<double> initial_poses = {
 typedef LaikagoEnv Environment;
 
 #else
-#include "environments/cartpole_environment.h"
+#include "environments/cartpole_environment2.h"
 typedef CartpoleEnv<MyAlgebra> Environment;
 std::vector<double> trained_weights={0.069278,5.483886,4.008912,7.406968,-0.219666};
 #endif
