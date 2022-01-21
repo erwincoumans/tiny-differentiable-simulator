@@ -116,6 +116,9 @@ PYBIND11_MODULE(pytinydiffsim_ad, m) {
         })
         .def("Reverse", &ADFun::Reverse<BaseVector>)
         .def("Jacobian", &ADFun::Jacobian<BaseVector>)
+        .def("optimize", [](ADFun& adfun) {
+            adfun.optimize("no_compare_op no_print_for_op");
+        })
         ;
 
     /* Algebra functions */
