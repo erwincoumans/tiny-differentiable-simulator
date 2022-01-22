@@ -36,7 +36,7 @@ Please use the following reference to cite this research:
 * "Interactive Differentiable Simulation", 2020, Eric Heiden, David Millard, Hejia Zhang, Gaurav S. Sukhatme. [PDF on Arxiv](https://arxiv.org/abs/1905.10706)
 
 ## Related Research using TDS by Others
-* "Efficient Differentiable Simulation of Articulated Bodies", Yi-Ling Qiao, Junbang Liang, Vladlen Koltun, Ming C. Lin, ICML 2021. [PDF on Arxiv](https://https://arxiv.org/abs/2109.07719)
+* "Efficient Differentiable Simulation of Articulated Bodies", Yi-Ling Qiao, Junbang Liang, Vladlen Koltun, Ming C. Lin, ICML 2021. [PDF on Arxiv](https://arxiv.org/abs/2109.07719)
 
 ## Getting started
 The open-source version builds using CMake and requires a compiler with C++17 support.
