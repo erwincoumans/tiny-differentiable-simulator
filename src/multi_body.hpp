@@ -588,6 +588,7 @@ class MultiBody {
         "JOINT_FIXED",       "JOINT_PRISMATIC_X",    "JOINT_PRISMATIC_Y",
         "JOINT_PRISMATIC_Z", "JOINT_PRISMATIC_AXIS", "JOINT_REVOLUTE_X",
         "JOINT_REVOLUTE_Y",  "JOINT_REVOLUTE_Z",     "JOINT_REVOLUTE_AXIS",
+        "JOINT_SPHERICAL", "JOINT_INVALID",
     };
     return names[int(t) + 1];
   }

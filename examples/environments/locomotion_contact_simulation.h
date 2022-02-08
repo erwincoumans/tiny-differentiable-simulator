@@ -82,6 +82,8 @@ struct LocomotionContactSimulation {
   bool is_floating() const { return is_floating_;};
   
   int variables_dim_{VARIABLE_SIZE};
+
+  int base_dof_{6};
   
   LocomotionContactSimulation(bool urdf_from_file, 
           const std::string& urdf_filename, 
@@ -164,7 +166,8 @@ struct LocomotionContactSimulation {
     Scalar max_force = v[variable_index+2];
     
     for (int t = 0; t < num_timesteps; ++t) {
-      if (1) {
+      bool usePD = true;
+      if (usePD) {
         // use PD controller to compute tau
         
         int param_index = 0;
@@ -174,8 +177,7 @@ struct LocomotionContactSimulation {
         }
 
         int pose_index = 0;
-        int start_link = mb_->is_floating() ? 0 : 6;//skip 3 prismatic and 3 revolute //(or 1 spherical
-        //int tau_index = mb_->is_floating() ? 0 : 6;
+        int start_link = mb_->is_floating() ? 0 : base_dof_;//skip 3 prismatic and 3 revolute or 4 spherical scalars
         for (int i = start_link; i < mb_->links_.size(); i++) {
 
             switch (mb_->links_[i].joint_type) {
