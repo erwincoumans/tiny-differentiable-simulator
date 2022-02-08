@@ -402,7 +402,40 @@ int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
   return 1;
 }
 
+template <typename Algebra>
+int contact_capsule_sphere(const tds::Geometry<Algebra>* geomA,
+                           const tds::Pose<Algebra>& poseA,
+                           const tds::Geometry<Algebra>* geomB,
+                           const tds::Pose<Algebra>& poseB,
+                           std::vector<ContactPoint<Algebra> >& contactsOut) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+  typedef tds::Pose<Algebra> Pose;
+  typedef tds::Box<Algebra> Box;
+  typedef tds::Capsule<Algebra> Capsule;
+  typedef tds::ContactPoint<Algebra> ContactPoint;
+  typedef tds::Sphere<Algebra> Sphere;
+  assert(geomA->get_type() == TINY_CAPSULE_TYPE);
+  assert(geomB->get_type() == TINY_SPHERE_TYPE);
+  const Capsule* capsule = (const Capsule*)geomA;
 
+  Sphere sphere(capsule->get_radius());
+  // shift the sphere to each end-point
+  Pose offset;
+  Algebra::set_identity(offset.orientation_);
+  offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
+                             Algebra::fraction(1, 2) * capsule->get_length());
+  Pose poseEndSphere = poseA * offset;
+  contact_sphere_sphere<Algebra>(&sphere, poseEndSphere, geomB, poseB,
+                                 contactsOut);
+  offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
+                             Algebra::fraction(-1, 2) * capsule->get_length());
+  poseEndSphere = poseA * offset;
+  contact_sphere_sphere<Algebra>(&sphere, poseEndSphere, geomB, poseB,
+                                 contactsOut);
+
+  return 2;
+}
 
 
 
@@ -434,6 +467,7 @@ class CollisionDispatcher {
     contactFuncs[TINY_PLANE_TYPE][TINY_SPHERE_TYPE] = contact_plane_sphere;
     contactFuncs[TINY_PLANE_TYPE][TINY_CAPSULE_TYPE] = contact_plane_capsule;
     contactFuncs[TINY_PLANE_TYPE][TINY_BOX_TYPE] = contact_plane_box;
+    contactFuncs[TINY_CAPSULE_TYPE][TINY_SPHERE_TYPE] = contact_capsule_sphere;
     // contactFuncs[TINY_SPHERE_TYPE][TINY_BOX_TYPE] = contact_sphere_box;
 
   }
