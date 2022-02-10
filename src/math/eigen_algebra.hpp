@@ -784,7 +784,7 @@ struct EigenAlgebraT {
     auto ang_ax = Eigen::AngleAxis<Scalar>(quat);
 
     return ang_ax.axis() * ang_ax.angle();
-#endif
+
 
     Vector3 qv(quat.x(), quat.y(), quat.z());
     Scalar qv_norm = norm(qv);//qv.length();
@@ -794,6 +794,24 @@ struct EigenAlgebraT {
                                     one()/(half() + theta*theta*fraction(1, 48)),
                                     (theta / qv_norm));
     return scaling * qv;
+#endif
+    /* Adapted from Ceres solver library. */
+    Scalar eps = Scalar(1e-6);
+    Scalar q1 = quat.x();
+    Scalar q2 = quat.y();
+    Scalar q3 = quat.z();
+    Scalar sin_squared_theta = q1 * q1 + q2 * q2 + q3 * q3;
+
+    Scalar sin_theta = sqrt(sin_squared_theta);
+    Scalar cos_theta = quat.w();
+
+    Scalar two_theta = two() * where_lt(cos_theta, zero(),
+                                        atan2(-sin_theta, -cos_theta),
+                                        atan2(sin_theta, cos_theta));
+    Scalar k = two_theta / sin_theta;
+    k = where_gt(sin_squared_theta, eps, k, two());
+
+    return Vector3(q1 * k, q2 * k, q3 * k);
   }
 
   EIGEN_ALWAYS_INLINE static const Quaternion quat_difference(
