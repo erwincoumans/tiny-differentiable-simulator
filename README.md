@@ -2,6 +2,10 @@
 
 Tiny Differentiable Simulator is a header-only C++ (and CUDA) physics library with zero dependencies.
 
+
++ Note that latest development moved to the repos forked by [Eric Heiden](https://github.com/eric-heiden/tiny-differentiable-simulator) and [Erwin Coumans](https://github.com/erwincoumans/tiny-differentiable-simulator)
+
+
 It currently implements various rigid-body dynamics algorithms, including forward and inverse dynamics, as well as contact models based on impulse-level LCP and force-based nonlinear spring-dampers. Actuator models for motors, servos, and Series-Elastic Actuator (SEA) dynamics are implemented.
 
 The entire codebase is templatized so you can use forward- and reverse-mode automatic differentiation
