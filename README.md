@@ -33,6 +33,7 @@ Please use the following reference to cite this research:
 ```
 
 ## Related Papers
+* "Inferring Articulated Rigid Body Dynamics from RGBD Video" (IROS 2022 submission) Eric Heiden, Ziang Liu, Vibhav Vineet, Erwin Coumans, Gaurav S. Sukhatme [Project Page](https://eric-heiden.com/publication/2022-video2sim-iros)
 * "NeuralSim: Augmenting Differentiable Simulators with Neural Networks" (ICRA 2021) Eric Heiden, David Millard, Erwin Coumans, Yizhou Sheng, Gaurav S. Sukhatme. [PDF on Arxiv](https://arxiv.org/abs/2011.04217)
 * “Augmenting Differentiable Simulators with Neural Networks to Close the Sim2Real Gap” (RSS 2020 sim-to-real workshop), Eric Heiden, David Millard, Erwin Coumans, Gaurav Sukhatme. [PDF on Arxiv](https://sim2real.github.io/assets/papers/2020/heiden.pdf) and [video](https://www.youtube.com/watch?v=awhkI5xtFa0)
 * "Interactive Differentiable Simulation", 2020, Eric Heiden, David Millard, Hejia Zhang, Gaurav S. Sukhatme. [PDF on Arxiv](https://arxiv.org/abs/1905.10706)
