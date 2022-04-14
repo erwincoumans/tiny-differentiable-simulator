@@ -59,6 +59,8 @@ class RigidBody {
     Algebra::set_zero(total_torque_);
   }
 
+  virtual ~RigidBody() { delete geometry_; }
+
   template <typename AlgebraTo = Algebra>
   RigidBody<AlgebraTo> clone() const {
     typedef Conversion<Algebra, AlgebraTo> C;

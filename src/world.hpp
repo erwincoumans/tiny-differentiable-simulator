@@ -48,10 +48,7 @@ class World {
   std::vector<MultiBody*> multi_bodies_;
 
   Vector3 gravity_acceleration_;
-
-  std::vector<Geometry*> geoms_;
-
-  
+ 
 
   CollisionDispatcher<Algebra> dispatcher_;
   RigidBodyConstraintSolver<Algebra>* rb_constraint_solver_{nullptr};
@@ -77,7 +74,6 @@ class World {
 
   size_t num_rigid_bodies() const { return rigid_bodies_.size(); }
   size_t num_multi_bodies() const { return multi_bodies_.size(); }
-  size_t num_geoms() const { return geoms_.size(); }
 
   inline void submit_profile_timing(const char* name=0) const {
     if (profile_timing_func_) {
@@ -99,9 +95,6 @@ class World {
   }
 
   void clear() {
-    while (!geoms_.empty()) {
-      delete geoms_.back(), geoms_.pop_back();
-    }
     while (!rigid_bodies_.empty()) {
       delete rigid_bodies_.back(), rigid_bodies_.pop_back();
     }
@@ -122,25 +115,21 @@ class World {
 
   Capsule* create_capsule(const Scalar& radius, const Scalar& length) {
     Capsule* capsule = new Capsule(radius, length);
-    geoms_.push_back(capsule);
     return capsule;
   }
 
   Plane* create_plane() {
     Plane* plane = new Plane();
-    geoms_.push_back(plane);
     return plane;
   }
 
   Sphere* create_sphere(const Scalar& radius) {
     Sphere* sphere = new Sphere(radius);
-    geoms_.push_back(sphere);
     return sphere;
   }
   
    Box* create_box (const Vector3& extents) {
       Box* box = new Box(extents);
-      geoms_.push_back(box);
       return box;
   }
 
