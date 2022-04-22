@@ -403,6 +403,19 @@ int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
 }
 
 template <typename Algebra>
+void get_closest_point_on_segment(const typename Algebra::Vector3& A,
+                                  const typename Algebra::Vector3& B,
+                                  const typename Algebra::Vector3& Point,
+                                  typename Algebra::Vector3& closestPoint) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+
+  Vector3 ab = B - A;
+  Scalar t = ab.dot(Point - A) / ab.squaredNorm();
+  closestPoint = A + ::tds::clamp(t, Algebra::zero(), Algebra::one()) * ab;
+}
+
+template <typename Algebra>
 int contact_capsule_sphere(const tds::Geometry<Algebra>* geomA,
                            const tds::Pose<Algebra>& poseA,
                            const tds::Geometry<Algebra>* geomB,
@@ -418,23 +431,19 @@ int contact_capsule_sphere(const tds::Geometry<Algebra>* geomA,
   assert(geomA->get_type() == TINY_CAPSULE_TYPE);
   assert(geomB->get_type() == TINY_SPHERE_TYPE);
   const Capsule* capsule = (const Capsule*)geomA;
-
   Sphere sphere(capsule->get_radius());
-  // shift the sphere to each end-point
+
   Pose offset;
   Algebra::set_identity(offset.orientation_);
-  offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
-                             Algebra::fraction(1, 2) * capsule->get_length());
-  Pose poseEndSphere = poseA * offset;
-  contact_sphere_sphere<Algebra>(&sphere, poseEndSphere, geomB, poseB,
-                                 contactsOut);
-  offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
-                             Algebra::fraction(-1, 2) * capsule->get_length());
-  poseEndSphere = poseA * offset;
-  contact_sphere_sphere<Algebra>(&sphere, poseEndSphere, geomB, poseB,
-                                 contactsOut);
 
-  return 2;
+  Pose poseTipSphere = capsule->get_tip_pose(poseA);
+  Pose poseBaseSphere = capsule->get_base_pose(poseA);
+  get_closest_point_on_segment<Algebra>(poseTipSphere.position_,
+                                        poseBaseSphere.position_,
+                                        poseB.position_, offset.position_);
+
+  contact_sphere_sphere<Algebra>(&sphere, offset, geomB, poseB, contactsOut);
+  return 1;
 }
 
 
