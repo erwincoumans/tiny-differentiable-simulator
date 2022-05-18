@@ -239,7 +239,7 @@ struct VectorizedEnvironment
 
         for (int index=0;index<config.batch_size;index++)
         {
-            if (!dones[index]) 
+            //if (!dones[index]) 
             {
                 sim_states_with_graphics_[index] = outputs[index];
             }
@@ -260,13 +260,17 @@ struct VectorizedEnvironment
                     rewards[index] = reward;
                     dones[index] = done;
 
-                    sim_states_[index] = sim_states_with_graphics_[index];
-                    sim_states_[index].resize(contact_sim.input_dim());
-                    observations[index] = sim_states_[index];
                 } else
                 {
                     rewards[index] = 0;
                 }
+                sim_states_[index] = sim_states_with_graphics_[index];
+                sim_states_[index].resize(contact_sim.input_dim());
+                observations[index] = sim_states_[index];
+                //don't provide x and y position
+                observations[index][0] = 0.;
+                observations[index][1] = 0.;
+
             }
         }
     }

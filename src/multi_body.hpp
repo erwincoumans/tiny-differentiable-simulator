@@ -155,7 +155,9 @@ class MultiBody {
    * Dimensionality of joint positions q (including 7-DoF floating-base
    * coordinates if this system is floating-base).
    */
-  TINY_INLINE int dof() const { return is_floating_ ? dof_q_ + 7 : dof_q_; }
+  TINY_INLINE int dof() const { 
+      return is_floating_ ? dof_q_ + 7 : dof_q_; 
+  }
   /**
    * Dimensionality of joint velocities qd and accelerations qdd (including
    * 6-DoF base velocity and acceleration, if this system is floating-base).

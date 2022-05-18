@@ -30,7 +30,7 @@ typedef TinyAlgebra<double, MyTinyConstants> MyAlgebra;
 #ifdef TRAIN_ANT
 //#include "../environments/ant_environment.h"
 #include "../environments/ant_environment2.h"
-typedef AntEnv<MyAlgebra> LocomotionEnvironment;
+typedef AntEnv2<MyAlgebra> LocomotionEnvironment;
 #else
 #include "../environments/laikago_environment2.h"
 typedef LaikagoEnv<MyAlgebra> LocomotionEnvironment;
@@ -158,7 +158,7 @@ void visualize_trajectory(const std::vector<double>& sim_state_with_graphics, in
 #include "ars_vectorized_environment.h"
 
 #ifdef TRAIN_ANT
-typedef VectorizedEnvironment<MyAlgebra, AntContactSimulation<MyAlgebra>> VecEnvironment;
+typedef VectorizedEnvironment<MyAlgebra, AntContactSimulation2<MyAlgebra>> VecEnvironment;
 #else
 typedef VectorizedEnvironment<MyAlgebra, LaikagoContactSimulation<MyAlgebra>> VecEnvironment;
 #endif

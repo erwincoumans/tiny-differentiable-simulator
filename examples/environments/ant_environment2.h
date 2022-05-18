@@ -41,7 +41,7 @@ static const std::vector<Scalar> get_initial_poses() {
 
 
 template <typename Algebra>
-struct AntContactSimulation   : public LocomotionContactSimulation<Algebra, ANT_VARIABLE_SIZE> {
+struct AntContactSimulation2   : public LocomotionContactSimulation<Algebra, ANT_VARIABLE_SIZE> {
     using Scalar = typename Algebra::Scalar;
     using Quaternion = typename Algebra::Quaternion;
     using Vector3 = typename Algebra::Vector3;
@@ -53,7 +53,7 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra, ANT_
 
 
 
-    AntContactSimulation(bool urdf_from_file, 
+    AntContactSimulation2(bool urdf_from_file, 
           const std::string& urdf_filename, 
           const std::string& urdf_string,
           const std::vector<Scalar>& initial_poses,
@@ -153,6 +153,13 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra, ANT_
                 sim_state[i] = output[i];
             }
         }
+        observation.resize(this->input_dim());
+        for (int i=0;i<observation.size();i++) {
+          observation[i] = sim_state[i];
+        }
+        //don't provide x and y coordinate
+        observation[0] = 0;
+        observation[1] = 0;
 
     }
 
@@ -168,19 +175,19 @@ struct AntContactSimulation   : public LocomotionContactSimulation<Algebra, ANT_
 
 
 template <typename Algebra>
-struct AntEnv {
+struct AntEnv2 {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
   using Quaternion = typename Algebra::Quaternion;
  
 
 
-  AntContactSimulation<Algebra> contact_sim;
+  AntContactSimulation2<Algebra> contact_sim;
   
 
   int observation_dim_{0};
 
-  AntEnv(bool urdf_from_file) 
+  AntEnv2(bool urdf_from_file) 
       : contact_sim(urdf_from_file,
           "gym/ant_org_xyz_xyzrot.urdf",
           ant_org_xyz_xyzrot,
@@ -194,7 +201,7 @@ struct AntEnv {
                                     contact_sim.action_dim(),
                                     learn_bias);
   }
-  virtual ~AntEnv() {}
+  virtual ~AntEnv2() {}
 
   void init_neural_network(const std::vector<Scalar>& x) {
     neural_network.set_parameters(x);

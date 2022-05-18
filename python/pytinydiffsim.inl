@@ -1148,6 +1148,43 @@
       .def("policy", &AntEnv<MyAlgebra>::policy)
       ;
 
+
+    py::class_<VectorizedAntEnvOutput>(m, "VectorizedAntEnvOutput")
+        .def(py::init<>())
+        .def_readwrite("obs", &VectorizedAntEnvOutput::obs)
+        .def_readwrite("rewards", &VectorizedAntEnvOutput::rewards)
+        .def_readwrite("dones", &VectorizedAntEnvOutput::dones)
+        //.def_readwrite("cart_graphics_pos",
+        //               &CartpoleEnvOutput::cart_graphics_pos)
+        //.def_readwrite("cart_graphics_orn",
+        //              &CartpoleEnvOutput::cart_graphics_orn)
+        //.def_readwrite("pole_graphics_pos",
+        //               &CartpoleEnvOutput::pole_graphics_pos)
+        //.def_readwrite("pole_graphics_orn",
+        //               &CartpoleEnvOutput::pole_graphics_orn)
+
+        ;
+
+
+     py::class_<VectorizedAntEnv>(m, "VectorizedAntEnv")
+        .def(py::init<int>())
+        .def("reset", &VectorizedAntEnv::reset)
+        .def("step", &VectorizedAntEnv::step)
+        .def("action_dim", &VectorizedAntEnv::action_dim) 
+        .def("obs_dim", &VectorizedAntEnv::obs_dim) 
+                  
+        //.def("step", &AntEnv<MyAlgebra>::step2)
+        //.def("rollout", &AntEnv<MyAlgebra>::rollout)
+        //.def("update_weights", &AntEnv<MyAlgebra>::init_neural_network)
+        //.def("seed", &AntEnv<MyAlgebra>::seed)
+        //.def("init_neural_network", &AntEnv<MyAlgebra>::init_neural_network)
+        //.def("policy", &AntEnv<MyAlgebra>::policy)
+         ;
+    
+
+     
+
+
 #endif//ENABLE_TEST_ENVS
 
 //////////////////////////////////////////////////////////////////
