@@ -19,20 +19,6 @@ constexpr int LAIKAGO_VARIABLE_SIZE = 3;
 //#include "laikago_toes_zup_xyz_xyzrot_urdf.h"
 #include "laikago_toes_zup_xyz_xyzrot.h"
 
-template <typename Scalar>
-static const std::vector<Scalar> get_initial_poses() {
-    Scalar laikago_knee_angle(-0.7);
-    Scalar laikago_abduction_angle(0.2);
-    Scalar zero(0);
-    static const std::vector<Scalar> initial_poses_laikago3 = {
-        laikago_abduction_angle, zero, laikago_knee_angle,
-        laikago_abduction_angle, zero, laikago_knee_angle,
-        laikago_abduction_angle, zero, laikago_knee_angle,
-        laikago_abduction_angle, zero, laikago_knee_angle,
-    };
-    return initial_poses_laikago3;
-}
-
 
 
 template <typename Algebra>
@@ -61,6 +47,18 @@ struct LaikagoContactSimulation   :
             this->m_start_base_orientation = Quaternion (Scalar(0),Scalar(0),Scalar(0),Scalar(1));
     }
 
+  static const std::vector<Scalar> get_initial_poses() {
+      Scalar laikago_knee_angle(-0.7);
+      Scalar laikago_abduction_angle(0.2);
+      Scalar zero(0);
+      static const std::vector<Scalar> initial_poses_laikago3 = {
+          laikago_abduction_angle, zero, laikago_knee_angle,
+          laikago_abduction_angle, zero, laikago_knee_angle,
+          laikago_abduction_angle, zero, laikago_knee_angle,
+          laikago_abduction_angle, zero, laikago_knee_angle,
+      };
+      return initial_poses_laikago3;
+  }
     
   void reset(std::vector<Scalar>& sim_state, std::vector<Scalar>& observation) const {
 
@@ -201,7 +199,7 @@ struct LaikagoEnv {
       : contact_sim(urdf_from_file,
           "laikago/laikago_toes_zup_xyz_xyzrot.urdf",
                    laikago_toes_zup_xyz_xyzrot,
-          get_initial_poses<Scalar>(),
+          LaikagoContactSimulation<Algebra>::get_initial_poses(),
           false) {
     observation_dim_ = contact_sim.input_dim();
     bool use_input_bias = false;

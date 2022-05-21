@@ -65,8 +65,8 @@ int main(int argc, char* argv[]) {
       tds::default_diff_algebra<tds::DIFF_CPPAD_CODEGEN_AUTO, 0, Scalar>::type;
 
 #ifdef USE_ANT
-  AntEnv<DiffAlgebra> diff_env(false);
-  AntEnv<ScalarAlgebra> scalar_env(false);
+  AntEnv2<DiffAlgebra> diff_env(false);
+  AntEnv2<ScalarAlgebra> scalar_env(false);
 #else
   LaikagoEnv<DiffAlgebra> diff_env(false);
   LaikagoEnv<ScalarAlgebra> scalar_env(false);

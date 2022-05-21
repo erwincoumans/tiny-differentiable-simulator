@@ -1149,20 +1149,28 @@
       ;
 
 
+    py::class_<VectorizedLaikagoEnvOutput>(m, "VectorizedLaikagoEnvOutput")
+        .def(py::init<>())
+        .def_readwrite("obs", &VectorizedLaikagoEnvOutput::obs)
+        .def_readwrite("rewards", &VectorizedLaikagoEnvOutput::rewards)
+        .def_readwrite("dones", &VectorizedLaikagoEnvOutput::dones)
+        ;
+
+
+     py::class_<VectorizedLaikagoEnv>(m, "VectorizedLaikagoEnv")
+        .def(py::init<int>())
+        .def("reset", &VectorizedLaikagoEnv::reset)
+        .def("step", &VectorizedLaikagoEnv::step)
+        .def("action_dim", &VectorizedLaikagoEnv::action_dim) 
+        .def("obs_dim", &VectorizedLaikagoEnv::obs_dim) 
+         ;
+    
+
     py::class_<VectorizedAntEnvOutput>(m, "VectorizedAntEnvOutput")
         .def(py::init<>())
         .def_readwrite("obs", &VectorizedAntEnvOutput::obs)
         .def_readwrite("rewards", &VectorizedAntEnvOutput::rewards)
         .def_readwrite("dones", &VectorizedAntEnvOutput::dones)
-        //.def_readwrite("cart_graphics_pos",
-        //               &CartpoleEnvOutput::cart_graphics_pos)
-        //.def_readwrite("cart_graphics_orn",
-        //              &CartpoleEnvOutput::cart_graphics_orn)
-        //.def_readwrite("pole_graphics_pos",
-        //               &CartpoleEnvOutput::pole_graphics_pos)
-        //.def_readwrite("pole_graphics_orn",
-        //               &CartpoleEnvOutput::pole_graphics_orn)
-
         ;
 
 
@@ -1172,13 +1180,6 @@
         .def("step", &VectorizedAntEnv::step)
         .def("action_dim", &VectorizedAntEnv::action_dim) 
         .def("obs_dim", &VectorizedAntEnv::obs_dim) 
-                  
-        //.def("step", &AntEnv<MyAlgebra>::step2)
-        //.def("rollout", &AntEnv<MyAlgebra>::rollout)
-        //.def("update_weights", &AntEnv<MyAlgebra>::init_neural_network)
-        //.def("seed", &AntEnv<MyAlgebra>::seed)
-        //.def("init_neural_network", &AntEnv<MyAlgebra>::init_neural_network)
-        //.def("policy", &AntEnv<MyAlgebra>::policy)
          ;
     
 

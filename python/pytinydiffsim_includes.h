@@ -36,11 +36,16 @@
 #include "examples/environments/reacher_environment.h"
 
 
-#include "examples/ars/ars_vectorized_environment.h"
 #include "examples/environments/ant_environment2.h"
+#include "examples/ars/ars_vectorized_environment.h"
+#include "examples/environments/laikago_environment2.h"
 
 typedef AntEnv2<MyAlgebra> LocomotionEnvironment2;
 typedef VectorizedEnvironment<MyAlgebra, AntContactSimulation2<MyAlgebra>>    VecEnvironment2;
+
+typedef LaikagoEnv<MyAlgebra> LaikagoLocomotionEnvironment;
+typedef VectorizedEnvironment<MyAlgebra, LaikagoContactSimulation<MyAlgebra>> LaikagoVecEnvironment;
+
 
 
 struct VectorizedAntEnvOutput {
@@ -97,6 +102,83 @@ class VectorizedAntEnv {
     venv.step(actions, obs, rewards, dones, config);
 
     VectorizedAntEnvOutput output;
+    output.obs.resize(obs.size());
+    for (int i = 0; i < obs.size(); i++) {
+      output.obs[i].resize(obs[i].size());
+      for (int j = 0; j < obs[i].size(); j++) {
+        output.obs[i][j] = float(obs[i][j]);
+      }
+    }
+    output.rewards.resize(rewards.size());
+    for (int i = 0; i < rewards.size(); i++) {
+      output.rewards[i] = float(rewards[i]);
+    }
+    output.dones.resize(dones.size());
+
+    for (int i = 0; i < dones.size(); i++) {
+      output.dones[i] = dones[i]? 1.f : 0.f;
+    }
+
+    return output;
+  }
+
+};
+
+
+
+
+struct VectorizedLaikagoEnvOutput {
+  std::vector < std::vector<float>> obs;
+  std::vector<float> rewards;
+  std::vector < float> dones;
+};
+
+class VectorizedLaikagoEnv {
+
+    LaikagoLocomotionEnvironment locenv;
+    LaikagoVecEnvironment venv;
+    ARSConfig config;
+   public:
+    VectorizedLaikagoEnv(int num_envs) : locenv(true), venv(locenv.contact_sim, num_envs) { 
+        config.batch_size = num_envs;
+        printf("VectorizedLaikagoEnv\n");
+
+
+    }
+
+    virtual ~VectorizedLaikagoEnv() {
+      printf("~VectorizedLaikagoEnv\n");
+    }
+  
+
+    int action_dim() const { 
+        return venv.contact_sim.action_dim();    
+    }
+
+    int obs_dim() const { 
+        int od = venv.contact_sim.input_dim();//28, x,y,z torso world pos, x,y,z world rotation, q(8) and qd (8)
+      return od;
+    }
+  std::vector<std::vector<double> >reset() 
+  { 
+    return venv.reset(config);
+  }
+
+  VectorizedLaikagoEnvOutput step(std::vector<std::vector<double>> actions) 
+  { 
+    std::vector<std::vector<double>> obs;
+    std::vector<double> rewards;
+    std::vector<bool> dones;
+    obs.resize(config.batch_size);
+    for (int i = 0; i < obs.size(); i++) {
+      obs[i].resize(obs_dim());
+    }
+  
+    rewards.resize(config.batch_size);
+    dones.resize(config.batch_size);
+    venv.step(actions, obs, rewards, dones, config);
+
+    VectorizedLaikagoEnvOutput output;
     output.obs.resize(obs.size());
     for (int i = 0; i < obs.size(); i++) {
       output.obs[i].resize(obs[i].size());

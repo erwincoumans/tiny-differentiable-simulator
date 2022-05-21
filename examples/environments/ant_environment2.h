@@ -24,19 +24,6 @@ constexpr int ANT_VARIABLE_SIZE = 3;
 
 
 
-template <typename Scalar>
-static const std::vector<Scalar> get_initial_poses() {
-    
-    static Scalar ant_knee_angle{-0.5};
-    static Scalar ant_hip = Scalar(0);
-    static std::vector<Scalar> ant_initial_poses = {
-        ant_hip, ant_knee_angle,
-        ant_hip, ant_knee_angle,
-        ant_hip, ant_knee_angle,
-        ant_hip, ant_knee_angle,
-    };
-    return ant_initial_poses;
-}
 
 
 
@@ -51,6 +38,20 @@ struct AntContactSimulation2   : public LocomotionContactSimulation<Algebra, ANT
       return env_name;
     }
 
+
+    
+    static const std::vector<Scalar> get_initial_poses() {
+        
+        static Scalar ant_knee_angle{-0.5};
+        static Scalar ant_hip = Scalar(0);
+        static std::vector<Scalar> ant_initial_poses = {
+            ant_hip, ant_knee_angle,
+            ant_hip, ant_knee_angle,
+            ant_hip, ant_knee_angle,
+            ant_hip, ant_knee_angle,
+        };
+        return ant_initial_poses;
+    }
 
 
     AntContactSimulation2(bool urdf_from_file, 
@@ -191,7 +192,7 @@ struct AntEnv2 {
       : contact_sim(urdf_from_file,
           "gym/ant_org_xyz_xyzrot.urdf",
           ant_org_xyz_xyzrot,
-          get_initial_poses<Scalar>(),
+          AntContactSimulation2<Algebra>::get_initial_poses(),
           false) {
     observation_dim_ = contact_sim.input_dim();
     bool use_input_bias = false;

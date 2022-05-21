@@ -277,12 +277,13 @@ struct VectorizedEnvironment
 
     inline const std::vector<double> policy(int index, const std::vector<double>& obs)
     {
-        std::vector<double> action (get_initial_poses<Scalar>().size(), Scalar(0));
+        std::vector<double> action (neural_networks_[index].input_dim(), Scalar(0));
     
         neural_networks_[index].compute(obs, action);
                 
         return action;
     }
+
 
 };
 
