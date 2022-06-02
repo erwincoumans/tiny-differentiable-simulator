@@ -12,6 +12,7 @@ struct ARSConfig {
     int batch_size{128};//number of parallel rollouts/robots
     int eval_interval{10};
     int num_iter{1024*1024};
+    bool auto_reset_when_done{false};
 };
     
 #endif //ARS_CONFIG_H

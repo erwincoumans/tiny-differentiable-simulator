@@ -249,7 +249,7 @@ struct VectorizedEnvironment
             B3_PROFILE("compute_reward_done");
             for (int index=0;index<config.batch_size;index++)
             {
-                if (!dones[index])
+                if (!dones[index] || config.auto_reset_when_done)
                 {
                     bool done;
                     Scalar reward;
@@ -258,13 +258,28 @@ struct VectorizedEnvironment
                         sim_states_with_graphics_[index],
                         reward, done);
                     rewards[index] = reward;
-                    dones[index] = done;
+                    if (done && config.auto_reset_when_done) 
+                    {
+                      //printf("env %d is done\n", index);
+                      sim_states_[index].resize(0);
+                      sim_states_[index].resize(
+                          contact_sim.input_dim_with_action_and_variables(),
+                          Scalar(0));
+                      observations[index].resize(contact_sim.input_dim());
 
+                      contact_sim.reset(sim_states_[index],
+                                        observations[index]);
+                    } 
+                    dones[index] = done;
                 } else
                 {
                     rewards[index] = 0;
                 }
-                sim_states_[index] = sim_states_with_graphics_[index];
+                if (dones[index] && config.auto_reset_when_done) {
+                } else {
+                  sim_states_[index] = sim_states_with_graphics_[index];
+                }
+                
                 sim_states_[index].resize(contact_sim.input_dim());
                 observations[index] = sim_states_[index];
                 //don't provide x and y position

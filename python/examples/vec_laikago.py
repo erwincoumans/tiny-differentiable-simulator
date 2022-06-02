@@ -11,25 +11,28 @@ print("step 0")
 
 import time
 
-num_envs = 1
-substeps = 10000
-ant = pd.VectorizedLaikagoEnv(num_envs)
+num_envs = 10
+substeps = 1000
+auto_reset_when_done = True
+agents = pd.VectorizedLaikagoEnv(num_envs, auto_reset_when_done)
 print("step 1")
-vecobs = ant.reset()
+vecobs = agents.reset()
 print("step 2")
 #print("len(vecobs)=",len(vecobs))
 #print("vecobs=",vecobs)
 
-#print("ant.action_dim()=",ant.action_dim())
-#print("ant.obs_dim()=",ant.obs_dim())
+#print("agents.action_dim()=",agents.action_dim())
+#print("agents.obs_dim()=",agents.obs_dim())
 
-actions = [[0] * ant.action_dim()]*num_envs
+#actions = [[0] * agents.action_dim()]*num_envs
+actions = [		[9.51359177	,	-16.0218258	,	-0.605172634	,	-4.29735327	,	-1.41641760	,	-1.21251166	,	-5.73428822	,	12.2695637	,	2.85404038	,	6.03182983	,	2.48567367	,	1.22785664]]* num_envs
+
 
 t0 = time.time()
-p.submitProfileTiming("ant_step_"+str(num_envs))
+p.submitProfileTiming("agents_step_"+str(num_envs))
 for i in range (substeps):
   p.submitProfileTiming("substep")
-  ant_res = ant.step(actions)
+  agents_res = agents.step(actions)
   p.submitProfileTiming()
   
 p.submitProfileTiming()
@@ -38,8 +41,8 @@ dt = t1-t0
 print("dt=",dt)
 print("steps/sec:",num_envs*substeps/dt)
 
-#print("ant_res.obs=",ant_res.obs)
-#print("ant_res.rewards=",ant_res.rewards)
-#print("ant_res.dones=",ant_res.dones)
+#print("agents_res.obs=",agents_res.obs)
+#print("agents_res.rewards=",agents_res.rewards)
+#print("agents_res.dones=",agents_res.dones)
 
 p.stopStateLogging(logId)

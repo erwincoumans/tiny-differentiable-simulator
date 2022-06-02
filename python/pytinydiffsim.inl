@@ -1158,7 +1158,7 @@
 
 
      py::class_<VectorizedLaikagoEnv>(m, "VectorizedLaikagoEnv")
-        .def(py::init<int>())
+        .def(py::init<int, bool>())
         .def("reset", &VectorizedLaikagoEnv::reset)
         .def("step", &VectorizedLaikagoEnv::step)
         .def("action_dim", &VectorizedLaikagoEnv::action_dim) 
@@ -1175,7 +1175,7 @@
 
 
      py::class_<VectorizedAntEnv>(m, "VectorizedAntEnv")
-        .def(py::init<int>())
+        .def(py::init<int, bool>())
         .def("reset", &VectorizedAntEnv::reset)
         .def("step", &VectorizedAntEnv::step)
         .def("action_dim", &VectorizedAntEnv::action_dim) 

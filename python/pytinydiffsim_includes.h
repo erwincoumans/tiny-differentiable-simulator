@@ -60,8 +60,10 @@ class VectorizedAntEnv {
     VecEnvironment2 venv;
     ARSConfig config;
    public:
-    VectorizedAntEnv(int num_envs) : locenv(true), venv(locenv.contact_sim, num_envs) { 
+    VectorizedAntEnv(int num_envs, bool auto_reset_when_done)
+        : locenv(true), venv(locenv.contact_sim, num_envs) { 
         config.batch_size = num_envs;
+        config.auto_reset_when_done = auto_reset_when_done;
         printf("VectorizedAntEnv\n");
 
         //VecEnvironment vec_env(locomotion_simenv.contact_sim, batch_size);
@@ -139,10 +141,11 @@ class VectorizedLaikagoEnv {
     LaikagoVecEnvironment venv;
     ARSConfig config;
    public:
-    VectorizedLaikagoEnv(int num_envs) : locenv(true), venv(locenv.contact_sim, num_envs) { 
+    VectorizedLaikagoEnv(int num_envs, bool auto_reset_when_done)
+        : locenv(true), venv(locenv.contact_sim, num_envs) {
         config.batch_size = num_envs;
+        config.auto_reset_when_done = auto_reset_when_done;
         printf("VectorizedLaikagoEnv\n");
-
 
     }
 

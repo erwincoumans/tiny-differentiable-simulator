@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string>
+#include <stdio.h>
+
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <stdio.h>
+
 
 #include "math/tiny/tiny_float_utils.h"
 #include "math/tiny/tiny_vector3.h"
 #include "math/tiny/tiny_pose.h"
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/tiny_camera.h"
-#include <string>
 
 #include "tiny_obj_loader.h"
 #include "utils/file_utils.hpp"
