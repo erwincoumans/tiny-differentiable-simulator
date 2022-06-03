@@ -153,7 +153,7 @@ SET(pytinyopengl3_SRCS
 )
 
 ADD_LIBRARY(pytinyopengl3 SHARED ${pytinyopengl3_SRCS} ${TDS_HDRS})
-TARGET_LINK_LIBRARIES(pytinyopengl3 opengl_window)
+TARGET_LINK_LIBRARIES(pytinyopengl3 tinyxml2 opengl_window)
 target_include_directories(pytinyopengl3 PRIVATE ../src)
 
 

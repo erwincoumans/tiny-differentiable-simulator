@@ -52,6 +52,7 @@ struct VectorizedAntEnvOutput {
   std::vector < std::vector<float>> obs;
   std::vector<float> rewards;
   std::vector < float> dones;
+  std::vector<std::vector<float>> visual_world_transforms;
 };
 
 class VectorizedAntEnv {
@@ -75,6 +76,7 @@ class VectorizedAntEnv {
       printf("~VectorizedAntEnv\n");
     }
   
+    std::string urdf_filename() { return venv.contact_sim.urdf_filename_; }
 
     int action_dim() const { 
         return venv.contact_sim.action_dim();    
@@ -121,6 +123,18 @@ class VectorizedAntEnv {
       output.dones[i] = dones[i]? 1.f : 0.f;
     }
 
+    output.visual_world_transforms.resize(
+        venv.sim_states_with_graphics_.size());
+
+    for (int i = 0; i < venv.sim_states_with_graphics_.size(); i++) {
+      output.visual_world_transforms[i].resize(
+          venv.sim_states_with_graphics_[i].size());
+      for (int j = 0; j < venv.sim_states_with_graphics_[i].size(); j++) {
+        output.visual_world_transforms[i][j] =
+            float(venv.sim_states_with_graphics_[i][j]);
+      }
+    }
+
     return output;
   }
 
@@ -133,38 +147,35 @@ struct VectorizedLaikagoEnvOutput {
   std::vector < std::vector<float>> obs;
   std::vector<float> rewards;
   std::vector < float> dones;
+  std::vector < std::vector<float>> visual_world_transforms;
 };
 
 class VectorizedLaikagoEnv {
+  LaikagoLocomotionEnvironment locenv;
+  LaikagoVecEnvironment venv;
+  ARSConfig config;
 
-    LaikagoLocomotionEnvironment locenv;
-    LaikagoVecEnvironment venv;
-    ARSConfig config;
-   public:
-    VectorizedLaikagoEnv(int num_envs, bool auto_reset_when_done)
-        : locenv(true), venv(locenv.contact_sim, num_envs) {
-        config.batch_size = num_envs;
-        config.auto_reset_when_done = auto_reset_when_done;
-        printf("VectorizedLaikagoEnv\n");
+ public:
+  VectorizedLaikagoEnv(int num_envs, bool auto_reset_when_done)
+      : locenv(true), venv(locenv.contact_sim, num_envs) {
+    config.batch_size = num_envs;
+    config.auto_reset_when_done = auto_reset_when_done;
+    printf("VectorizedLaikagoEnv\n");
+  }
 
-    }
+  virtual ~VectorizedLaikagoEnv() { printf("~VectorizedLaikagoEnv\n"); }
 
-    virtual ~VectorizedLaikagoEnv() {
-      printf("~VectorizedLaikagoEnv\n");
-    }
-  
+  int action_dim() const { return venv.contact_sim.action_dim(); }
 
-    int action_dim() const { 
-        return venv.contact_sim.action_dim();    
-    }
+  int obs_dim() const {
+    int od = venv.contact_sim.input_dim();  // 28, x,y,z torso world pos, x,y,z
+                                            // world rotation, q(8) and qd (8)
+    return od;
+  }
+  std::vector<std::vector<double>> reset() { return venv.reset(config); }
 
-    int obs_dim() const { 
-        int od = venv.contact_sim.input_dim();//28, x,y,z torso world pos, x,y,z world rotation, q(8) and qd (8)
-      return od;
-    }
-  std::vector<std::vector<double> >reset() 
-  { 
-    return venv.reset(config);
+  std::string urdf_filename() { 
+      return venv.contact_sim.urdf_filename_;
   }
 
   VectorizedLaikagoEnvOutput step(std::vector<std::vector<double>> actions) 
@@ -197,6 +208,18 @@ class VectorizedLaikagoEnv {
 
     for (int i = 0; i < dones.size(); i++) {
       output.dones[i] = dones[i]? 1.f : 0.f;
+    }
+
+    output.visual_world_transforms.resize(
+        venv.sim_states_with_graphics_.size());
+
+    for (int i=0;i<venv.sim_states_with_graphics_.size();i++) {
+      output.visual_world_transforms[i].resize(
+          venv.sim_states_with_graphics_[i].size());
+      for (int j = 0; j < venv.sim_states_with_graphics_[i].size(); j++) {
+        output.visual_world_transforms[i][j] =
+            float(venv.sim_states_with_graphics_[i][j]);
+      }
     }
 
     return output;

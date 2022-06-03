@@ -36,7 +36,12 @@
 #include "utils/sdf_to_mesh_converter.hpp"
 #endif
 
-template <typename Algebra>
+struct UrdfInstancePair {
+  int m_link_index;
+  int m_visual_instance;
+};
+
+  template <typename Algebra>
 struct OpenGLUrdfVisualizer {
   typedef ::tds::UrdfStructures<Algebra> TinyUrdfStructures;
   typedef ::tds::UrdfLink<Algebra> TinyUrdfLink;
@@ -357,9 +362,11 @@ struct OpenGLUrdfVisualizer {
     m_link_name_to_index.clear();
     {
       int link_index = -1;
-      std::string link_name = urdf.base_links[0].link_name;
-      m_link_name_to_index[link_name] = link_index;
-      convert_link_visuals(urdf, urdf.base_links[0], link_index, false);
+      if (urdf.base_links.size()) {
+          std::string link_name = urdf.base_links[0].link_name;
+          m_link_name_to_index[link_name] = link_index;
+          convert_link_visuals(urdf, urdf.base_links[0], link_index, false);
+      }
     }
 
     for (int link_index = 0; link_index < (int)urdf.links.size();
@@ -369,6 +376,82 @@ struct OpenGLUrdfVisualizer {
       convert_link_visuals(urdf, urdf.links[link_index], link_index, false);
     }
   }
+
+
+  void convert_visuals2(TinyUrdfStructures &urdf_structures,
+                        const std::string &texture_path) {
+
+    convert_visuals(urdf_structures, texture_path);
+  }
+  
+  std::vector < std::vector<UrdfInstancePair>> create_instances(
+      TinyUrdfStructures &urdf_structures, const std::string &texture_path,
+      int num_instances) {
+    std::vector<std::vector<UrdfInstancePair>> all_instances;
+    all_instances.resize(num_instances);
+
+    for (int ni = 0; ni < num_instances; ni++) {
+      all_instances[ni].reserve(urdf_structures.links.size() + 1);
+    }
+
+    UrdfInstancePair pair;
+    int num_base_instances = 0;
+
+    TINY::TinyVector3f pos(0, 0, 0);
+    TINY::TinyQuaternionf orn(0, 0, 0, 1);
+    TINY::TinyVector3f scaling(1, 1, 1);
+    num_base_instances = 0;
+    for (int bb = 0;
+         bb < urdf_structures.base_links[0].urdf_visual_shapes.size(); bb++) {
+      int uid =
+          urdf_structures.base_links[0].urdf_visual_shapes[bb].visual_shape_uid;
+      OpenGLUrdfVisualizer<Algebra>::TinyVisualLinkInfo &vis_link =
+          m_b2vis[uid];
+      int instance = -1;
+
+      for (int v = 0; v < vis_link.visual_shape_uids.size(); v++) {
+        int sphere_shape = vis_link.visual_shape_uids[v];
+        ::TINY::TinyVector3f color(1, 1, 1);
+        // visualizer.m_b2vis
+        for (int ni = 0; ni < num_instances; ni++) {
+          instance = m_opengl_app.m_renderer->register_graphics_instance(
+              sphere_shape, pos, orn, color, scaling, 1.0, false);
+          pair.m_link_index = -1;
+          pair.m_visual_instance = instance;
+          all_instances[ni].push_back(pair);
+        }
+      }
+    }
+
+    for (int i = 0; i < urdf_structures.links.size(); ++i) {
+      for (int bb = 0; bb < urdf_structures.links[i].urdf_visual_shapes.size();
+           bb++) {
+        int uid =
+            urdf_structures.links[i].urdf_visual_shapes[bb].visual_shape_uid;
+        OpenGLUrdfVisualizer<Algebra>::TinyVisualLinkInfo &vis_link =
+            m_b2vis[uid];
+        int instance = -1;
+
+        for (int v = 0; v < vis_link.visual_shape_uids.size(); v++) {
+          int sphere_shape = vis_link.visual_shape_uids[v];
+          ::TINY::TinyVector3f color(1, 1, 1);
+          // visualizer.m_b2vis
+          for (int ni = 0; ni < num_instances; ni++) {
+            instance = m_opengl_app.m_renderer->register_graphics_instance(
+                sphere_shape, pos, orn, color, scaling, 1.0, false);
+            pair.m_link_index = i;
+            pair.m_visual_instance = instance;
+            all_instances[ni].push_back(pair);
+          }
+        }
+      }
+    }
+    
+    m_opengl_app.m_renderer->rebuild_graphics_instances();
+    return all_instances;
+  }
+  
+
 
   void convert_visuals(TinyUrdfStructures &urdf_structures, 
                         const std::string &texture_path,
@@ -437,6 +520,38 @@ struct OpenGLUrdfVisualizer {
     }
   }
 
+  void sync_visual_transforms2(
+      const std::vector < std::vector<UrdfInstancePair>> & all_instances,
+      const std::vector < std::vector<float>> & visual_world_transforms_array,
+      int visual_offset, float sim_spacing) {
+    int batch_size = all_instances.size();
+    for (int ni = 0; ni < batch_size; ni++) {
+      // visual_world_transforms.size();
+      const auto& pairs = all_instances[ni];
+      const auto &visual_world_transforms = visual_world_transforms_array[ni];
+      const int square_id = (int)std::sqrt((double)batch_size);
+      // for (int ni = 0; ni < batch_size; ni++) {
+      int index = visual_offset;
+      for (int i = 0; i < pairs.size(); i++) {
+        auto pair = pairs[i];
+
+        ::TINY::TinyVector3f pos(
+            visual_world_transforms[index + 0] +
+                sim_spacing * (ni % square_id) - square_id * sim_spacing / 2,
+            visual_world_transforms[index + 1] +
+                sim_spacing * (ni / square_id) - square_id * sim_spacing / 2,
+            visual_world_transforms[index + 2]);
+
+        ::TINY::TinyQuaternionf orn(visual_world_transforms[index + 3],
+                                    visual_world_transforms[index + 4],
+                                    visual_world_transforms[index + 5],
+                                    visual_world_transforms[index + 6]);
+        index += 7;
+        m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(
+            pos, orn, pair.m_visual_instance);
+      }
+    }
+  }
   void sync_visual_transforms(const TinyMultiBody *body) {
     // sync base transform
     for (int v = 0; v < body->visual_instance_uids().size(); v++) {

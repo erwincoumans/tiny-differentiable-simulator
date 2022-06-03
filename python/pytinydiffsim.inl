@@ -1151,9 +1151,14 @@
 
     py::class_<VectorizedLaikagoEnvOutput>(m, "VectorizedLaikagoEnvOutput")
         .def(py::init<>())
+
         .def_readwrite("obs", &VectorizedLaikagoEnvOutput::obs)
         .def_readwrite("rewards", &VectorizedLaikagoEnvOutput::rewards)
         .def_readwrite("dones", &VectorizedLaikagoEnvOutput::dones)
+        .def_readwrite(
+            "visual_world_transforms",
+            &VectorizedLaikagoEnvOutput::visual_world_transforms)
+            
         ;
 
 
@@ -1163,6 +1168,7 @@
         .def("step", &VectorizedLaikagoEnv::step)
         .def("action_dim", &VectorizedLaikagoEnv::action_dim) 
         .def("obs_dim", &VectorizedLaikagoEnv::obs_dim) 
+        .def("urdf_filename", &VectorizedLaikagoEnv::urdf_filename) 
          ;
     
 
@@ -1171,6 +1177,8 @@
         .def_readwrite("obs", &VectorizedAntEnvOutput::obs)
         .def_readwrite("rewards", &VectorizedAntEnvOutput::rewards)
         .def_readwrite("dones", &VectorizedAntEnvOutput::dones)
+         .def_readwrite("visual_world_transforms",
+                        &VectorizedAntEnvOutput::visual_world_transforms)
         ;
 
 
@@ -1180,6 +1188,7 @@
         .def("step", &VectorizedAntEnv::step)
         .def("action_dim", &VectorizedAntEnv::action_dim) 
         .def("obs_dim", &VectorizedAntEnv::obs_dim) 
+        .def("urdf_filename", &VectorizedAntEnv::urdf_filename) 
          ;
     
 

@@ -11,8 +11,8 @@ print("step 0")
 
 import time
 
-num_envs = 10
-substeps = 10000
+num_envs = 100
+substeps = 100
 auto_reset_when_done = True
 ant = pd.VectorizedAntEnv(num_envs, auto_reset_when_done)
 print("step 1")
