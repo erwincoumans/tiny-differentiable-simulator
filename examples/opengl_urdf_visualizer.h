@@ -605,6 +605,18 @@ struct OpenGLUrdfVisualizer {
     m_opengl_app.m_renderer->render_scene();
     m_opengl_app.swap_buffer();
   }
-};
+
+  void render2() {
+    int upAxis = 2;
+    m_opengl_app.m_renderer->write_transforms();
+    m_opengl_app.m_renderer->update_camera(upAxis);
+    double lightPos[3] = {-50, 30, 40};
+    m_opengl_app.m_renderer->set_light_position(lightPos);
+    float specular[3] = {1, 1, 1};
+    m_opengl_app.m_renderer->set_light_specular_intensity(specular);
+    m_opengl_app.m_renderer->render_scene2();
+    m_opengl_app.swap_buffer();
+  }
+  };
 
 #endif  // OPENGL_URDF_VISUALIZER_H

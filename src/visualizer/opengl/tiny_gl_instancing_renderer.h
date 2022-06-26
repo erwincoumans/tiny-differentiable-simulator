@@ -79,6 +79,7 @@ class TinyGLInstancingRenderer {
   virtual void init();
 
   virtual void render_scene();
+  virtual void render_scene2();
   virtual void render_scene_internal(int orgRenderMode = B3_DEFAULT_RENDERMODE);
 
   void init_shaders();

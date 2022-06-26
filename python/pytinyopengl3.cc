@@ -243,6 +243,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def(py::init<>())
       .def("convert_visuals", &OpenGLUrdfVisualizer<MyAlgebra>::convert_visuals2)
       .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render)
+      .def("render2", &OpenGLUrdfVisualizer<MyAlgebra>::render2)
       .def("create_instances",   &OpenGLUrdfVisualizer<MyAlgebra>::create_instances)
       .def("sync_visual_transforms",
            &OpenGLUrdfVisualizer<MyAlgebra>::sync_visual_transforms2)
