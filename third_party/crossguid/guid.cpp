@@ -29,6 +29,24 @@ THE SOFTWARE.
 #include <uuid/uuid.h>
 #endif
 
+#ifdef GUID_CUSTOM
+#include <random>
+#include <sstream>
+
+namespace uuid {
+    static std::random_device              rd;
+    static std::mt19937                    gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    void generate_uuid_v4(std::array<unsigned char, 16>& data) {
+    	  for (int i=0;i<data.size();i++)
+    	  {
+    	  	data[i] = dis(gen);
+    	  }
+    }
+}
+
+#endif
+
 #ifdef GUID_CFUUID
 #include <CoreFoundation/CFUUID.h>
 #endif
@@ -238,6 +256,19 @@ Guid newGuid()
 	return Guid{std::move(data)};
 }
 #endif
+
+#ifdef GUID_CUSTOM
+
+Guid newGuid()
+{
+	std::array<unsigned char, 16> data;
+  uuid::generate_uuid_v4(data);
+  return Guid{std::move(data)};  	
+}
+
+
+#endif
+
 
 // this is the mac and ios version
 #ifdef GUID_CFUUID
