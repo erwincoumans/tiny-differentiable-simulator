@@ -1597,57 +1597,22 @@ void TinyGLInstancingRenderer::render_scene() {
 
   // glFlush();
 
-  if (m_data->m_useProjectiveTexture) {
-    render_scene_internal(B3_USE_PROJECTIVE_TEXTURE_RENDERMODE);
-  } else {
-    if (useShadowMap) {
-      render_scene_internal(B3_CREATE_SHADOWMAP_RENDERMODE);
-
-      if (m_planeReflectionShapeIndex >= 0) {
-        /* Don't update color or depth. */
-        glDisable(GL_DEPTH_TEST);
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
-        /* Draw 1 into the stencil buffer. */
-        glEnable(GL_STENCIL_TEST);
-        glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-        glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
-
-        /* Now render floor; floor pixels just get their stencil set to 1. */
-        render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE_REFLECTION_PLANE);
-
-        /* Re-enable update of color and depth. */
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glEnable(GL_DEPTH_TEST);
-
-        /* Now, only render where stencil is set to 1. */
-        glStencilFunc(GL_EQUAL, 1, 0xffffffff); /* draw if ==1 */
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-        // draw the reflection objects
-        render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE_REFLECTION);
-
-        glDisable(GL_STENCIL_TEST);
-      }
-
-      render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE);
-    } else {
-      render_scene_internal();
-    }
-  }
+  std::vector<TinyViewportTile> tiles;
+  
+  render_scene2(tiles);
 }
 
-void TinyGLInstancingRenderer::render_scene2() {
+void TinyGLInstancingRenderer::render_scene2(std::vector<TinyViewportTile>& tiles) {
   // avoid some Intel driver on a Macbook Pro to lock-up
   // todo: figure out what is going on on that machine
 
   // glFlush();
 
   if (m_data->m_useProjectiveTexture) {
-    render_scene_internal(B3_USE_PROJECTIVE_TEXTURE_RENDERMODE);
+    render_scene_internal(tiles, B3_USE_PROJECTIVE_TEXTURE_RENDERMODE);
   } else {
     if (useShadowMap) {
-      render_scene_internal(B3_CREATE_SHADOWMAP_RENDERMODE);
+      render_scene_internal(tiles, B3_CREATE_SHADOWMAP_RENDERMODE);
 
       if (m_planeReflectionShapeIndex >= 0) {
         /* Don't update color or depth. */
@@ -1660,7 +1625,7 @@ void TinyGLInstancingRenderer::render_scene2() {
         glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
 
         /* Now render floor; floor pixels just get their stencil set to 1. */
-        render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE_REFLECTION_PLANE);
+        render_scene_internal(tiles, B3_USE_SHADOWMAP_RENDERMODE_REFLECTION_PLANE);
 
         /* Re-enable update of color and depth. */
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1671,14 +1636,14 @@ void TinyGLInstancingRenderer::render_scene2() {
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
         // draw the reflection objects
-        render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE_REFLECTION);
+        render_scene_internal(tiles, B3_USE_SHADOWMAP_RENDERMODE_REFLECTION);
 
         glDisable(GL_STENCIL_TEST);
       }
 
-      render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE);
+      render_scene_internal(tiles, B3_USE_SHADOWMAP_RENDERMODE);
     } else {
-      render_scene_internal();
+      render_scene_internal(tiles);
     }
   }
 }
@@ -2076,7 +2041,7 @@ struct TransparentDistanceSortPredicate {
   }
 };
 
-void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
+void TinyGLInstancingRenderer::render_scene_internal(std::vector<TinyViewportTile>& tiles, int orgRenderMode) {
   int renderMode = orgRenderMode;
   bool reflectionPass = false;
   bool reflectionPlanePass = false;
@@ -2098,6 +2063,24 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
     renderMode = B3_USE_PROJECTIVE_TEXTURE_RENDERMODE;
   }
 
+
+
+for (int tile = 0; tile< tiles.size();tile++)
+{
+  tiles[tile].internal_visual_instances.resize(tiles[tile].visual_instances.size());
+    for (int vi = 0; vi< tiles[tile].visual_instances.size();vi++)
+    {
+      TinyPublicGraphicsInstance* pg =
+      m_data->m_publicGraphicsInstances.get_handle(tiles[tile].visual_instances[vi]);
+      if (pg) 
+      {
+        tiles[tile].internal_visual_instances[vi] = pg->m_internalInstanceIndex;
+      } else
+      {
+        tiles[tile].internal_visual_instances[vi] = -1;
+      }
+    }
+}                        
   //	glEnable(GL_DEPTH_TEST);
 
   GLint dims[4];
@@ -2536,69 +2519,76 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
                   glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
                 } else {
 
-                    int num_viewports_x = sqrt(gfxObj->m_numGraphicsInstances)+2;
-                    int num_viewports_y = num_viewports_x;
-                    float tile_x = (dims[2] - dims[0]) / float(num_viewports_x);
-                    float tile_y = (dims[3] - dims[1]) / float(num_viewports_y);
-                    int vp_index_x = 0;
-                    int vp_index_y = 0;
-
-                    if (1) {
+                    if (tiles.size()) {
                         for (unsigned int qq = 0; qq < gfxObj->m_numGraphicsInstances;
                              qq++) {
-                            glViewport(dims[0] + vp_index_x * tile_x,
-                                     dims[1] + vp_index_y * tile_y, 
-                                     tile_x,
-                                     tile_y);
 
-                            vp_index_x++;
-                            if (vp_index_x >= num_viewports_x) {
-                              vp_index_x = 0;
-                              vp_index_y++;
-                            }
+                            for (int tile = 0; tile< tiles.size();tile++)
+                            {
 
-                            
-                            if (1) {
-                              glDrawElementsInstancedBaseInstance(
-                                  GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
-                                  indexOffset, 1, qq);
-                            } else {
-                                  int instanceId =
-                                      transparentInstances[i].m_instanceId+qq;
-                                  glVertexAttribPointer(
-                                      1, 4, GL_FLOAT, GL_FALSE, 0,
-                                      (GLvoid*)((instanceId)*4 * sizeof(float) +
-                                                m_data->m_maxShapeCapacityInBytes));
-                                  glVertexAttribPointer(
-                                      2, 4, GL_FLOAT, GL_FALSE, 0,
-                                      (GLvoid*)((instanceId)*4 * sizeof(float) +
-                                                m_data->m_maxShapeCapacityInBytes +
-                                                POSITION_BUFFER_SIZE));
-                                  glVertexAttribPointer(
-                                      5, 4, GL_FLOAT, GL_FALSE, 0,
-                                      (GLvoid*)((instanceId)*4 * sizeof(float) +
-                                                m_data->m_maxShapeCapacityInBytes +
-                                                POSITION_BUFFER_SIZE +
-                                                ORIENTATION_BUFFER_SIZE));
-                                  glVertexAttribPointer(
-                                      6, 4, GL_FLOAT, GL_FALSE, 0,
-                                      (GLvoid*)((instanceId)*4 * sizeof(float) +
-                                                m_data->m_maxShapeCapacityInBytes +
-                                                POSITION_BUFFER_SIZE +
-                                                ORIENTATION_BUFFER_SIZE +
-                                                COLOR_BUFFER_SIZE));
+                                int instanceId = transparentInstances[i].m_instanceId+qq;
 
-                                  glDrawElements(GL_TRIANGLES, indexCount,
-                                                 GL_UNSIGNED_INT, 0);
+                                for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
+                                {
+                                
+                                if (tiles[tile].internal_visual_instances[vi] == instanceId)
+                                {
 
-                            }
-                        }
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+									                glUniformMatrix4fv(ProjectionMatrix, 1, false,
+									                                   &tiles[tile].projection_matrix[0]);
+									                glUniformMatrix4fv(ModelViewMatrix, 1, false,
+									                                   &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                                }
+
+                                }
+                              }
+                             }
                         glViewport(dims[0], dims[1], dims[2], dims[3]);
-                    } else {
-                      glDrawElementsInstanced(GL_TRIANGLES, indexCount,
-                                              GL_UNSIGNED_INT, indexOffset,
-                                              gfxObj->m_numGraphicsInstances);
-                    }
+                  } else {
+                    glDrawElementsInstanced(GL_TRIANGLES, indexCount,
+                                            GL_UNSIGNED_INT, indexOffset,
+                                            gfxObj->m_numGraphicsInstances);
+                  }
                 }
 
                 if (gfxObj->m_flags & B3_INSTANCE_TRANSPARANCY) {

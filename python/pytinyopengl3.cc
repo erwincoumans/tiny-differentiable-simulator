@@ -171,12 +171,15 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("set_camera_up_vector",&TinyCamera::set_camera_up_vector)
     .def("set_camera_up_axis", &TinyCamera::set_camera_up_axis)
     .def("set_camera_target_position", &TinyCamera::set_camera_target_position)
+    .def("get_camera_projection_matrix", &TinyCamera::get_camera_projection_matrix2)
+    .def("get_camera_view_matrix", &TinyCamera::get_camera_view_matrix2)
       ;
       
   py::class_<TinyGLInstancingRenderer>(m, "TinyGLInstancingRenderer")
     .def("init", &TinyGLInstancingRenderer::init)
-    
     .def("update_camera", &TinyGLInstancingRenderer::update_camera)
+    .def("get_active_camera", &TinyGLInstancingRenderer::get_active_camera2)
+    
     
     .def("register_shape", &TinyGLInstancingRenderer::register_shape1)
     //.def("update_shape", &TinyGLInstancingRenderer::update_shape)
@@ -224,6 +227,20 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("load_urdf_from_string", &::tds::UrdfParser<MyAlgebra>::load_urdf_from_string)
       ;
   
+
+
+  py::class_<TinyViewportTile>(m, "TinyViewportTile")
+          .def(py::init<>())
+          .def_readwrite("visual_instances",
+                     &TinyViewportTile::visual_instances)
+           .def_readwrite("projection_matrix",
+                    &TinyViewportTile::projection_matrix)
+           .def_readwrite("view_matrix",
+                     &TinyViewportTile::view_matrix)
+           .def_readwrite("viewport_dims",
+                     &TinyViewportTile::viewport_dims)
+
+           ;
 
   
 

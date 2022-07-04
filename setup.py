@@ -234,7 +234,7 @@ pytinydiffsim_dual_ext = Extension(
     extra_compile_args=CXX_FLAGS.split(),
     include_dirs=include_dirs + ["."])
 
-extensions.append(pytinydiffsim_dual_ext)
+#extensions.append(pytinydiffsim_dual_ext)
 
 if os.path.exists("third_party/CppAD/include"):
     platform_include_dirs = []

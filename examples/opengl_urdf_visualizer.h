@@ -606,7 +606,7 @@ struct OpenGLUrdfVisualizer {
     m_opengl_app.swap_buffer();
   }
 
-  void render2() {
+  void render2(std::vector<TinyViewportTile>& tiles) {
     int upAxis = 2;
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
@@ -614,7 +614,7 @@ struct OpenGLUrdfVisualizer {
     m_opengl_app.m_renderer->set_light_position(lightPos);
     float specular[3] = {1, 1, 1};
     m_opengl_app.m_renderer->set_light_specular_intensity(specular);
-    m_opengl_app.m_renderer->render_scene2();
+    m_opengl_app.m_renderer->render_scene2(tiles);
     m_opengl_app.swap_buffer();
   }
   };

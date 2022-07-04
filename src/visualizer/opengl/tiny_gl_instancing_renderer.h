@@ -44,6 +44,14 @@ enum {
   B3_SEGMENTATION_MASK_RENDERMODE,
 };
 
+struct TinyViewportTile
+{
+  std::vector<int> visual_instances;
+  std::vector<int> internal_visual_instances;
+  std::array<int, 4> viewport_dims;
+  std::array<float, 16> view_matrix;
+  std::array<float, 16> projection_matrix;
+};
 
 class TinyGLInstancingRenderer {
   std::vector<struct b3GraphicsInstance*> m_graphicsInstances;
@@ -79,8 +87,8 @@ class TinyGLInstancingRenderer {
   virtual void init();
 
   virtual void render_scene();
-  virtual void render_scene2();
-  virtual void render_scene_internal(int orgRenderMode = B3_DEFAULT_RENDERMODE);
+  virtual void render_scene2(std::vector<TinyViewportTile>& tiles);
+  virtual void render_scene_internal(std::vector<TinyViewportTile>& tiles, int orgRenderMode = B3_DEFAULT_RENDERMODE);
 
   void init_shaders();
   void cleanup_shaders();
@@ -188,6 +196,12 @@ class TinyGLInstancingRenderer {
 
   virtual const TinyCamera* get_active_camera() const;
   virtual TinyCamera* get_active_camera();
+  TinyCamera get_active_camera2() const
+  {
+    const TinyCamera* cam = get_active_camera();
+    return *cam;
+  }
+
   void set_camera(const TinyCamera& cam);
 
   virtual void set_active_camera(TinyCamera* cam);

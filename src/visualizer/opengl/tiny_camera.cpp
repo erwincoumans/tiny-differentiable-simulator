@@ -50,6 +50,11 @@ struct TinyCameraInternalData {
   float m_projectionMatrixVR[16];
 };
 
+  TinyCamera::TinyCamera(const TinyCamera& other)
+  {
+    m_data = new TinyCameraInternalData(*other.m_data);
+  }
+
 TinyCamera::TinyCamera() { m_data = new TinyCameraInternalData; }
 TinyCamera::~TinyCamera() { delete m_data; }
 
