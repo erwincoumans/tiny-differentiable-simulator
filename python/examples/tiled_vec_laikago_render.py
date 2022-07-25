@@ -49,8 +49,8 @@ st = time.time()
 if 1:
   width = viz.opengl_app.renderer.get_screen_width()
   height = viz.opengl_app.renderer.get_screen_height()
-  nx=14
-  ny=14  
+  nx=30
+  ny=30  
   tile_width = int(width/nx)
   tile_height = int(height/ny)
   

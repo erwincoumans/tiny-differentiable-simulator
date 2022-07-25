@@ -75,8 +75,12 @@ struct OpenGLUrdfVisualizer {
   TinyOpenGL3App m_opengl_app;
 
   OpenGLUrdfVisualizer(int width = 1024, int height = 768,
-                       const char *title = "Tiny Differentiable Simulator")
-      : m_uid(1234), m_opengl_app(title, width, height) {
+                       const char *title = "Tiny Differentiable Simulator",
+                       bool allowRetina = true, int window_type = 0,
+                       int render_device = -1, int max_num_object_capacity = 128 * 1024,
+                       int max_shape_capacity_in_bytes = 128 * 1024 * 1024)
+      : m_uid(1234), m_opengl_app(title, width, height, allowRetina, window_type,
+      render_device, max_num_object_capacity, max_shape_capacity_in_bytes) {
     m_opengl_app.m_renderer->init();
     m_opengl_app.set_up_axis(2);
     m_opengl_app.m_renderer->get_active_camera()->set_camera_distance(4);
@@ -588,7 +592,8 @@ struct OpenGLUrdfVisualizer {
       }
     }
   }
-  void render() {
+  
+  void render_no_swap() {
     int upAxis = 2;
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
@@ -603,10 +608,15 @@ struct OpenGLUrdfVisualizer {
     // const char* bla = "3d label";
     // m_opengl_app.draw_text_3d(bla, 0, 0, 1, 1);
     m_opengl_app.m_renderer->render_scene();
+  }
+
+
+  void render() {
+    render_no_swap();
     m_opengl_app.swap_buffer();
   }
 
-  void render2(std::vector<TinyViewportTile>& tiles) {
+  void render_tiled(std::vector<TinyViewportTile>& tiles) {
     int upAxis = 2;
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
@@ -615,8 +625,12 @@ struct OpenGLUrdfVisualizer {
     float specular[3] = {1, 1, 1};
     m_opengl_app.m_renderer->set_light_specular_intensity(specular);
     m_opengl_app.m_renderer->render_scene2(tiles);
-    m_opengl_app.swap_buffer();
   }
+
+  void swap_buffer() {
+      m_opengl_app.swap_buffer();
+  }
+
   };
 
 #endif  // OPENGL_URDF_VISUALIZER_H

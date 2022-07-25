@@ -19,6 +19,7 @@
 
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 
@@ -115,6 +116,32 @@ std::vector<int> my_load_obj_shapes(TinyOpenGL3App& opengl_app, const std::strin
 }
 
 
+struct ReadPixelBuffer
+{
+
+  pybind11::capsule buffer_handle;
+  pybind11::array_t<char> rgba;
+  pybind11::array_t<float> depth;
+
+  std::vector<char> rgba_data;
+  std::vector<float> depth_data;
+  
+  ReadPixelBuffer(TinyOpenGL3App& gl_app)
+  :buffer_handle(pybind11::capsule ([](){}))
+  {
+    gl_app.get_screen_pixels(rgba_data,depth_data);
+
+    char* rgba_ptr = rgba_data.size()? &rgba_data[0] : 0;
+    rgba = pybind11::array_t<char>(rgba_data.size(), rgba_ptr, buffer_handle);
+  }
+
+  virtual ~ReadPixelBuffer()
+  {
+  
+  }
+
+
+};
 
 namespace py = pybind11;
 
@@ -150,6 +177,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       py::arg("maxNumObjectCapacity")=256 * 1024,
       py::arg("maxShapeCapacityInBytes")= 256 * 1024 * 1024)
       .def("swap_buffer", &TinyOpenGL3App::swap_buffer)
+      .def("dump_next_frame_to_png", &TinyOpenGL3App::dump_next_frame_to_png)
+      .def("dump_frames_to_video", &TinyOpenGL3App::dump_frames_to_video)
       .def("register_cube_shape", &TinyOpenGL3App::register_cube_shape)
       .def("register_graphics_unit_sphere_shape", &TinyOpenGL3App::register_graphics_unit_sphere_shape)
       .def("register_graphics_capsule_shape", &TinyOpenGL3App::register_graphics_capsule_shape)
@@ -162,6 +191,11 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       ;
       
   
+  py::class_<ReadPixelBuffer>(m, "ReadPixelBuffer")
+  .def(py::init<TinyOpenGL3App&>())
+  .def_readonly("rgba", &ReadPixelBuffer::rgba,          R"pbdoc( rgba pixel data)pbdoc")
+  ;
+
   py::class_<TinyCamera>(m, "TinyCamera")
     .def(py::init<>())
     .def("update", &TinyCamera::update)
@@ -257,10 +291,21 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   
 
   py::class_<OpenGLUrdfVisualizer<MyAlgebra>>(m, "OpenGLUrdfVisualizer")
-      .def(py::init<>())
+      .def(py::init<int,int, const char*, bool, int, int, int, int>(),
+      py::arg("width")=1024,
+      py::arg("height")=768,
+      py::arg("title")="pytinyopengl3",
+      py::arg("allow_retina")=1,
+      py::arg("window_type")=0,
+      py::arg("render_device")=-1,
+      py::arg("max_num_object_capacity")=256 * 1024,
+      py::arg("max_shape_capacity_in_bytes")= 128 * 1024 * 1024)
+
       .def("convert_visuals", &OpenGLUrdfVisualizer<MyAlgebra>::convert_visuals2)
-      .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render)
-      .def("render2", &OpenGLUrdfVisualizer<MyAlgebra>::render2)
+      .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render_no_swap)
+      .def("render_tiled", &OpenGLUrdfVisualizer<MyAlgebra>::render_tiled)
+      .def("swap_buffer", &OpenGLUrdfVisualizer<MyAlgebra>::swap_buffer)
+
       .def("create_instances",   &OpenGLUrdfVisualizer<MyAlgebra>::create_instances)
       .def("sync_visual_transforms",
            &OpenGLUrdfVisualizer<MyAlgebra>::sync_visual_transforms2)

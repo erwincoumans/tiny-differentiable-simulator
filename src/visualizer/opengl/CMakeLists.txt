@@ -48,9 +48,16 @@ SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}
 
 MESSAGE (${OpenGLWindowCommon_CPP})
 
-IF(BUILD_EGL)
+if (UNIX AND NOT APPLE)
+  OPTION(ENABLE_EGL "Allow the EGL renderer" ON)
+else()
+  OPTION(ENABLE_EGL "Allow the EGL renderer" OFF)
+endif()
+
+IF(ENABLE_EGL)
     SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}  ../../../third_party/glad/egl.c)
-ENDIF(BUILD_EGL)
+ENDIF(ENABLE_EGL)
+
 
 SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}
     ../../../third_party/stb_image/stb_image_write.cpp
@@ -59,6 +66,11 @@ SET(OpenGLWindow_SRCS ${OpenGLWindow_SRCS}
 MESSAGE("OpenGLWindow_SRCS=${OpenGLWindow_SRCS}")
 
 ADD_LIBRARY(opengl_window ${OpenGLWindow_SRCS} ${OpenGLWindow_HDRS})
+
+IF(ENABLE_EGL)
+    target_compile_definitions(opengl_window PUBLIC TINY_USE_EGL PRIVATE TINY_USE_EGL)    
+ENDIF(ENABLE_EGL)
+
 if (UNIX AND NOT APPLE)
   target_link_libraries(opengl_window ${DL})
 elseif (APPLE)

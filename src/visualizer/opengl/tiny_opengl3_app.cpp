@@ -17,10 +17,10 @@
 #include "tiny_opengl3_app.h"
 #include "tiny_shape_data.h"
 
-#ifdef BT_USE_EGL
-#include "EGLOpenGLWindow.h"
+#ifdef TINY_USE_EGL
+#include "tiny_egl_opengl_window.h"
 #else
-#endif  // BT_USE_EGL
+#endif  // TINY_USE_EGL
 
 #ifdef B3_USE_GLFW
 #include "GLFWOpenGLWindow.h"
@@ -72,7 +72,7 @@ struct TinyOpenGL3AppInternalData {
   int m_droidRegular2;
   int m_textureId;
 
-  const char* m_frameDumpPngFileName;
+  std::string m_frameDumpPngFileName;
   FILE* m_ffmpegFile;
   GLRenderToTexture* m_renderTexture;
   void* m_userPointer;
@@ -91,7 +91,6 @@ struct TinyOpenGL3AppInternalData {
         m_droidRegular(0),
         m_droidRegular2(0),
         m_textureId(-1),
-        m_frameDumpPngFileName(0),
         m_ffmpegFile(0),
         m_renderTexture(0),
         m_userPointer(0),
@@ -314,7 +313,7 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
     m_window = new TinyDefaultOpenGLWindow();
 #endif
   } else if (windowType == 2) {
-#ifdef BT_USE_EGL
+#ifdef TINY_USE_EGL
     m_window = new EGLOpenGLWindow();
 #else
     printf("EGL window requires compilation with BT_USE_EGL.\n");
@@ -1122,10 +1121,9 @@ void TinyOpenGL3App::set_viewport(int width, int height) {
   }
 }
 
-void TinyOpenGL3App::get_screen_pixels(unsigned char* rgbaBuffer,
-                                       int bufferSizeInBytes,
-                                       float* depthBuffer,
-                                       int depthBufferSizeInBytes) {
+
+void TinyOpenGL3App::get_screen_pixels(std::vector<char>& rgbaBuffer,
+                                  std::vector<float>& depthBuffer) {
   int width = m_data->m_customViewPortWidth >= 0
                   ? m_data->m_customViewPortWidth
                   : (int)m_window->get_retina_scale() *
@@ -1135,17 +1133,18 @@ void TinyOpenGL3App::get_screen_pixels(unsigned char* rgbaBuffer,
                    : (int)m_window->get_retina_scale() *
                          m_instancingRenderer->get_screen_height();
 
-  assert((width * height * 4) == bufferSizeInBytes);
-  if ((width * height * 4) == bufferSizeInBytes) {
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaBuffer);
+  
+  rgbaBuffer.resize(width*height*4);
+  {
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, &rgbaBuffer[0]);
     int glstat;
     glstat = glGetError();
     assert(glstat == GL_NO_ERROR);
   }
-  assert((width * height * sizeof(float)) == depthBufferSizeInBytes);
-  if ((width * height * sizeof(float)) == depthBufferSizeInBytes) {
+  depthBuffer.resize(width * height);
+  {
     glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT,
-                 depthBuffer);
+                 &depthBuffer[0]);
     int glstat;
     glstat = glGetError();
     assert(glstat == GL_NO_ERROR);
@@ -1161,14 +1160,23 @@ static void writeTextureToFile(int textureWidth, int textureHeight,
 
   assert(glGetError() == GL_NO_ERROR);
   // glReadBuffer(GL_BACK);//COLOR_ATTACHMENT0);
-
-  float* orgPixels =
-      (float*)malloc(textureWidth * textureHeight * numComponents * 4);
-  glReadPixels(0, 0, textureWidth, textureHeight, GL_RGBA, GL_FLOAT, orgPixels);
+  
+  //int mem_bytes = textureWidth * textureHeight * numComponents * 4;
+  //printf("mem_bytes=%d\n", mem_bytes);
+  std::vector<float> orgPixelsArray;
+  orgPixelsArray.resize(textureWidth * textureHeight * numComponents);
+  //float* orgPixels =
+  //    (float*)malloc(mem_bytes);
+  // printf("orgPixels=%x\n", orgPixels);
+  float* orgPixels = &orgPixelsArray[0];
+  glReadPixels(0, 0, textureWidth, textureHeight, GL_RGBA, GL_FLOAT, &orgPixelsArray[0]);
   // it is useful to have the actual float values for debugging purposes
 
   // convert float->char
-  char* pixels = (char*)malloc(textureWidth * textureHeight * numComponents);
+  std::vector<char> pixelArray;
+  pixelArray.resize(textureWidth * textureHeight * numComponents);
+  char* pixels = &pixelArray[0];
+  
   assert(glGetError() == GL_NO_ERROR);
 
   for (int j = 0; j < textureHeight; j++) {
@@ -1210,25 +1218,25 @@ static void writeTextureToFile(int textureWidth, int textureHeight,
         }
       }
     }
+    stbi_write_png_compression_level = 0;
     stbi_write_png(fileName, textureWidth, textureHeight, numComponents, pixels,
                    textureWidth * numComponents);
+
   }
 
-  free(pixels);
-  free(orgPixels);
 }
 
 void TinyOpenGL3App::swap_buffer() {
-  if (m_data->m_frameDumpPngFileName) {
+  if (m_data->m_frameDumpPngFileName!="") {
     int width = (int)m_window->get_retina_scale() *
                 m_instancingRenderer->get_screen_width();
     int height = (int)m_window->get_retina_scale() *
                  this->m_instancingRenderer->get_screen_height();
-    writeTextureToFile(width, height, m_data->m_frameDumpPngFileName,
+    writeTextureToFile(width, height, m_data->m_frameDumpPngFileName.c_str(),
                        m_data->m_ffmpegFile);
     m_data->m_renderTexture->disable();
     if (m_data->m_ffmpegFile == 0) {
-      m_data->m_frameDumpPngFileName = 0;
+      m_data->m_frameDumpPngFileName = "";
     }
   }
   m_window->end_rendering();
@@ -1265,7 +1273,7 @@ void TinyOpenGL3App::dump_frames_to_video(const char* mp4FileName) {
     if (m_data->m_ffmpegFile) {
       fflush(m_data->m_ffmpegFile);
       pclose(m_data->m_ffmpegFile);
-      m_data->m_frameDumpPngFileName = 0;
+      m_data->m_frameDumpPngFileName = "";
     }
     m_data->m_ffmpegFile = 0;
   }
