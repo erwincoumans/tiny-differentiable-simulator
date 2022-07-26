@@ -76,6 +76,8 @@ struct TinyCamera {
 
   virtual void set_camera_frustum_far(float far);
   virtual void set_camera_frustum_near(float near);
+
+  virtual void copy_data(const TinyCamera& other);
 };
 
 #endif  // TINY_CAMERA_H

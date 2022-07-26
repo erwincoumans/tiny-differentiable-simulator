@@ -28,6 +28,8 @@ struct GLRenderToTexture {
   GLuint m_depthrenderbuffer;
   bool m_initialized;
   int m_renderTextureType;
+  int m_width;
+  int m_height;
 
  public:
   GLRenderToTexture();

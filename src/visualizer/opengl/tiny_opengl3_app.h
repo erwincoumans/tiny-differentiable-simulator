@@ -47,9 +47,10 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
 
   virtual void register_grid(int xres, int yres, const ::TINY::TinyVector3f& color0,
                              const ::TINY::TinyVector3f& color1);
-  void dump_next_frame_to_png(const char* pngFilename);
+  void dump_next_frame_to_png(const char* pngFilename, bool render_to_texture=true,
+                              int render_width=-1, int render_height=-1);
   void dump_frames_to_video(const char* mp4Filename);
-  virtual void get_screen_pixels(std::vector<char>& rgbaBuffer,
+  virtual void get_screen_pixels(std::vector<unsigned char>& rgbaBuffer,
                                   std::vector<float>& depthBuffer);
   virtual void set_viewport(int width, int height);
 

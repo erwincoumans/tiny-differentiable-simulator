@@ -593,7 +593,7 @@ struct OpenGLUrdfVisualizer {
     }
   }
   
-  void render_no_swap() {
+  void render(bool do_swap_buffer = true, bool render_segmentation_mask=false) {
     int upAxis = 2;
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
@@ -607,16 +607,25 @@ struct OpenGLUrdfVisualizer {
     m_opengl_app.draw_grid(data);
     // const char* bla = "3d label";
     // m_opengl_app.draw_text_3d(bla, 0, 0, 1, 1);
-    m_opengl_app.m_renderer->render_scene();
+    if (render_segmentation_mask)
+    {
+        std::vector<TinyViewportTile> tiles;
+         m_opengl_app.m_renderer->render_scene_internal(
+        tiles, B3_SEGMENTATION_MASK_RENDERMODE);
+    }
+    else
+    {
+        m_opengl_app.m_renderer->render_scene();
+    }
+    if (do_swap_buffer)
+    {
+        m_opengl_app.swap_buffer();
+    }
   }
 
-
-  void render() {
-    render_no_swap();
-    m_opengl_app.swap_buffer();
-  }
-
-  void render_tiled(std::vector<TinyViewportTile>& tiles) {
+  void render_tiled(std::vector<TinyViewportTile> &tiles,
+                    bool do_swap_buffer = true,
+                    bool render_segmentation_mask = false) {
     int upAxis = 2;
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
@@ -624,8 +633,25 @@ struct OpenGLUrdfVisualizer {
     m_opengl_app.m_renderer->set_light_position(lightPos);
     float specular[3] = {1, 1, 1};
     m_opengl_app.m_renderer->set_light_specular_intensity(specular);
-    m_opengl_app.m_renderer->render_scene2(tiles);
+//    m_opengl_app.m_renderer->render_scene2(tiles);
+
+    if (render_segmentation_mask)
+    {
+            m_opengl_app.m_renderer->render_scene_internal(
+        tiles, B3_SEGMENTATION_MASK_RENDERMODE);
+    }
+    else
+    {
+        m_opengl_app.m_renderer->render_scene_internal(
+           tiles, B3_DEFAULT_RENDERMODE);
+
+    }
+    if (do_swap_buffer)
+    {
+        m_opengl_app.swap_buffer();
+    }
   }
+
 
   void swap_buffer() {
       m_opengl_app.swap_buffer();

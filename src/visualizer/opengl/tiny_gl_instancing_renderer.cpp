@@ -1458,7 +1458,7 @@ void TinyGLInstancingRenderer::set_active_camera(TinyCamera* cam) {
 }
 
 void TinyGLInstancingRenderer::set_camera(const TinyCamera& cam) {
-    *m_data->m_activeCamera = cam;
+  m_data->m_activeCamera->copy_data(cam);
 }
 
 void TinyGLInstancingRenderer::set_light_specular_intensity(
@@ -2461,15 +2461,84 @@ for (int tile = 0; tile< tiles.size();tile++)
 
             switch (renderMode) {
               case B3_SEGMENTATION_MASK_RENDERMODE: {
-                glUseProgram(segmentationMaskInstancingShader);
-                glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
-                                   &m_data->m_projectionMatrix[0]);
-                glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
-                                   &m_data->m_viewMatrix[0]);
-                glDrawElementsInstanced(GL_TRIANGLES, indexCount,
-                                        GL_UNSIGNED_INT, indexOffset,
-                                        gfxObj->m_numGraphicsInstances);
 
+                glUseProgram(segmentationMaskInstancingShader);
+                if (tiles.size())
+                {
+                        for (unsigned int qq = 0; qq < gfxObj->m_numGraphicsInstances;
+                             qq++) {
+
+                            for (int tile = 0; tile< tiles.size();tile++)
+                            {
+
+                                int instanceId = transparentInstances[i].m_instanceId+qq;
+
+                                for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
+                                {
+                                
+                                if (tiles[tile].internal_visual_instances[vi] == instanceId)
+                                {
+
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+								glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                                }
+
+                                }
+                              }
+                             }
+                        glViewport(dims[0], dims[1], dims[2], dims[3]);
+                } else
+                {
+                    glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
+                                       &m_data->m_projectionMatrix[0]);
+                    glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
+                                       &m_data->m_viewMatrix[0]);
+                    glDrawElementsInstanced(GL_TRIANGLES, indexCount,
+                                            GL_UNSIGNED_INT, indexOffset,
+                                            gfxObj->m_numGraphicsInstances);
+                }
                 break;
               }
               case B3_DEFAULT_RENDERMODE: {
@@ -2540,10 +2609,10 @@ for (int tile = 0; tile< tiles.size();tile++)
                                   tiles[tile].viewport_dims[2],
                                   tiles[tile].viewport_dims[3]);
 
-									                glUniformMatrix4fv(ProjectionMatrix, 1, false,
-									                                   &tiles[tile].projection_matrix[0]);
-									                glUniformMatrix4fv(ModelViewMatrix, 1, false,
-									                                   &tiles[tile].view_matrix[0]);
+								glUniformMatrix4fv(ProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(ModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
 
 
                                 //if (0) {

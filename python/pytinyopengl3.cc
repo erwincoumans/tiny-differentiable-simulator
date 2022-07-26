@@ -120,10 +120,10 @@ struct ReadPixelBuffer
 {
 
   pybind11::capsule buffer_handle;
-  pybind11::array_t<char> rgba;
+  pybind11::array_t<unsigned char> rgba;
   pybind11::array_t<float> depth;
 
-  std::vector<char> rgba_data;
+  std::vector<unsigned char> rgba_data;
   std::vector<float> depth_data;
   
   ReadPixelBuffer(TinyOpenGL3App& gl_app)
@@ -131,8 +131,13 @@ struct ReadPixelBuffer
   {
     gl_app.get_screen_pixels(rgba_data,depth_data);
 
-    char* rgba_ptr = rgba_data.size()? &rgba_data[0] : 0;
-    rgba = pybind11::array_t<char>(rgba_data.size(), rgba_ptr, buffer_handle);
+    unsigned char* rgba_ptr = rgba_data.size()? &rgba_data[0] : 0;
+    rgba = pybind11::array_t<unsigned char>(rgba_data.size(), rgba_ptr,
+                                            buffer_handle);
+
+    float* depth_ptr = depth_data.size() ? &depth_data[0] : 0;
+    depth =
+        pybind11::array_t<float>(depth_data.size(), depth_ptr, buffer_handle);
   }
 
   virtual ~ReadPixelBuffer()
@@ -177,7 +182,14 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       py::arg("maxNumObjectCapacity")=256 * 1024,
       py::arg("maxShapeCapacityInBytes")= 256 * 1024 * 1024)
       .def("swap_buffer", &TinyOpenGL3App::swap_buffer)
-      .def("dump_next_frame_to_png", &TinyOpenGL3App::dump_next_frame_to_png)
+      .def("dump_next_frame_to_png", &TinyOpenGL3App::dump_next_frame_to_png,
+           py::arg("filename") = "image.png",
+           py::arg("render_to_texture") = 1,
+           py::arg("width") = -1,
+           py::arg("height") = -1
+          )
+
+      .def("set_background_color", &TinyOpenGL3App::set_background_color)
       .def("dump_frames_to_video", &TinyOpenGL3App::dump_frames_to_video)
       .def("register_cube_shape", &TinyOpenGL3App::register_cube_shape)
       .def("register_graphics_unit_sphere_shape", &TinyOpenGL3App::register_graphics_unit_sphere_shape)
@@ -194,6 +206,9 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   py::class_<ReadPixelBuffer>(m, "ReadPixelBuffer")
   .def(py::init<TinyOpenGL3App&>())
   .def_readonly("rgba", &ReadPixelBuffer::rgba,          R"pbdoc( rgba pixel data)pbdoc")
+  .def_readonly("depth", &ReadPixelBuffer::depth,
+                    R"pbdoc( depth pixel data)pbdoc")
+
   ;
 
   py::class_<TinyCamera>(m, "TinyCamera")
@@ -232,7 +247,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("remove_graphics_instance", &TinyGLInstancingRenderer::remove_graphics_instance)
       
     //.def("get_active_camera", (TinyCamera* (TinyGLInstancingRenderer::*)()) &TinyGLInstancingRenderer::get_active_camera)
-    .def("set_camera", &TinyGLInstancingRenderer::set_active_camera)
+    .def("set_camera", &TinyGLInstancingRenderer::set_camera)
       
     .def("draw_line", &TinyGLInstancingRenderer::draw_line)
     .def("draw_lines", &TinyGLInstancingRenderer::draw_lines)
@@ -302,8 +317,16 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       py::arg("max_shape_capacity_in_bytes")= 128 * 1024 * 1024)
 
       .def("convert_visuals", &OpenGLUrdfVisualizer<MyAlgebra>::convert_visuals2)
-      .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render_no_swap)
-      .def("render_tiled", &OpenGLUrdfVisualizer<MyAlgebra>::render_tiled)
+      .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render,
+          py::arg("do_swap_buffer")=true,
+          py::arg("render_segmentation_mask")=false
+
+      )
+      .def("render_tiled", &OpenGLUrdfVisualizer<MyAlgebra>::render_tiled,
+          py::arg("tiles"),
+          py::arg("do_swap_buffer")=true,
+          py::arg("render_segmentation_mask")=false
+          )
       .def("swap_buffer", &OpenGLUrdfVisualizer<MyAlgebra>::swap_buffer)
 
       .def("create_instances",   &OpenGLUrdfVisualizer<MyAlgebra>::create_instances)
