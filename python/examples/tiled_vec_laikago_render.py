@@ -10,11 +10,11 @@ img = np.random.rand(400, 400)
 image = plt.imshow(img, interpolation='none')#, cmap='gray', vmin=0.8, vmax=1)
 ax = plt.gca()
 
-width = 300
-height = 300
+width = 1024
+height = 768
 
 if 1:
-    num_actors = 128 #1024#4096
+    num_actors = 2 #1024#4096
     auto_reset_when_done = True
     tds_robot = tds.VectorizedLaikagoEnv(num_actors, auto_reset_when_done)
     tds_robot.reset()
@@ -69,8 +69,8 @@ if 1:
       height = viz.opengl_app.renderer.get_screen_height()
       print("screen_height=",height)
       
-      nx=3
-      ny=3  
+      nx=40
+      ny=40 
       tile_width = int(width/nx)
       tile_height = int(height/ny)
       
@@ -108,6 +108,8 @@ if 1:
       tile_width = int(width/nx)
       tile_height = int(height/ny)
     
+      ct = time.time()
+      
       cam = viz.opengl_app.renderer.get_active_camera()
       tile_index = 0
       for x in range (nx):
@@ -116,31 +118,47 @@ if 1:
           tile_index+=1
           tile.view_matrix = cam.get_camera_view_matrix()
           tile.viewport_dims=[x*tile_width,y*tile_height,tile_width, tile_height]
-    
+
+
+      et = time.time()
+      print("update viewports dt=",et-ct)
+      
+          
+      ct = time.time()
       res = tds_robot.step(actions)
-      viz.sync_visual_transforms(all_instances, res.visual_world_transforms, tds_robot.obs_dim(), sim_spacing)
+      et = time.time()
+      print("tds_robot.step dt=",et-ct)
+      
+      #viz.sync_visual_transforms(all_instances, res.visual_world_transforms, tds_robot.obs_dim(), sim_spacing)
     
-      viz.render(do_swap_buffer=False, render_segmentation_mask=True)
+      #viz.render(do_swap_buffer=False, render_segmentation_mask=True)
       #name = "test_"+str(frame)+".png"
       #viz.opengl_app.dump_next_frame_to_png(filename=name, render_to_texture=False, width=19200, height=10800)
-      #viz.render_tiled(tiles, do_swap_buffer = False, render_segmentation_mask=True)
+      ct = time.time()
+      viz.render_tiled(tiles, do_swap_buffer = False, render_segmentation_mask=False)
+      et = time.time()
+      print("render dt=",et-ct)
+      
       #viz.render()
 
-      
+      ct = time.time()
       pixels = g.ReadPixelBuffer(viz.opengl_app)
+      et = time.time()
+      print("ReadPixelBuffer dt=",et-ct)
       #print('pixels.rgba=', pixels.rgba)
 
-      np_img_arr = np.reshape(pixels.rgba, (height, width, 4))
+      #np_img_arr = np.reshape(pixels.rgba, (height, width, 4))
       #np_img_arr = np_img_arr * (1. / 255.)
-      np_img_arr = np.flipud(np_img_arr)
+      #np_img_arr = np.flipud(np_img_arr)
     
-      image.set_data(np_img_arr)
+      #image.set_data(np_img_arr)
       
       #np_depth_arr = np.flipud(np.reshape(pixels.depth, (height, width, 1)))
       #image.set_data(np_depth_arr)
-      
+      ct = time.time()
       viz.swap_buffer()
-
+      et = time.time()
+      print("swap_buffer dt=",et-ct)
       et = time.time()
       dt = et-st
       st = et
@@ -149,10 +167,10 @@ if 1:
       ax.plot([0])
       #plt.draw()
       #plt.show()
-      plt.pause(0.01)
+      #plt.pause(0.0001)
         
-      #print(dt)
-      #print("fps = ", len(tiles)*(1./dt))
+      print(dt)
+      print("fps = ", len(tiles)*(1./dt))
       
 
 
