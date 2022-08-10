@@ -143,8 +143,11 @@ struct UrdfParser {
     const tinyxml2::XMLElement* inertia_xml =
         config->FirstChildElement("inertia");
     if (!inertia_xml) {
-      logger.report_error("Inertial element must have inertia element");
-      return false;
+      logger.report_warning("Inertial element lacks inertia element, using ixx=1.0, iyy=1.0 and izz=1.0");
+      urdf_inertial.inertia_xxyyzz[0] = 1.0;
+      urdf_inertial.inertia_xxyyzz[1] = 1.0;
+      urdf_inertial.inertia_xxyyzz[2] = 1.0;
+      return true;
     }
 
     if ((inertia_xml->Attribute("ixx") && inertia_xml->Attribute("iyy") &&

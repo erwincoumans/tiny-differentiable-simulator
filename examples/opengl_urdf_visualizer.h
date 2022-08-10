@@ -30,6 +30,7 @@
 #include "visualizer/opengl/tiny_opengl3_app.h"
 #include "visualizer/opengl/utils/tiny_mesh_utils.h"
 
+
 // disabled #define USE_SDF_TO_MESH, since code crashes when radius == 0
 // #define USE_SDF_TO_MESH
 #ifdef USE_SDF_TO_MESH
@@ -39,6 +40,8 @@
 struct UrdfInstancePair {
   int m_link_index;
   int m_visual_instance;
+  ::TINY::TinyVector3f viz_origin_xyz;
+  ::TINY::TinyVector3f viz_origin_rpy;
 };
 
   template <typename Algebra>
@@ -276,6 +279,11 @@ struct OpenGLUrdfVisualizer {
 
           b2v.visual_shape_uids.push_back(shape_id);
           ::TINY::TinyVector3f color(1, 1, 1);
+          if (v.has_local_material) {
+            if (urdf.materials.count(v.material_name)) {
+              color = urdf.materials[v.material_name].material_rgb;
+            }
+          }
           b2v.shape_colors.push_back(color);
           break;
         }
@@ -332,6 +340,11 @@ struct OpenGLUrdfVisualizer {
               half_extentsx, half_extents_y, half_extents_z);
           b2v.visual_shape_uids.push_back(shape_id);
           ::TINY::TinyVector3f color(1, 1, 1);
+          if (v.has_local_material) {
+            if (urdf.materials.count(v.material_name)) {
+              color = urdf.materials[v.material_name].material_rgb;
+            }
+          }
           b2v.shape_colors.push_back(color);
 
           break;
@@ -416,12 +429,17 @@ struct OpenGLUrdfVisualizer {
       for (int v = 0; v < vis_link.visual_shape_uids.size(); v++) {
         int sphere_shape = vis_link.visual_shape_uids[v];
         ::TINY::TinyVector3f color(1, 1, 1);
+        if (v < vis_link.shape_colors.size()) {
+          color = vis_link.shape_colors[v];
+        }
         // visualizer.m_b2vis
         for (int ni = 0; ni < num_instances; ni++) {
           instance = m_opengl_app.m_renderer->register_graphics_instance(
               sphere_shape, pos, orn, color, scaling, 1.0, false);
           pair.m_link_index = -1;
           pair.m_visual_instance = instance;
+          pair.viz_origin_xyz = vis_link.origin_xyz;
+          pair.viz_origin_rpy = vis_link.origin_rpy;
           all_instances[ni].push_back(pair);
         }
       }
@@ -439,12 +457,18 @@ struct OpenGLUrdfVisualizer {
         for (int v = 0; v < vis_link.visual_shape_uids.size(); v++) {
           int sphere_shape = vis_link.visual_shape_uids[v];
           ::TINY::TinyVector3f color(1, 1, 1);
+          if (v < vis_link.shape_colors.size()) {
+            color = vis_link.shape_colors[v];
+            
+          }
           // visualizer.m_b2vis
           for (int ni = 0; ni < num_instances; ni++) {
             instance = m_opengl_app.m_renderer->register_graphics_instance(
                 sphere_shape, pos, orn, color, scaling, 1.0, false);
             pair.m_link_index = i;
             pair.m_visual_instance = instance;
+            pair.viz_origin_xyz = vis_link.origin_xyz;
+            pair.viz_origin_rpy = vis_link.origin_rpy;
             all_instances[ni].push_back(pair);
           }
         }
@@ -527,7 +551,7 @@ struct OpenGLUrdfVisualizer {
   void sync_visual_transforms2(
       const std::vector < std::vector<UrdfInstancePair>> & all_instances,
       const std::vector < std::vector<float>> & visual_world_transforms_array,
-      int visual_offset, float sim_spacing) {
+      int visual_offset, float sim_spacing, bool apply_visual_offset) {
     int batch_size = all_instances.size();
     for (int ni = 0; ni < batch_size; ni++) {
       // visual_world_transforms.size();
@@ -538,18 +562,40 @@ struct OpenGLUrdfVisualizer {
       int index = visual_offset;
       for (int i = 0; i < pairs.size(); i++) {
         auto pair = pairs[i];
+        int link_index = pair.m_link_index;
+
+        //        Transform geom_X_world = body->base_X_world() * body->X_visuals()[v];
+        //        visual_world_transforms
+        ::TINY::TinyPosef pose_rbd;
+        pose_rbd.m_position.setValue(visual_world_transforms[index + 0],
+                                   visual_world_transforms[index + 1],
+                                   visual_world_transforms[index + 2]);
+
+        pose_rbd.m_orientation.setValue(visual_world_transforms[index + 3],
+                                   visual_world_transforms[index + 4],
+                                   visual_world_transforms[index + 5],
+                                   visual_world_transforms[index + 6]);
+
+        ::TINY::TinyPosef pose_viz;
+        if (apply_visual_offset) {
+            pose_viz.m_position = pair.viz_origin_xyz;
+            pose_viz.m_orientation.set_euler_rpy(pair.viz_origin_rpy);
+        }else {
+          pose_viz.set_identity();
+        }
+
+        ::TINY::TinyPosef pose_w = pose_rbd * pose_viz;
+
 
         ::TINY::TinyVector3f pos(
-            visual_world_transforms[index + 0] +
+            pose_w.m_position.x() +
                 sim_spacing * (ni % square_id) - square_id * sim_spacing / 2,
-            visual_world_transforms[index + 1] +
+            pose_w.m_position.y() +
                 sim_spacing * (ni / square_id) - square_id * sim_spacing / 2,
-            visual_world_transforms[index + 2]);
+            pose_w.m_position.z());
 
-        ::TINY::TinyQuaternionf orn(visual_world_transforms[index + 3],
-                                    visual_world_transforms[index + 4],
-                                    visual_world_transforms[index + 5],
-                                    visual_world_transforms[index + 6]);
+        ::TINY::TinyQuaternionf orn = pose_w.m_orientation;
+        
         index += 7;
         m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(
             pos, orn, pair.m_visual_instance);

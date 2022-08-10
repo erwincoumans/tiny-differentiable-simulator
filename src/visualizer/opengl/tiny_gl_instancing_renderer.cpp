@@ -930,10 +930,12 @@ int TinyGLInstancingRenderer::register_graphics_instance(
 
   // assert(shapeIndex == (m_graphicsInstances.size()-1));
   assert(m_graphicsInstances.size() < m_data->m_maxNumObjectCapacity - 1);
-  if (shapeIndex == (m_graphicsInstances.size() - 1)) {
-    register_graphics_instance_internal(newUid, position, quaternion, color,
-                                        scaling, opacity);
-  } else {
+  //if (shapeIndex == (m_graphicsInstances.size() - 1)) 
+  //{
+  //  register_graphics_instance_internal(newUid, position, quaternion, color,
+  //                                      scaling, opacity);
+  //} else 
+  {
     int srcIndex = m_data->m_totalNumInstances++;
     pg->m_internalInstanceIndex = srcIndex;
     

@@ -331,7 +331,11 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
       .def("create_instances",   &OpenGLUrdfVisualizer<MyAlgebra>::create_instances)
       .def("sync_visual_transforms",
-           &OpenGLUrdfVisualizer<MyAlgebra>::sync_visual_transforms2)
+           &OpenGLUrdfVisualizer<MyAlgebra>::sync_visual_transforms2,
+          py::arg("all_instances"), py::arg("visual_world_transforms_array"),
+           py::arg("visual_offset"), py::arg("sim_spacing"),
+           py::arg("apply_visual_offset")=false
+          )
 
       .def_readwrite("opengl_app", &OpenGLUrdfVisualizer<MyAlgebra>::m_opengl_app)
       
