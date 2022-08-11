@@ -4,6 +4,7 @@
 #include <thread>  // std::this_thread::sleep_for
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 // #define TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
 
