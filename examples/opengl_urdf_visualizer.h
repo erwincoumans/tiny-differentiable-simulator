@@ -42,6 +42,13 @@ struct UrdfInstancePair {
   int m_visual_instance;
   ::TINY::TinyVector3f viz_origin_xyz;
   ::TINY::TinyVector3f viz_origin_rpy;
+
+    UrdfInstancePair()
+      : m_link_index(-1),
+        m_visual_instance(-1),
+        viz_origin_xyz(0.f, 0.f, 0.f),
+        viz_origin_rpy(0.f, 0.f, 0.f) {}
+
 };
 
   template <typename Algebra>

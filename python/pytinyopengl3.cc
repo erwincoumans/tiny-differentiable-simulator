@@ -295,9 +295,11 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
   py::class_<UrdfInstancePair>(m, "UrdfInstancePair")
           .def(py::init<>())
-          .def_readwrite("link_index",
-                     &UrdfInstancePair::m_link_index)
-           .def_readwrite("visual_instance", &UrdfInstancePair::m_visual_instance);
+          .def_readwrite("link_index", &UrdfInstancePair::m_link_index)
+          .def_readwrite("visual_instance", &UrdfInstancePair::m_visual_instance)
+          .def_readwrite("viz_origin_xyz", &UrdfInstancePair::viz_origin_xyz)
+          .def_readwrite("viz_origin_rpy", &UrdfInstancePair::viz_origin_rpy);
+  
   
   py::class_<::tds::UrdfStructures<MyAlgebra>>(m,"OpenGLUrdfStructures")
       .def(py::init<>())

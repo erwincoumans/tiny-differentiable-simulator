@@ -435,6 +435,9 @@ bool TinyGLInstancingRenderer::read_single_instance_transform_to_cpu(
 
 void TinyGLInstancingRenderer::write_single_instance_transform_to_cpu(
     const TinyVector3f& position, const TinyQuaternionf& orientation, int srcIndex2) {
+  if (srcIndex2 < 0) 
+      return;
+
   TinyPublicGraphicsInstance* pg =
       m_data->m_publicGraphicsInstances.get_handle(srcIndex2);
   assert(pg);
@@ -2072,8 +2075,12 @@ for (int tile = 0; tile< tiles.size();tile++)
   tiles[tile].internal_visual_instances.resize(tiles[tile].visual_instances.size());
     for (int vi = 0; vi< tiles[tile].visual_instances.size();vi++)
     {
+      int viz_instance = tiles[tile].visual_instances[vi];
+
       TinyPublicGraphicsInstance* pg =
-      m_data->m_publicGraphicsInstances.get_handle(tiles[tile].visual_instances[vi]);
+          viz_instance >= 0?
+        m_data->m_publicGraphicsInstances.get_handle(viz_instance) : 0;
+
       if (pg) 
       {
         tiles[tile].internal_visual_instances[vi] = pg->m_internalInstanceIndex;
