@@ -28,7 +28,7 @@ bool useShadowMap = false;
 #include "utils/tiny_min_max.h"
 #include "tiny_opengl_include.h"
 #include "tiny_window_interface.h"
-
+#include "utils/tiny_logging.h"
 
 
 struct caster2 {
@@ -2037,6 +2037,9 @@ struct SortableTransparentInstance {
 
   int m_shapeIndex;
   int m_instanceId;
+  std::vector<int> tiles;
+  std::vector<int> tile_instance;
+    
 };
 
 struct TransparentDistanceSortPredicate {
@@ -2047,6 +2050,7 @@ struct TransparentDistanceSortPredicate {
 };
 
 void TinyGLInstancingRenderer::render_scene_internal(std::vector<TinyViewportTile>& tiles, int orgRenderMode) {
+  B3_PROFILE("render_scene_internal");
   int renderMode = orgRenderMode;
   bool reflectionPass = false;
   bool reflectionPlanePass = false;
@@ -2069,7 +2073,8 @@ void TinyGLInstancingRenderer::render_scene_internal(std::vector<TinyViewportTil
   }
 
 
-
+{
+  B3_PROFILE("rebuild tiles");
 for (int tile = 0; tile< tiles.size();tile++)
 {
   tiles[tile].internal_visual_instances.resize(tiles[tile].visual_instances.size());
@@ -2090,6 +2095,7 @@ for (int tile = 0; tile< tiles.size();tile++)
       }
     }
 }                        
+}
   //	glEnable(GL_DEPTH_TEST);
 
   GLint dims[4];
@@ -2318,8 +2324,47 @@ for (int tile = 0; tile< tiles.size();tile++)
     TransparentDistanceSortPredicate sorter;
 
     // transparentInstances.quickSort(sorter);
+    {
+     B3_PROFILE("sort transparentInstances");
     std::sort(transparentInstances.begin(), transparentInstances.end(), sorter);
+    }
   }
+
+
+bool precompute_tiles = true;
+if (precompute_tiles)
+{
+  B3_PROFILE("build tile_instances");
+  for (int a=0;a<transparentInstances.size();a++)
+  {
+    int shapeIndex = transparentInstances[a].m_shapeIndex;
+    transparentInstances[a].tiles.reserve(tiles.size());
+    transparentInstances[a].tile_instance.reserve(tiles.size());
+    
+    b3GraphicsInstance* gfxObj = m_graphicsInstances[shapeIndex];
+    {
+      for (int tile = 0; tile< tiles.size();tile++)
+      {
+          int instanceIdStart = transparentInstances[a].m_instanceId;
+          int instanceIdEnd = instanceIdStart+gfxObj->m_numGraphicsInstances;
+          
+    
+          for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
+          {
+          
+          if ((tiles[tile].internal_visual_instances[vi] >= instanceIdStart)&& 
+            (tiles[tile].internal_visual_instances[vi] < instanceIdEnd)
+            )
+          {
+            transparentInstances[a].tiles.push_back(tile);
+            transparentInstances[a].tile_instance.push_back(tiles[tile].internal_visual_instances[vi]);
+          }
+        }
+      }
+    }
+    //printf("transparentInstances[%d].tiles.size()=%d\n", a, (int)transparentInstances[a].tiles.size());
+  }
+}
 
   // two passes: first for opaque instances, second for transparent ones.
   for (int pass = 0; pass < 2; pass++) {
@@ -2474,19 +2519,82 @@ for (int tile = 0; tile< tiles.size();tile++)
                 glUseProgram(segmentationMaskInstancingShader);
                 if (tiles.size())
                 {
+                  if (precompute_tiles)
+                    {
+                       for (int nt = 0; nt < transparentInstances[i].tiles.size();nt++)
+                            {
+                              
+                              int tile = transparentInstances[i].tiles[nt];
+                              int instanceId = transparentInstances[i].tile_instance[nt];
+                                 B3_PROFILE("tile_render_viewport_segmask");
+
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+								glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                              
+                            }
+                    } else
+                      {
                         for (unsigned int qq = 0; qq < gfxObj->m_numGraphicsInstances;
                              qq++) {
+                              
+                              B3_PROFILE("for each qq");
 
                             for (int tile = 0; tile< tiles.size();tile++)
                             {
+                              
+                              B3_PROFILE("for each tile");
 
                                 int instanceId = transparentInstances[i].m_instanceId+qq;
 
                                 for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
                                 {
+                                  B3_PROFILE("for each tile visual instance");
                                 
                                 if (tiles[tile].internal_visual_instances[vi] == instanceId)
                                 {
+                                  B3_PROFILE("tile_render_viewport_segmask");
 
                                 glViewport(
                                   tiles[tile].viewport_dims[0],
@@ -2537,6 +2645,7 @@ for (int tile = 0; tile< tiles.size();tile++)
                                 }
                               }
                              }
+                            }
                         glViewport(dims[0], dims[1], dims[2], dims[3]);
                 } else
                 {
@@ -2598,19 +2707,94 @@ for (int tile = 0; tile< tiles.size();tile++)
                 } else {
 
                     if (tiles.size()) {
-                        for (unsigned int qq = 0; qq < gfxObj->m_numGraphicsInstances;
-                             qq++) {
+                        
+                        if (precompute_tiles)
+                          {
+                            for (int nt = 0; nt < transparentInstances[i].tiles.size();nt++)
+                            {
+                              
+                              int tile = transparentInstances[i].tiles[nt];
+                              int instanceId = transparentInstances[i].tile_instance[nt];
+                              
+                                B3_PROFILE("tile_render_viewpor");
+
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+								glUniformMatrix4fv(ProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(ModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                            }
+                          } else
+                            {
+                        B3_PROFILE("tile_render_search");
+                        
+                        //for (unsigned int qq = 0; qq < gfxObj->m_numGraphicsInstances;qq++) 
+                        {
+
+                            B3_PROFILE("for each qq");
 
                             for (int tile = 0; tile< tiles.size();tile++)
                             {
+                              
+                              B3_PROFILE("for each tile");
 
-                                int instanceId = transparentInstances[i].m_instanceId+qq;
+                                
+                                  int instanceIdStart = transparentInstances[i].m_instanceId;
+                                  int instanceIdEnd = instanceIdStart+gfxObj->m_numGraphicsInstances;
+                                
 
                                 for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
                                 {
+                                  
+                                  B3_PROFILE("for each tile visual ");
                                 
-                                if (tiles[tile].internal_visual_instances[vi] == instanceId)
+                                  if ((tiles[tile].internal_visual_instances[vi] >= instanceIdStart)&& 
+                                    (tiles[tile].internal_visual_instances[vi] < instanceIdEnd)
+                                  )
                                 {
+                                  
+                                  int instanceId = tiles[tile].internal_visual_instances[vi];
+                                  
+                                  B3_PROFILE("tile_render_viewpor");
 
                                 glViewport(
                                   tiles[tile].viewport_dims[0],
@@ -2661,8 +2845,12 @@ for (int tile = 0; tile< tiles.size();tile++)
                                 }
                               }
                              }
+                        }
                         glViewport(dims[0], dims[1], dims[2], dims[3]);
+                      
                   } else {
+                    
+                    B3_PROFILE("glDrawElementsInstanced");
                     glDrawElementsInstanced(GL_TRIANGLES, indexCount,
                                             GL_UNSIGNED_INT, indexOffset,
                                             gfxObj->m_numGraphicsInstances);

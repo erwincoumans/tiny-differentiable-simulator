@@ -126,6 +126,7 @@ pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
 "src/visualizer/opengl/tiny_open_sans.cpp",\
 "src/visualizer/opengl/tiny_opengl_fontstashcallbacks.cpp",\
 "src/visualizer/opengl/tiny_opengl3_app.cpp",\
+"src/visualizer/opengl/utils/tiny_logging.cpp",\
 "third_party/stb_image/stb_image_write.cpp",\
 "third_party/glad/gl.c",\
 "third_party/stb_image/stb_image.cpp",\
@@ -276,7 +277,7 @@ extensions.append(pytinyopengl3_ext)
 
 setup(
     name='pytinydiffsim',
-    version='0.2.0',
+    version='0.3.0',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
     long_description=

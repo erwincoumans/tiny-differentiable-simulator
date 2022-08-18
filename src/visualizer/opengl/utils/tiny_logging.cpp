@@ -111,8 +111,16 @@ void TinyOutputErrorMessageVarArgsInternal(const char* str, ...) {
   va_end(argList);
 }
 
-void TinyEnterProfileZoneDefault(const char* name) {}
-void TinyLeaveProfileZoneDefault() {}
+#include "/usr/local/cuda-11.6/nsight-systems-2021.5.2/target-linux-x64/nvtx/include/nvtx3/nvToolsExt.h"
+
+void TinyEnterProfileZoneDefault(const char* name) 
+{
+nvtxRangePushA(name);
+}
+void TinyLeaveProfileZoneDefault() 
+{
+nvtxRangePop();
+}
 static TinyEnterProfileZoneFunc* Tinys_enterFunc = TinyEnterProfileZoneDefault;
 static TinyLeaveProfileZoneFunc* Tinys_leaveFunc = TinyLeaveProfileZoneDefault;
 void TinyEnterProfileZone(const char* name) { (Tinys_enterFunc)(name); }
