@@ -285,7 +285,7 @@ struct OpenGLUrdfVisualizer {
 #endif
 
           b2v.visual_shape_uids.push_back(shape_id);
-          ::TINY::TinyVector3f color(1, 1, 1);
+          TinyVector3 color(1, 1, 1);
           if (v.has_local_material) {
             if (urdf.materials.count(v.material_name)) {
               color = urdf.materials[v.material_name].material_rgb;
@@ -316,7 +316,7 @@ struct OpenGLUrdfVisualizer {
 #endif
 
           b2v.visual_shape_uids.push_back(shape_id);
-          ::TINY::TinyVector3f color(1, 1, 1);
+          TinyVector3 color(1, 1, 1);
           b2v.shape_colors.push_back(color);
           break;
         }
