@@ -36,6 +36,9 @@
 #include "math/tiny/tiny_algebra.hpp"
 #include "stb_image/stb_image.h"
 
+//to expose OpenGL constants
+#include "visualizer/opengl/tiny_opengl_include.h"
+
 using namespace TINY;
 typedef ::TINY::FloatUtils MyTinyConstants;
 typedef TinyAlgebra<float, MyTinyConstants> MyAlgebra;
@@ -188,7 +191,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
            py::arg("width") = -1,
            py::arg("height") = -1
           )
-
+      .def("enable_render_to_texture",
+           &TinyOpenGL3App::enable_render_to_texture)
       .def("set_background_color", &TinyOpenGL3App::set_background_color)
       .def("dump_frames_to_video", &TinyOpenGL3App::dump_frames_to_video)
       .def("register_cube_shape", &TinyOpenGL3App::register_cube_shape)
@@ -344,6 +348,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def_readwrite("path_prefix", &OpenGLUrdfVisualizer<MyAlgebra>::m_path_prefix)
       ;
 
+    PyModule_AddIntConstant(m.ptr(), "GL_TEXTURE_2D", GL_TEXTURE_2D);
+
   
   py::class_<TinyPose<float, FloatUtils>>(m, "TinyPosef")
       .def(py::init<>())
@@ -413,6 +419,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
         .value("SPHERE_LOD_HIGH", SPHERE_LOD_HIGH, "SPHERE_LOD_HIGH") 
         .export_values();
         ;
+
 
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;

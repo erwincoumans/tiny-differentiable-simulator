@@ -26,6 +26,7 @@ enum {
 struct GLRenderToTexture {
   GLuint m_framebufferName;
   GLuint m_depthrenderbuffer;
+  GLuint m_renderTextureId;
   bool m_initialized;
   int m_renderTextureType;
   int m_width;

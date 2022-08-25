@@ -1287,7 +1287,12 @@ void TinyOpenGL3App::dump_frames_to_video(const char* mp4FileName) {
     m_data->m_ffmpegFile = 0;
   }
 }
-void TinyOpenGL3App::dump_next_frame_to_png(const char* filename, bool render_to_texture, int render_width, int render_height) {
+
+
+void TinyOpenGL3App::dump_next_frame_to_png(const char* filename,
+                                            bool render_to_texture,
+                                            int render_width,
+                                            int render_height) {
   // open pipe to ffmpeg's stdin in binary write mode
 
   m_data->m_frameDumpPngFileName = filename;
@@ -1295,49 +1300,52 @@ void TinyOpenGL3App::dump_next_frame_to_png(const char* filename, bool render_to
   // you could use m_renderTexture to allow to render at higher resolutions,
   // such as 4k or so
   if (render_to_texture) {
-    if (!m_data->m_renderTexture) {
-      m_data->m_renderTexture = new GLRenderToTexture();
-      GLuint renderTextureId;
-      glGenTextures(1, &renderTextureId);
+    enable_render_to_texture(render_width, render_height);
+  }
+}
 
-      // "Bind" the newly created texture : all future texture functions will
-      // modify this texture
-      glBindTexture(GL_TEXTURE_2D, renderTextureId);
 
-      // Give an empty image to OpenGL ( the last "0" )
-      // glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, g_OpenGLWidth,g_OpenGLHeight,
-      // 0,GL_RGBA, GL_UNSIGNED_BYTE, 0); glTexImage2D(GL_TEXTURE_2D,
-      // 0,GL_RGBA32F, g_OpenGLWidth,g_OpenGLHeight, 0,GL_RGBA, GL_FLOAT, 0);
+uint64_t TinyOpenGL3App::enable_render_to_texture(int render_width,
+                                              int render_height) {
+  if (!m_data->m_renderTexture) {
+    m_data->m_renderTexture = new GLRenderToTexture();
+    glGenTextures(1, &m_data->m_renderTexture->m_renderTextureId);
 
-      if (render_width < 0) {
-        render_width = m_instancingRenderer->get_screen_width() *
-                       m_window->get_retina_scale();
-      }
-      if (render_height < 0) {
-        render_height = this->m_instancingRenderer->get_screen_height() *
-                        m_window->get_retina_scale();
-      }
+    // "Bind" the newly created texture : all future texture functions will
+    // modify this texture
+    glBindTexture(GL_TEXTURE_2D, m_data->m_renderTexture->m_renderTextureId);
 
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,
-                   render_width,
-                   render_height,
-                   0, GL_RGBA, GL_FLOAT, 0);
+    // Give an empty image to OpenGL ( the last "0" )
+    // glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, g_OpenGLWidth,g_OpenGLHeight,
+    // 0,GL_RGBA, GL_UNSIGNED_BYTE, 0); glTexImage2D(GL_TEXTURE_2D,
+    // 0,GL_RGBA32F, g_OpenGLWidth,g_OpenGLHeight, 0,GL_RGBA, GL_FLOAT, 0);
 
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                      GL_LINEAR_MIPMAP_LINEAR);
-      // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-      
-      m_data->m_renderTexture->init(
-          render_width,
-          render_height,
-          renderTextureId, RENDERTEXTURE_COLOR);
+    if (render_width < 0) {
+      render_width = m_instancingRenderer->get_screen_width() *
+                     m_window->get_retina_scale();
+    }
+    if (render_height < 0) {
+      render_height = this->m_instancingRenderer->get_screen_height() *
+                      m_window->get_retina_scale();
     }
 
-    m_data->m_renderTexture->enable();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, render_width, render_height, 0,
+                 GL_RGBA, GL_FLOAT, 0);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    m_data->m_renderTexture->init(render_width, render_height,
+                                  m_data->m_renderTexture->m_renderTextureId,
+                                  RENDERTEXTURE_COLOR);
   }
+
+  m_data->m_renderTexture->enable();
+
+  return m_data->m_renderTexture->m_renderTextureId;
 }
 
 void TinyOpenGL3App::set_up_axis(int axis) {

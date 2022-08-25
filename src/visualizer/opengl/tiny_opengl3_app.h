@@ -49,6 +49,9 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                              const ::TINY::TinyVector3f& color1);
   void dump_next_frame_to_png(const char* pngFilename, bool render_to_texture=true,
                               int render_width=-1, int render_height=-1);
+
+  uint64_t enable_render_to_texture(int render_width, int render_height);
+
   void dump_frames_to_video(const char* mp4Filename);
   virtual void get_screen_pixels(std::vector<unsigned char>& rgbaBuffer,
                                   std::vector<float>& depthBuffer);
