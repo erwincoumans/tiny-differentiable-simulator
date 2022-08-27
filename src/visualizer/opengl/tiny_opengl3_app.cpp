@@ -1305,6 +1305,227 @@ void TinyOpenGL3App::dump_next_frame_to_png(const char* filename,
 }
 
 
+
+// CUDA includes
+//#define USE_SYSTEM_CUDA
+#ifdef USE_SYSTEM_CUDA
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+#else
+#include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#define dlsym GetProcAddress
+#define DYNAMIC_CUDA_PATH "nvcuda.dll"
+#define DYNAMIC_CUDART_PATH "cudart64_110.dll"
+#else
+#include <dlfcn.h>
+#define DYNAMIC_CUDA_PATH "/usr/lib/x86_64-linux-gnu/libcuda.so"
+#define DYNAMIC_CUDART_PATH "/usr/local/cuda/lib64/libcudart.so"
+#endif
+
+using namespace std;
+
+enum TINY_CUDA_CODES {
+  cudaSuccess = 0,
+  CU_GET_PROC_ADDRESS_DEFAULT = 0,
+  cudaEnableDefault = 0,
+
+  cudaGraphicsMapFlagsNone = 0,
+  cudaGraphicsMapFlagsReadOnly = 1,
+  cudaGraphicsMapFlagsWriteDiscard = 2,
+
+  cudaMemcpyHostToHost = 0,     /**< Host   -> Host */
+  cudaMemcpyHostToDevice = 1,   /**< Host   -> Device */
+  cudaMemcpyDeviceToHost = 2,   /**< Device -> Host */
+  cudaMemcpyDeviceToDevice = 3, /**< Device -> Device */
+  cudaMemcpyDefault = 4 /**< Direction of the transfer is inferred from the pointer values.
+           Requires unified virtual addressing */
+};
+
+// CUDA driver API functions.
+typedef struct cudaGraphicsResource* cudaGraphicsResource_t;
+typedef struct CUstream_st* cudaStream_t;
+typedef struct cudaArray* cudaArray_t;
+
+// see
+// https://docs.nvidia.com/cuda/cuda-runtime-api/driver-vs-runtime-api.html#driver-vs-runtime-api
+// cuda driver (cuda.so)
+TINY_CUDA_CODES (*cuDriverGetVersion)(int* version);
+TINY_CUDA_CODES (*cuInit)(unsigned int flags);
+TINY_CUDA_CODES (*cuDeviceGetCount)(int* count);
+TINY_CUDA_CODES (*cuDeviceGetCount2)(int* count);
+TINY_CUDA_CODES (*cuGetProcAddress) (const char* symbol, void** pfn, int cudaVersion, uint64_t flags);
+TINY_CUDA_CODES (*cudaMalloc)(void** devPtr, size_t size);
+TINY_CUDA_CODES (*cudaFree)(void* devPtr);
+
+TINY_CUDA_CODES (*cudaMemcpyFromArray)
+(void* dst, const cudaArray_t src, size_t wOffset, size_t hOffset, size_t count,
+ unsigned int kind);
+
+#define LOAD_CUDA_FUNCTION(name, version)                                  \
+  name = reinterpret_cast<decltype(name)>(dlsym(cuda_lib, #name version)); \
+  if (!name) cout << "Error:" << #name << " not found in CUDA library" << endl
+
+// cuda runtime (cudart.so)
+TINY_CUDA_CODES (*cudaGraphicsGLRegisterImage) (cudaGraphicsResource** resource, uint64_t image, int target,
+ unsigned int flags);
+// Returns the requested driver API function pointer.
+// see also
+// https://forums.developer.nvidia.com/t/some-questions-about-cugetprocaddress/191749
+TINY_CUDA_CODES (*cudaGetDriverEntryPoint)
+(const char* symbol, void** funcPtr, unsigned long long flags);
+TINY_CUDA_CODES (*cudaGraphicsMapResources)
+(int count, cudaGraphicsResource_t* resources, cudaStream_t stream);
+TINY_CUDA_CODES (*cudaGraphicsSubResourceGetMappedArray)
+(cudaArray_t* array, cudaGraphicsResource_t resource, unsigned int arrayIndex,
+ unsigned int mipLevel);
+TINY_CUDA_CODES (*cudaGraphicsUnmapResources)
+(int count, cudaGraphicsResource_t* resources, cudaStream_t stream);
+
+#define LOAD_CUDART_FUNCTION(name, version)                                  \
+  name = reinterpret_cast<decltype(name)>(dlsym(cudart_lib, #name version)); \
+  if (!name) cout << "Error:" << #name << " not found in CUDA library" << endl
+
+
+
+static bool s_cuda_initialized = false;
+
+
+int init_cuda(bool verbose) {
+
+    if (s_cuda_initialized) 
+            return s_cuda_initialized;
+
+#ifdef _WIN32
+  HMODULE cuda_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDA_PATH);
+  HMODULE cudart_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDART_PATH);
+#else
+  void* cuda_lib = dlopen(DYNAMIC_CUDA_PATH, RTLD_NOW);
+  void* cudart_lib = dlopen(DYNAMIC_CUDART_PATH, RTLD_NOW);
+  // could use dlerror() on error
+#endif
+  if (!cuda_lib) {
+    cout << "Unable to load library " << DYNAMIC_CUDA_PATH << endl << endl;
+    return false;
+  }
+  if (!cudart_lib) {
+    cout << "Unable to load library " << DYNAMIC_CUDART_PATH << endl << endl;
+    return false;
+  }
+
+  LOAD_CUDA_FUNCTION(cuDriverGetVersion, "");
+  LOAD_CUDA_FUNCTION(cuInit, "");
+  LOAD_CUDA_FUNCTION(cuDeviceGetCount, "");
+  LOAD_CUDA_FUNCTION(cuGetProcAddress, "");
+ 
+  LOAD_CUDART_FUNCTION(cudaGetDriverEntryPoint, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsGLRegisterImage, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsMapResources, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsSubResourceGetMappedArray, "");
+  LOAD_CUDART_FUNCTION(cudaMemcpyFromArray, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsUnmapResources, "");
+  LOAD_CUDART_FUNCTION(cudaMalloc, "");
+  LOAD_CUDART_FUNCTION(cudaFree, "");
+
+  auto result = cuInit(0);
+  int cuda_driver_version;
+  result = cuDriverGetVersion(&cuda_driver_version);
+  if (verbose) {
+    cout << "CUDA driver version:" << cuda_driver_version << endl;
+  }
+  int device_count = 0;
+  result = cuDeviceGetCount(&device_count);
+  if (verbose) {
+    cout << "CUDA device count:" << device_count << endl;
+  }
+  result = cuGetProcAddress("cuDeviceGetCount", (void**)&cuDeviceGetCount2,
+                            cuda_driver_version, CU_GET_PROC_ADDRESS_DEFAULT);
+  if (cudaSuccess != result) {
+    cout << "cuDeviceGetCount not found" << endl;
+    return false;
+  }
+
+  s_cuda_initialized = true;
+  return s_cuda_initialized;
+}
+
+#endif
+
+
+struct ptr2int {
+  union {
+    void* pointer;
+    uint64_t intval;
+  };
+};
+
+
+uint64_t TinyOpenGL3App::cuda_register_texture_image(uint64_t renderTextureId, bool verbose) {
+  init_cuda(verbose);
+
+  GLuint shDrawTex;  // draws a texture
+  cudaGraphicsResource* cuda_tex_result_resource;
+  // get read-write access to OpenGL texture buffer
+  GLuint tex_cudaResult;
+  tex_cudaResult = cudaGraphicsGLRegisterImage(
+      &cuda_tex_result_resource, renderTextureId, GL_TEXTURE_2D,
+      cudaGraphicsMapFlagsReadOnly);  // cudaGraphicsMapFlagsNone);
+
+  assert(tex_cudaResult == cudaSuccess);
+
+  ptr2int caster;
+  caster.pointer = cuda_tex_result_resource;
+  return caster.intval;
+}
+
+uint64_t TinyOpenGL3App::cuda_malloc(int num_bytes) { 
+  ptr2int caster;
+  GLuint tex_cudaResult;
+   tex_cudaResult = cudaMalloc(&caster.pointer, num_bytes); 
+  assert(tex_cudaResult == cudaSuccess);
+  return caster.intval;
+}
+
+void TinyOpenGL3App::cuda_free(uint64_t cuda_ptr) {
+  ptr2int caster;
+  caster.intval = cuda_ptr;
+  cudaFree(caster.pointer);
+}
+uint64_t TinyOpenGL3App::cuda_copy_texture_image( uint64_t cuda_resource_int, uint64_t dest_memory_int, int num_bytes, bool gpu_device_destination, int w_offset, int h_offset) { 
+
+  ptr2int caster;
+  caster.intval = cuda_resource_int;
+  cudaGraphicsResource* cuda_tex_result_resource = (cudaGraphicsResource*)caster.pointer;
+  caster.intval = dest_memory_int;
+  void* dest_memory = caster.pointer;
+
+  GLuint tex_cudaResult = cudaGraphicsMapResources(1, &cuda_tex_result_resource, NULL);
+  assert(tex_cudaResult == cudaSuccess);
+
+  // https://stackoverflow.com/questions/9406844/cudagraphicsresourcegetmappedpointer-returns-unknown-error
+  // In other words, use GetMappedPointer for mapped buffer objects. Use
+  // GetMappedArray for mapped texture objects.
+  cudaArray* texture_ptr;
+  tex_cudaResult = cudaGraphicsSubResourceGetMappedArray(
+      &texture_ptr, cuda_tex_result_resource, 0, 0);
+  assert(tex_cudaResult == cudaSuccess);
+
+  tex_cudaResult = cudaMemcpyFromArray(
+      dest_memory, texture_ptr, w_offset, h_offset, num_bytes,
+      gpu_device_destination ? cudaMemcpyDeviceToDevice
+                             : cudaMemcpyDeviceToHost);
+  
+  assert(tex_cudaResult == cudaSuccess);
+
+  tex_cudaResult = cudaGraphicsUnmapResources(1, &cuda_tex_result_resource, 0);
+  assert(tex_cudaResult == cudaSuccess);
+  return (uint64_t)cuda_tex_result_resource;
+}
+
+
+
 uint64_t TinyOpenGL3App::enable_render_to_texture(int render_width,
                                               int render_height) {
   if (!m_data->m_renderTexture) {
@@ -1341,6 +1562,7 @@ uint64_t TinyOpenGL3App::enable_render_to_texture(int render_width,
     m_data->m_renderTexture->init(render_width, render_height,
                                   m_data->m_renderTexture->m_renderTextureId,
                                   RENDERTEXTURE_COLOR);
+
   }
 
   m_data->m_renderTexture->enable();

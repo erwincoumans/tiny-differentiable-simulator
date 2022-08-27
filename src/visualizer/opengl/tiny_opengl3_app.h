@@ -51,6 +51,18 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                               int render_width=-1, int render_height=-1);
 
   uint64_t enable_render_to_texture(int render_width, int render_height);
+    
+  uint64_t cuda_malloc(int num_bytes);
+  void cuda_free(uint64_t cuda_ptr);
+
+  uint64_t cuda_register_texture_image(
+      uint64_t renderTextureId, bool verbose);
+
+  uint64_t cuda_copy_texture_image(uint64_t cuda_resource_int,
+                                                   uint64_t dest_memory_int,
+                                                   int num_bytes,
+                                                   bool gpu_device,
+                                                   int w_offset=0, int h_offset=0);
 
   void dump_frames_to_video(const char* mp4Filename);
   virtual void get_screen_pixels(std::vector<unsigned char>& rgbaBuffer,

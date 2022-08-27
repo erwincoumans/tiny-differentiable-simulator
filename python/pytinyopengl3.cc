@@ -193,6 +193,27 @@ PYBIND11_MODULE(pytinyopengl3, m) {
           )
       .def("enable_render_to_texture",
            &TinyOpenGL3App::enable_render_to_texture)
+
+      .def("cuda_register_texture_image",
+           &TinyOpenGL3App::cuda_register_texture_image,
+           py::arg("gl_texture_int"),
+           py::arg("verbose")=true      
+      )
+
+      .def("cuda_copy_texture_image", &TinyOpenGL3App::cuda_copy_texture_image,
+            py::arg("cuda_resource_int"),
+            py::arg("dest_memory_int"),
+            py::arg("num_bytes"), 
+            py::arg("gpu_device_destination") = true,
+            py::arg("w_offset") = 0,
+            py::arg("h_offset") = 0)
+
+      .def("cuda_malloc", &TinyOpenGL3App::cuda_malloc,
+                            py::arg("num_bytes"))
+
+      .def("cuda_free", &TinyOpenGL3App::cuda_free,
+           py::arg("cuda_ptr"))
+
       .def("set_background_color", &TinyOpenGL3App::set_background_color)
       .def("dump_frames_to_video", &TinyOpenGL3App::dump_frames_to_video)
       .def("register_cube_shape", &TinyOpenGL3App::register_cube_shape)
