@@ -1550,8 +1550,11 @@ uint64_t TinyOpenGL3App::enable_render_to_texture(int render_width,
                       m_window->get_retina_scale();
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, render_width, render_height, 0,
-                 GL_RGBA, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, render_width, render_height,
+                 0,GL_RGBA, GL_UNSIGNED_BYTE, 0);
+                 
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, render_width, render_height, 0,
+    //             GL_RGBA, GL_FLOAT, 0);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
