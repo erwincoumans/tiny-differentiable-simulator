@@ -335,6 +335,24 @@ struct OpenGLUrdfVisualizer {
           b2v.shape_colors.push_back(color);
           break;
         }
+#else
+        case ::tds::TINY_CYLINDER_TYPE: {
+          //::tds::Cylinder<Algebra> gen_cylinder(v.geometry.cylinder.radius,
+          //                                      v.geometry.cylinder.length);
+
+          float radius = Algebra::to_double(v.geometry.cylinder.radius);
+          float half_height =
+              Algebra::to_double(v.geometry.cylinder.length) * 0.5;
+          int up_axis = 2;
+          
+          int shape_id = m_opengl_app.register_graphics_cylinder_shape(
+              radius, half_height, up_axis, -1);
+
+          b2v.visual_shape_uids.push_back(shape_id);
+          TinyVector3 color(1, 1, 1);
+          b2v.shape_colors.push_back(color);
+          break;
+        }
 #endif
         case ::tds::TINY_BOX_TYPE: {
           float half_extentsx =
@@ -558,8 +576,10 @@ struct OpenGLUrdfVisualizer {
   void sync_visual_transforms2(
       const std::vector < std::vector<UrdfInstancePair>> & all_instances,
       const std::vector < std::vector<float>> & visual_world_transforms_array,
-      int visual_offset, float sim_spacing, bool apply_visual_offset) {
+      int visual_offset, float sim_spacing, bool apply_visual_offset,
+      const std::vector<int>& link_mapping) {
     int batch_size = all_instances.size();
+    int viz_sz = visual_world_transforms_array.size();
     for (int ni = 0; ni < batch_size; ni++) {
       // visual_world_transforms.size();
       const auto& pairs = all_instances[ni];
@@ -570,42 +590,64 @@ struct OpenGLUrdfVisualizer {
       for (int i = 0; i < pairs.size(); i++) {
         auto pair = pairs[i];
         int link_index = pair.m_link_index;
-
-        //        Transform geom_X_world = body->base_X_world() * body->X_visuals()[v];
-        //        visual_world_transforms
-        ::TINY::TinyPosef pose_rbd;
-        pose_rbd.m_position.setValue(visual_world_transforms[index + 0],
-                                   visual_world_transforms[index + 1],
-                                   visual_world_transforms[index + 2]);
-
-        pose_rbd.m_orientation.setValue(visual_world_transforms[index + 3],
-                                   visual_world_transforms[index + 4],
-                                   visual_world_transforms[index + 5],
-                                   visual_world_transforms[index + 6]);
-
-        ::TINY::TinyPosef pose_viz;
-        if (apply_visual_offset) {
-            pose_viz.m_position = pair.viz_origin_xyz;
-            pose_viz.m_orientation.set_euler_rpy(pair.viz_origin_rpy);
-        }else {
-          pose_viz.set_identity();
+        bool skip=false;
+        if (link_mapping.size()==pairs.size())
+        {
+            int m = link_mapping[i];
+            if (m<0)
+                skip=true;
+            else
+                index = visual_offset+(link_mapping[i]*7);
         }
+        if ((index+6)>visual_world_transforms.size())
+            skip=true;
 
-        ::TINY::TinyPosef pose_w = pose_rbd * pose_viz;
+        if (!skip)
+        {
+            //        Transform geom_X_world = body->base_X_world() * body->X_visuals()[v];
+            //        visual_world_transforms
+            ::TINY::TinyPosef pose_rbd;
+            pose_rbd.m_position.setValue(visual_world_transforms[index + 0],
+                                       visual_world_transforms[index + 1],
+                                       visual_world_transforms[index + 2]);
 
+            pose_rbd.m_orientation.setValue(visual_world_transforms[index + 3],
+                                       visual_world_transforms[index + 4],
+                                       visual_world_transforms[index + 5],
+                                       visual_world_transforms[index + 6]);
 
-        ::TINY::TinyVector3f pos(
-            pose_w.m_position.x() +
-                sim_spacing * (ni % square_id) - square_id * sim_spacing / 2,
-            pose_w.m_position.y() +
-                sim_spacing * (ni / square_id) - square_id * sim_spacing / 2,
-            pose_w.m_position.z());
+            ::TINY::TinyPosef pose_viz;
+            if (apply_visual_offset) {
+                pose_viz.m_position = pair.viz_origin_xyz;
+                pose_viz.m_orientation.set_euler_rpy(pair.viz_origin_rpy);
+            }else {
+              pose_viz.set_identity();
+            }
 
-        ::TINY::TinyQuaternionf orn = pose_w.m_orientation;
+            ::TINY::TinyPosef pose_w = pose_rbd * pose_viz;
+
+            ::TINY::TinyVector3f pos = m_opengl_app.get_up_axis()==2?
         
-        index += 7;
-        m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(
-            pos, orn, pair.m_visual_instance);
+            ::TINY::TinyVector3f(
+                pose_w.m_position.x() +
+                    sim_spacing * (ni % square_id) - square_id * sim_spacing / 2,
+                pose_w.m_position.y() +
+                    sim_spacing * (ni / square_id) - square_id * sim_spacing / 2,
+                pose_w.m_position.z()):
+                ::TINY::TinyVector3f(
+                pose_w.m_position.x() +
+                    sim_spacing * (ni % square_id) - square_id * sim_spacing / 2,
+                pose_w.m_position.y(),
+                pose_w.m_position.z() +
+                    sim_spacing * (ni / square_id) - square_id * sim_spacing / 2
+            );
+        
+            ::TINY::TinyQuaternionf orn = pose_w.m_orientation;
+        
+            index += 7;
+            m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(
+                pos, orn, pair.m_visual_instance);
+        }
       }
     }
   }
@@ -646,8 +688,8 @@ struct OpenGLUrdfVisualizer {
     }
   }
   
-  void render(bool do_swap_buffer = true, bool render_segmentation_mask=false) {
-    int upAxis = 2;
+  void render(bool do_swap_buffer = true, bool render_segmentation_mask=false, int upAxis=2) {
+    
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
     double lightPos[3] = {-50, 30, 40};
@@ -655,7 +697,7 @@ struct OpenGLUrdfVisualizer {
     float specular[3] = {1, 1, 1};
     m_opengl_app.m_renderer->set_light_specular_intensity(specular);
     DrawGridData data;
-    data.upAxis = 2;
+    data.upAxis = upAxis;
     data.drawAxis = true;
     m_opengl_app.draw_grid(data);
     // const char* bla = "3d label";
@@ -678,8 +720,9 @@ struct OpenGLUrdfVisualizer {
 
   void render_tiled(std::vector<TinyViewportTile> &tiles,
                     bool do_swap_buffer = true,
-                    bool render_segmentation_mask = false) {
-    int upAxis = 2;
+                    bool render_segmentation_mask = false,
+                    int upAxis =2 ) {
+    
     m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
     double lightPos[3] = {-50, 30, 40};

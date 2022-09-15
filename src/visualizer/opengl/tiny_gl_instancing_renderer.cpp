@@ -19,7 +19,7 @@ misrepresented as being the original software.
 // Originally written by Erwin Coumans
 
 /// todo: make this configurable in the gui
-bool useShadowMap = false;
+bool useShadowMap = true;
 
 #include <assert.h>
 #include <stdio.h>

@@ -44,6 +44,8 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                                                   int textureId = -1);
 
   virtual int register_graphics_capsule_shape(float radius,float half_height,int up_axis,int textureId);
+  virtual int register_graphics_cylinder_shape(float radius, float half_height, int up_axis, int textureId, bool flat_caps=true);
+
 
   virtual void register_grid(int xres, int yres, const ::TINY::TinyVector3f& color0,
                              const ::TINY::TinyVector3f& color1);

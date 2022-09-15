@@ -200,6 +200,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
            py::arg("verbose")=true      
       )
 
+      .def("set_up_axis", &TinyOpenGL3App::set_up_axis)
       .def("cuda_copy_texture_image", &TinyOpenGL3App::cuda_copy_texture_image,
             py::arg("cuda_resource_int"),
             py::arg("dest_memory_int"),
@@ -346,13 +347,15 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("convert_visuals", &OpenGLUrdfVisualizer<MyAlgebra>::convert_visuals2)
       .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render,
           py::arg("do_swap_buffer")=true,
-          py::arg("render_segmentation_mask")=false
+          py::arg("render_segmentation_mask")=false,
+          py::arg("up_axis")=2
 
       )
       .def("render_tiled", &OpenGLUrdfVisualizer<MyAlgebra>::render_tiled,
           py::arg("tiles"),
           py::arg("do_swap_buffer")=true,
-          py::arg("render_segmentation_mask")=false
+          py::arg("render_segmentation_mask")=false,
+          py::arg("up_axis")=2
           )
       .def("swap_buffer", &OpenGLUrdfVisualizer<MyAlgebra>::swap_buffer)
 
@@ -361,7 +364,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
            &OpenGLUrdfVisualizer<MyAlgebra>::sync_visual_transforms2,
           py::arg("all_instances"), py::arg("visual_world_transforms_array"),
            py::arg("visual_offset"), py::arg("sim_spacing"),
-           py::arg("apply_visual_offset")=false
+           py::arg("apply_visual_offset")=false,
+          py::arg("link_mapping")=std::vector<int>()
           )
 
       .def_readwrite("opengl_app", &OpenGLUrdfVisualizer<MyAlgebra>::m_opengl_app)

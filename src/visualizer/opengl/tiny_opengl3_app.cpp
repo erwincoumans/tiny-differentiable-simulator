@@ -906,8 +906,8 @@ int TinyOpenGL3App::register_graphics_unit_sphere_shape(
 }
 
 
-int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_height, int up_axis, int textureId) {
-    int red = 0;
+int TinyOpenGL3App::register_graphics_cylinder_shape(float radius, float half_height, int up_axis, int textureId, bool flat_caps) {
+        int red = 0;
     int green = 255;
     int blue = 0;  // 0;// 128;
     if(textureId < 0) {
@@ -969,11 +969,21 @@ int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_hei
                 textured_detailed_sphere_vertices[i * 9 + 2]);
 
             TinyVector3f trVer = (2 *radius * vert);
-            if(trVer[up_axis] > 0)
-                trVer[up_axis] += half_height;
-            else
-                trVer[up_axis] -= half_height;
-
+            if (flat_caps)
+            {
+                if(trVer[up_axis] > 0)
+                    trVer[up_axis] = half_height;
+                else
+                    trVer[up_axis] = -half_height;
+            } else
+            {
+                if(trVer[up_axis] > 0)
+                    trVer[up_axis] += half_height;
+                else
+                    trVer[up_axis] -= half_height;
+            
+            }
+            
             transformedVertices[i * 9 + 0] = trVer[0];
             transformedVertices[i * 9 + 1] = trVer[1];
             transformedVertices[i * 9 + 2] = trVer[2];
@@ -993,6 +1003,13 @@ int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_hei
         textureId);
     
     return graphicsShapeIndex;
+}
+
+int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_height, int up_axis, int textureId) {
+
+    bool flat_caps = false;
+    return register_graphics_cylinder_shape(radius, half_height, up_axis, textureId, flat_caps);
+
 }
 
 
