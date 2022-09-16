@@ -298,7 +298,10 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
   py::class_<::tds::UrdfParser<MyAlgebra>>(m, "UrdfParser")
           .def(py::init<>())
-      .def("load_urdf", &::tds::UrdfParser<MyAlgebra>::load_urdf)
+      .def("load_urdf", &::tds::UrdfParser<MyAlgebra>::load_urdf,
+          py::arg("file_name"),
+          py::arg("verbose")=false
+          )
       .def("load_urdf_from_string", &::tds::UrdfParser<MyAlgebra>::load_urdf_from_string)
       ;
   

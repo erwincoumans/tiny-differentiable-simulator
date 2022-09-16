@@ -583,6 +583,9 @@ struct OpenGLUrdfVisualizer {
     for (int ni = 0; ni < batch_size; ni++) {
       // visual_world_transforms.size();
       const auto& pairs = all_instances[ni];
+      if (ni>=visual_world_transforms_array.size())
+          continue;
+      
       const auto &visual_world_transforms = visual_world_transforms_array[ni];
       const int square_id = (int)std::sqrt((double)batch_size);
       // for (int ni = 0; ni < batch_size; ni++) {
