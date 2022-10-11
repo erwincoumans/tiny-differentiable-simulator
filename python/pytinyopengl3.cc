@@ -64,6 +64,68 @@ std::string my_extract_path(const std::string& file_name) {
   return full_path;
 }
 
+std::array<float, 16> compute_camera_view_matrix(const ::TINY::TinyVector3f& cam_pos,  const ::TINY::TinyVector3f& cam_target,  const ::TINY::TinyVector3f& cam_up)
+{
+    const auto& eye = cam_pos;
+    const auto& center = cam_target;
+    const auto& up = cam_up;
+    auto f = (center - eye).normalized();
+    auto u = up.normalized();
+    auto s = (f.cross(u)).normalized();
+    u = s.cross(f);
+
+    std::array<float, 16> viewMatrix;
+
+	viewMatrix[0 * 4 + 0] = s.x();
+	viewMatrix[1 * 4 + 0] = s.y();
+	viewMatrix[2 * 4 + 0] = s.z();
+
+	viewMatrix[0 * 4 + 1] = u.x();
+	viewMatrix[1 * 4 + 1] = u.y();
+	viewMatrix[2 * 4 + 1] = u.z();
+
+	viewMatrix[0 * 4 + 2] = -f.x();
+	viewMatrix[1 * 4 + 2] = -f.y();
+	viewMatrix[2 * 4 + 2] = -f.z();
+
+	viewMatrix[0 * 4 + 3] = 0.f;
+	viewMatrix[1 * 4 + 3] = 0.f;
+	viewMatrix[2 * 4 + 3] = 0.f;
+
+	viewMatrix[3 * 4 + 0] = -s.dot(eye);
+	viewMatrix[3 * 4 + 1] = -u.dot(eye);
+	viewMatrix[3 * 4 + 2] = f.dot(eye);
+	viewMatrix[3 * 4 + 3] = 1.f;
+    return viewMatrix;
+}
+
+
+std::array<float, 16> compute_camera_projection_matrix(float left, float right, float bottom, float top, float nearVal, float farVal)
+{
+    std::array<float, 16> projectionMatrix;
+
+	projectionMatrix[0 * 4 + 0] = (float(2) * nearVal) / (right - left);
+	projectionMatrix[0 * 4 + 1] = float(0);
+	projectionMatrix[0 * 4 + 2] = float(0);
+	projectionMatrix[0 * 4 + 3] = float(0);
+
+	projectionMatrix[1 * 4 + 0] = float(0);
+	projectionMatrix[1 * 4 + 1] = (float(2) * nearVal) / (top - bottom);
+	projectionMatrix[1 * 4 + 2] = float(0);
+	projectionMatrix[1 * 4 + 3] = float(0);
+
+	projectionMatrix[2 * 4 + 0] = (right + left) / (right - left);
+	projectionMatrix[2 * 4 + 1] = (top + bottom) / (top - bottom);
+	projectionMatrix[2 * 4 + 2] = -(farVal + nearVal) / (farVal - nearVal);
+	projectionMatrix[2 * 4 + 3] = float(-1);
+
+	projectionMatrix[3 * 4 + 0] = float(0);
+	projectionMatrix[3 * 4 + 1] = float(0);
+	projectionMatrix[3 * 4 + 2] = -(float(2) * farVal * nearVal) / (farVal - nearVal);
+	projectionMatrix[3 * 4 + 3] = float(0);
+    return projectionMatrix;
+}
+
 
 std::vector<int> my_load_obj_shapes(TinyOpenGL3App& opengl_app, const std::string& obj_filename, const ::TINY::TinyVector3f& pos, const ::TINY::TinyQuaternionf& orn, const ::TINY::TinyVector3f& scaling)
 {
@@ -294,6 +356,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
   m.def("load_obj_shapes", &my_load_obj_shapes);
   m.def("extract_path", &my_extract_path);
+  m.def("compute_camera_view_matrix", &compute_camera_view_matrix);
+  m.def("compute_camera_projection_matrix", &compute_camera_projection_matrix);
   
 
   py::class_<::tds::UrdfParser<MyAlgebra>>(m, "UrdfParser")
@@ -381,6 +445,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   
   py::class_<TinyPose<float, FloatUtils>>(m, "TinyPosef")
       .def(py::init<>())
+      .def(py::init<const TinyVector3<float, FloatUtils>&,const TinyQuaternion<float, FloatUtils>&>())
       .def(py::self * py::self)
       .def_readwrite("position", &TinyPose<float, FloatUtils>::m_position)
       .def_readwrite("orientation", &TinyPose<float, FloatUtils>::m_orientation)
@@ -392,6 +457,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def_readwrite("x", &TinyVector3<float, FloatUtils>::m_x)
       .def_readwrite("y", &TinyVector3<float, FloatUtils>::m_y)
       .def_readwrite("z", &TinyVector3<float, FloatUtils>::m_z)
+      .def(py::self * float())
       .def(py::self + py::self)
       .def(py::self - py::self)
       .def(py::self += py::self)
@@ -414,6 +480,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
         .def(py::init<TinyQuaternion<float, FloatUtils>>())
         .def("get_at", &TinyMatrix3x3<float, FloatUtils>::get_at)
         .def("get_row", &TinyMatrix3x3<float, FloatUtils>::getRow)
+        .def("get_column", &TinyMatrix3x3<float, FloatUtils>::get_column)
         .def("set_identity", &TinyMatrix3x3<float, FloatUtils>::set_identity)
         .def("setRotation", &TinyMatrix3x3<float, FloatUtils>::setRotation)
         .def("getRotation", &TinyMatrix3x3<float, FloatUtils>::getRotation2);
