@@ -234,7 +234,27 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def_readwrite("drawAxis", &DrawGridData::drawAxis)
     .def_readwrite("upOffset", &DrawGridData::upOffset)
     .def_readwrite("gridSize", &DrawGridData::gridSize);
-         
+
+  py::class_< TinyCudaVbo>(m,"TinyCudaVbo")
+      .def_readwrite("num_instances",&TinyCudaVbo::num_instances)
+      .def_readwrite("positions",&TinyCudaVbo::positions_int)
+      .def_readwrite("orientations",&TinyCudaVbo::orientations_int)
+      .def_readwrite("colors",&TinyCudaVbo::colors_int)
+      .def_readwrite("scalings",&TinyCudaVbo::scalings_int)
+      .def_readwrite("vertices",&TinyCudaVbo::vertices_int)
+      ;
+
+  py::class_< GfxVertexFormat1>(m,"GfxVertexFormat")
+      .def_readwrite("x",&GfxVertexFormat1::x)
+      .def_readwrite("y",&GfxVertexFormat1::y)
+      .def_readwrite("z",&GfxVertexFormat1::z)
+      .def_readwrite("w",&GfxVertexFormat1::w)
+      .def_readwrite("nx",&GfxVertexFormat1::nx)
+      .def_readwrite("ny",&GfxVertexFormat1::ny)
+      .def_readwrite("nz",&GfxVertexFormat1::nz)
+      .def_readwrite("u",&GfxVertexFormat1::u)
+      .def_readwrite("v",&GfxVertexFormat1::v)
+      ;
 
   py::class_<TinyOpenGL3App>(m,"TinyOpenGL3App")
     .def(py::init<const char*,int,int, bool, int, int, int, int>(),
@@ -276,6 +296,10 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
       .def("cuda_free", &TinyOpenGL3App::cuda_free,
            py::arg("cuda_ptr"))
+
+      .def("cuda_map_vbo", &TinyOpenGL3App::cuda_map_vbo ,
+          py::arg("verbose")=false)
+      .def("cuda_unmap_vbo", &TinyOpenGL3App::cuda_unmap_vbo )
 
       .def("set_background_color", &TinyOpenGL3App::set_background_color)
       .def("dump_frames_to_video", &TinyOpenGL3App::dump_frames_to_video)
@@ -319,13 +343,18 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     
     
     .def("register_shape", &TinyGLInstancingRenderer::register_shape1)
+
+
     //.def("update_shape", &TinyGLInstancingRenderer::update_shape)
+    .def("get_shape_vertex_count", &TinyGLInstancingRenderer::get_shape_vertex_count)
 
     .def("register_texture", &TinyGLInstancingRenderer::register_texture1)
     //.def("update_texture", &TinyGLInstancingRenderer::update_texture)
     .def("remove_texture", &TinyGLInstancingRenderer::remove_texture)
 
     .def("register_graphics_instance", &TinyGLInstancingRenderer::register_graphics_instance)
+    .def("register_graphics_instances", &TinyGLInstancingRenderer::register_graphics_instances)
+
     .def("write_single_instance_transform_to_cpu", &TinyGLInstancingRenderer::write_single_instance_transform_to_cpu)
     .def("write_single_instance_color_to_cpu", &TinyGLInstancingRenderer::write_single_instance_color_to_cpu2)
       

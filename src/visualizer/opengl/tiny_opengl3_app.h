@@ -20,6 +20,33 @@
 #include "tiny_gl_primitive_renderer.h"
 #include "tiny_window_interface.h"
 
+struct TinyCudaVbo
+{
+    int num_instances;
+     union {
+        void* positions_ptr;
+        uint64_t positions_int;
+      };
+
+     union {
+        void* orientations_ptr;
+        uint64_t orientations_int;
+     };
+     union {
+         void* colors_ptr;
+        uint64_t colors_int;
+     };
+     union {
+         void* scalings_ptr;
+        uint64_t scalings_int;
+     };
+
+     union {
+         void* vertices_ptr;
+          uint64_t vertices_int;
+     };
+};
+
 struct TinyOpenGL3App : public TinyCommonGraphicsApp {
   struct TinyOpenGL3AppInternalData* m_data;
 
@@ -65,6 +92,10 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
                                                    int num_bytes,
                                                    bool gpu_device,
                                                    int w_offset=0, int h_offset=0);
+
+  
+  TinyCudaVbo cuda_map_vbo(bool verbose);
+  void cuda_unmap_vbo();
 
   void dump_frames_to_video(const char* mp4Filename);
   virtual void get_screen_pixels(std::vector<unsigned char>& rgbaBuffer,

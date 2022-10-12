@@ -51,6 +51,7 @@
 #include "tiny_gl_primitive_renderer.h"
 #include "tiny_gl_render_to_texture.h"
 #include "tiny_opengl_fontstashcallbacks.h"
+#include "tiny_gl_instance_renderer_internal_data.h"
 
 #ifdef _WIN32
 #define popen _popen
@@ -81,6 +82,10 @@ struct TinyOpenGL3AppInternalData {
   int m_customViewPortHeight;
   int m_mp4Fps;
 
+  void* m_cudaVboPointer;
+  bool m_cudaVboRegistered;
+
+
   TinyOpenGL3AppInternalData()
       : m_fontTextureId(0),
         m_largeFontTextureId(0),
@@ -97,7 +102,9 @@ struct TinyOpenGL3AppInternalData {
         m_upAxis(1),
         m_customViewPortWidth(-1),
         m_customViewPortHeight(-1),
-        m_mp4Fps(60) {}
+        m_mp4Fps(60),
+        m_cudaVboPointer(0),
+        m_cudaVboRegistered(false){}
 };
 
 static TinyOpenGL3App* gApp = 0;
@@ -1377,6 +1384,12 @@ TINY_CUDA_CODES (*cuGetProcAddress) (const char* symbol, void** pfn, int cudaVer
 TINY_CUDA_CODES (*cudaMalloc)(void** devPtr, size_t size);
 TINY_CUDA_CODES (*cudaFree)(void* devPtr);
 
+TINY_CUDA_CODES (*cudaGLRegisterBufferObject) ( GLuint bufObj );
+TINY_CUDA_CODES (*cudaGLMapBufferObject) ( void** devPtr, GLuint bufObj );
+TINY_CUDA_CODES (*cudaGLUnmapBufferObject) ( GLuint bufObj );
+
+
+
 TINY_CUDA_CODES (*cudaMemcpyFromArray)
 (void* dst, const cudaArray_t src, size_t wOffset, size_t hOffset, size_t count,
  unsigned int kind);
@@ -1445,6 +1458,10 @@ int init_cuda(bool verbose) {
   LOAD_CUDART_FUNCTION(cudaGraphicsUnmapResources, "");
   LOAD_CUDART_FUNCTION(cudaMalloc, "");
   LOAD_CUDART_FUNCTION(cudaFree, "");
+  LOAD_CUDART_FUNCTION(cudaGLRegisterBufferObject,"");
+  LOAD_CUDART_FUNCTION(cudaGLMapBufferObject, "");
+  LOAD_CUDART_FUNCTION(cudaGLUnmapBufferObject, "");
+  
 
   auto result = cuInit(0);
   int cuda_driver_version;
@@ -1477,6 +1494,48 @@ struct ptr2int {
     uint64_t intval;
   };
 };
+
+
+TinyCudaVbo TinyOpenGL3App::cuda_map_vbo(bool verbose)
+{
+    
+
+    init_cuda(verbose);
+    auto internal_renderer_data = m_instancingRenderer->get_internal_data();
+
+    if (!m_data->m_cudaVboRegistered)
+    {
+        cudaGLRegisterBufferObject(internal_renderer_data->m_vbo);
+        m_data->m_cudaVboRegistered = true;
+    }
+    cudaGLMapBufferObject(&m_data->m_cudaVboPointer, internal_renderer_data->m_vbo);
+
+    int position_buffer_size_in_bytes = 4*sizeof(float)*internal_renderer_data->m_totalNumInstances;
+    int orientation_buffer_size_in_bytes = 4*sizeof(float)*internal_renderer_data->m_totalNumInstances;
+    int color_buffer_size_in_bytes = 4*sizeof(float)*internal_renderer_data->m_totalNumInstances;
+
+    TinyCudaVbo vbo;
+    char* pp = (char*)m_data->m_cudaVboPointer;
+    vbo.vertices_ptr = pp;
+    vbo.num_instances = internal_renderer_data->m_totalNumInstances;
+    vbo.positions_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes;
+    vbo.orientations_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes+position_buffer_size_in_bytes;
+    vbo.colors_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes+position_buffer_size_in_bytes+orientation_buffer_size_in_bytes;
+    vbo.scalings_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes+position_buffer_size_in_bytes+orientation_buffer_size_in_bytes+color_buffer_size_in_bytes;
+    return vbo;
+}
+
+void TinyOpenGL3App::cuda_unmap_vbo()
+{
+    if (m_data->m_cudaVboPointer!=0)
+    {
+        auto internal_renderer_data = m_instancingRenderer->get_internal_data();
+        cudaGLUnmapBufferObject(internal_renderer_data->m_vbo);
+        m_data->m_cudaVboPointer = 0;
+    }
+}
+
+
 
 
 uint64_t TinyOpenGL3App::cuda_register_texture_image(uint64_t renderTextureId, bool verbose) {

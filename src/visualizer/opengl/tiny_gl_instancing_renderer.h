@@ -110,6 +110,8 @@ class TinyGLInstancingRenderer {
                              int primitiveType = B3_GL_TRIANGLES,
                              int textureIndex = -1);
 
+  std::vector<int> get_shape_vertex_count() const;
+
   virtual int register_texture1(const std::vector<unsigned char>& texels, int width,
       int height, bool flipPixelsY = true)
   {
@@ -132,6 +134,16 @@ class TinyGLInstancingRenderer {
                                          const ::TINY::TinyVector3f& scaling,
                                          float opacity = 1.f,
                                          bool rebuild = true);
+
+
+   std::vector<int> register_graphics_instances(int shapeIndex,
+                                         const std::vector<::TINY::TinyVector3f>& positions,
+                                         const std::vector<::TINY::TinyQuaternionf>& quaternions,
+                                         const std::vector<::TINY::TinyVector3f>& colors,
+                                         const std::vector<::TINY::TinyVector3f>& scalings,
+                                         float opacity = 1.f,
+                                         bool rebuild=true);
+
 
   void write_transforms();
 
@@ -232,6 +244,7 @@ class TinyGLInstancingRenderer {
   virtual void clear_z_buffer();
 
   virtual void set_render_frame_buffer(unsigned int renderFrameBuffer);
+
 };
 
 #endif  // GL_INSTANCING_RENDERER_H

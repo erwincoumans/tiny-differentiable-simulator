@@ -922,6 +922,36 @@ int TinyGLInstancingRenderer::register_graphics_instance_internal(
    return newUid;  // gfxObj->m_numGraphicsInstances;
 }
 
+
+std::vector<int> TinyGLInstancingRenderer::register_graphics_instances(int shapeIndex,
+                                         const std::vector<::TINY::TinyVector3f>& positions,
+                                         const std::vector<::TINY::TinyQuaternionf>& quaternions,
+                                         const std::vector<::TINY::TinyVector3f>& colors,
+                                         const std::vector<::TINY::TinyVector3f>& scalings,
+                                         float opacity,
+                                         bool rebuild)
+{
+    std::vector<int> uids;
+    
+    if ((positions.size() == quaternions.size()) && 
+        (positions.size() == colors.size()) && 
+        (positions.size() == scalings.size() ))
+    {
+        uids.reserve(positions.size());
+
+        for (int i=0;i<positions.size();i++)
+        {
+            int uid = register_graphics_instance(shapeIndex, positions[i], quaternions[i], colors[i], scalings[i], opacity, false);
+            uids.push_back(uid);
+        }
+    }
+    if (rebuild)
+    {
+        rebuild_graphics_instances();
+    }
+    return uids;
+}
+
 int TinyGLInstancingRenderer::register_graphics_instance(
     int shapeIndex, const TinyVector3f& position,
     const TinyQuaternionf& quaternion, const TinyVector3f& color,
@@ -1088,6 +1118,17 @@ void TinyGLInstancingRenderer::update_shape(int shapeIndex,
 #endif
 }
 
+
+std::vector<int> TinyGLInstancingRenderer::get_shape_vertex_count() const
+{
+    std::vector<int> vertex_counts;
+    vertex_counts.resize(m_graphicsInstances.size());
+    for (int i=0;i<m_graphicsInstances.size();i++)
+    {
+        vertex_counts[i] = m_graphicsInstances[i]->m_numVertices;
+    }
+    return vertex_counts;
+}
 int TinyGLInstancingRenderer::register_shape(const float* vertices,
                                              int numvertices,
                                              const int* indices, int numIndices,
