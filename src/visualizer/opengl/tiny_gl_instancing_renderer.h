@@ -101,7 +101,7 @@ class TinyGLInstancingRenderer {
   
   virtual int register_shape1(std::vector<float>& vertices, std::vector<int>& indices, int textureIndex = -1)
   {
-      return register_shape(&vertices[0], vertices.size(), &indices[0], indices.size(), textureIndex);
+      return register_shape(&vertices[0], vertices.size(), &indices[0], indices.size(), B3_GL_TRIANGLES, textureIndex);
   }
 
 
