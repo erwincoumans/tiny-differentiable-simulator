@@ -21,6 +21,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
+
 
 
 #include "math/tiny/tiny_float_utils.h"
@@ -42,6 +44,8 @@
 using namespace TINY;
 typedef ::TINY::FloatUtils MyTinyConstants;
 typedef TinyAlgebra<float, MyTinyConstants> MyAlgebra;
+
+
 
 std::string file_open_dialog(TinyWindowInterface* window)
 {
@@ -282,6 +286,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
            py::arg("verbose")=true      
       )
 
+      
+
       .def("set_up_axis", &TinyOpenGL3App::set_up_axis)
       .def("cuda_copy_texture_image", &TinyOpenGL3App::cuda_copy_texture_image,
             py::arg("cuda_resource_int"),
@@ -378,9 +384,14 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     
    py::class_<TinyWindowInterface>(m, "TinyWindowInterface")
   .def("requested_exit", &TinyWindowInterface::requested_exit)
-  .def("set_request_exit", &TinyWindowInterface::requested_exit)
-  //.def("set_mouse_button_callback", &TinyWindowInterface::set_mouse_button_callback)
+  .def("set_request_exit", &TinyWindowInterface::set_request_exit2)
+
   .def("set_window_title", &TinyWindowInterface::set_window_title)
+  .def("set_keyboard_callback", &TinyWindowInterface::set_keyboard_callback2)
+  .def("set_mouse_move_callback", &TinyWindowInterface::set_mouse_move_callback2)
+  .def("set_mouse_button_callback", &TinyWindowInterface::set_mouse_button_callback2)
+  .def("set_wheel_callback", &TinyWindowInterface::set_wheel_callback2)
+  .def("set_resize_callback", &TinyWindowInterface::set_resize_callback2)
   ;
   
   m.def("file_open_dialog", &file_open_dialog);
