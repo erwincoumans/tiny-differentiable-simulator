@@ -342,7 +342,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("get_active_camera", &TinyGLInstancingRenderer::get_active_camera2)
     
     
-    .def("register_shape", &TinyGLInstancingRenderer::register_shape1)
+    .def("register_shape", &TinyGLInstancingRenderer::register_shape1,
+      py::arg("vertices"), py::arg("indices"), py::arg("textureIndex")=-1, py::arg("double_sided")=true)
 
 
     //.def("update_shape", &TinyGLInstancingRenderer::update_shape)
@@ -357,6 +358,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
     .def("write_single_instance_transform_to_cpu", &TinyGLInstancingRenderer::write_single_instance_transform_to_cpu)
     .def("write_single_instance_color_to_cpu", &TinyGLInstancingRenderer::write_single_instance_color_to_cpu2)
+    .def("write_single_instance_flags_to_cpu", &TinyGLInstancingRenderer::write_single_instance_flags_to_cpu)
       
     .def("render_scene", &TinyGLInstancingRenderer::render_scene)
     .def("write_transforms", &TinyGLInstancingRenderer::write_transforms)

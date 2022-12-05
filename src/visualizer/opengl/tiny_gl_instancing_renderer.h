@@ -97,18 +97,19 @@ class TinyGLInstancingRenderer {
 
   virtual void update_shape(int shapeIndex, const float* vertices);
 
-  /// vertices must be in the format x,y,z, nx,ny,nz, u,v
+  /// vertices must be in the format x,y,z,w, nx,ny,nz, u,v
   
-  virtual int register_shape1(std::vector<float>& vertices, std::vector<int>& indices, int textureIndex = -1)
+  virtual int register_shape1(std::vector<float>& vertices, std::vector<int>& indices, int textureIndex = -1, bool double_sided = false)
   {
-      return register_shape(&vertices[0], vertices.size(), &indices[0], indices.size(), B3_GL_TRIANGLES, textureIndex);
+      return register_shape(&vertices[0], vertices.size()/9, &indices[0], indices.size(), B3_GL_TRIANGLES, textureIndex, double_sided);
   }
 
 
   virtual int register_shape(const float* vertices, int numvertices,
                              const int* indices, int numIndices,
                              int primitiveType = B3_GL_TRIANGLES,
-                             int textureIndex = -1);
+                             int textureIndex = -1,
+                             bool double_sided = false);
 
   std::vector<int> get_shape_vertex_count() const;
 

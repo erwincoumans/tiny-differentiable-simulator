@@ -1132,12 +1132,15 @@ std::vector<int> TinyGLInstancingRenderer::get_shape_vertex_count() const
 int TinyGLInstancingRenderer::register_shape(const float* vertices,
                                              int numvertices,
                                              const int* indices, int numIndices,
-                                             int primitiveType, int textureId) {
+                                             int primitiveType, int textureId, bool double_sided) {
   b3GraphicsInstance* gfxObj = new b3GraphicsInstance;
 
   if (textureId >= 0) {
     gfxObj->m_textureIndex = textureId;
     gfxObj->m_flags |= B3_INSTANCE_TEXTURE;
+  }
+  if (double_sided) {
+    gfxObj->m_flags |= B3_INSTANCE_DOUBLE_SIDED;
   }
 
   gfxObj->m_primitiveType = primitiveType;
