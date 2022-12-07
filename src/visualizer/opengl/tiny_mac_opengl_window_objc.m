@@ -772,6 +772,9 @@ int getAsciiCodeFromVirtualKeycode(int virtualKeyCode)
 
 int Mac_pumpMessage(struct MacOpenGLWindowInternalData* m_internalData)
 {
+
+NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
      NSEvent *event = nil;
     bool handledEvent = false;
 	
@@ -1015,14 +1018,15 @@ int Mac_pumpMessage(struct MacOpenGLWindowInternalData* m_internalData)
         
 		[m_internalData->m_myApp updateWindows];
     } while (event);
-  
+ 
+ [pool release]; 
 }
 
 int Mac_updateWindow(struct MacOpenGLWindowInternalData* m_internalData)
 {
-	 NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
-    pump_message(m_internalData);
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+   
+    Mac_pumpMessage( m_internalData); 
     
     GLint err = glGetError();
     assert(err==GL_NO_ERROR);
@@ -1048,7 +1052,6 @@ int Mac_updateWindow(struct MacOpenGLWindowInternalData* m_internalData)
     
     err = glGetError();
     assert(err==GL_NO_ERROR);
-     [pool release];
      return 0;
      
 }
