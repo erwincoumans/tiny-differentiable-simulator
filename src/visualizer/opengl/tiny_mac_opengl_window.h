@@ -31,6 +31,8 @@ class MacOpenGLWindow : public TinyWindowInterface {
   void close_window();
 
   void start_rendering();
+  
+  virtual void pump_messages();
 
   void end_rendering();  // swap buffers
 

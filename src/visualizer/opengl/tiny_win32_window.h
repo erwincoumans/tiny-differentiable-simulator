@@ -46,6 +46,8 @@ class TinyWin32Window : public TinyWindowInterface {
 
   virtual void start_rendering();
 
+  virtual void pump_messages();
+
   virtual void renderAllObjects();
 
   virtual void end_rendering();

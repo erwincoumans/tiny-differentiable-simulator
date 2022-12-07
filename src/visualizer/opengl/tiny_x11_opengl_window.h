@@ -43,6 +43,8 @@ class TinyX11OpenGLWindow : public TinyWindowInterface {
   virtual void close_window();
 
   virtual void start_rendering();
+  
+  virtual void pump_messages();
 
   virtual void render_all_objects();
 

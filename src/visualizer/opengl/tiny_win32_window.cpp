@@ -740,6 +740,10 @@ void TinyWin32Window::run_main_loop() {}
 
 void TinyWin32Window::start_rendering() { pumpMessage(); }
 
+void TinyWin32Window::pump_messages() { 
+    pumpMessage(); 
+}
+
 void TinyWin32Window::renderAllObjects() {}
 
 void TinyWin32Window::end_rendering() { SwapBuffers(m_data->m_hDC); }

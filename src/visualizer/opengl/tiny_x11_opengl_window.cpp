@@ -1041,6 +1041,11 @@ void TinyX11OpenGLWindow::pump_message() {
   }
 }
 
+void TinyX11OpenGLWindow::pump_messages()
+{
+    pump_message();
+}
+
 void TinyX11OpenGLWindow::start_rendering() {
   pump_message();
 

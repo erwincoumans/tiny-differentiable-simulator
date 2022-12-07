@@ -44,6 +44,7 @@ int Mac_createWindow(struct MacOpenGLWindowInternalData* m_internalData,
 
 void Mac_setWindowTitle(struct MacOpenGLWindowInternalData* data,
                         const char* windowTitle);
+int Mac_pumpMessage(struct MacOpenGLWindowInternalData* m_internalData);
 int Mac_updateWindow(struct MacOpenGLWindowInternalData* m_internalData);
 void Mac_swapBuffer(struct MacOpenGLWindowInternalData* m_internalData);
 int Mac_requestedExit(struct MacOpenGLWindowInternalData* m_internalData);

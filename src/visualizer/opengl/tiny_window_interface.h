@@ -72,6 +72,8 @@ class TinyWindowInterface {
 
   virtual void start_rendering() = 0;
 
+  virtual void pump_messages() = 0;
+
   virtual void end_rendering() = 0;
 
   virtual bool is_modifier_key_pressed(int key) = 0;
