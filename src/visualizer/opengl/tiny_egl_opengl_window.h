@@ -42,6 +42,8 @@ class EGLOpenGLWindow : public TinyWindowInterface {
   virtual bool requested_exit() const;
   virtual void set_request_exit();
 
+  virtual void pump_messages() {}
+  
   virtual void start_rendering();
 
   virtual void end_rendering();
