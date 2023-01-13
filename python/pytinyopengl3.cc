@@ -61,6 +61,121 @@ std::string file_open_dialog(TinyWindowInterface* window)
   return file_name;
 }
 
+extern std::string triangleVertexShaderTextInit;
+extern std::string triangleFragmentShaderInit;
+extern std::string useShadowMapInstancingVertexShaderInit;
+extern std::string useShadowMapInstancingFragmentShaderInit;
+extern std::string createShadowMapInstancingVertexShaderInit;
+extern std::string createShadowMapInstancingFragmentShaderInit;
+extern std::string segmentationMaskInstancingVertexShaderInit;
+extern std::string segmentationMaskInstancingFragmentShaderInit;
+extern std::string instancingVertexShaderInit;
+extern std::string instancingFragmentShaderInit;
+
+std::string get_triangle_vertex_shader()
+{
+    return triangleVertexShaderTextInit;
+}
+
+void set_triangle_vertex_shader(const std::string& vertex_shader)
+{
+    triangleVertexShaderTextInit = vertex_shader;
+}
+
+std::string get_triangle_fragment_shader()
+{
+    return triangleFragmentShaderInit;
+}
+
+void set_triangle_fragment_shader(const std::string& fragment_shader)
+{
+    triangleFragmentShaderInit = fragment_shader;
+}
+
+std::string get_use_shadowmap_instancing_vertex_shader()
+{
+    return useShadowMapInstancingVertexShaderInit;
+}
+
+void set_use_shadowmap_instancing_vertex_shader(const std::string& vertex_shader)
+{
+    useShadowMapInstancingVertexShaderInit = vertex_shader;
+}
+
+std::string get_create_shadowmap_instancing_vertex_shader()
+{
+    return createShadowMapInstancingVertexShaderInit;
+}
+
+void set_create_shadowmap_instancing_vertex_shader(const std::string& vertex_shader)
+{
+    createShadowMapInstancingVertexShaderInit = vertex_shader;
+}
+
+std::string get_use_shadowmap_instancing_fragment_shader()
+{
+    return useShadowMapInstancingFragmentShaderInit;
+}
+
+void set_use_shadowmap_instancing_fragment_shader(const std::string& fragment_shader)
+{
+    useShadowMapInstancingFragmentShaderInit = fragment_shader;
+}
+
+std::string get_create_shadowmap_instancing_fragment_shader()
+{
+    return createShadowMapInstancingFragmentShaderInit;
+}
+
+void set_create_shadowmap_instancing_fragment_shader(const std::string& fragment_shader)
+{
+    createShadowMapInstancingFragmentShaderInit = fragment_shader;
+}
+
+
+std::string get_segmentation_mask_instancing_vertex_shader()
+{
+    return segmentationMaskInstancingVertexShaderInit;
+}
+
+void set_segmentation_mask_instancing_vertex_shader(const std::string& vertex_shader)
+{
+    segmentationMaskInstancingVertexShaderInit = vertex_shader;
+}
+
+std::string get_segmentation_mask_instancing_fragment_shader()
+{
+    return segmentationMaskInstancingFragmentShaderInit;
+}
+
+void set_segmentation_mask_instancing_fragment_shader(const std::string& fragment_shader)
+{
+    segmentationMaskInstancingFragmentShaderInit = fragment_shader;
+}
+
+
+std::string get_instancing_vertex_shader()
+{
+    return instancingVertexShaderInit;
+}
+
+void set_instancing_vertex_shader(const std::string& vertex_shader)
+{
+    instancingVertexShaderInit = vertex_shader;
+}
+
+std::string get_instancing_fragment_shader()
+{
+    return instancingFragmentShaderInit;
+}
+
+void set_instancing_fragment_shader(const std::string& fragment_shader)
+{
+    instancingFragmentShaderInit = fragment_shader;
+}
+
+
+
 std::string my_extract_path(const std::string& file_name) {
   char full_path[TINY_MAX_EXE_PATH_LEN];
   tds::FileUtils::extract_path(file_name.c_str(), full_path,
@@ -401,6 +516,37 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   m.def("compute_camera_view_matrix", &compute_camera_view_matrix);
   m.def("compute_camera_projection_matrix", &compute_camera_projection_matrix);
   
+  m.def("get_triangle_vertex_shader", &get_triangle_vertex_shader);
+  m.def("set_triangle_vertex_shader", &set_triangle_vertex_shader);
+  
+  m.def("get_triangle_fragment_shader", &get_triangle_fragment_shader);
+  m.def("set_triangle_fragment_shader", &set_triangle_fragment_shader);
+    
+  m.def("get_use_shadowmap_instancing_vertex_shader",&get_use_shadowmap_instancing_vertex_shader);
+  m.def("set_use_shadowmap_instancing_vertex_shader",&set_use_shadowmap_instancing_vertex_shader);
+  
+  m.def("get_create_shadowmap_instancing_vertex_shader",&get_create_shadowmap_instancing_vertex_shader);
+  m.def("set_create_shadowmap_instancing_vertex_shader",&set_create_shadowmap_instancing_vertex_shader);
+
+  m.def("get_use_shadowmap_instancing_fragment_shader",&get_use_shadowmap_instancing_fragment_shader);
+  m.def("set_use_shadowmap_instancing_fragment_shader",&set_use_shadowmap_instancing_fragment_shader);
+  
+  m.def("get_create_shadowmap_instancing_fragment_shader",&get_create_shadowmap_instancing_fragment_shader);
+  m.def("set_create_shadowmap_instancing_fragment_shader",&set_create_shadowmap_instancing_fragment_shader);
+
+  m.def("get_segmentation_mask_instancing_vertex_shader",&get_segmentation_mask_instancing_vertex_shader);
+  m.def("set_segmentation_mask_instancing_vertex_shader",&set_segmentation_mask_instancing_vertex_shader);
+
+  m.def("get_segmentation_mask_instancing_fragment_shader",&get_segmentation_mask_instancing_fragment_shader);
+  m.def("get_segmentation_mask_instancing_fragment_shader",&get_segmentation_mask_instancing_fragment_shader);
+
+  m.def("get_instancing_vertex_shader", &get_instancing_vertex_shader);
+  m.def("set_instancing_vertex_shader", &set_instancing_vertex_shader);
+
+  m.def("get_instancing_fragment_shader", &get_instancing_fragment_shader);
+  m.def("set_instancing_fragment_shader", &set_instancing_fragment_shader);
+
+
 
   py::class_<::tds::UrdfParser<MyAlgebra>>(m, "UrdfParser")
           .def(py::init<>())

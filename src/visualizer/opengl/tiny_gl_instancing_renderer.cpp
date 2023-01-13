@@ -120,6 +120,7 @@ static const char* triangleVertexShaderText =
     "    uv0 = vUV;\n"
     "}\n";
 
+
 static const char* triangleFragmentShader =
     "#version 330\n"
     "precision highp float;"
@@ -132,6 +133,21 @@ static const char* triangleFragmentShader =
     "    vec4 texel = texture(Diffuse,uv0);\n"
     "    color = vec4(clr,texel.r)*texel;\n"
     "}\n";
+
+std::string triangleVertexShaderTextInit = triangleVertexShaderText;
+std::string triangleFragmentShaderInit = triangleFragmentShader;
+
+std::string useShadowMapInstancingVertexShaderInit = useShadowMapInstancingVertexShader;
+std::string useShadowMapInstancingFragmentShaderInit = useShadowMapInstancingFragmentShader;
+
+std::string createShadowMapInstancingVertexShaderInit = createShadowMapInstancingVertexShader;
+std::string createShadowMapInstancingFragmentShaderInit = createShadowMapInstancingFragmentShader;
+
+std::string segmentationMaskInstancingVertexShaderInit = segmentationMaskInstancingVertexShader;
+std::string segmentationMaskInstancingFragmentShaderInit = segmentationMaskInstancingFragmentShader;
+
+std::string instancingVertexShaderInit = instancingVertexShader;
+std::string instancingFragmentShaderInit = instancingFragmentShader;
 
 //#include
 //"../../opencl/gpu_rigidbody_pipeline/b3GpuNarrowphaseAndSolver.h"//for
@@ -1216,7 +1232,7 @@ void TinyGLInstancingRenderer::init_shaders() {
 
   {
     triangleShaderProgram =
-        gltLoadShaderPair(triangleVertexShaderText, triangleFragmentShader);
+        gltLoadShaderPair(triangleVertexShaderTextInit.c_str(), triangleFragmentShaderInit.c_str());
 
     // triangle_vpos_location = glGetAttribLocation(triangleShaderProgram,
     // "vPos"); triangle_vUV_location =
@@ -1318,7 +1334,7 @@ void TinyGLInstancingRenderer::init_shaders() {
   glUseProgram(0);
 
   useShadowMapInstancingShader = gltLoadShaderPair(
-      useShadowMapInstancingVertexShader, useShadowMapInstancingFragmentShader);
+      useShadowMapInstancingVertexShaderInit.c_str(), useShadowMapInstancingFragmentShaderInit.c_str());
 
   glLinkProgram(useShadowMapInstancingShader);
   glUseProgram(useShadowMapInstancingShader);
@@ -1347,8 +1363,8 @@ void TinyGLInstancingRenderer::init_shaders() {
       glGetUniformLocation(useShadowMapInstancingShader, "materialShininessIn");
 
   createShadowMapInstancingShader =
-      gltLoadShaderPair(createShadowMapInstancingVertexShader,
-                        createShadowMapInstancingFragmentShader);
+      gltLoadShaderPair(createShadowMapInstancingVertexShaderInit.c_str(),
+                        createShadowMapInstancingFragmentShaderInit.c_str());
   glLinkProgram(createShadowMapInstancingShader);
   glUseProgram(createShadowMapInstancingShader);
   createShadow_depthMVP =
@@ -1357,8 +1373,8 @@ void TinyGLInstancingRenderer::init_shaders() {
   glUseProgram(0);
 
   segmentationMaskInstancingShader =
-      gltLoadShaderPair(segmentationMaskInstancingVertexShader,
-                        segmentationMaskInstancingFragmentShader);
+      gltLoadShaderPair(segmentationMaskInstancingVertexShaderInit.c_str(),
+                        segmentationMaskInstancingFragmentShaderInit.c_str());
   glLinkProgram(segmentationMaskInstancingShader);
   glUseProgram(segmentationMaskInstancingShader);
 
@@ -1370,7 +1386,7 @@ void TinyGLInstancingRenderer::init_shaders() {
   glUseProgram(0);
 
   instancingShader =
-      gltLoadShaderPair(instancingVertexShader, instancingFragmentShader);
+      gltLoadShaderPair(instancingVertexShaderInit.c_str(), instancingFragmentShaderInit.c_str());
   glLinkProgram(instancingShader);
   glUseProgram(instancingShader);
   ModelViewMatrix = glGetUniformLocation(instancingShader, "ModelViewMatrix");
