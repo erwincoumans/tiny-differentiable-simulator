@@ -1145,6 +1145,20 @@ std::vector<int> TinyGLInstancingRenderer::get_shape_vertex_count() const
     }
     return vertex_counts;
 }
+
+std::vector<int> TinyGLInstancingRenderer::get_shape_vertex_offsets() const
+{
+    std::vector<int> vertex_offsets;
+    vertex_offsets.resize(m_graphicsInstances.size());
+    for (int i=0;i<m_graphicsInstances.size();i++)
+    {
+        vertex_offsets[i] = m_graphicsInstances[i]->m_vertexArrayOffset;
+    }
+    return vertex_offsets;
+}
+
+
+
 int TinyGLInstancingRenderer::register_shape(const float* vertices,
                                              int numvertices,
                                              const int* indices, int numIndices,

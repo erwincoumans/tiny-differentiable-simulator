@@ -469,6 +469,9 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
     //.def("update_shape", &TinyGLInstancingRenderer::update_shape)
     .def("get_shape_vertex_count", &TinyGLInstancingRenderer::get_shape_vertex_count)
+    .def("get_shape_vertex_offsets", &TinyGLInstancingRenderer::get_shape_vertex_offsets)
+
+      
 
     .def("register_texture", &TinyGLInstancingRenderer::register_texture1)
     //.def("update_texture", &TinyGLInstancingRenderer::update_texture)

@@ -112,6 +112,7 @@ class TinyGLInstancingRenderer {
                              bool double_sided = false);
 
   std::vector<int> get_shape_vertex_count() const;
+  std::vector<int> get_shape_vertex_offsets() const;
 
   virtual int register_texture1(const std::vector<unsigned char>& texels, int width,
       int height, bool flipPixelsY = true)
