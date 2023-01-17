@@ -7,6 +7,8 @@ import nvtx
 
 wp.init()
 
+device = "cuda" #wp.get_preferred_device()
+
 num_objects = 1000000
 #num_objects = 1000
 
@@ -91,6 +93,7 @@ app.cuda_unmap_vbo()
 
 velocities = wp.array(
     np.array([0.0, 0.0, 0.1, 0.0]*num_objects),
+    device=device,
     dtype=wp.vec4,
     requires_grad=False,
   )
@@ -107,8 +110,8 @@ def init_kernel(a: wp.array(dtype=wp.vec4), sim_spacing: float, square_id: int):
 
 vbo = app.cuda_map_vbo()
 sim_spacing = 0.3
-positions = wp.array(ptr=vbo.positions,dtype=wp.vec4, shape=(num_objects,), length=num_objects,capacity=num_objects,device="cuda", owner=False, ndim=1)
-wp.launch(init_kernel, dim=num_objects, inputs=[positions, sim_spacing, int(math.sqrt(num_objects))])
+positions = wp.array(ptr=vbo.positions,dtype=wp.vec4, shape=(num_objects,), length=num_objects,capacity=num_objects,device=device, owner=False, ndim=1)
+wp.launch(init_kernel, device=device, dim=num_objects, inputs=[positions, sim_spacing, int(math.sqrt(num_objects))])
 app.cuda_unmap_vbo()
 
 
@@ -161,8 +164,8 @@ while not app.window.requested_exit():
 
   with nvtx.annotate("sync_visual_transforms", color="orange"):  
     vbo = app.cuda_map_vbo()
-    positions = wp.array(ptr=vbo.positions,dtype=wp.vec4, shape=(num_objects,), length=num_objects,capacity=num_objects,device="cuda", owner=False, ndim=1)
-    wp.launch(test_kernel, dim=num_objects, inputs=[positions, velocities, 1./240.])
+    positions = wp.array(ptr=vbo.positions,dtype=wp.vec4, shape=(num_objects,), length=num_objects,capacity=num_objects,device=device, owner=False, ndim=1)
+    wp.launch(test_kernel, device=device, dim=num_objects, inputs=[positions, velocities, 1./240.])
     app.cuda_unmap_vbo()
 
   
