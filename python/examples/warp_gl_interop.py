@@ -11,9 +11,14 @@ device = "cuda" #wp.get_preferred_device()
 
 num_objects = 1000000
 #num_objects = 1000
+#num_objects = 10
 
 app = p.TinyOpenGL3App("warp_gl_interop", maxNumObjectCapacity=num_objects+10)
 app.renderer.init()
+
+
+
+
 cam = p.TinyCamera()
 cam.set_camera_distance(2.)
 cam.set_camera_pitch(-20)
@@ -84,12 +89,6 @@ app.renderer.write_transforms()
 
 
 
-vbo = app.cuda_map_vbo()
-
-#print("buf=",buf)
-#buf=wp.vec4(0,0,0,1)
-#wp.copy(buf, a, dest_offset=0, src_offset=0, count=2)
-app.cuda_unmap_vbo()
 
 velocities = wp.array(
     np.array([0.0, 0.0, 0.1, 0.0]*num_objects),
@@ -115,6 +114,52 @@ wp.launch(init_kernel, device=device, dim=num_objects, inputs=[positions, sim_sp
 app.cuda_unmap_vbo()
 
 
+# Example reading/writing OpenGL vertices (in VBO) using CUDA interop
+if 1:
+    print("shape=",shape)
+    vcnt = app.renderer.get_shape_vertex_count()
+    total_vertices = 0
+    for vc in vcnt:
+        total_vertices += vc
+        
+    print("vcnt2 =",vcnt )
+    #vertex offset into VBO for each shape
+    voffsets = app.renderer.get_shape_vertex_offsets()
+    print("voffsets2=",voffsets)
+
+    vbo = app.cuda_map_vbo()
+
+    num_vertices = vcnt[shape]
+    print("num_vertices=",num_vertices)
+    offset = voffsets[shape]
+    vertex_stride = 9*4 #9 floats [x,y,z,w, nx,ny,nz, u,v]
+    print("total_vertices=",total_vertices)
+
+    a = np.array([-1.0, -1.0, -1.0, -1.0]*num_vertices)
+     
+    vertices_dest = wp.array(
+        a,
+        dtype=wp.vec4,
+        device=device,
+        requires_grad=False,
+    )
+
+    vertices_src = wp.array(ptr=vbo.vertices,dtype=wp.vec4, shape=(total_vertices,), strides=(vertex_stride,), length=total_vertices,capacity=total_vertices,device=device, owner=False, ndim=1)
+
+    @wp.kernel
+    def modify_vertices_kernel(src: wp.array(dtype=wp.vec4), dst: wp.array(dtype=wp.vec4), offset: wp.int32, x_y_dim: float):
+          tid = wp.tid()
+          v = src[tid+offset]
+          src[tid+offset] = wp.vec4(x_y_dim*v[0],x_y_dim*v[1],-0.01,v[3])
+          dst[tid] = src[tid+offset]
+          
+    x_y_dim = sim_spacing*math.sqrt(num_objects)/2.
+    wp.launch(modify_vertices_kernel, device=device, dim=num_vertices, inputs=[vertices_src, vertices_dest, offset, x_y_dim])
+
+    app.cuda_unmap_vbo()
+
+    #debug values
+    print("vertices_dest=",vertices_dest)
 
 
 @wp.kernel
