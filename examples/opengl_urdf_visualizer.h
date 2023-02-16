@@ -691,9 +691,9 @@ struct OpenGLUrdfVisualizer {
     }
   }
   
-  void render(bool do_swap_buffer = true, bool render_segmentation_mask=false, int upAxis=2) {
-    
-    m_opengl_app.m_renderer->write_transforms();
+  void render(bool do_swap_buffer = true, bool render_segmentation_mask=false, int upAxis=2, bool write_transforms = true) {
+    if (write_transforms) 
+       m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
     double lightPos[3] = {-50, 30, 40};
     m_opengl_app.m_renderer->set_light_position(lightPos);
@@ -724,9 +724,10 @@ struct OpenGLUrdfVisualizer {
   void render_tiled(std::vector<TinyViewportTile> &tiles,
                     bool do_swap_buffer = true,
                     bool render_segmentation_mask = false,
-                    int upAxis =2 ) {
-    
-    m_opengl_app.m_renderer->write_transforms();
+                    int upAxis =2,
+                    bool write_transforms = true ) {
+    if (write_transforms)
+      m_opengl_app.m_renderer->write_transforms();
     m_opengl_app.m_renderer->update_camera(upAxis);
     double lightPos[3] = {-50, 30, 40};
     m_opengl_app.m_renderer->set_light_position(lightPos);

@@ -606,14 +606,15 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render,
           py::arg("do_swap_buffer")=true,
           py::arg("render_segmentation_mask")=false,
-          py::arg("up_axis")=2
-
+          py::arg("up_axis")=2,
+          py::arg("write_transforms")=true
       )
       .def("render_tiled", &OpenGLUrdfVisualizer<MyAlgebra>::render_tiled,
           py::arg("tiles"),
           py::arg("do_swap_buffer")=true,
           py::arg("render_segmentation_mask")=false,
-          py::arg("up_axis")=2
+          py::arg("up_axis")=2,
+          py::arg("write_transforms")=true
           )
       .def("swap_buffer", &OpenGLUrdfVisualizer<MyAlgebra>::swap_buffer)
 
