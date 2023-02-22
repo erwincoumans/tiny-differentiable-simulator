@@ -1609,6 +1609,38 @@ void TinyGLInstancingRenderer::update_camera(int upAxis) {
   }
 }
 
+void TinyGLInstancingRenderer::get_projection_matrix(float projMatrix[16]) const {
+  for (int i = 0; i < 16; i++) {
+    projMatrix[i] = m_data->m_projectionMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::set_projection_matrix(const float projMatrix[16]) {
+  for (int i = 0; i < 16; i++) {
+    m_data->m_projectionMatrix[i] = projMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::get_view_matrix(float viewMatrix[16]) const {
+  for (int i = 0; i < 16; i++) {
+    viewMatrix[i] = m_data->m_viewMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::set_view_matrix(const float viewMatrix[16]) {
+  for (int i = 0; i < 16; i++) {
+    m_data->m_viewMatrix[i] = viewMatrix[i];
+  }
+  TinyPosef tr;
+  setFromOpenGLMatrix(tr, viewMatrix);
+  tr.inverse();
+  float viewMatInverse[16];
+  getOpenGLMatrix(tr, viewMatInverse);
+  for (int i = 0; i < 16; i++) {
+    m_data->m_viewMatrixInverse[i] = viewMatInverse[i];
+  }
+}
+
 void writeTextureToPng(int textureWidth, int textureHeight,
                        const char* fileName, int numComponents) {
   assert(glGetError() == GL_NO_ERROR);
@@ -2329,9 +2361,9 @@ for (int tile = 0; tile< tiles.size();tile++)
 
   {
     //	update_camera();
-    m_data->m_activeCamera->get_camera_projection_matrix(
-        m_data->m_projectionMatrix);
-    m_data->m_activeCamera->get_camera_view_matrix(m_data->m_viewMatrix);
+    // m_data->m_activeCamera->get_camera_projection_matrix(
+    //     m_data->m_projectionMatrix);
+    // m_data->m_activeCamera->get_camera_view_matrix(m_data->m_viewMatrix);
   }
 
   assert(glGetError() == GL_NO_ERROR);

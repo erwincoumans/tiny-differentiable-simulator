@@ -220,6 +220,11 @@ class TinyGLInstancingRenderer {
 
   virtual void set_active_camera(TinyCamera* cam);
 
+  void get_projection_matrix(float projMatrix[16]) const;
+  void set_projection_matrix(const float projMatrix[16]);
+  void get_view_matrix(float viewMatrix[16]) const;
+  void set_view_matrix(const float viewMatrix[16]);
+
   virtual void set_light_position(const float lightPos[3]);
   virtual void set_light_position(const double lightPos[3]);
   virtual void set_shadow_map_resolution(int shadowMapResolution);
