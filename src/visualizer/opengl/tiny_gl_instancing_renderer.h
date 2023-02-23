@@ -252,6 +252,10 @@ class TinyGLInstancingRenderer {
 
   virtual void set_render_frame_buffer(unsigned int renderFrameBuffer);
 
+private:
+  ::TINY::TinyVector3f get_camera_position() const;
+  ::TINY::TinyVector3f get_camera_target() const;
+  ::TINY::TinyVector3f get_camera_forward_vector() const;
 };
 
 #endif  // GL_INSTANCING_RENDERER_H
