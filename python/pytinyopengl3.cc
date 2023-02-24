@@ -461,7 +461,25 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("init", &TinyGLInstancingRenderer::init)
     .def("update_camera", &TinyGLInstancingRenderer::update_camera)
     .def("get_active_camera", &TinyGLInstancingRenderer::get_active_camera2)
-    
+
+    .def_property("view_matrix",
+        [](const TinyGLInstancingRenderer& self) { 
+            std::array<float, 16> viewMatrix;
+            self.get_view_matrix(viewMatrix.data());
+            return viewMatrix;
+        },
+        [](TinyGLInstancingRenderer& self, const std::array<float, 16>& viewMatrix) {
+            self.set_view_matrix(viewMatrix.data());
+        })
+    .def_property("projection_matrix",
+        [](const TinyGLInstancingRenderer& self) { 
+            std::array<float, 16> projectionMatrix;
+            self.get_projection_matrix(projectionMatrix.data());
+            return projectionMatrix;
+        },
+        [](TinyGLInstancingRenderer& self, const std::array<float, 16>& projectionMatrix) {
+            self.set_projection_matrix(projectionMatrix.data());
+        })
     
     .def("register_shape", &TinyGLInstancingRenderer::register_shape1,
       py::arg("vertices"), py::arg("indices"), py::arg("textureIndex")=-1, py::arg("double_sided")=true)

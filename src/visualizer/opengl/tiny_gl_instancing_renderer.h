@@ -220,6 +220,11 @@ class TinyGLInstancingRenderer {
 
   virtual void set_active_camera(TinyCamera* cam);
 
+  void get_projection_matrix(float projMatrix[16]) const;
+  void set_projection_matrix(const float projMatrix[16]);
+  void get_view_matrix(float viewMatrix[16]) const;
+  void set_view_matrix(const float viewMatrix[16]);
+
   virtual void set_light_position(const float lightPos[3]);
   virtual void set_light_position(const double lightPos[3]);
   virtual void set_shadow_map_resolution(int shadowMapResolution);
@@ -247,6 +252,10 @@ class TinyGLInstancingRenderer {
 
   virtual void set_render_frame_buffer(unsigned int renderFrameBuffer);
 
+private:
+  ::TINY::TinyVector3f get_camera_position() const;
+  ::TINY::TinyVector3f get_camera_target() const;
+  ::TINY::TinyVector3f get_camera_forward_vector() const;
 };
 
 #endif  // GL_INSTANCING_RENDERER_H

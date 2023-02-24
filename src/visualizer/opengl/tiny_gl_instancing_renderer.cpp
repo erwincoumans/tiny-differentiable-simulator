@@ -1609,6 +1609,38 @@ void TinyGLInstancingRenderer::update_camera(int upAxis) {
   }
 }
 
+void TinyGLInstancingRenderer::get_projection_matrix(float projMatrix[16]) const {
+  for (int i = 0; i < 16; i++) {
+    projMatrix[i] = m_data->m_projectionMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::set_projection_matrix(const float projMatrix[16]) {
+  for (int i = 0; i < 16; i++) {
+    m_data->m_projectionMatrix[i] = projMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::get_view_matrix(float viewMatrix[16]) const {
+  for (int i = 0; i < 16; i++) {
+    viewMatrix[i] = m_data->m_viewMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::set_view_matrix(const float viewMatrix[16]) {
+  for (int i = 0; i < 16; i++) {
+    m_data->m_viewMatrix[i] = viewMatrix[i];
+  }
+  TinyPosef tr;
+  setFromOpenGLMatrix(tr, viewMatrix);
+  tr.inverse();
+  float viewMatInverse[16];
+  getOpenGLMatrix(tr, viewMatInverse);
+  for (int i = 0; i < 16; i++) {
+    m_data->m_viewMatrixInverse[i] = viewMatInverse[i];
+  }
+}
+
 void writeTextureToPng(int textureWidth, int textureHeight,
                        const char* fileName, int numComponents) {
   assert(glGetError() == GL_NO_ERROR);
@@ -2123,6 +2155,25 @@ struct TransparentDistanceSortPredicate {
   }
 };
 
+TinyVector3f TinyGLInstancingRenderer::get_camera_position() const {
+  GLfloat* viewMatrixInverse = (GLfloat*)&m_data->m_viewMatrixInverse[0];
+  TinyVector3f cameraPos(viewMatrixInverse[12], viewMatrixInverse[13],
+                         viewMatrixInverse[14]);
+  return cameraPos;
+}
+
+TinyVector3f TinyGLInstancingRenderer::get_camera_target() const {
+  // use 2 units forward, better would be to use the average of near/far plane?
+  TinyVector3f cameraTarget = get_camera_position() + 2.f*get_camera_forward_vector();
+  return cameraTarget;
+}
+
+TinyVector3f TinyGLInstancingRenderer::get_camera_forward_vector() const {
+  GLfloat* viewMatrix = (GLfloat*)&m_data->m_viewMatrix[0];
+  TinyVector3f forward(-viewMatrix[2], -viewMatrix[6], -viewMatrix[10]);
+  return forward;
+}
+
 void TinyGLInstancingRenderer::render_scene_internal(std::vector<TinyViewportTile>& tiles, int orgRenderMode) {
   B3_PROFILE("render_scene_internal");
   int renderMode = orgRenderMode;
@@ -2284,8 +2335,10 @@ for (int tile = 0; tile< tiles.size();tile++)
       -m_data->m_shadowMapWorldSize, m_data->m_shadowMapWorldSize, 1, 300,
       depthProjectionMatrix);  //-14,14,-14,14,1,200, depthProjectionMatrix);
   float depthViewMatrix[4][4];
-  TinyVector3f center = TinyVector3f(0, 0, 0);
-  m_data->m_activeCamera->get_camera_target_position(center);
+  // TinyVector3f center = TinyVector3f(0, 0, 0);
+  // m_data->m_activeCamera->get_camera_target_position(center);
+  TinyVector3f center = get_camera_target();
+  TinyVector3f camPos = get_camera_position();
   // float upf[3];
   // m_data->m_activeCamera->get_camera_up_vector(upf);
   TinyVector3f up, lightFwd;
@@ -2329,9 +2382,9 @@ for (int tile = 0; tile< tiles.size();tile++)
 
   {
     //	update_camera();
-    m_data->m_activeCamera->get_camera_projection_matrix(
-        m_data->m_projectionMatrix);
-    m_data->m_activeCamera->get_camera_view_matrix(m_data->m_viewMatrix);
+    // m_data->m_activeCamera->get_camera_projection_matrix(
+    //     m_data->m_projectionMatrix);
+    // m_data->m_activeCamera->get_camera_view_matrix(m_data->m_viewMatrix);
   }
 
   assert(glGetError() == GL_NO_ERROR);
@@ -2356,10 +2409,11 @@ for (int tile = 0; tile< tiles.size();tile++)
 
     transparentInstances.reserve(totalNumInstances);
 
-    float fwd[3];
-    m_data->m_activeCamera->get_camera_forward_vector(fwd);
-    TinyVector3f camForwardVec;
-    camForwardVec.setValue(fwd[0], fwd[1], fwd[2]);
+    // float fwd[3];
+    // m_data->m_activeCamera->get_camera_forward_vector(fwd);
+    // TinyVector3f camForwardVec;
+    // camForwardVec.setValue(fwd[0], fwd[1], fwd[2]);
+    TinyVector3f camForwardVec = get_camera_forward_vector();
 
     for (int obj = 0; obj < m_graphicsInstances.size(); obj++) {
       b3GraphicsInstance* gfxObj = m_graphicsInstances[obj];
@@ -2997,8 +3051,8 @@ if (precompute_tiles)
                 // gLightDir.normalize();
                 glUniform3f(useShadow_lightPosIn, m_data->m_lightPos[0],
                             m_data->m_lightPos[1], m_data->m_lightPos[2]);
-                TinyVector3f camPos;
-                m_data->m_activeCamera->get_camera_position(camPos);
+                // TinyVector3f camPos;
+                // m_data->m_activeCamera->get_camera_position(camPos);
                 glUniform3f(useShadow_cameraPositionIn, camPos[0], camPos[1],
                             camPos[2]);
                 glUniform1f(useShadow_materialShininessIn,
@@ -3091,8 +3145,8 @@ if (precompute_tiles)
                 glUniformMatrix4fv(projectiveTexture_MVP, 1, false, &MVP[0]);
                 glUniform3f(projectiveTexture_lightPosIn, m_data->m_lightPos[0],
                             m_data->m_lightPos[1], m_data->m_lightPos[2]);
-                TinyVector3f camPos;
-                m_data->m_activeCamera->get_camera_position(camPos);
+                // TinyVector3f camPos;
+                // m_data->m_activeCamera->get_camera_position(camPos);
                 glUniform3f(projectiveTexture_cameraPositionIn, camPos[0],
                             camPos[1], camPos[2]);
                 glUniform1f(projectiveTexture_materialShininessIn,
