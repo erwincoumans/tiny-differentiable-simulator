@@ -502,7 +502,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("write_single_instance_color_to_cpu", &TinyGLInstancingRenderer::write_single_instance_color_to_cpu2)
     .def("write_single_instance_flags_to_cpu", &TinyGLInstancingRenderer::write_single_instance_flags_to_cpu)
       
-    .def("render_scene", &TinyGLInstancingRenderer::render_scene)
+    .def("render_scene", &TinyGLInstancingRenderer::render_scene2, py::arg("tiles")=std::vector<TinyViewportTile>())
     .def("write_transforms", &TinyGLInstancingRenderer::write_transforms)
     .def("remove_all_instances", &TinyGLInstancingRenderer::remove_all_instances)
     .def("remove_graphics_instance", &TinyGLInstancingRenderer::remove_graphics_instance)
