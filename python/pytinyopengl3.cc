@@ -46,6 +46,18 @@ typedef ::TINY::FloatUtils MyTinyConstants;
 typedef TinyAlgebra<float, MyTinyConstants> MyAlgebra;
 
 
+extern std::string DYNAMIC_CUDA_PATH;
+extern std::string DYNAMIC_CUDART_PATH;
+
+void set_cuda_path(const std::string& cuda_path)
+{
+	DYNAMIC_CUDA_PATH = cuda_path;
+}
+void set_cudart_path(const std::string& cudart_path)
+{
+	DYNAMIC_CUDART_PATH = cudart_path;
+}
+	
 
 std::string file_open_dialog(TinyWindowInterface* window)
 {
@@ -531,7 +543,9 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   ;
   
   m.def("file_open_dialog", &file_open_dialog);
-
+  m.def("set_cuda_path", &set_cuda_path);
+  m.def("set_cudart_path", &set_cudart_path);
+  
   m.def("load_obj_shapes", &my_load_obj_shapes);
   m.def("extract_path", &my_extract_path);
   m.def("compute_camera_view_matrix", &compute_camera_view_matrix);

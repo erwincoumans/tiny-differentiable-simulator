@@ -1341,12 +1341,12 @@ void TinyOpenGL3App::dump_next_frame_to_png(const char* filename,
 #ifdef _WIN32
 #include <windows.h>
 #define dlsym GetProcAddress
-#define DYNAMIC_CUDA_PATH "nvcuda.dll"
-#define DYNAMIC_CUDART_PATH "cudart64_110.dll"
+std::string DYNAMIC_CUDA_PATH = "nvcuda.dll";
+std::string DYNAMIC_CUDART_PATH = "cudart64_110.dll";
 #else
 #include <dlfcn.h>
-#define DYNAMIC_CUDA_PATH "/usr/lib/x86_64-linux-gnu/libcuda.so"
-#define DYNAMIC_CUDART_PATH "/usr/local/cuda/lib64/libcudart.so"
+std::string DYNAMIC_CUDA_PATH = "/usr/lib/x86_64-linux-gnu/libcuda.so";
+std::string DYNAMIC_CUDART_PATH = "/usr/local/cuda/lib64/libcudart.so";
 #endif
 
 using namespace std;
@@ -1429,11 +1429,11 @@ int init_cuda(bool verbose) {
             return s_cuda_initialized;
 
 #ifdef _WIN32
-  HMODULE cuda_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDA_PATH);
-  HMODULE cudart_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDART_PATH);
+  HMODULE cuda_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDA_PATH.c_str());
+  HMODULE cudart_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDART_PATH.c_str());
 #else
-  void* cuda_lib = dlopen(DYNAMIC_CUDA_PATH, RTLD_NOW);
-  void* cudart_lib = dlopen(DYNAMIC_CUDART_PATH, RTLD_NOW);
+  void* cuda_lib = dlopen(DYNAMIC_CUDA_PATH.c_str(), RTLD_NOW);
+  void* cudart_lib = dlopen(DYNAMIC_CUDART_PATH.c_str(), RTLD_NOW);
   // could use dlerror() on error
 #endif
   if (!cuda_lib) {
