@@ -144,9 +144,9 @@ struct UrdfParser {
         config->FirstChildElement("inertia");
     if (!inertia_xml) {
       logger.report_warning("Inertial element lacks inertia element, using ixx=1.0, iyy=1.0 and izz=1.0");
-      urdf_inertial.inertia_xxyyzz[0] = 1.0;
-      urdf_inertial.inertia_xxyyzz[1] = 1.0;
-      urdf_inertial.inertia_xxyyzz[2] = 1.0;
+      urdf_inertial.inertia_xxyyzz[0] = Scalar(1.0);
+      urdf_inertial.inertia_xxyyzz[1] = Scalar(1.0);
+      urdf_inertial.inertia_xxyyzz[2] = Scalar(1.0);
       return true;
     }
 

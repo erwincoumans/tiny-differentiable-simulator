@@ -291,7 +291,7 @@ struct OpenGLUrdfVisualizer {
               color = urdf.materials[v.material_name].material_rgb;
             }
           }
-          b2v.shape_colors.push_back(color);
+          b2v.shape_colors.push_back(::TINY::TinyVector3f (color[0],color[1],color[2]));
           break;
         }
         case ::tds::TINY_CAPSULE_TYPE: {
@@ -317,7 +317,7 @@ struct OpenGLUrdfVisualizer {
 
           b2v.visual_shape_uids.push_back(shape_id);
           TinyVector3 color(1, 1, 1);
-          b2v.shape_colors.push_back(color);
+          b2v.shape_colors.push_back(::TINY::TinyVector3f (color[0],color[1],color[2]));
           break;
         }
 #ifdef USE_SDF_TO_MESH
@@ -350,7 +350,7 @@ struct OpenGLUrdfVisualizer {
 
           b2v.visual_shape_uids.push_back(shape_id);
           TinyVector3 color(1, 1, 1);
-          b2v.shape_colors.push_back(color);
+          b2v.shape_colors.push_back(::TINY::TinyVector3f (color[0],color[1],color[2]));
           break;
         }
 #endif
@@ -367,7 +367,9 @@ struct OpenGLUrdfVisualizer {
           ::TINY::TinyVector3f color(1, 1, 1);
           if (v.has_local_material) {
             if (urdf.materials.count(v.material_name)) {
-              color = urdf.materials[v.material_name].material_rgb;
+              color = ::TINY::TinyVector3f(urdf.materials[v.material_name].material_rgb[0],
+              	urdf.materials[v.material_name].material_rgb[1],
+              	urdf.materials[v.material_name].material_rgb[2]);
             }
           }
           b2v.shape_colors.push_back(color);
