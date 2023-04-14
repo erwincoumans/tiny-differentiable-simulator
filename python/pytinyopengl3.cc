@@ -456,6 +456,31 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
   ;
 
+
+  py::class_<TinyViewportTile>(m, "TinyViewportTile")
+          .def(py::init<>())
+          .def_readwrite("visual_instances",
+                     &TinyViewportTile::visual_instances)
+           .def_readwrite("projection_matrix",
+                    &TinyViewportTile::projection_matrix)
+           .def_readwrite("view_matrix",
+                     &TinyViewportTile::view_matrix)
+           .def_readwrite("viewport_dims",
+                     &TinyViewportTile::viewport_dims)
+
+           ;
+
+  
+
+  py::class_<UrdfInstancePair>(m, "UrdfInstancePair")
+          .def(py::init<>())
+          .def_readwrite("link_index", &UrdfInstancePair::m_link_index)
+          .def_readwrite("visual_instance", &UrdfInstancePair::m_visual_instance)
+          .def_readwrite("viz_origin_xyz", &UrdfInstancePair::viz_origin_xyz)
+          .def_readwrite("viz_origin_rpy", &UrdfInstancePair::viz_origin_rpy);
+  
+  
+
   py::class_<TinyCamera>(m, "TinyCamera")
     .def(py::init<>())
     .def("update", &TinyCamera::update)
@@ -515,6 +540,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("write_single_instance_flags_to_cpu", &TinyGLInstancingRenderer::write_single_instance_flags_to_cpu)
       
     .def("render_scene", &TinyGLInstancingRenderer::render_scene)
+    .def("render_scene_tiled", &TinyGLInstancingRenderer::render_scene_internal)
+      
     .def("write_transforms", &TinyGLInstancingRenderer::write_transforms)
     .def("remove_all_instances", &TinyGLInstancingRenderer::remove_all_instances)
     .def("remove_graphics_instance", &TinyGLInstancingRenderer::remove_graphics_instance)
@@ -594,28 +621,6 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   
 
 
-  py::class_<TinyViewportTile>(m, "TinyViewportTile")
-          .def(py::init<>())
-          .def_readwrite("visual_instances",
-                     &TinyViewportTile::visual_instances)
-           .def_readwrite("projection_matrix",
-                    &TinyViewportTile::projection_matrix)
-           .def_readwrite("view_matrix",
-                     &TinyViewportTile::view_matrix)
-           .def_readwrite("viewport_dims",
-                     &TinyViewportTile::viewport_dims)
-
-           ;
-
-  
-
-  py::class_<UrdfInstancePair>(m, "UrdfInstancePair")
-          .def(py::init<>())
-          .def_readwrite("link_index", &UrdfInstancePair::m_link_index)
-          .def_readwrite("visual_instance", &UrdfInstancePair::m_visual_instance)
-          .def_readwrite("viz_origin_xyz", &UrdfInstancePair::viz_origin_xyz)
-          .def_readwrite("viz_origin_rpy", &UrdfInstancePair::viz_origin_rpy);
-  
   
   py::class_<::tds::UrdfStructures<MyAlgebra>>(m,"OpenGLUrdfStructures")
       .def(py::init<>())
@@ -665,6 +670,9 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       ;
 
     PyModule_AddIntConstant(m.ptr(), "GL_TEXTURE_2D", GL_TEXTURE_2D);
+    PyModule_AddIntConstant(m.ptr(), "SEGMENTATION_MASK_RENDERMODE", B3_SEGMENTATION_MASK_RENDERMODE);
+    PyModule_AddIntConstant(m.ptr(), "DEFAULT_RENDERMODE", B3_DEFAULT_RENDERMODE);
+    
 
   
   py::class_<TinyPose<float, FloatUtils>>(m, "TinyPosef")
