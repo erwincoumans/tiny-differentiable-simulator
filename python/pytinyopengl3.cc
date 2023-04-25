@@ -540,6 +540,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("write_single_instance_flags_to_cpu", &TinyGLInstancingRenderer::write_single_instance_flags_to_cpu)
       
     .def("render_scene", &TinyGLInstancingRenderer::render_scene)
+    .def("render_scene2", &TinyGLInstancingRenderer::render_scene2)
+ 
     .def("render_scene_tiled", &TinyGLInstancingRenderer::render_scene_internal)
       
     .def("write_transforms", &TinyGLInstancingRenderer::write_transforms)
