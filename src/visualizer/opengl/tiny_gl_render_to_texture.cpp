@@ -37,26 +37,32 @@ GLRenderToTexture::GLRenderToTexture() : m_framebufferName(0) {
     gIntelLinuxglDrawBufferWorkaround = true;
   }
 #endif  //! defined(_WIN32) && !defined(__APPLE__)
+
+  m_width = -1;
+  m_height = -1;
 }
 
 void GLRenderToTexture::init(int width, int height, GLuint textureId,
                              int renderTextureType) {
   m_renderTextureType = renderTextureType;
+  m_width = width;
+  m_height = height;
 
   glGenFramebuffers(1, &m_framebufferName);
   glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferName);
 
-  // The depth buffer
-  //	glGenRenderbuffers(1, &m_depthrenderbuffer);
-
-  //	glBindRenderbuffer(GL_RENDERBUFFER, m_depthrenderbuffer);
-  //	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width,
-  // height); 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-  // GL_RENDERBUFFER, m_depthrenderbuffer);
 
   switch (m_renderTextureType) {
     case RENDERTEXTURE_COLOR: {
       glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureId, 0);
+
+        // The depth buffer
+      glGenRenderbuffers(1, &m_depthrenderbuffer);
+
+      glBindRenderbuffer(GL_RENDERBUFFER, m_depthrenderbuffer);
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,width,height); 	
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthrenderbuffer);
+
       break;
     }
     case RENDERTEXTURE_DEPTH: {
@@ -67,6 +73,8 @@ void GLRenderToTexture::init(int width, int height, GLuint textureId,
   };
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
 }
 
 bool GLRenderToTexture::enable() {
@@ -79,6 +87,13 @@ bool GLRenderToTexture::enable() {
       // Set the list of draw buffers.
       GLenum drawBuffers[2] = {GL_COLOR_ATTACHMENT0, 0};
       glDrawBuffers(1, drawBuffers);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+              GL_STENCIL_BUFFER_BIT);
+
+      // glCullFace(GL_BACK);
+      // glFrontFace(GL_CCW);
+      glEnable(GL_DEPTH_TEST);
+
       break;
     }
     case RENDERTEXTURE_DEPTH: {

@@ -16,6 +16,7 @@
 #define TINY_WINDOW_INTERFACE_H
 
 #include "tiny_common_callbacks.h"
+#include <functional>
 
 struct TinyWindowConstructionInfo {
   int m_width;
@@ -40,7 +41,7 @@ struct TinyWindowConstructionInfo {
 
 class TinyWindowInterface {
  public:
-  virtual ~TinyWindowInterface() {}
+ 
 
   virtual void create_default_window(int width, int height, const char* title) {
     TinyWindowConstructionInfo ci(width, height);
@@ -57,8 +58,21 @@ class TinyWindowInterface {
 
   virtual bool requested_exit() const = 0;
   virtual void set_request_exit() = 0;
+  virtual void set_request_exit2()
+  {
+      set_request_exit();
+
+      set_keyboard_callback2(0);
+      set_wheel_callback2(0);
+      set_resize_callback2(0);
+      set_mouse_button_callback2(0);
+      set_mouse_move_callback2(0);
+      
+  }
 
   virtual void start_rendering() = 0;
+
+  virtual void pump_messages() = 0;
 
   virtual void end_rendering() = 0;
 
@@ -76,6 +90,86 @@ class TinyWindowInterface {
 
   virtual void set_wheel_callback(TinyWheelCallback wheelCallback) = 0;
   virtual TinyWheelCallback get_wheel_callback() = 0;
+
+  
+
+    static inline std::function<void(int, int)> s_keyboard_callback;
+
+    static void bridge_keyboard_callback(int a, int b)
+    {
+        if (s_keyboard_callback)
+            s_keyboard_callback(a,b);
+    }
+
+    void set_keyboard_callback2(std::function<void(int, int)> callback)
+    {
+        s_keyboard_callback = callback;
+        set_keyboard_callback(bridge_keyboard_callback);
+    }
+
+    static inline std::function<void(float, float)> s_mouse_move_callback;
+
+    static void bridge_mouse_move_callback(float a, float b)
+    {
+        if (s_mouse_move_callback)
+            s_mouse_move_callback(a,b);
+    }
+
+
+    void set_mouse_move_callback2(std::function<void(float, float)> callback)
+    {
+        s_mouse_move_callback = callback;
+        set_mouse_move_callback( bridge_mouse_move_callback);
+    }
+
+    static inline std::function<void(int,int,float, float)> s_mouse_button_callback;
+
+    static void bridge_mouse_button_callback(int a,int b,float c, float d)
+    {
+        if (s_mouse_button_callback)
+            s_mouse_button_callback(a,b,c,d);
+    }
+
+    void set_mouse_button_callback2(std::function<void(int,int,float, float)> callback)
+    {
+        s_mouse_button_callback = callback;
+        set_mouse_button_callback(bridge_mouse_button_callback);
+    }
+
+
+    static inline std::function<void(float, float)> s_resize_callback;
+
+    static void bridge_resize_callback(float a, float b)
+    {
+        if (s_resize_callback)
+        {
+            s_resize_callback(a,b);
+        }
+    }
+
+    void set_resize_callback2(std::function<void(float, float)> callback)
+    {
+        s_resize_callback = callback;
+        set_resize_callback( bridge_resize_callback);
+    }
+
+
+    static inline std::function<void(float, float)> s_wheel_callback;
+
+    static void bridge_wheel_callback(float a, float b)
+    {
+        if (s_wheel_callback)
+            s_wheel_callback(a,b);
+    }
+
+    void set_wheel_callback2(std::function<void(float, float)> callback)
+    {
+        s_wheel_callback = callback;
+        set_wheel_callback(bridge_wheel_callback);
+    }
+  
+  virtual ~TinyWindowInterface() {
+  }
 
   virtual void set_keyboard_callback(TinyKeyboardCallback keyboardCallback) = 0;
   virtual TinyKeyboardCallback get_keyboard_callback() = 0;

@@ -143,8 +143,11 @@ struct UrdfParser {
     const tinyxml2::XMLElement* inertia_xml =
         config->FirstChildElement("inertia");
     if (!inertia_xml) {
-      logger.report_error("Inertial element must have inertia element");
-      return false;
+      logger.report_warning("Inertial element lacks inertia element, using ixx=1.0, iyy=1.0 and izz=1.0");
+      urdf_inertial.inertia_xxyyzz[0] = Scalar(1.0);
+      urdf_inertial.inertia_xxyyzz[1] = Scalar(1.0);
+      urdf_inertial.inertia_xxyyzz[2] = Scalar(1.0);
+      return true;
     }
 
     if ((inertia_xml->Attribute("ixx") && inertia_xml->Attribute("iyy") &&
@@ -704,7 +707,7 @@ struct UrdfParser {
     }
   }
 
-  UrdfStructures load_urdf(const std::string& file_name) {
+  UrdfStructures load_urdf(const std::string& file_name, bool verbose=false) {
     std::ifstream ifs(file_name);
     std::string urdf_string;
 
@@ -716,8 +719,18 @@ struct UrdfParser {
     urdf_string = std::string((std::istreambuf_iterator<char>(ifs)),
                               std::istreambuf_iterator<char>());
 
-    //StdLogger logger;
-    NullLogger logger;
+    tds::NullLogger null_logger;
+    tds::StdLogger std_logger;
+    tds::Logger* loggerPtr = 0;
+    if (verbose)
+    {
+        loggerPtr = &std_logger;
+    } else
+    {
+        loggerPtr = &null_logger;
+    }
+    
+    auto& logger= *loggerPtr;
     int flags = 0;
     UrdfStructures urdf_structures;
     load_urdf_from_string(urdf_string, flags, logger, urdf_structures);

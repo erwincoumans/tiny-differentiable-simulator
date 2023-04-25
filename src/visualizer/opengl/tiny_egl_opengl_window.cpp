@@ -290,7 +290,7 @@ void EGLOpenGLWindow::set_resize_callback(TinyResizeCallback resizeCallback) {
   m_data->m_resizeCallback = resizeCallback;
 }
 
-TinyResizeCallback EGLOpenGLWindow::getResizeCallback() {
+TinyResizeCallback EGLOpenGLWindow::get_resize_callback() {
   return m_data->m_resizeCallback;
 }
 

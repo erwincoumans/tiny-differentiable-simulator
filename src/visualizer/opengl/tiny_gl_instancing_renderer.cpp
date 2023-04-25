@@ -28,7 +28,7 @@ bool useShadowMap = true;
 #include "utils/tiny_min_max.h"
 #include "tiny_opengl_include.h"
 #include "tiny_window_interface.h"
-
+#include "utils/tiny_logging.h"
 
 
 struct caster2 {
@@ -120,6 +120,7 @@ static const char* triangleVertexShaderText =
     "    uv0 = vUV;\n"
     "}\n";
 
+
 static const char* triangleFragmentShader =
     "#version 330\n"
     "precision highp float;"
@@ -132,6 +133,21 @@ static const char* triangleFragmentShader =
     "    vec4 texel = texture(Diffuse,uv0);\n"
     "    color = vec4(clr,texel.r)*texel;\n"
     "}\n";
+
+std::string triangleVertexShaderTextInit = triangleVertexShaderText;
+std::string triangleFragmentShaderInit = triangleFragmentShader;
+
+std::string useShadowMapInstancingVertexShaderInit = useShadowMapInstancingVertexShader;
+std::string useShadowMapInstancingFragmentShaderInit = useShadowMapInstancingFragmentShader;
+
+std::string createShadowMapInstancingVertexShaderInit = createShadowMapInstancingVertexShader;
+std::string createShadowMapInstancingFragmentShaderInit = createShadowMapInstancingFragmentShader;
+
+std::string segmentationMaskInstancingVertexShaderInit = segmentationMaskInstancingVertexShader;
+std::string segmentationMaskInstancingFragmentShaderInit = segmentationMaskInstancingFragmentShader;
+
+std::string instancingVertexShaderInit = instancingVertexShader;
+std::string instancingFragmentShaderInit = instancingFragmentShader;
 
 //#include
 //"../../opencl/gpu_rigidbody_pipeline/b3GpuNarrowphaseAndSolver.h"//for
@@ -435,6 +451,9 @@ bool TinyGLInstancingRenderer::read_single_instance_transform_to_cpu(
 
 void TinyGLInstancingRenderer::write_single_instance_transform_to_cpu(
     const TinyVector3f& position, const TinyQuaternionf& orientation, int srcIndex2) {
+  if (srcIndex2 < 0) 
+      return;
+
   TinyPublicGraphicsInstance* pg =
       m_data->m_publicGraphicsInstances.get_handle(srcIndex2);
   assert(pg);
@@ -919,6 +938,36 @@ int TinyGLInstancingRenderer::register_graphics_instance_internal(
    return newUid;  // gfxObj->m_numGraphicsInstances;
 }
 
+
+std::vector<int> TinyGLInstancingRenderer::register_graphics_instances(int shapeIndex,
+                                         const std::vector<::TINY::TinyVector3f>& positions,
+                                         const std::vector<::TINY::TinyQuaternionf>& quaternions,
+                                         const std::vector<::TINY::TinyVector3f>& colors,
+                                         const std::vector<::TINY::TinyVector3f>& scalings,
+                                         float opacity,
+                                         bool rebuild)
+{
+    std::vector<int> uids;
+    
+    if ((positions.size() == quaternions.size()) && 
+        (positions.size() == colors.size()) && 
+        (positions.size() == scalings.size() ))
+    {
+        uids.reserve(positions.size());
+
+        for (int i=0;i<positions.size();i++)
+        {
+            int uid = register_graphics_instance(shapeIndex, positions[i], quaternions[i], colors[i], scalings[i], opacity, false);
+            uids.push_back(uid);
+        }
+    }
+    if (rebuild)
+    {
+        rebuild_graphics_instances();
+    }
+    return uids;
+}
+
 int TinyGLInstancingRenderer::register_graphics_instance(
     int shapeIndex, const TinyVector3f& position,
     const TinyQuaternionf& quaternion, const TinyVector3f& color,
@@ -930,10 +979,12 @@ int TinyGLInstancingRenderer::register_graphics_instance(
 
   // assert(shapeIndex == (m_graphicsInstances.size()-1));
   assert(m_graphicsInstances.size() < m_data->m_maxNumObjectCapacity - 1);
-  if (shapeIndex == (m_graphicsInstances.size() - 1)) {
-    register_graphics_instance_internal(newUid, position, quaternion, color,
-                                        scaling, opacity);
-  } else {
+  //if (shapeIndex == (m_graphicsInstances.size() - 1)) 
+  //{
+  //  register_graphics_instance_internal(newUid, position, quaternion, color,
+  //                                      scaling, opacity);
+  //} else 
+  {
     int srcIndex = m_data->m_totalNumInstances++;
     pg->m_internalInstanceIndex = srcIndex;
     
@@ -1083,15 +1134,43 @@ void TinyGLInstancingRenderer::update_shape(int shapeIndex,
 #endif
 }
 
+
+std::vector<int> TinyGLInstancingRenderer::get_shape_vertex_count() const
+{
+    std::vector<int> vertex_counts;
+    vertex_counts.resize(m_graphicsInstances.size());
+    for (int i=0;i<m_graphicsInstances.size();i++)
+    {
+        vertex_counts[i] = m_graphicsInstances[i]->m_numVertices;
+    }
+    return vertex_counts;
+}
+
+std::vector<int> TinyGLInstancingRenderer::get_shape_vertex_offsets() const
+{
+    std::vector<int> vertex_offsets;
+    vertex_offsets.resize(m_graphicsInstances.size());
+    for (int i=0;i<m_graphicsInstances.size();i++)
+    {
+        vertex_offsets[i] = m_graphicsInstances[i]->m_vertexArrayOffset;
+    }
+    return vertex_offsets;
+}
+
+
+
 int TinyGLInstancingRenderer::register_shape(const float* vertices,
                                              int numvertices,
                                              const int* indices, int numIndices,
-                                             int primitiveType, int textureId) {
+                                             int primitiveType, int textureId, bool double_sided) {
   b3GraphicsInstance* gfxObj = new b3GraphicsInstance;
 
   if (textureId >= 0) {
     gfxObj->m_textureIndex = textureId;
     gfxObj->m_flags |= B3_INSTANCE_TEXTURE;
+  }
+  if (double_sided) {
+    gfxObj->m_flags |= B3_INSTANCE_DOUBLE_SIDED;
   }
 
   gfxObj->m_primitiveType = primitiveType;
@@ -1167,7 +1246,7 @@ void TinyGLInstancingRenderer::init_shaders() {
 
   {
     triangleShaderProgram =
-        gltLoadShaderPair(triangleVertexShaderText, triangleFragmentShader);
+        gltLoadShaderPair(triangleVertexShaderTextInit.c_str(), triangleFragmentShaderInit.c_str());
 
     // triangle_vpos_location = glGetAttribLocation(triangleShaderProgram,
     // "vPos"); triangle_vUV_location =
@@ -1269,7 +1348,7 @@ void TinyGLInstancingRenderer::init_shaders() {
   glUseProgram(0);
 
   useShadowMapInstancingShader = gltLoadShaderPair(
-      useShadowMapInstancingVertexShader, useShadowMapInstancingFragmentShader);
+      useShadowMapInstancingVertexShaderInit.c_str(), useShadowMapInstancingFragmentShaderInit.c_str());
 
   glLinkProgram(useShadowMapInstancingShader);
   glUseProgram(useShadowMapInstancingShader);
@@ -1298,8 +1377,8 @@ void TinyGLInstancingRenderer::init_shaders() {
       glGetUniformLocation(useShadowMapInstancingShader, "materialShininessIn");
 
   createShadowMapInstancingShader =
-      gltLoadShaderPair(createShadowMapInstancingVertexShader,
-                        createShadowMapInstancingFragmentShader);
+      gltLoadShaderPair(createShadowMapInstancingVertexShaderInit.c_str(),
+                        createShadowMapInstancingFragmentShaderInit.c_str());
   glLinkProgram(createShadowMapInstancingShader);
   glUseProgram(createShadowMapInstancingShader);
   createShadow_depthMVP =
@@ -1308,8 +1387,8 @@ void TinyGLInstancingRenderer::init_shaders() {
   glUseProgram(0);
 
   segmentationMaskInstancingShader =
-      gltLoadShaderPair(segmentationMaskInstancingVertexShader,
-                        segmentationMaskInstancingFragmentShader);
+      gltLoadShaderPair(segmentationMaskInstancingVertexShaderInit.c_str(),
+                        segmentationMaskInstancingFragmentShaderInit.c_str());
   glLinkProgram(segmentationMaskInstancingShader);
   glUseProgram(segmentationMaskInstancingShader);
 
@@ -1321,7 +1400,7 @@ void TinyGLInstancingRenderer::init_shaders() {
   glUseProgram(0);
 
   instancingShader =
-      gltLoadShaderPair(instancingVertexShader, instancingFragmentShader);
+      gltLoadShaderPair(instancingVertexShaderInit.c_str(), instancingFragmentShaderInit.c_str());
   glLinkProgram(instancingShader);
   glUseProgram(instancingShader);
   ModelViewMatrix = glGetUniformLocation(instancingShader, "ModelViewMatrix");
@@ -1458,7 +1537,7 @@ void TinyGLInstancingRenderer::set_active_camera(TinyCamera* cam) {
 }
 
 void TinyGLInstancingRenderer::set_camera(const TinyCamera& cam) {
-    *m_data->m_activeCamera = cam;
+  m_data->m_activeCamera->copy_data(cam);
 }
 
 void TinyGLInstancingRenderer::set_light_specular_intensity(
@@ -1524,6 +1603,38 @@ void TinyGLInstancingRenderer::update_camera(int upAxis) {
   TinyPosef tr;
   setFromOpenGLMatrix(tr, viewMat);
   tr.inverse();
+  getOpenGLMatrix(tr, viewMatInverse);
+  for (int i = 0; i < 16; i++) {
+    m_data->m_viewMatrixInverse[i] = viewMatInverse[i];
+  }
+}
+
+void TinyGLInstancingRenderer::get_projection_matrix(float projMatrix[16]) const {
+  for (int i = 0; i < 16; i++) {
+    projMatrix[i] = m_data->m_projectionMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::set_projection_matrix(const float projMatrix[16]) {
+  for (int i = 0; i < 16; i++) {
+    m_data->m_projectionMatrix[i] = projMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::get_view_matrix(float viewMatrix[16]) const {
+  for (int i = 0; i < 16; i++) {
+    viewMatrix[i] = m_data->m_viewMatrix[i];
+  }
+}
+
+void TinyGLInstancingRenderer::set_view_matrix(const float viewMatrix[16]) {
+  for (int i = 0; i < 16; i++) {
+    m_data->m_viewMatrix[i] = viewMatrix[i];
+  }
+  TinyPosef tr;
+  setFromOpenGLMatrix(tr, viewMatrix);
+  tr.inverse();
+  float viewMatInverse[16];
   getOpenGLMatrix(tr, viewMatInverse);
   for (int i = 0; i < 16; i++) {
     m_data->m_viewMatrixInverse[i] = viewMatInverse[i];
@@ -1597,11 +1708,22 @@ void TinyGLInstancingRenderer::render_scene() {
 
   // glFlush();
 
+  std::vector<TinyViewportTile> tiles;
+  
+  render_scene2(tiles);
+}
+
+void TinyGLInstancingRenderer::render_scene2(std::vector<TinyViewportTile>& tiles) {
+  // avoid some Intel driver on a Macbook Pro to lock-up
+  // todo: figure out what is going on on that machine
+
+  // glFlush();
+
   if (m_data->m_useProjectiveTexture) {
-    render_scene_internal(B3_USE_PROJECTIVE_TEXTURE_RENDERMODE);
+    render_scene_internal(tiles, B3_USE_PROJECTIVE_TEXTURE_RENDERMODE);
   } else {
     if (useShadowMap) {
-      render_scene_internal(B3_CREATE_SHADOWMAP_RENDERMODE);
+      render_scene_internal(tiles, B3_CREATE_SHADOWMAP_RENDERMODE);
 
       if (m_planeReflectionShapeIndex >= 0) {
         /* Don't update color or depth. */
@@ -1614,7 +1736,7 @@ void TinyGLInstancingRenderer::render_scene() {
         glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
 
         /* Now render floor; floor pixels just get their stencil set to 1. */
-        render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE_REFLECTION_PLANE);
+        render_scene_internal(tiles, B3_USE_SHADOWMAP_RENDERMODE_REFLECTION_PLANE);
 
         /* Re-enable update of color and depth. */
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1625,18 +1747,17 @@ void TinyGLInstancingRenderer::render_scene() {
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
         // draw the reflection objects
-        render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE_REFLECTION);
+        render_scene_internal(tiles, B3_USE_SHADOWMAP_RENDERMODE_REFLECTION);
 
         glDisable(GL_STENCIL_TEST);
       }
 
-      render_scene_internal(B3_USE_SHADOWMAP_RENDERMODE);
+      render_scene_internal(tiles, B3_USE_SHADOWMAP_RENDERMODE);
     } else {
-      render_scene_internal();
+      render_scene_internal(tiles);
     }
   }
 }
-
 struct PointerCaster {
   union {
     int m_baseIndex;
@@ -2022,6 +2143,9 @@ struct SortableTransparentInstance {
 
   int m_shapeIndex;
   int m_instanceId;
+  std::vector<int> tiles;
+  std::vector<int> tile_instance;
+    
 };
 
 struct TransparentDistanceSortPredicate {
@@ -2031,7 +2155,27 @@ struct TransparentDistanceSortPredicate {
   }
 };
 
-void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
+TinyVector3f TinyGLInstancingRenderer::get_camera_position() const {
+  GLfloat* viewMatrixInverse = (GLfloat*)&m_data->m_viewMatrixInverse[0];
+  TinyVector3f cameraPos(viewMatrixInverse[12], viewMatrixInverse[13],
+                         viewMatrixInverse[14]);
+  return cameraPos;
+}
+
+TinyVector3f TinyGLInstancingRenderer::get_camera_target() const {
+  // use 2 units forward, better would be to use the average of near/far plane?
+  TinyVector3f cameraTarget = get_camera_position() + 2.f*get_camera_forward_vector();
+  return cameraTarget;
+}
+
+TinyVector3f TinyGLInstancingRenderer::get_camera_forward_vector() const {
+  GLfloat* viewMatrix = (GLfloat*)&m_data->m_viewMatrix[0];
+  TinyVector3f forward(-viewMatrix[2], -viewMatrix[6], -viewMatrix[10]);
+  return forward;
+}
+
+void TinyGLInstancingRenderer::render_scene_internal(std::vector<TinyViewportTile>& tiles, int orgRenderMode) {
+  B3_PROFILE("render_scene_internal");
   int renderMode = orgRenderMode;
   bool reflectionPass = false;
   bool reflectionPlanePass = false;
@@ -2053,6 +2197,30 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
     renderMode = B3_USE_PROJECTIVE_TEXTURE_RENDERMODE;
   }
 
+
+{
+  B3_PROFILE("rebuild tiles");
+for (int tile = 0; tile< tiles.size();tile++)
+{
+  tiles[tile].internal_visual_instances.resize(tiles[tile].visual_instances.size());
+    for (int vi = 0; vi< tiles[tile].visual_instances.size();vi++)
+    {
+      int viz_instance = tiles[tile].visual_instances[vi];
+
+      TinyPublicGraphicsInstance* pg =
+          viz_instance >= 0?
+        m_data->m_publicGraphicsInstances.get_handle(viz_instance) : 0;
+
+      if (pg) 
+      {
+        tiles[tile].internal_visual_instances[vi] = pg->m_internalInstanceIndex;
+      } else
+      {
+        tiles[tile].internal_visual_instances[vi] = -1;
+      }
+    }
+}                        
+}
   //	glEnable(GL_DEPTH_TEST);
 
   GLint dims[4];
@@ -2167,8 +2335,10 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
       -m_data->m_shadowMapWorldSize, m_data->m_shadowMapWorldSize, 1, 300,
       depthProjectionMatrix);  //-14,14,-14,14,1,200, depthProjectionMatrix);
   float depthViewMatrix[4][4];
-  TinyVector3f center = TinyVector3f(0, 0, 0);
-  m_data->m_activeCamera->get_camera_target_position(center);
+  // TinyVector3f center = TinyVector3f(0, 0, 0);
+  // m_data->m_activeCamera->get_camera_target_position(center);
+  TinyVector3f center = get_camera_target();
+  TinyVector3f camPos = get_camera_position();
   // float upf[3];
   // m_data->m_activeCamera->get_camera_up_vector(upf);
   TinyVector3f up, lightFwd;
@@ -2212,9 +2382,9 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
 
   {
     //	update_camera();
-    m_data->m_activeCamera->get_camera_projection_matrix(
-        m_data->m_projectionMatrix);
-    m_data->m_activeCamera->get_camera_view_matrix(m_data->m_viewMatrix);
+    // m_data->m_activeCamera->get_camera_projection_matrix(
+    //     m_data->m_projectionMatrix);
+    // m_data->m_activeCamera->get_camera_view_matrix(m_data->m_viewMatrix);
   }
 
   assert(glGetError() == GL_NO_ERROR);
@@ -2239,10 +2409,11 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
 
     transparentInstances.reserve(totalNumInstances);
 
-    float fwd[3];
-    m_data->m_activeCamera->get_camera_forward_vector(fwd);
-    TinyVector3f camForwardVec;
-    camForwardVec.setValue(fwd[0], fwd[1], fwd[2]);
+    // float fwd[3];
+    // m_data->m_activeCamera->get_camera_forward_vector(fwd);
+    // TinyVector3f camForwardVec;
+    // camForwardVec.setValue(fwd[0], fwd[1], fwd[2]);
+    TinyVector3f camForwardVec = get_camera_forward_vector();
 
     for (int obj = 0; obj < m_graphicsInstances.size(); obj++) {
       b3GraphicsInstance* gfxObj = m_graphicsInstances[obj];
@@ -2281,8 +2452,47 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
     TransparentDistanceSortPredicate sorter;
 
     // transparentInstances.quickSort(sorter);
+    {
+     B3_PROFILE("sort transparentInstances");
     std::sort(transparentInstances.begin(), transparentInstances.end(), sorter);
+    }
   }
+
+
+bool precompute_tiles = true;
+if (precompute_tiles)
+{
+  B3_PROFILE("build tile_instances");
+  for (int a=0;a<transparentInstances.size();a++)
+  {
+    int shapeIndex = transparentInstances[a].m_shapeIndex;
+    transparentInstances[a].tiles.reserve(tiles.size());
+    transparentInstances[a].tile_instance.reserve(tiles.size());
+    
+    b3GraphicsInstance* gfxObj = m_graphicsInstances[shapeIndex];
+    {
+      for (int tile = 0; tile< tiles.size();tile++)
+      {
+          int instanceIdStart = transparentInstances[a].m_instanceId;
+          int instanceIdEnd = instanceIdStart+gfxObj->m_numGraphicsInstances;
+          
+    
+          for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
+          {
+          
+          if ((tiles[tile].internal_visual_instances[vi] >= instanceIdStart)&& 
+            (tiles[tile].internal_visual_instances[vi] < instanceIdEnd)
+            )
+          {
+            transparentInstances[a].tiles.push_back(tile);
+            transparentInstances[a].tile_instance.push_back(tiles[tile].internal_visual_instances[vi]);
+          }
+        }
+      }
+    }
+    //printf("transparentInstances[%d].tiles.size()=%d\n", a, (int)transparentInstances[a].tiles.size());
+  }
+}
 
   // two passes: first for opaque instances, second for transparent ones.
   for (int pass = 0; pass < 2; pass++) {
@@ -2433,15 +2643,148 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
 
             switch (renderMode) {
               case B3_SEGMENTATION_MASK_RENDERMODE: {
-                glUseProgram(segmentationMaskInstancingShader);
-                glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
-                                   &m_data->m_projectionMatrix[0]);
-                glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
-                                   &m_data->m_viewMatrix[0]);
-                glDrawElementsInstanced(GL_TRIANGLES, indexCount,
-                                        GL_UNSIGNED_INT, indexOffset,
-                                        gfxObj->m_numGraphicsInstances);
 
+                glUseProgram(segmentationMaskInstancingShader);
+                if (tiles.size())
+                {
+                  if (precompute_tiles)
+                    {
+                       for (int nt = 0; nt < transparentInstances[i].tiles.size();nt++)
+                            {
+                              
+                              int tile = transparentInstances[i].tiles[nt];
+                              int instanceId = transparentInstances[i].tile_instance[nt];
+                                 B3_PROFILE("tile_render_viewport_segmask");
+
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+								glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                              
+                            }
+                    } else
+                      {
+                        for (unsigned int qq = 0; qq < gfxObj->m_numGraphicsInstances;
+                             qq++) {
+                              
+                              B3_PROFILE("for each qq");
+
+                            for (int tile = 0; tile< tiles.size();tile++)
+                            {
+                              
+                              B3_PROFILE("for each tile");
+
+                                int instanceId = transparentInstances[i].m_instanceId+qq;
+
+                                for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
+                                {
+                                  B3_PROFILE("for each tile visual instance");
+                                
+                                if (tiles[tile].internal_visual_instances[vi] == instanceId)
+                                {
+                                  B3_PROFILE("tile_render_viewport_segmask");
+
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+								glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                                }
+
+                                }
+                              }
+                             }
+                            }
+                        glViewport(dims[0], dims[1], dims[2], dims[3]);
+                } else
+                {
+                    glUniformMatrix4fv(segmentationMaskProjectionMatrix, 1, false,
+                                       &m_data->m_projectionMatrix[0]);
+                    glUniformMatrix4fv(segmentationMaskModelViewMatrix, 1, false,
+                                       &m_data->m_viewMatrix[0]);
+                    glDrawElementsInstanced(GL_TRIANGLES, indexCount,
+                                            GL_UNSIGNED_INT, indexOffset,
+                                            gfxObj->m_numGraphicsInstances);
+                }
                 break;
               }
               case B3_DEFAULT_RENDERMODE: {
@@ -2490,9 +2833,156 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
 
                   glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
                 } else {
-                  glDrawElementsInstanced(GL_TRIANGLES, indexCount,
-                                          GL_UNSIGNED_INT, indexOffset,
-                                          gfxObj->m_numGraphicsInstances);
+
+                    if (tiles.size()) {
+                        
+                        if (precompute_tiles)
+                          {
+                            for (int nt = 0; nt < transparentInstances[i].tiles.size();nt++)
+                            {
+                              
+                              int tile = transparentInstances[i].tiles[nt];
+                              int instanceId = transparentInstances[i].tile_instance[nt];
+                              
+                                B3_PROFILE("tile_render_viewpor");
+
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+								glUniformMatrix4fv(ProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(ModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                            }
+                          } else
+                            {
+                        B3_PROFILE("tile_render_search");
+                        
+                        //for (unsigned int qq = 0; qq < gfxObj->m_numGraphicsInstances;qq++) 
+                        {
+
+                            B3_PROFILE("for each qq");
+
+                            for (int tile = 0; tile< tiles.size();tile++)
+                            {
+                              
+                              B3_PROFILE("for each tile");
+
+                                
+                                  int instanceIdStart = transparentInstances[i].m_instanceId;
+                                  int instanceIdEnd = instanceIdStart+gfxObj->m_numGraphicsInstances;
+                                
+
+                                for (int vi = 0; vi< tiles[tile].internal_visual_instances.size();vi++)
+                                {
+                                  
+                                  B3_PROFILE("for each tile visual ");
+                                
+                                  if ((tiles[tile].internal_visual_instances[vi] >= instanceIdStart)&& 
+                                    (tiles[tile].internal_visual_instances[vi] < instanceIdEnd)
+                                  )
+                                {
+                                  
+                                  int instanceId = tiles[tile].internal_visual_instances[vi];
+                                  
+                                  B3_PROFILE("tile_render_viewpor");
+
+                                glViewport(
+                                  tiles[tile].viewport_dims[0],
+                                  tiles[tile].viewport_dims[1],
+                                  tiles[tile].viewport_dims[2],
+                                  tiles[tile].viewport_dims[3]);
+
+								glUniformMatrix4fv(ProjectionMatrix, 1, false,
+									                &tiles[tile].projection_matrix[0]);
+								glUniformMatrix4fv(ModelViewMatrix, 1, false,
+									                &tiles[tile].view_matrix[0]);
+
+
+                                //if (0) {
+                                //  glDrawElementsInstancedBaseInstance(
+                                //      GL_TRIANGLES, indexCount, GL_UNSIGNED_INT,
+                                //      indexOffset, 1, qq);
+                                //} else 
+                                {
+                                      glVertexAttribPointer(
+                                          1, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes));
+                                      glVertexAttribPointer(
+                                          2, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          5, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE));
+                                      glVertexAttribPointer(
+                                          6, 4, GL_FLOAT, GL_FALSE, 0,
+                                          (GLvoid*)((instanceId)*4 * sizeof(float) +
+                                                    m_data->m_maxShapeCapacityInBytes +
+                                                    POSITION_BUFFER_SIZE +
+                                                    ORIENTATION_BUFFER_SIZE +
+                                                    COLOR_BUFFER_SIZE));
+
+                                      glDrawElements(GL_TRIANGLES, indexCount,
+                                                    GL_UNSIGNED_INT, 0);
+                                }
+                                }
+
+                                }
+                              }
+                             }
+                        }
+                        glViewport(dims[0], dims[1], dims[2], dims[3]);
+                      
+                  } else {
+                    
+                    B3_PROFILE("glDrawElementsInstanced");
+                    glDrawElementsInstanced(GL_TRIANGLES, indexCount,
+                                            GL_UNSIGNED_INT, indexOffset,
+                                            gfxObj->m_numGraphicsInstances);
+                  }
                 }
 
                 if (gfxObj->m_flags & B3_INSTANCE_TRANSPARANCY) {
@@ -2561,8 +3051,8 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
                 // gLightDir.normalize();
                 glUniform3f(useShadow_lightPosIn, m_data->m_lightPos[0],
                             m_data->m_lightPos[1], m_data->m_lightPos[2]);
-                TinyVector3f camPos;
-                m_data->m_activeCamera->get_camera_position(camPos);
+                // TinyVector3f camPos;
+                // m_data->m_activeCamera->get_camera_position(camPos);
                 glUniform3f(useShadow_cameraPositionIn, camPos[0], camPos[1],
                             camPos[2]);
                 glUniform1f(useShadow_materialShininessIn,
@@ -2655,8 +3145,8 @@ void TinyGLInstancingRenderer::render_scene_internal(int orgRenderMode) {
                 glUniformMatrix4fv(projectiveTexture_MVP, 1, false, &MVP[0]);
                 glUniform3f(projectiveTexture_lightPosIn, m_data->m_lightPos[0],
                             m_data->m_lightPos[1], m_data->m_lightPos[2]);
-                TinyVector3f camPos;
-                m_data->m_activeCamera->get_camera_position(camPos);
+                // TinyVector3f camPos;
+                // m_data->m_activeCamera->get_camera_position(camPos);
                 glUniform3f(projectiveTexture_cameraPositionIn, camPos[0],
                             camPos[1], camPos[2]);
                 glUniform1f(projectiveTexture_materialShininessIn,

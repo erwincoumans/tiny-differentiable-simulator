@@ -16,11 +16,13 @@
 #define TINY_CAMERA_H
 
 #include "math/tiny/tiny_float_utils.h"
-
+#include <array>
 
 
 struct TinyCamera {
   struct TinyCameraInternalData* m_data;
+
+  TinyCamera(const TinyCamera& other);
 
   TinyCamera();
   virtual ~TinyCamera();
@@ -29,6 +31,18 @@ struct TinyCamera {
   virtual void get_camera_projection_matrix(float m[16]) const;
   virtual void get_camera_view_matrix(float m[16]) const;
 
+  virtual std::array<float, 16>  get_camera_projection_matrix2() const
+	{
+		std::array<float, 16> proj;
+		get_camera_projection_matrix(&proj[0]);
+		return proj;		
+	}
+  virtual std::array<float, 16>  get_camera_view_matrix2() const
+  {
+		std::array<float, 16> view;
+		get_camera_view_matrix(&view[0]);
+		return view;
+	}
   virtual void get_camera_target_position(::TINY::TinyVector3f& pos) const;
   virtual void get_camera_position(::TINY::TinyVector3f& pos) const;
 
@@ -62,6 +76,8 @@ struct TinyCamera {
 
   virtual void set_camera_frustum_far(float far);
   virtual void set_camera_frustum_near(float near);
+
+  virtual void copy_data(const TinyCamera& other);
 };
 
 #endif  // TINY_CAMERA_H

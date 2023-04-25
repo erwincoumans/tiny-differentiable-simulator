@@ -44,6 +44,14 @@ enum {
   B3_SEGMENTATION_MASK_RENDERMODE,
 };
 
+struct TinyViewportTile
+{
+  std::vector<int> visual_instances;
+  std::vector<int> internal_visual_instances;
+  std::array<int, 4> viewport_dims;
+  std::array<float, 16> view_matrix;
+  std::array<float, 16> projection_matrix;
+};
 
 class TinyGLInstancingRenderer {
   std::vector<struct b3GraphicsInstance*> m_graphicsInstances;
@@ -79,7 +87,8 @@ class TinyGLInstancingRenderer {
   virtual void init();
 
   virtual void render_scene();
-  virtual void render_scene_internal(int orgRenderMode = B3_DEFAULT_RENDERMODE);
+  virtual void render_scene2(std::vector<TinyViewportTile>& tiles);
+  virtual void render_scene_internal(std::vector<TinyViewportTile>& tiles, int orgRenderMode = B3_DEFAULT_RENDERMODE);
 
   void init_shaders();
   void cleanup_shaders();
@@ -88,18 +97,22 @@ class TinyGLInstancingRenderer {
 
   virtual void update_shape(int shapeIndex, const float* vertices);
 
-  /// vertices must be in the format x,y,z, nx,ny,nz, u,v
+  /// vertices must be in the format x,y,z,w, nx,ny,nz, u,v
   
-  virtual int register_shape1(std::vector<float>& vertices, std::vector<int>& indices, int textureIndex = -1)
+  virtual int register_shape1(std::vector<float>& vertices, std::vector<int>& indices, int textureIndex = -1, bool double_sided = false)
   {
-      return register_shape(&vertices[0], vertices.size(), &indices[0], indices.size(), textureIndex);
+      return register_shape(&vertices[0], vertices.size()/9, &indices[0], indices.size(), B3_GL_TRIANGLES, textureIndex, double_sided);
   }
 
 
   virtual int register_shape(const float* vertices, int numvertices,
                              const int* indices, int numIndices,
                              int primitiveType = B3_GL_TRIANGLES,
-                             int textureIndex = -1);
+                             int textureIndex = -1,
+                             bool double_sided = false);
+
+  std::vector<int> get_shape_vertex_count() const;
+  std::vector<int> get_shape_vertex_offsets() const;
 
   virtual int register_texture1(const std::vector<unsigned char>& texels, int width,
       int height, bool flipPixelsY = true)
@@ -123,6 +136,16 @@ class TinyGLInstancingRenderer {
                                          const ::TINY::TinyVector3f& scaling,
                                          float opacity = 1.f,
                                          bool rebuild = true);
+
+
+   std::vector<int> register_graphics_instances(int shapeIndex,
+                                         const std::vector<::TINY::TinyVector3f>& positions,
+                                         const std::vector<::TINY::TinyQuaternionf>& quaternions,
+                                         const std::vector<::TINY::TinyVector3f>& colors,
+                                         const std::vector<::TINY::TinyVector3f>& scalings,
+                                         float opacity = 1.f,
+                                         bool rebuild=true);
+
 
   void write_transforms();
 
@@ -187,9 +210,20 @@ class TinyGLInstancingRenderer {
 
   virtual const TinyCamera* get_active_camera() const;
   virtual TinyCamera* get_active_camera();
+  TinyCamera get_active_camera2() const
+  {
+    const TinyCamera* cam = get_active_camera();
+    return *cam;
+  }
+
   void set_camera(const TinyCamera& cam);
 
   virtual void set_active_camera(TinyCamera* cam);
+
+  void get_projection_matrix(float projMatrix[16]) const;
+  void set_projection_matrix(const float projMatrix[16]);
+  void get_view_matrix(float viewMatrix[16]) const;
+  void set_view_matrix(const float viewMatrix[16]);
 
   virtual void set_light_position(const float lightPos[3]);
   virtual void set_light_position(const double lightPos[3]);
@@ -217,6 +251,11 @@ class TinyGLInstancingRenderer {
   virtual void clear_z_buffer();
 
   virtual void set_render_frame_buffer(unsigned int renderFrameBuffer);
+
+private:
+  ::TINY::TinyVector3f get_camera_position() const;
+  ::TINY::TinyVector3f get_camera_target() const;
+  ::TINY::TinyVector3f get_camera_forward_vector() const;
 };
 
 #endif  // GL_INSTANCING_RENDERER_H

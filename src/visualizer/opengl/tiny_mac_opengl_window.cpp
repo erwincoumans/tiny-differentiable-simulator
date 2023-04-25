@@ -50,6 +50,11 @@ void MacOpenGLWindow::create_window(const TinyWindowConstructionInfo& ci) {
 
 void MacOpenGLWindow::run_main_loop() {}
 
+void MacOpenGLWindow::pump_messages()
+{
+  Mac_pumpMessage(m_internalData);
+}
+
 void MacOpenGLWindow::start_rendering() { Mac_updateWindow(m_internalData); }
 
 void MacOpenGLWindow::end_rendering() { Mac_swapBuffer(m_internalData); }

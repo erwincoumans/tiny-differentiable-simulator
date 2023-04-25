@@ -1,4 +1,4 @@
-1#
+#
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -126,6 +126,7 @@ pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
 "src/visualizer/opengl/tiny_open_sans.cpp",\
 "src/visualizer/opengl/tiny_opengl_fontstashcallbacks.cpp",\
 "src/visualizer/opengl/tiny_opengl3_app.cpp",\
+"src/visualizer/opengl/utils/tiny_logging.cpp",\
 "third_party/stb_image/stb_image_write.cpp",\
 "third_party/glad/gl.c",\
 "third_party/stb_image/stb_image.cpp",\
@@ -139,6 +140,7 @@ if _platform == "linux" or _platform == "linux2":
     print("linux")
     libraries = ['dl', 'pthread', 'stdc++fs']
     CXX_FLAGS += '-D_LINUX '
+    CXX_FLAGS += '-DTINY_USE_EGL '
     CXX_FLAGS += '-DGLEW_STATIC '
     CXX_FLAGS += '-DGLEW_INIT_OPENGL11_FUNCTIONS=1 '
     CXX_FLAGS += '-DGLEW_DYNAMIC_LOAD_ALL_GLX_FUNCTIONS=1 '
@@ -156,6 +158,8 @@ if _platform == "linux" or _platform == "linux2":
     CXX_FLAGS += '-Wno-unused-but-set-variable '
     pytinyopengl3_libraries += ['dl','pthread']
     pytinyopengl3_sources += ["src/visualizer/opengl/tiny_x11_opengl_window.cpp",\
+      "src/visualizer/opengl/tiny_egl_opengl_window.cpp",\
+      "third_party/glad/egl.c",\
       "third_party/glad/glx.c"]
 
 
@@ -234,7 +238,7 @@ pytinydiffsim_dual_ext = Extension(
     extra_compile_args=CXX_FLAGS.split(),
     include_dirs=include_dirs + ["."])
 
-extensions.append(pytinydiffsim_dual_ext)
+#extensions.append(pytinydiffsim_dual_ext)
 
 if os.path.exists("third_party/CppAD/include"):
     platform_include_dirs = []
@@ -273,7 +277,7 @@ extensions.append(pytinyopengl3_ext)
 
 setup(
     name='pytinydiffsim',
-    version='0.1.0',
+    version='0.9.4',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
     long_description=

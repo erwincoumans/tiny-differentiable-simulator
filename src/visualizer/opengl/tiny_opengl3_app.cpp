@@ -17,10 +17,10 @@
 #include "tiny_opengl3_app.h"
 #include "tiny_shape_data.h"
 
-#ifdef BT_USE_EGL
-#include "EGLOpenGLWindow.h"
+#ifdef TINY_USE_EGL
+#include "tiny_egl_opengl_window.h"
 #else
-#endif  // BT_USE_EGL
+#endif  // TINY_USE_EGL
 
 #ifdef B3_USE_GLFW
 #include "GLFWOpenGLWindow.h"
@@ -51,6 +51,7 @@
 #include "tiny_gl_primitive_renderer.h"
 #include "tiny_gl_render_to_texture.h"
 #include "tiny_opengl_fontstashcallbacks.h"
+#include "tiny_gl_instance_renderer_internal_data.h"
 
 #ifdef _WIN32
 #define popen _popen
@@ -72,7 +73,7 @@ struct TinyOpenGL3AppInternalData {
   int m_droidRegular2;
   int m_textureId;
 
-  const char* m_frameDumpPngFileName;
+  std::string m_frameDumpPngFileName;
   FILE* m_ffmpegFile;
   GLRenderToTexture* m_renderTexture;
   void* m_userPointer;
@@ -80,6 +81,10 @@ struct TinyOpenGL3AppInternalData {
   int m_customViewPortWidth;
   int m_customViewPortHeight;
   int m_mp4Fps;
+
+  void* m_cudaVboPointer;
+  bool m_cudaVboRegistered;
+
 
   TinyOpenGL3AppInternalData()
       : m_fontTextureId(0),
@@ -91,14 +96,15 @@ struct TinyOpenGL3AppInternalData {
         m_droidRegular(0),
         m_droidRegular2(0),
         m_textureId(-1),
-        m_frameDumpPngFileName(0),
         m_ffmpegFile(0),
         m_renderTexture(0),
         m_userPointer(0),
         m_upAxis(1),
         m_customViewPortWidth(-1),
         m_customViewPortHeight(-1),
-        m_mp4Fps(60) {}
+        m_mp4Fps(60),
+        m_cudaVboPointer(0),
+        m_cudaVboRegistered(false){}
 };
 
 static TinyOpenGL3App* gApp = 0;
@@ -314,7 +320,7 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
     m_window = new TinyDefaultOpenGLWindow();
 #endif
   } else if (windowType == 2) {
-#ifdef BT_USE_EGL
+#ifdef TINY_USE_EGL
     m_window = new EGLOpenGLWindow();
 #else
     printf("EGL window requires compilation with BT_USE_EGL.\n");
@@ -907,8 +913,8 @@ int TinyOpenGL3App::register_graphics_unit_sphere_shape(
 }
 
 
-int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_height, int up_axis, int textureId) {
-    int red = 0;
+int TinyOpenGL3App::register_graphics_cylinder_shape(float radius, float half_height, int up_axis, int textureId, bool flat_caps) {
+        int red = 0;
     int green = 255;
     int blue = 0;  // 0;// 128;
     if(textureId < 0) {
@@ -970,11 +976,21 @@ int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_hei
                 textured_detailed_sphere_vertices[i * 9 + 2]);
 
             TinyVector3f trVer = (2 *radius * vert);
-            if(trVer[up_axis] > 0)
-                trVer[up_axis] += half_height;
-            else
-                trVer[up_axis] -= half_height;
-
+            if (flat_caps)
+            {
+                if(trVer[up_axis] > 0)
+                    trVer[up_axis] = half_height;
+                else
+                    trVer[up_axis] = -half_height;
+            } else
+            {
+                if(trVer[up_axis] > 0)
+                    trVer[up_axis] += half_height;
+                else
+                    trVer[up_axis] -= half_height;
+            
+            }
+            
             transformedVertices[i * 9 + 0] = trVer[0];
             transformedVertices[i * 9 + 1] = trVer[1];
             transformedVertices[i * 9 + 2] = trVer[2];
@@ -994,6 +1010,13 @@ int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_hei
         textureId);
     
     return graphicsShapeIndex;
+}
+
+int TinyOpenGL3App::register_graphics_capsule_shape(float radius, float half_height, int up_axis, int textureId) {
+
+    bool flat_caps = false;
+    return register_graphics_cylinder_shape(radius, half_height, up_axis, textureId, flat_caps);
+
 }
 
 
@@ -1122,10 +1145,9 @@ void TinyOpenGL3App::set_viewport(int width, int height) {
   }
 }
 
-void TinyOpenGL3App::get_screen_pixels(unsigned char* rgbaBuffer,
-                                       int bufferSizeInBytes,
-                                       float* depthBuffer,
-                                       int depthBufferSizeInBytes) {
+
+void TinyOpenGL3App::get_screen_pixels(std::vector<unsigned char>& rgbaBuffer,
+                                  std::vector<float>& depthBuffer) {
   int width = m_data->m_customViewPortWidth >= 0
                   ? m_data->m_customViewPortWidth
                   : (int)m_window->get_retina_scale() *
@@ -1135,17 +1157,21 @@ void TinyOpenGL3App::get_screen_pixels(unsigned char* rgbaBuffer,
                    : (int)m_window->get_retina_scale() *
                          m_instancingRenderer->get_screen_height();
 
-  assert((width * height * 4) == bufferSizeInBytes);
-  if ((width * height * 4) == bufferSizeInBytes) {
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaBuffer);
+  if (m_data->m_renderTexture) {
+      width = m_data->m_renderTexture->m_width;
+      height = m_data->m_renderTexture->m_height;
+  }
+  rgbaBuffer.resize(width*height*4);
+  {
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, &rgbaBuffer[0]);
     int glstat;
     glstat = glGetError();
     assert(glstat == GL_NO_ERROR);
   }
-  assert((width * height * sizeof(float)) == depthBufferSizeInBytes);
-  if ((width * height * sizeof(float)) == depthBufferSizeInBytes) {
+  depthBuffer.resize(width * height);
+  {
     glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT,
-                 depthBuffer);
+                 &depthBuffer[0]);
     int glstat;
     glstat = glGetError();
     assert(glstat == GL_NO_ERROR);
@@ -1161,14 +1187,23 @@ static void writeTextureToFile(int textureWidth, int textureHeight,
 
   assert(glGetError() == GL_NO_ERROR);
   // glReadBuffer(GL_BACK);//COLOR_ATTACHMENT0);
-
-  float* orgPixels =
-      (float*)malloc(textureWidth * textureHeight * numComponents * 4);
-  glReadPixels(0, 0, textureWidth, textureHeight, GL_RGBA, GL_FLOAT, orgPixels);
+  
+  //int mem_bytes = textureWidth * textureHeight * numComponents * 4;
+  //printf("mem_bytes=%d\n", mem_bytes);
+  std::vector<float> orgPixelsArray;
+  orgPixelsArray.resize(textureWidth * textureHeight * numComponents);
+  //float* orgPixels =
+  //    (float*)malloc(mem_bytes);
+  // printf("orgPixels=%x\n", orgPixels);
+  float* orgPixels = &orgPixelsArray[0];
+  glReadPixels(0, 0, textureWidth, textureHeight, GL_RGBA, GL_FLOAT, &orgPixelsArray[0]);
   // it is useful to have the actual float values for debugging purposes
 
   // convert float->char
-  char* pixels = (char*)malloc(textureWidth * textureHeight * numComponents);
+  std::vector<char> pixelArray;
+  pixelArray.resize(textureWidth * textureHeight * numComponents);
+  char* pixels = &pixelArray[0];
+  
   assert(glGetError() == GL_NO_ERROR);
 
   for (int j = 0; j < textureHeight; j++) {
@@ -1210,25 +1245,31 @@ static void writeTextureToFile(int textureWidth, int textureHeight,
         }
       }
     }
+    stbi_write_png_compression_level = 0;
     stbi_write_png(fileName, textureWidth, textureHeight, numComponents, pixels,
                    textureWidth * numComponents);
+
   }
 
-  free(pixels);
-  free(orgPixels);
 }
 
 void TinyOpenGL3App::swap_buffer() {
-  if (m_data->m_frameDumpPngFileName) {
+  if (m_data->m_frameDumpPngFileName!="") {
+
     int width = (int)m_window->get_retina_scale() *
                 m_instancingRenderer->get_screen_width();
     int height = (int)m_window->get_retina_scale() *
                  this->m_instancingRenderer->get_screen_height();
-    writeTextureToFile(width, height, m_data->m_frameDumpPngFileName,
+
+    if (m_data->m_renderTexture) {
+      width = m_data->m_renderTexture->m_width;
+      height = m_data->m_renderTexture->m_height;
+    }
+    writeTextureToFile(width, height, m_data->m_frameDumpPngFileName.c_str(),
                        m_data->m_ffmpegFile);
     m_data->m_renderTexture->disable();
     if (m_data->m_ffmpegFile == 0) {
-      m_data->m_frameDumpPngFileName = 0;
+      m_data->m_frameDumpPngFileName = "";
     }
   }
   m_window->end_rendering();
@@ -1265,37 +1306,331 @@ void TinyOpenGL3App::dump_frames_to_video(const char* mp4FileName) {
     if (m_data->m_ffmpegFile) {
       fflush(m_data->m_ffmpegFile);
       pclose(m_data->m_ffmpegFile);
-      m_data->m_frameDumpPngFileName = 0;
+      m_data->m_frameDumpPngFileName = "";
     }
     m_data->m_ffmpegFile = 0;
   }
 }
-void TinyOpenGL3App::dump_next_frame_to_png(const char* filename) {
+
+
+void TinyOpenGL3App::dump_next_frame_to_png(const char* filename,
+                                            bool render_to_texture,
+                                            int render_width,
+                                            int render_height) {
   // open pipe to ffmpeg's stdin in binary write mode
 
   m_data->m_frameDumpPngFileName = filename;
 
   // you could use m_renderTexture to allow to render at higher resolutions,
   // such as 4k or so
+  if (render_to_texture) {
+    enable_render_to_texture(render_width, render_height);
+  }
+}
+
+
+
+// CUDA includes
+//#define USE_SYSTEM_CUDA
+#ifdef USE_SYSTEM_CUDA
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+#else
+#include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#define dlsym GetProcAddress
+std::string DYNAMIC_CUDA_PATH = "nvcuda.dll";
+std::string DYNAMIC_CUDART_PATH = "cudart64_110.dll";
+#else
+#include <dlfcn.h>
+std::string DYNAMIC_CUDA_PATH = "/usr/lib/x86_64-linux-gnu/libcuda.so";
+std::string DYNAMIC_CUDART_PATH = "/usr/local/cuda/lib64/libcudart.so";
+#endif
+
+using namespace std;
+
+enum TINY_CUDA_CODES {
+  cudaSuccess = 0,
+  CU_GET_PROC_ADDRESS_DEFAULT = 0,
+  cudaEnableDefault = 0,
+
+  cudaGraphicsMapFlagsNone = 0,
+  cudaGraphicsMapFlagsReadOnly = 1,
+  cudaGraphicsMapFlagsWriteDiscard = 2,
+
+  cudaMemcpyHostToHost = 0,     /**< Host   -> Host */
+  cudaMemcpyHostToDevice = 1,   /**< Host   -> Device */
+  cudaMemcpyDeviceToHost = 2,   /**< Device -> Host */
+  cudaMemcpyDeviceToDevice = 3, /**< Device -> Device */
+  cudaMemcpyDefault = 4 /**< Direction of the transfer is inferred from the pointer values.
+           Requires unified virtual addressing */
+};
+
+// CUDA driver API functions.
+typedef struct cudaGraphicsResource* cudaGraphicsResource_t;
+typedef struct CUstream_st* cudaStream_t;
+typedef struct cudaArray* cudaArray_t;
+
+// see
+// https://docs.nvidia.com/cuda/cuda-runtime-api/driver-vs-runtime-api.html#driver-vs-runtime-api
+// cuda driver (cuda.so)
+TINY_CUDA_CODES (*cuDriverGetVersion)(int* version);
+TINY_CUDA_CODES (*cuInit)(unsigned int flags);
+TINY_CUDA_CODES (*cuDeviceGetCount)(int* count);
+TINY_CUDA_CODES (*cuDeviceGetCount2)(int* count);
+TINY_CUDA_CODES (*cuGetProcAddress) (const char* symbol, void** pfn, int cudaVersion, uint64_t flags);
+TINY_CUDA_CODES (*cudaMalloc)(void** devPtr, size_t size);
+TINY_CUDA_CODES (*cudaFree)(void* devPtr);
+
+TINY_CUDA_CODES (*cudaGLRegisterBufferObject) ( GLuint bufObj );
+TINY_CUDA_CODES (*cudaGLMapBufferObject) ( void** devPtr, GLuint bufObj );
+TINY_CUDA_CODES (*cudaGLUnmapBufferObject) ( GLuint bufObj );
+
+
+
+TINY_CUDA_CODES (*cudaMemcpyFromArray)
+(void* dst, const cudaArray_t src, size_t wOffset, size_t hOffset, size_t count,
+ unsigned int kind);
+
+#define LOAD_CUDA_FUNCTION(name, version)                                  \
+  name = reinterpret_cast<decltype(name)>(dlsym(cuda_lib, #name version)); \
+  if (!name) cout << "Error:" << #name << " not found in CUDA library" << endl
+
+// cuda runtime (cudart.so)
+TINY_CUDA_CODES (*cudaGraphicsGLRegisterImage) (cudaGraphicsResource** resource, uint64_t image, int target,
+ unsigned int flags);
+// Returns the requested driver API function pointer.
+// see also
+// https://forums.developer.nvidia.com/t/some-questions-about-cugetprocaddress/191749
+TINY_CUDA_CODES (*cudaGetDriverEntryPoint)
+(const char* symbol, void** funcPtr, unsigned long long flags);
+TINY_CUDA_CODES (*cudaGraphicsMapResources)
+(int count, cudaGraphicsResource_t* resources, cudaStream_t stream);
+TINY_CUDA_CODES (*cudaGraphicsSubResourceGetMappedArray)
+(cudaArray_t* array, cudaGraphicsResource_t resource, unsigned int arrayIndex,
+ unsigned int mipLevel);
+TINY_CUDA_CODES (*cudaGraphicsUnmapResources)
+(int count, cudaGraphicsResource_t* resources, cudaStream_t stream);
+
+#define LOAD_CUDART_FUNCTION(name, version)                                  \
+  name = reinterpret_cast<decltype(name)>(dlsym(cudart_lib, #name version)); \
+  if (!name) cout << "Error:" << #name << " not found in CUDA library" << endl
+
+
+
+static bool s_cuda_initialized = false;
+
+
+int init_cuda(bool verbose) {
+
+    if (s_cuda_initialized) 
+            return s_cuda_initialized;
+
+#ifdef _WIN32
+  HMODULE cuda_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDA_PATH.c_str());
+  HMODULE cudart_lib = (HMODULE)LoadLibraryA(DYNAMIC_CUDART_PATH.c_str());
+#else
+  void* cuda_lib = dlopen(DYNAMIC_CUDA_PATH.c_str(), RTLD_NOW);
+  void* cudart_lib = dlopen(DYNAMIC_CUDART_PATH.c_str(), RTLD_NOW);
+  // could use dlerror() on error
+#endif
+  if (!cuda_lib) {
+    cout << "Unable to load library " << DYNAMIC_CUDA_PATH << endl << endl;
+    return false;
+  }
+  if (!cudart_lib) {
+    cout << "Unable to load library " << DYNAMIC_CUDART_PATH << endl << endl;
+    return false;
+  }
+
+  LOAD_CUDA_FUNCTION(cuDriverGetVersion, "");
+  LOAD_CUDA_FUNCTION(cuInit, "");
+  LOAD_CUDA_FUNCTION(cuDeviceGetCount, "");
+  LOAD_CUDA_FUNCTION(cuGetProcAddress, "");
+ 
+  LOAD_CUDART_FUNCTION(cudaGetDriverEntryPoint, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsGLRegisterImage, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsMapResources, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsSubResourceGetMappedArray, "");
+  LOAD_CUDART_FUNCTION(cudaMemcpyFromArray, "");
+  LOAD_CUDART_FUNCTION(cudaGraphicsUnmapResources, "");
+  LOAD_CUDART_FUNCTION(cudaMalloc, "");
+  LOAD_CUDART_FUNCTION(cudaFree, "");
+  LOAD_CUDART_FUNCTION(cudaGLRegisterBufferObject,"");
+  LOAD_CUDART_FUNCTION(cudaGLMapBufferObject, "");
+  LOAD_CUDART_FUNCTION(cudaGLUnmapBufferObject, "");
+  
+
+  auto result = cuInit(0);
+  int cuda_driver_version;
+  result = cuDriverGetVersion(&cuda_driver_version);
+  if (verbose) {
+    cout << "CUDA driver version:" << cuda_driver_version << endl;
+  }
+  int device_count = 0;
+  result = cuDeviceGetCount(&device_count);
+  if (verbose) {
+    cout << "CUDA device count:" << device_count << endl;
+  }
+  result = cuGetProcAddress("cuDeviceGetCount", (void**)&cuDeviceGetCount2,
+                            cuda_driver_version, CU_GET_PROC_ADDRESS_DEFAULT);
+  if (cudaSuccess != result) {
+    cout << "cuDeviceGetCount not found" << endl;
+    return false;
+  }
+
+  s_cuda_initialized = true;
+  return s_cuda_initialized;
+}
+
+#endif
+
+
+struct ptr2int {
+  union {
+    void* pointer;
+    uint64_t intval;
+  };
+};
+
+
+TinyCudaVbo TinyOpenGL3App::cuda_map_vbo(bool verbose)
+{
+    
+
+    init_cuda(verbose);
+    auto internal_renderer_data = m_instancingRenderer->get_internal_data();
+
+    if (!m_data->m_cudaVboRegistered)
+    {
+        cudaGLRegisterBufferObject(internal_renderer_data->m_vbo);
+        m_data->m_cudaVboRegistered = true;
+    }
+    cudaGLMapBufferObject(&m_data->m_cudaVboPointer, internal_renderer_data->m_vbo);
+
+    int position_buffer_size_in_bytes = 4*sizeof(float)*internal_renderer_data->m_totalNumInstances;
+    int orientation_buffer_size_in_bytes = 4*sizeof(float)*internal_renderer_data->m_totalNumInstances;
+    int color_buffer_size_in_bytes = 4*sizeof(float)*internal_renderer_data->m_totalNumInstances;
+
+    TinyCudaVbo vbo;
+    char* pp = (char*)m_data->m_cudaVboPointer;
+    vbo.vertices_ptr = pp;
+    vbo.num_instances = internal_renderer_data->m_totalNumInstances;
+    vbo.positions_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes;
+    vbo.orientations_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes+position_buffer_size_in_bytes;
+    vbo.colors_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes+position_buffer_size_in_bytes+orientation_buffer_size_in_bytes;
+    vbo.scalings_ptr = pp+internal_renderer_data->m_maxShapeCapacityInBytes+position_buffer_size_in_bytes+orientation_buffer_size_in_bytes+color_buffer_size_in_bytes;
+    return vbo;
+}
+
+void TinyOpenGL3App::cuda_unmap_vbo()
+{
+    if (m_data->m_cudaVboPointer!=0)
+    {
+        auto internal_renderer_data = m_instancingRenderer->get_internal_data();
+        cudaGLUnmapBufferObject(internal_renderer_data->m_vbo);
+        m_data->m_cudaVboPointer = 0;
+    }
+}
+
+
+
+
+uint64_t TinyOpenGL3App::cuda_register_texture_image(uint64_t renderTextureId, bool verbose) {
+  init_cuda(verbose);
+
+  GLuint shDrawTex;  // draws a texture
+  cudaGraphicsResource* cuda_tex_result_resource;
+  // get read-write access to OpenGL texture buffer
+  GLuint tex_cudaResult;
+  tex_cudaResult = cudaGraphicsGLRegisterImage(
+      &cuda_tex_result_resource, renderTextureId, GL_TEXTURE_2D,
+      cudaGraphicsMapFlagsReadOnly);  // cudaGraphicsMapFlagsNone);
+
+  assert(tex_cudaResult == cudaSuccess);
+
+  ptr2int caster;
+  caster.pointer = cuda_tex_result_resource;
+  return caster.intval;
+}
+
+uint64_t TinyOpenGL3App::cuda_malloc(int num_bytes) { 
+  ptr2int caster;
+  GLuint tex_cudaResult;
+   tex_cudaResult = cudaMalloc(&caster.pointer, num_bytes); 
+  assert(tex_cudaResult == cudaSuccess);
+  return caster.intval;
+}
+
+void TinyOpenGL3App::cuda_free(uint64_t cuda_ptr) {
+  ptr2int caster;
+  caster.intval = cuda_ptr;
+  cudaFree(caster.pointer);
+}
+uint64_t TinyOpenGL3App::cuda_copy_texture_image( uint64_t cuda_resource_int, uint64_t dest_memory_int, int num_bytes, bool gpu_device_destination, int w_offset, int h_offset) { 
+
+  ptr2int caster;
+  caster.intval = cuda_resource_int;
+  cudaGraphicsResource* cuda_tex_result_resource = (cudaGraphicsResource*)caster.pointer;
+  caster.intval = dest_memory_int;
+  void* dest_memory = caster.pointer;
+
+  GLuint tex_cudaResult = cudaGraphicsMapResources(1, &cuda_tex_result_resource, NULL);
+  assert(tex_cudaResult == cudaSuccess);
+
+  // https://stackoverflow.com/questions/9406844/cudagraphicsresourcegetmappedpointer-returns-unknown-error
+  // In other words, use GetMappedPointer for mapped buffer objects. Use
+  // GetMappedArray for mapped texture objects.
+  cudaArray* texture_ptr;
+  tex_cudaResult = cudaGraphicsSubResourceGetMappedArray(
+      &texture_ptr, cuda_tex_result_resource, 0, 0);
+  assert(tex_cudaResult == cudaSuccess);
+
+  tex_cudaResult = cudaMemcpyFromArray(
+      dest_memory, texture_ptr, w_offset, h_offset, num_bytes,
+      gpu_device_destination ? cudaMemcpyDeviceToDevice
+                             : cudaMemcpyDeviceToHost);
+  
+  assert(tex_cudaResult == cudaSuccess);
+
+  tex_cudaResult = cudaGraphicsUnmapResources(1, &cuda_tex_result_resource, 0);
+  assert(tex_cudaResult == cudaSuccess);
+  return (uint64_t)cuda_tex_result_resource;
+}
+
+
+
+uint64_t TinyOpenGL3App::enable_render_to_texture(int render_width,
+                                              int render_height) {
   if (!m_data->m_renderTexture) {
     m_data->m_renderTexture = new GLRenderToTexture();
-    GLuint renderTextureId;
-    glGenTextures(1, &renderTextureId);
+    glGenTextures(1, &m_data->m_renderTexture->m_renderTextureId);
 
     // "Bind" the newly created texture : all future texture functions will
     // modify this texture
-    glBindTexture(GL_TEXTURE_2D, renderTextureId);
+    glBindTexture(GL_TEXTURE_2D, m_data->m_renderTexture->m_renderTextureId);
 
     // Give an empty image to OpenGL ( the last "0" )
     // glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, g_OpenGLWidth,g_OpenGLHeight,
     // 0,GL_RGBA, GL_UNSIGNED_BYTE, 0); glTexImage2D(GL_TEXTURE_2D,
     // 0,GL_RGBA32F, g_OpenGLWidth,g_OpenGLHeight, 0,GL_RGBA, GL_FLOAT, 0);
-    glTexImage2D(
-        GL_TEXTURE_2D, 0, GL_RGBA32F,
-        m_instancingRenderer->get_screen_width() * m_window->get_retina_scale(),
-        m_instancingRenderer->get_screen_height() *
-            m_window->get_retina_scale(),
-        0, GL_RGBA, GL_FLOAT, 0);
+
+    if (render_width < 0) {
+      render_width = m_instancingRenderer->get_screen_width() *
+                     m_window->get_retina_scale();
+    }
+    if (render_height < 0) {
+      render_height = this->m_instancingRenderer->get_screen_height() *
+                      m_window->get_retina_scale();
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, render_width, render_height,
+                 0,GL_RGBA, GL_UNSIGNED_BYTE, 0);
+                 
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, render_width, render_height, 0,
+    //             GL_RGBA, GL_FLOAT, 0);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
@@ -1303,14 +1638,15 @@ void TinyOpenGL3App::dump_next_frame_to_png(const char* filename) {
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    m_data->m_renderTexture->init(
-        m_instancingRenderer->get_screen_width() * m_window->get_retina_scale(),
-        this->m_instancingRenderer->get_screen_height() *
-            m_window->get_retina_scale(),
-        renderTextureId, RENDERTEXTURE_COLOR);
+    m_data->m_renderTexture->init(render_width, render_height,
+                                  m_data->m_renderTexture->m_renderTextureId,
+                                  RENDERTEXTURE_COLOR);
+
   }
 
   m_data->m_renderTexture->enable();
+
+  return m_data->m_renderTexture->m_renderTextureId;
 }
 
 void TinyOpenGL3App::set_up_axis(int axis) {

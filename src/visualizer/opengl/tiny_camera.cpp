@@ -50,8 +50,20 @@ struct TinyCameraInternalData {
   float m_projectionMatrixVR[16];
 };
 
-TinyCamera::TinyCamera() { m_data = new TinyCameraInternalData; }
-TinyCamera::~TinyCamera() { delete m_data; }
+  TinyCamera::TinyCamera(const TinyCamera& other)
+  {
+    m_data = new TinyCameraInternalData(*other.m_data);
+  }
+
+TinyCamera::TinyCamera() { 
+    m_data = new TinyCameraInternalData; 
+}
+TinyCamera::~TinyCamera() { 
+    delete m_data; 
+}
+
+
+
 
 static void b3CreateFrustum(float left, float right, float bottom, float top,
                             float nearVal, float farVal, float frustum[16]) {
@@ -276,4 +288,8 @@ void TinyCamera::set_camera_frustum_far(float far) {
 
 void TinyCamera::set_camera_frustum_near(float near) {
   m_data->m_frustumZNear = near;
+}
+
+void TinyCamera::copy_data(const TinyCamera& other) {
+  *this->m_data = *other.m_data;
 }

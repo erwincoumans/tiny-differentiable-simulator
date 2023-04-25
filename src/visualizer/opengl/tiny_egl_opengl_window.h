@@ -42,6 +42,8 @@ class EGLOpenGLWindow : public TinyWindowInterface {
   virtual bool requested_exit() const;
   virtual void set_request_exit();
 
+  virtual void pump_messages() {}
+  
   virtual void start_rendering();
 
   virtual void end_rendering();
@@ -55,7 +57,7 @@ class EGLOpenGLWindow : public TinyWindowInterface {
   virtual TinyMouseButtonCallback get_mouse_button_callback();
 
   virtual void set_resize_callback(TinyResizeCallback resizeCallback);
-  virtual TinyResizeCallback getResizeCallback();
+  virtual TinyResizeCallback get_resize_callback();
 
   virtual void set_wheel_callback(TinyWheelCallback wheelCallback);
   virtual TinyWheelCallback get_wheel_callback();

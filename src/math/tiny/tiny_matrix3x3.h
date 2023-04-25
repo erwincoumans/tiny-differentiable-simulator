@@ -609,19 +609,24 @@ class TinyMatrix3x3 {
     return TinyVector3((*this)[0].dot(v), (*this)[1].dot(v), (*this)[2].dot(v));
   }
 #endif
-#if 0
 
-	/** @brief Get a column of the matrix as a vector 
+#ifdef TDS_USE_COLUMN_MAJOR
+  /** @brief Get a column of the matrix as a vector 
 	*  @param i Column number 0 indexed */
 	inline TinyVector3 getColumn(int i) const
 	{
+		return m_el[i];
+	}
+#else
+
+  /** @brief Get a column of the matrix as a vector 
+	*  @param i Column number 0 indexed */
+	inline TinyVector3 get_column(int i) const
+	{
 		return TinyVector3(m_el[0][i], m_el[1][i], m_el[2][i]);
 	}
-
-	
-	
-
-
+#endif
+#if 0
 
 
 	/** @brief Set from the rotational part of a 4x4 OpenGL matrix
