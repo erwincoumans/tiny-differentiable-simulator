@@ -273,7 +273,7 @@ extensions.append(pytinyopengl3_ext)
 
 setup(
     name='pytinydiffsim',
-    version='0.1.0',
+    version='0.1.1',
     description=
     'Tiny Differentiable Physics Library for Robotics Simulation and Reinforcement Learning',
     long_description=
