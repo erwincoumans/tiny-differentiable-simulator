@@ -403,6 +403,74 @@ int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
 }
 
 template <typename Algebra>
+void get_closest_point_on_segment(const typename Algebra::Vector3& A,
+                                  const typename Algebra::Vector3& B,
+                                  const typename Algebra::Vector3& Point,
+                                  typename Algebra::Vector3& closestPoint) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+
+  Vector3 ab = B - A;
+  Scalar t = ab.dot(Point - A) / ab.squaredNorm();
+  closestPoint = A + ::tds::clamp(t, Algebra::zero(), Algebra::one()) * ab;
+}
+
+template <typename Algebra>
+int get_closest_point_on_segmentA_to_lineB(
+    const typename Algebra::Vector3& Aa, const typename Algebra::Vector3& Ab,
+    const typename Algebra::Vector3& Ba, const typename Algebra::Vector3& Bb,
+    std::vector<typename Algebra::Vector3>& closestPointOnA) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+  Scalar EPSILON = Algebra::fraction(1, 1000);
+
+  Vector3 Aab = Ab - Aa;       // normalized direction of lineA
+  Vector3 Bab = Bb - Ba;       // unnormalized direction of lineB
+  Vector3 n = Aab.cross(Bab);  // direction perpendicular to both lineA & lineB
+
+  // catch case where lines are parallel
+  if (Algebra::less_than_zero(n.norm() - EPSILON)) {
+    closestPointOnA.push_back(Aa);
+    closestPointOnA.push_back(Ab);
+    return closestPointOnA.size();
+  }
+
+  n = Bab.cross(n);  // normal of planeB stretching frome lineB in
+                     // direction perpendicular to both lines
+
+  // point on lineA that intersect planeB clamped on segmentA
+  Scalar t = (Ba - Aa).dot(n) / Aab.dot(n);
+  closestPointOnA.push_back(
+      Aa + ::tds::clamp(t, Algebra::zero(), Algebra::one()) * Aab);
+  return 1;
+}
+
+template <typename Algebra>
+void get_closest_points_on_segmets(
+    const typename Algebra::Vector3& Aa, const typename Algebra::Vector3& Ab,
+    const typename Algebra::Vector3& Ba, const typename Algebra::Vector3& Bb,
+    typename std::vector<typename Algebra::Vector3>& closestPointA,
+    typename std::vector<typename Algebra::Vector3>& closestPointB) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+
+  // 1)Find point1 on segmentA closest to lineB
+  int n = get_closest_point_on_segmentA_to_lineB<Algebra>(Aa, Ab, Ba, Bb,
+                                                          closestPointA);
+  closestPointB.resize(n);
+  n = 0;
+  for (auto& ca : closestPointA) {
+    // 2)Find point2 on segmentB closest to point1
+    get_closest_point_on_segment<Algebra>(Ba, Bb, closestPointA[n],
+                                          closestPointB[n]);
+    // 3)Find point3 on segmentA closest to point2
+    get_closest_point_on_segment<Algebra>(Aa, Ab, closestPointB[n],
+                                          closestPointA[n]);
+    n++;
+  }
+}
+
+template <typename Algebra>
 int contact_capsule_sphere(const tds::Geometry<Algebra>* geomA,
                            const tds::Pose<Algebra>& poseA,
                            const tds::Geometry<Algebra>* geomB,
@@ -418,28 +486,57 @@ int contact_capsule_sphere(const tds::Geometry<Algebra>* geomA,
   assert(geomA->get_type() == TINY_CAPSULE_TYPE);
   assert(geomB->get_type() == TINY_SPHERE_TYPE);
   const Capsule* capsule = (const Capsule*)geomA;
-
   Sphere sphere(capsule->get_radius());
-  // shift the sphere to each end-point
+
   Pose offset;
   Algebra::set_identity(offset.orientation_);
-  offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
-                             Algebra::fraction(1, 2) * capsule->get_length());
-  Pose poseEndSphere = poseA * offset;
-  contact_sphere_sphere<Algebra>(&sphere, poseEndSphere, geomB, poseB,
-                                 contactsOut);
-  offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
-                             Algebra::fraction(-1, 2) * capsule->get_length());
-  poseEndSphere = poseA * offset;
-  contact_sphere_sphere<Algebra>(&sphere, poseEndSphere, geomB, poseB,
-                                 contactsOut);
 
-  return 2;
+  Pose poseTipSphere = capsule->get_tip_pose(poseA);
+  Pose poseBaseSphere = capsule->get_base_pose(poseA);
+  get_closest_point_on_segment<Algebra>(poseTipSphere.position_,
+                                        poseBaseSphere.position_,
+                                        poseB.position_, offset.position_);
+
+  contact_sphere_sphere<Algebra>(&sphere, offset, geomB, poseB, contactsOut);
+  return 1;
 }
 
+template <typename Algebra>
+int contact_capsule_capsule(const tds::Geometry<Algebra>* geomA,
+                            const tds::Pose<Algebra>& poseA,
+                            const tds::Geometry<Algebra>* geomB,
+                            const tds::Pose<Algebra>& poseB,
+                            std::vector<ContactPoint<Algebra> >& contactsOut) {
+  using Scalar = typename Algebra::Scalar;
+  using Vector3 = typename Algebra::Vector3;
+  typedef tds::Pose<Algebra> Pose;
+  typedef tds::Box<Algebra> Box;
+  typedef tds::Capsule<Algebra> Capsule;
+  typedef tds::ContactPoint<Algebra> ContactPoint;
+  typedef tds::Sphere<Algebra> Sphere;
+  assert(geomA->get_type() == TINY_CAPSULE_TYPE);
+  assert(geomB->get_type() == TINY_CAPSULE_TYPE);
+  const Capsule* capsuleA = (const Capsule*)geomA;
+  const Capsule* capsuleB = (const Capsule*)geomB;
 
+  Sphere sphereA(capsuleA->get_radius());
+  Sphere sphereB(capsuleB->get_radius());
 
+  Pose Aa = capsuleA->get_tip_pose(poseA);
+  Pose Ba = capsuleB->get_tip_pose(poseB);
+  Vector3 Ab = capsuleA->get_base_pose(poseA).position_;
+  Vector3 Bb = capsuleB->get_base_pose(poseB).position_;
+  std::vector<Vector3> cA, cB;
+  get_closest_points_on_segmets<Algebra>(Aa.position_, Ab, Ba.position_, Bb, cA,
+                                         cB);
+  for (size_t i = 0; i < cA.size(); i++) {
+    Aa.position_ = cA[i];
+    Ba.position_ = cB[i];
+    contact_sphere_sphere<Algebra>(&sphereA, Aa, &sphereB, Ba, contactsOut);
+  }
 
+  return contactsOut.size();
+}
 
 template <typename Algebra>
 class CollisionDispatcher {
@@ -468,8 +565,9 @@ class CollisionDispatcher {
     contactFuncs[TINY_PLANE_TYPE][TINY_CAPSULE_TYPE] = contact_plane_capsule;
     contactFuncs[TINY_PLANE_TYPE][TINY_BOX_TYPE] = contact_plane_box;
     contactFuncs[TINY_CAPSULE_TYPE][TINY_SPHERE_TYPE] = contact_capsule_sphere;
+    contactFuncs[TINY_CAPSULE_TYPE][TINY_CAPSULE_TYPE] =
+        contact_capsule_capsule;
     // contactFuncs[TINY_SPHERE_TYPE][TINY_BOX_TYPE] = contact_sphere_box;
-
   }
 
   inline int compute_contacts(const Geometry* geomA, const Pose& poseA,

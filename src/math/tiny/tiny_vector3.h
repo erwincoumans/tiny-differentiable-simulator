@@ -144,6 +144,7 @@ namespace TINY
             res = TinyConstants::sqrt1(res);
             return res;
         }
+        inline TinyScalar norm() const { return length(); }
 
         inline TinyScalar length_squared() const {
             TinyScalar res = (*this).dot(*this);
@@ -159,6 +160,7 @@ namespace TINY
         }
 
         inline TinyScalar sqnorm() const { return m_x * m_x + m_y * m_y + m_z * m_z; }
+        inline TinyScalar squaredNorm() const { return sqnorm(); }
 
         inline TinyVector3& operator+=(const TinyVector3& v) {
             m_x += v.m_x;
