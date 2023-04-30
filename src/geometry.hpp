@@ -105,6 +105,7 @@ template <typename Algebra>
 class Capsule : public Geometry<Algebra> {
   using Scalar = typename Algebra::Scalar;
   using Vector3 = typename Algebra::Vector3;
+  typedef tds::Pose<Algebra> Pose;
 
   Scalar radius;
   Scalar length;
@@ -149,6 +150,16 @@ class Capsule : public Geometry<Algebra> {
                                   this->length / Scalar(2)));
     return Algebra::norm(pt) - this->radius;
   }
+
+  Pose _get_t_b_pose(const Pose &pose, double tip) const {
+    Pose offset;
+    Algebra::set_identity(offset.orientation_);
+    offset.position_ = Vector3(Algebra::zero(), Algebra::zero(),
+                               Algebra::fraction(tip, 2) * get_length());
+    return pose * offset;
+  }
+  Pose get_tip_pose(const Pose &pose) const { return _get_t_b_pose(pose, 1); }
+  Pose get_base_pose(const Pose &pose) const { return _get_t_b_pose(pose, -1); }
 };
 
 template <typename Algebra>
