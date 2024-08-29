@@ -35,11 +35,6 @@ target_include_directories(laikago_opengl_tiny_example PRIVATE ../third_party/ti
 target_include_directories(laikago_opengl_tiny_example PRIVATE ../third_party ../src)
 target_compile_definitions(laikago_opengl_tiny_example PRIVATE USE_TINY )
 
-add_executable(inclined_plane_gui inclined_plane_gui.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
-target_link_libraries(inclined_plane_gui  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
-target_include_directories(inclined_plane_gui PRIVATE ../third_party/tinyobjloader)
-target_include_directories(inclined_plane_gui PRIVATE ../third_party ../src)
-target_compile_definitions(inclined_plane_gui PRIVATE USE_TINY )
 
 endif(Eigen3_FOUND)
 

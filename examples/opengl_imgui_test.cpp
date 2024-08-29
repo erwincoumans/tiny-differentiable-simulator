@@ -725,7 +725,7 @@ int main(int argc, char* argv[]) {
     ImGui::StyleColorsDark();
     if (1)
     {
-      float SCALE = 2.0f;
+      float SCALE = 1.0f;
       ImFontConfig cfg;
       cfg.SizePixels = 13 * SCALE;
       ImGui::GetIO().Fonts->AddFontDefault(&cfg)->DisplayOffset.y = SCALE;
