@@ -285,10 +285,13 @@ struct OpenGLUrdfVisualizer {
 #endif
 
           b2v.visual_shape_uids.push_back(shape_id);
-          TinyVector3 color(1, 1, 1);
+          ::TINY::TinyVector3f color(1, 1, 1);
           if (v.has_local_material) {
             if (urdf.materials.count(v.material_name)) {
-              color = urdf.materials[v.material_name].material_rgb;
+              color = ::TINY::TinyVector3f (
+                  Algebra::to_double(urdf.materials[v.material_name].material_rgb[0]),
+                  Algebra::to_double(urdf.materials[v.material_name].material_rgb[1]),
+                  Algebra::to_double(urdf.materials[v.material_name].material_rgb[2]));
             }
           }
           b2v.shape_colors.push_back(::TINY::TinyVector3f (color[0],color[1],color[2]));
@@ -316,7 +319,7 @@ struct OpenGLUrdfVisualizer {
 #endif
 
           b2v.visual_shape_uids.push_back(shape_id);
-          TinyVector3 color(1, 1, 1);
+          ::TINY::TinyVector3f color(1, 1, 1);
           b2v.shape_colors.push_back(::TINY::TinyVector3f (color[0],color[1],color[2]));
           break;
         }
@@ -349,7 +352,7 @@ struct OpenGLUrdfVisualizer {
               radius, half_height, up_axis, -1);
 
           b2v.visual_shape_uids.push_back(shape_id);
-          TinyVector3 color(1, 1, 1);
+          ::TINY::TinyVector3f color(1, 1, 1);
           b2v.shape_colors.push_back(::TINY::TinyVector3f (color[0],color[1],color[2]));
           break;
         }
@@ -367,9 +370,10 @@ struct OpenGLUrdfVisualizer {
           ::TINY::TinyVector3f color(1, 1, 1);
           if (v.has_local_material) {
             if (urdf.materials.count(v.material_name)) {
-              color = ::TINY::TinyVector3f(urdf.materials[v.material_name].material_rgb[0],
-              	urdf.materials[v.material_name].material_rgb[1],
-              	urdf.materials[v.material_name].material_rgb[2]);
+              color = ::TINY::TinyVector3f(
+                  Algebra::to_double(urdf.materials[v.material_name].material_rgb[0]),
+              	Algebra::to_double(urdf.materials[v.material_name].material_rgb[1]),
+              	Algebra::to_double(urdf.materials[v.material_name].material_rgb[2]));
             }
           }
           b2v.shape_colors.push_back(color);
