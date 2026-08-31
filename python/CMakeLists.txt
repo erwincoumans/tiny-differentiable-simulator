@@ -81,7 +81,11 @@ ADD_LIBRARY(pytinydiffsim_ad SHARED pytinydiffsim_ad.cc ${TDS_HDRS})
 ENDIF(USE_CPPAD)
 
 
-#SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(pytinydiffsim_dual PROPERTIES PREFIX "")
+IF(USE_CPPAD)
+SET_TARGET_PROPERTIES(pytinydiffsim_ad PROPERTIES PREFIX "")
+ENDIF(USE_CPPAD)
 #SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES POSTFIX "")
 
 #SET_TARGET_PROPERTIES(pytinydiffsim PROPERTIES VERSION ${DIFFPHYS_VERSION})
@@ -155,6 +159,7 @@ SET(pytinyopengl3_SRCS
 ADD_LIBRARY(pytinyopengl3 SHARED ${pytinyopengl3_SRCS} ${TDS_HDRS})
 TARGET_LINK_LIBRARIES(pytinyopengl3 tinyxml2 opengl_window)
 target_include_directories(pytinyopengl3 PRIVATE ../src)
+SET_TARGET_PROPERTIES(pytinyopengl3 PROPERTIES PREFIX "")
 
 
 IF (WIN32)
