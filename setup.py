@@ -122,6 +122,7 @@ pytinyopengl3_sources = ["python/pytinyopengl3.cc",\
 "src/visualizer/opengl/tiny_gl_primitive_renderer.cpp",\
 "src/visualizer/opengl/tiny_gl_render_to_texture.cpp",\
 "src/visualizer/opengl/tiny_glfw_opengl_window.cpp",\
+"src/visualizer/opengl/tiny_wayland_opengl_window.cpp",\
 "src/visualizer/opengl/tiny_load_shader.cpp",\
 "src/visualizer/opengl/tiny_open_sans.cpp",\
 "src/visualizer/opengl/tiny_opengl_fontstashcallbacks.cpp",\
@@ -309,5 +310,7 @@ setup(
         'Framework :: Robot Framework'
     ],
     package_dir={'': 'python'},
+    py_modules=['pytinyopengl3_imgui'],
+    extras_require={'imgui': ['imgui>=2.0,<3', 'PyOpenGL>=3.1']},
     packages=[x for x in find_packages('python')],
     package_data={'pytinydiffsim_data': need_files})

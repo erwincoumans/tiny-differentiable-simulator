@@ -1,3 +1,12 @@
+import argparse
+_viewer_parser = argparse.ArgumentParser(description="OpenGL visualization example")
+_vsync_options = _viewer_parser.add_mutually_exclusive_group()
+_vsync_options.add_argument("--vsync", dest="vsync", action="store_true", default=None,
+                            help="Enable display synchronization")
+_vsync_options.add_argument("--no-vsync", dest="vsync", action="store_false",
+                            help="Disable display synchronization")
+_viewer_args = _viewer_parser.parse_args()
+
 import os
 import pytinyopengl3 as p
 
@@ -55,6 +64,8 @@ num_objects = len(voxels)
 print("loaded", num_objects, "voxels from", vxl_path)
 
 app = p.TinyOpenGL3App("voxel", maxNumObjectCapacity=num_objects + 10)
+if _viewer_args.vsync is not None and not app.set_vsync(_viewer_args.vsync):
+    raise RuntimeError("The renderer could not set the requested VSYNC mode")
 app.renderer.init()
 
 # center the voxel cluster around the origin

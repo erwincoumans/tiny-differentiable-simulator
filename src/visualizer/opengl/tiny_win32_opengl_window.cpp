@@ -231,6 +231,17 @@ void TinyWin32OpenGLWindow::renderAllObjects() {}
 
 void TinyWin32OpenGLWindow::end_rendering() { SwapBuffers(m_data->m_hDC); }
 
+bool TinyWin32OpenGLWindow::set_vsync(bool enabled) {
+  if (!m_data->m_hRC || wglGetCurrentContext() != m_data->m_hRC) return false;
+  using SwapInterval = BOOL (WINAPI*)(int);
+  PROC address = wglGetProcAddress("wglSwapIntervalEXT");
+  // Some WGL implementations use these sentinels for unsupported functions.
+  if (!address || address == reinterpret_cast<PROC>(1) ||
+      address == reinterpret_cast<PROC>(2) || address == reinterpret_cast<PROC>(3) ||
+      address == reinterpret_cast<PROC>(-1)) return false;
+  return reinterpret_cast<SwapInterval>(address)(enabled ? 1 : 0) == TRUE;
+}
+
 int TinyWin32OpenGLWindow::file_open_dialog(char* fileName,
                                             int maxFileNameLength) {
 #if 0

@@ -788,6 +788,22 @@ int TinyX11OpenGLWindow::get_ascii_code_from_virtual_keycode(int keycode) {
       return TINY_KEY_ESCAPE;
     case XK_Return:
       return TINY_KEY_RETURN;
+    case XK_Tab:
+      return TINY_KEY_TAB;
+    case XK_BackSpace:
+      return TINY_KEY_BACKSPACE;
+    case XK_Delete:
+      return TINY_KEY_DELETE;
+    case XK_Insert:
+      return TINY_KEY_INSERT;
+    case XK_Home:
+      return TINY_KEY_HOME;
+    case XK_End:
+      return TINY_KEY_END;
+    case XK_Page_Up:
+      return TINY_KEY_PAGE_UP;
+    case XK_Page_Down:
+      return TINY_KEY_PAGE_DOWN;
 
     case XK_Control_L:
     case XK_Control_R: {
@@ -1064,6 +1080,38 @@ void TinyX11OpenGLWindow::render_all_objects() {}
 
 void TinyX11OpenGLWindow::end_rendering() {
   glXSwapBuffers(m_data->m_dpy, m_data->m_win);
+}
+
+bool TinyX11OpenGLWindow::set_vsync(bool enabled) {
+  if (!m_data->m_dpy || glXGetCurrentContext() != m_data->m_glc)
+    return false;
+  const char* extensions =
+      glXQueryExtensionsString(m_data->m_dpy, DefaultScreen(m_data->m_dpy));
+  if (!extensions || !glXGetProcAddressARB) return false;
+  const int interval = enabled ? 1 : 0;
+  if (isExtensionSupported(extensions, "GLX_EXT_swap_control")) {
+    using SwapInterval = void (*)(Display*, GLXDrawable, int);
+    auto setInterval = reinterpret_cast<SwapInterval>(
+        glXGetProcAddressARB(reinterpret_cast<const GLubyte*>("glXSwapIntervalEXT")));
+    if (setInterval) {
+      setInterval(m_data->m_dpy, m_data->m_win, interval);
+      return true;
+    }
+  }
+  if (isExtensionSupported(extensions, "GLX_MESA_swap_control")) {
+    using SwapInterval = int (*)(unsigned int);
+    auto setInterval = reinterpret_cast<SwapInterval>(
+        glXGetProcAddressARB(reinterpret_cast<const GLubyte*>("glXSwapIntervalMESA")));
+    if (setInterval) return setInterval(interval) == 0;
+  }
+  // SGI requires a strictly positive interval: it cannot disable VSYNC.
+  if (enabled && isExtensionSupported(extensions, "GLX_SGI_swap_control")) {
+    using SwapInterval = int (*)(int);
+    auto setInterval = reinterpret_cast<SwapInterval>(
+        glXGetProcAddressARB(reinterpret_cast<const GLubyte*>("glXSwapIntervalSGI")));
+    if (setInterval) return setInterval(interval) == 0;
+  }
+  return false;
 }
 
 void TinyX11OpenGLWindow::run_main_loop() {}

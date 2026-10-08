@@ -1,3 +1,12 @@
+import argparse
+_viewer_parser = argparse.ArgumentParser(description="OpenGL visualization example")
+_vsync_options = _viewer_parser.add_mutually_exclusive_group()
+_vsync_options.add_argument("--vsync", dest="vsync", action="store_true", default=None,
+                            help="Enable display synchronization")
+_vsync_options.add_argument("--no-vsync", dest="vsync", action="store_false",
+                            help="Disable display synchronization")
+_viewer_args = _viewer_parser.parse_args()
+
 #for pytinyopengl3: pip install pytinydiffsim, use latest, at least version >= 0.5.0
 import pytinyopengl3 as g
 import math
@@ -89,6 +98,8 @@ class CartpoleTest:
             else:
               window_type = 0
             self.viz = g.OpenGLUrdfVisualizer(width=self.width, height=self.height, window_type=window_type)
+            if _viewer_args.vsync is not None and not self.viz.opengl_app.set_vsync(_viewer_args.vsync):
+                raise RuntimeError("The renderer could not set the requested VSYNC mode")
             self.viz.opengl_app.set_background_color(1.,1.,1.)
             self.viz.opengl_app.swap_buffer()
             self.viz.opengl_app.swap_buffer()

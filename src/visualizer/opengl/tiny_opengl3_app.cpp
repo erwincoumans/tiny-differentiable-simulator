@@ -16,6 +16,11 @@
 
 #include "tiny_opengl3_app.h"
 #include "tiny_shape_data.h"
+#include <cstdlib>
+#include <stdexcept>
+#if defined(__linux__)
+#include "tiny_wayland_opengl_window.h"
+#endif
 
 #ifdef TINY_USE_EGL
 #include "tiny_egl_opengl_window.h"
@@ -305,12 +310,22 @@ bool sOpenGLVerbose = true;
 TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
                                bool allowRetina, int windowType,
                                int renderDevice, int maxNumObjectCapacity,
-                               int maxShapeCapacityInBytes) {
+                               int maxShapeCapacityInBytes, const char* glfwLibrary) {
   gApp = this;
 
   m_data = new TinyOpenGL3AppInternalData;
 
-  if (windowType == 0) {
+  const char* backend = std::getenv("PYTINYOPENGL3_WINDOW_BACKEND");
+  if (windowType == 0 && backend && strcmp(backend, "wayland") == 0)
+    windowType = 3;
+  try {
+  if (windowType == 3) {
+#if defined(__linux__)
+    m_window = new TinyWaylandOpenGLWindow(glfwLibrary);
+#else
+    throw std::runtime_error("Native Wayland is only available on Linux");
+#endif
+  } else if (windowType == 0) {
     m_window = new TinyDefaultOpenGLWindow();
   } else if (windowType == 1) {
 #ifdef BT_USE_X11
@@ -328,7 +343,7 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
     m_window = new TinyDefaultOpenGLWindow();
 #endif
   } else {
-    printf("Unknown window type %d must be (0=default, 1=X11, 2=EGL).\n",
+    printf("Unknown window type %d must be (0=default, 1=X11, 2=EGL, 3=Wayland).\n",
            windowType);
     printf("Loading default window instead. \n");
     m_window = new TinyDefaultOpenGLWindow();
@@ -342,6 +357,12 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
   ci.m_height = height;
   ci.m_renderDevice = renderDevice;
   m_window->create_window(ci);
+  } catch (...) {
+    delete m_window; m_window = nullptr;
+    delete m_data; m_data = nullptr;
+    gApp = nullptr;
+    throw;
+  }
 
   m_window->set_window_title(title);
 

@@ -47,6 +47,7 @@ void Mac_setWindowTitle(struct MacOpenGLWindowInternalData* data,
 int Mac_pumpMessage(struct MacOpenGLWindowInternalData* m_internalData);
 int Mac_updateWindow(struct MacOpenGLWindowInternalData* m_internalData);
 void Mac_swapBuffer(struct MacOpenGLWindowInternalData* m_internalData);
+int Mac_setVsync(struct MacOpenGLWindowInternalData* m_internalData, int enabled);
 int Mac_requestedExit(struct MacOpenGLWindowInternalData* m_internalData);
 void Mac_setRequestExit(struct MacOpenGLWindowInternalData* m_internalData);
 float Mac_getRetinaScale(struct MacOpenGLWindowInternalData* m_internalData);

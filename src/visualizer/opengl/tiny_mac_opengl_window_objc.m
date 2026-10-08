@@ -1091,6 +1091,16 @@ int Mac_isModifierKeyPressed(struct MacOpenGLWindowInternalData* m_internalData,
 //	m_internalData->m_renderCallback = renderCallback;
 //}
 
+int Mac_setVsync(struct MacOpenGLWindowInternalData* m_internalData, int enabled)
+{
+    if (!m_internalData || !m_internalData->m_myview) return 0;
+    [m_internalData->m_myview MakeCurrent];
+    CGLContextObj ctx = CGLGetCurrentContext();
+    if (!ctx) return 0;
+    GLint interval = enabled ? 1 : 0;
+    return CGLSetParameter(ctx, kCGLCPSwapInterval, &interval) == kCGLNoError;
+}
+
 void Mac_swapBuffer(struct MacOpenGLWindowInternalData* m_internalData)
 {
 	 [m_internalData->m_myview MakeCurrent];

@@ -76,6 +76,11 @@ class TinyWindowInterface {
 
   virtual void end_rendering() = 0;
 
+  // Request swap interval 1 (enabled) or 0 (disabled) on the current context.
+  // False means unsupported, no current window/context, or a driver error.
+  // Drivers/compositors may override even an accepted request.
+  virtual bool set_vsync(bool enabled) { (void)enabled; return false; }
+
   virtual bool is_modifier_key_pressed(int key) = 0;
 
   virtual void set_mouse_move_callback(TinyMouseMoveCallback mouseCallback) = 0;

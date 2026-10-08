@@ -47,6 +47,8 @@ class TinyWin32OpenGLWindow : public TinyWin32Window {
 
   virtual void end_rendering();
 
+  bool set_vsync(bool enabled) override;
+
   virtual float get_retina_scale() const { return 1.f; }
   virtual void set_allow_retina(bool /*allowRetina*/){};
 

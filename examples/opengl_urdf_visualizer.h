@@ -88,9 +88,10 @@ struct OpenGLUrdfVisualizer {
                        const char *title = "Tiny Differentiable Simulator",
                        bool allowRetina = true, int window_type = 0,
                        int render_device = -1, int max_num_object_capacity = 128 * 1024,
-                       int max_shape_capacity_in_bytes = 128 * 1024 * 1024)
+                       int max_shape_capacity_in_bytes = 128 * 1024 * 1024,
+                       const char* glfw_library = nullptr)
       : m_uid(1234), m_opengl_app(title, width, height, allowRetina, window_type,
-      render_device, max_num_object_capacity, max_shape_capacity_in_bytes) {
+      render_device, max_num_object_capacity, max_shape_capacity_in_bytes, glfw_library) {
     m_opengl_app.m_renderer->init();
     m_opengl_app.set_up_axis(2);
     m_opengl_app.m_renderer->get_active_camera()->set_camera_distance(4);

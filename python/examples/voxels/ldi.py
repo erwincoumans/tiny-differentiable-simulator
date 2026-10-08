@@ -11,6 +11,11 @@ import random
 #import eval_cpp
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+vsync_options = parser.add_mutually_exclusive_group()
+vsync_options.add_argument("--vsync", dest="vsync", action="store_true", default=None,
+                           help="Enable display synchronization")
+vsync_options.add_argument("--no-vsync", dest="vsync", action="store_false",
+                           help="Disable display synchronization")
 parser.add_argument('--obj_file', help='Wavefront obj file as target', type=str, default='teddy.obj')#cube.obj')#sphere_smooth.obj')#bunny.obj')
 parser.add_argument('--json_file', help='Primitive Decomposition', type=str, default='')
 args = parser.parse_args()
@@ -46,6 +51,8 @@ import pytinyopengl3 as p
 import math, time
 
 app = p.TinyOpenGL3App("ldi")
+if args.vsync is not None and not app.set_vsync(args.vsync):
+    raise RuntimeError("The renderer could not set the requested VSYNC mode")
 app.renderer.init()
 cam = p.TinyCamera()
 cam.set_camera_distance(2.)

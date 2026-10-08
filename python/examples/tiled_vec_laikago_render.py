@@ -1,3 +1,12 @@
+import argparse
+_viewer_parser = argparse.ArgumentParser(description="OpenGL visualization example")
+_vsync_options = _viewer_parser.add_mutually_exclusive_group()
+_vsync_options.add_argument("--vsync", dest="vsync", action="store_true", default=None,
+                            help="Enable display synchronization")
+_vsync_options.add_argument("--no-vsync", dest="vsync", action="store_false",
+                            help="Disable display synchronization")
+_viewer_args = _viewer_parser.parse_args()
+
 import pytinydiffsim as tds
 import time
 import sys
@@ -24,6 +33,8 @@ if 1:
 
     import pytinyopengl3 as g
     viz = g.OpenGLUrdfVisualizer(width=width, height=height)
+    if _viewer_args.vsync is not None and not viz.opengl_app.set_vsync(_viewer_args.vsync):
+        raise RuntimeError("The renderer could not set the requested VSYNC mode")
     viz.opengl_app.set_background_color(1,0,0)
     viz.opengl_app.swap_buffer()
     viz.opengl_app.swap_buffer()

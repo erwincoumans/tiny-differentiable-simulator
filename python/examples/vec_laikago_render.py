@@ -1,3 +1,12 @@
+import argparse
+_viewer_parser = argparse.ArgumentParser(description="OpenGL visualization example")
+_vsync_options = _viewer_parser.add_mutually_exclusive_group()
+_vsync_options.add_argument("--vsync", dest="vsync", action="store_true", default=None,
+                            help="Enable display synchronization")
+_vsync_options.add_argument("--no-vsync", dest="vsync", action="store_false",
+                            help="Disable display synchronization")
+_viewer_args = _viewer_parser.parse_args()
+
 import pytinydiffsim as tds
 num_actors = 512
 auto_reset_when_done = True
@@ -9,6 +18,8 @@ res = tds_robot.step(actions)
 
 import pytinyopengl3 as g
 viz = g.OpenGLUrdfVisualizer()
+if _viewer_args.vsync is not None and not viz.opengl_app.set_vsync(_viewer_args.vsync):
+    raise RuntimeError("The renderer could not set the requested VSYNC mode")
 urdf = g.OpenGLUrdfStructures()
 parser = g.UrdfParser()
 file_name = tds_robot.urdf_filename()

@@ -346,6 +346,24 @@ struct ReadPixelBuffer
 
 namespace py = pybind11;
 
+// Prefer the Wayland library bundled by the optional Python glfw package.
+// A system libglfw.so.3 or PYTINYOPENGL3_GLFW_LIBRARY also works for C++ callers.
+static std::string wayland_glfw_library(int windowType, std::string selected) {
+#if defined(__linux__)
+  const char* backend = std::getenv("PYTINYOPENGL3_WINDOW_BACKEND");
+  bool wayland = windowType == 3 || (windowType == 0 && backend && std::string(backend) == "wayland");
+  if (wayland && selected.empty() && !std::getenv("PYTINYOPENGL3_GLFW_LIBRARY")) {
+    py::object spec = py::module_::import("importlib.util").attr("find_spec")("glfw");
+    if (!spec.is_none()) {
+      py::object path = py::module_::import("pathlib").attr("Path")(spec.attr("origin"));
+      py::object candidate = path.attr("parent").attr("joinpath")("wayland", "libglfw.so");
+      if (candidate.attr("is_file")().cast<bool>()) selected = py::str(candidate);
+    }
+  }
+#endif
+  return selected;
+}
+
 PYBIND11_MODULE(pytinyopengl3, m) {
   m.doc() = R"pbdoc(
         tiny opengl3 graphics engine python binding
@@ -388,7 +406,12 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       ;
 
   py::class_<TinyOpenGL3App>(m,"TinyOpenGL3App")
-    .def(py::init<const char*,int,int, bool, int, int, int, int>(),
+    .def(py::init([](const char* title, int width, int height, bool retina, int windowType,
+                       int device, int capacity, int shapeCapacity, std::string library) {
+      library = wayland_glfw_library(windowType, library);
+      return std::unique_ptr<TinyOpenGL3App>(new TinyOpenGL3App(title, width, height, retina,
+          windowType, device, capacity, shapeCapacity, library.c_str()));
+    }),
       py::arg("title")="pytinyopengl3",
       py::arg("width")=1024,
       py::arg("height")=768,
@@ -396,7 +419,11 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       py::arg("windowType")=0,
       py::arg("renderDevice")=-1,
       py::arg("maxNumObjectCapacity")=256 * 1024,
-      py::arg("maxShapeCapacityInBytes")= 256 * 1024 * 1024)
+      py::arg("maxShapeCapacityInBytes")= 256 * 1024 * 1024,
+      py::arg("glfwLibrary")="")
+      .def("set_vsync", &TinyOpenGL3App::set_vsync, py::arg("enabled"),
+           "Request VSYNC on (True) or off (False). Returns whether the backend accepted the request. "
+           "Call on the rendering thread with this app's context current; driver/compositor settings may override it.")
       .def("swap_buffer", &TinyOpenGL3App::swap_buffer)
       .def("dump_next_frame_to_png", &TinyOpenGL3App::dump_next_frame_to_png,
            py::arg("filename") = "image.png",
@@ -560,6 +587,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     ;
     
    py::class_<TinyWindowInterface>(m, "TinyWindowInterface")
+  .def("set_vsync", &TinyWindowInterface::set_vsync, py::arg("enabled"),
+       "Request swap interval 1 or 0. Returns False if unsupported or the context is not current.")
   .def("requested_exit", &TinyWindowInterface::requested_exit)
   .def("set_request_exit", &TinyWindowInterface::set_request_exit2)
 
@@ -569,7 +598,51 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   .def("set_mouse_button_callback", &TinyWindowInterface::set_mouse_button_callback2)
   .def("set_wheel_callback", &TinyWindowInterface::set_wheel_callback2)
   .def("set_resize_callback", &TinyWindowInterface::set_resize_callback2)
+  // Snapshot Python bridges as well as native callbacks so integrations can
+  // chain and restore camera controls without recursively calling themselves.
+  .def("get_keyboard_callback", [](TinyWindowInterface& w) {
+    auto f = w.get_keyboard_callback();
+    return f == TinyWindowInterface::bridge_keyboard_callback ? w.s_keyboard_callback : std::function<void(int,int)>(f);
+  })
+  .def("get_mouse_move_callback", [](TinyWindowInterface& w) {
+    auto f = w.get_mouse_move_callback();
+    return f == TinyWindowInterface::bridge_mouse_move_callback ? w.s_mouse_move_callback : std::function<void(float,float)>(f);
+  })
+  .def("get_mouse_button_callback", [](TinyWindowInterface& w) {
+    auto f = w.get_mouse_button_callback();
+    return f == TinyWindowInterface::bridge_mouse_button_callback ? w.s_mouse_button_callback : std::function<void(int,int,float,float)>(f);
+  })
+  .def("get_wheel_callback", [](TinyWindowInterface& w) {
+    auto f = w.get_wheel_callback();
+    return f == TinyWindowInterface::bridge_wheel_callback ? w.s_wheel_callback : std::function<void(float,float)>(f);
+  })
+  .def("get_width", &TinyWindowInterface::get_width)
+  .def("get_height", &TinyWindowInterface::get_height)
+  .def("get_retina_scale", &TinyWindowInterface::get_retina_scale)
+  .def("is_modifier_key_pressed", &TinyWindowInterface::is_modifier_key_pressed)
   ;
+
+  // Window key codes are independent of the OS and used by pyimgui's IO map.
+#define TINY_BIND_KEY(name) m.attr(#name) = int(name)
+  TINY_BIND_KEY(TINY_KEY_ESCAPE);
+  TINY_BIND_KEY(TINY_KEY_SPACE);
+  TINY_BIND_KEY(TINY_KEY_LEFT_ARROW);
+  TINY_BIND_KEY(TINY_KEY_RIGHT_ARROW);
+  TINY_BIND_KEY(TINY_KEY_UP_ARROW);
+  TINY_BIND_KEY(TINY_KEY_DOWN_ARROW);
+  TINY_BIND_KEY(TINY_KEY_PAGE_UP);
+  TINY_BIND_KEY(TINY_KEY_PAGE_DOWN);
+  TINY_BIND_KEY(TINY_KEY_HOME);
+  TINY_BIND_KEY(TINY_KEY_END);
+  TINY_BIND_KEY(TINY_KEY_INSERT);
+  TINY_BIND_KEY(TINY_KEY_DELETE);
+  TINY_BIND_KEY(TINY_KEY_BACKSPACE);
+  TINY_BIND_KEY(TINY_KEY_SHIFT);
+  TINY_BIND_KEY(TINY_KEY_CONTROL);
+  TINY_BIND_KEY(TINY_KEY_ALT);
+  TINY_BIND_KEY(TINY_KEY_RETURN);
+  TINY_BIND_KEY(TINY_KEY_TAB);
+#undef TINY_BIND_KEY
   
   m.def("file_open_dialog", &file_open_dialog);
   m.def("set_cuda_path", &set_cuda_path);
@@ -631,7 +704,12 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   
 
   py::class_<OpenGLUrdfVisualizer<MyAlgebra>>(m, "OpenGLUrdfVisualizer")
-      .def(py::init<int,int, const char*, bool, int, int, int, int>(),
+      .def(py::init([](int width, int height, const char* title, bool retina, int windowType,
+                       int device, int capacity, int shapeCapacity, std::string library) {
+      library = wayland_glfw_library(windowType, library);
+      return std::unique_ptr<OpenGLUrdfVisualizer<MyAlgebra>>(new OpenGLUrdfVisualizer<MyAlgebra>(
+          width, height, title, retina, windowType, device, capacity, shapeCapacity, library.c_str()));
+    }),
       py::arg("width")=1024,
       py::arg("height")=768,
       py::arg("title")="pytinyopengl3",
@@ -639,7 +717,8 @@ PYBIND11_MODULE(pytinyopengl3, m) {
       py::arg("window_type")=0,
       py::arg("render_device")=-1,
       py::arg("max_num_object_capacity")=256 * 1024,
-      py::arg("max_shape_capacity_in_bytes")= 128 * 1024 * 1024)
+      py::arg("max_shape_capacity_in_bytes")= 128 * 1024 * 1024,
+      py::arg("glfw_library")="")
 
       .def("convert_visuals", &OpenGLUrdfVisualizer<MyAlgebra>::convert_visuals2)
       .def("render", &OpenGLUrdfVisualizer<MyAlgebra>::render,

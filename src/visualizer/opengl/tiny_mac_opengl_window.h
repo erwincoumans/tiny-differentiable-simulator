@@ -36,6 +36,8 @@ class MacOpenGLWindow : public TinyWindowInterface {
 
   void end_rendering();  // swap buffers
 
+  bool set_vsync(bool enabled) override;
+
   virtual bool requested_exit() const;
 
   virtual void set_request_exit();

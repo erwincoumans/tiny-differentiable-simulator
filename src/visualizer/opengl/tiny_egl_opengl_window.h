@@ -48,6 +48,8 @@ class EGLOpenGLWindow : public TinyWindowInterface {
 
   virtual void end_rendering();
 
+  bool set_vsync(bool enabled) override;
+
   virtual bool is_modifier_key_pressed(int key);
 
   virtual void set_mouse_move_callback(TinyMouseMoveCallback mouseCallback);

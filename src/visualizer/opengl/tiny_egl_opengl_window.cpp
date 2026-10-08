@@ -266,6 +266,12 @@ void EGLOpenGLWindow::end_rendering() {
   eglSwapBuffers(m_data->egl_display, m_data->egl_surface);
 }
 
+bool EGLOpenGLWindow::set_vsync(bool enabled) {
+  if (eglGetCurrentContext() == EGL_NO_CONTEXT ||
+      eglGetCurrentContext() != m_data->egl_context) return false;
+  return eglSwapInterval(m_data->egl_display, enabled ? 1 : 0) == EGL_TRUE;
+}
+
 bool EGLOpenGLWindow::is_modifier_key_pressed(int key) { return false; }
 
 void EGLOpenGLWindow::set_mouse_move_callback(

@@ -160,6 +160,7 @@ ADD_LIBRARY(pytinyopengl3 SHARED ${pytinyopengl3_SRCS} ${TDS_HDRS})
 TARGET_LINK_LIBRARIES(pytinyopengl3 tinyxml2 opengl_window)
 target_include_directories(pytinyopengl3 PRIVATE ../src)
 SET_TARGET_PROPERTIES(pytinyopengl3 PROPERTIES PREFIX "")
+configure_file(pytinyopengl3_imgui.py pytinyopengl3_imgui.py COPYONLY)
 
 
 IF (WIN32)
@@ -175,5 +176,4 @@ IF (WIN32)
 ELSEIF (APPLE)
   SET_TARGET_PROPERTIES(pytinyopengl3 PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 ENDIF ()
-
 

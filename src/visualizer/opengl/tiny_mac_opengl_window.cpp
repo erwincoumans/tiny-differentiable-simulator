@@ -59,6 +59,10 @@ void MacOpenGLWindow::start_rendering() { Mac_updateWindow(m_internalData); }
 
 void MacOpenGLWindow::end_rendering() { Mac_swapBuffer(m_internalData); }
 
+bool MacOpenGLWindow::set_vsync(bool enabled) {
+  return Mac_setVsync(m_internalData, enabled ? 1 : 0) != 0;
+}
+
 bool MacOpenGLWindow::requested_exit() const {
   return Mac_requestedExit(m_internalData);
 }

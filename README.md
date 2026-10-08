@@ -61,6 +61,55 @@ For visualization, two options are supported:
 
 This visualizer is native part of this library under src/visualizer/opengl
 
+The Python renderer can enable or disable VSYNC at runtime:
+
+```python
+import pytinyopengl3 as p
+
+app = p.TinyOpenGL3App("Simulation", 1280, 720)
+if not app.set_vsync(False):  # True enables VSYNC again.
+    print("Swap-interval control is unavailable for this window/context")
+```
+
+`app.window.set_vsync(enabled)` exposes the same control. Call it on the
+rendering thread after creating the app, with its OpenGL context current.
+The existing platform default remains unchanged until you call this method.
+Native X11/GLX (EXT, MESA, or enable-only SGI), EGL, Windows/WGL and macOS/CGL
+backends implement the request. Unsupported backends return `False`.
+A successful request does not override a forced driver/compositor policy;
+EGL may clamp the interval to its surface configuration, and disabling VSYNC
+does not remove any frame-rate limit or sleep imposed by the calling example.
+
+#### Native Wayland
+
+On a Wayland desktop, the default X11 window also works through XWayland.
+For a native Wayland/EGL window (no X11 server or `DISPLAY` required), use:
+
+```python
+app = p.TinyOpenGL3App("Simulation", 1280, 720, windowType=3)
+app.set_vsync(False)
+```
+
+This backend requires GLFW 3.4+ built with Wayland support. The optional Python
+`glfw` package's bundled Wayland library is detected automatically. Alternatively
+pass `glfwLibrary="/path/to/libglfw.so"`, or set
+`PYTINYOPENGL3_GLFW_LIBRARY`; native C++ callers can use the same environment
+variable or a system `libglfw.so.3`. GLFW is loaded only when Wayland is selected.
+`OpenGLUrdfVisualizer` also accepts `window_type=3` and `glfw_library`.
+
+To use native Wayland with any Python renderer example:
+
+```sh
+PYTINYOPENGL3_WINDOW_BACKEND=wayland python python/examples/render_gl.py --no-vsync
+```
+
+All Python OpenGL examples accept mutually exclusive `--vsync` and
+`--no-vsync` flags. Omitting both leaves the platform default unchanged.
+The Wayland backend routes VSYNC requests through GLFW's EGL swap interval.
+Disabling it permits unpaced application rendering where supported, but cannot
+force the compositor to present asynchronously or enable visible tearing.
+Explicit frame limits in an example are independent of VSYNC.
+
 ### MeshCat Visualization
 
 * [MeshCat](https://github.com/rdeits/meshcat), a web-based visualizer that uses WebGL

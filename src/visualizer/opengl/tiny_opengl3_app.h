@@ -15,6 +15,8 @@
 #ifndef TINY_OPENGL3_APP_H
 #define TINY_OPENGL3_APP_H
 
+#include <cstdint>
+
 #include "tiny_common_graphics_app_interface.h"
 #include "tiny_gl_instancing_renderer.h"
 #include "tiny_gl_primitive_renderer.h"
@@ -55,10 +57,15 @@ struct TinyOpenGL3App : public TinyCommonGraphicsApp {
   virtual void set_background_color(float red, float green, float blue);
   virtual void set_mp4_fps(int fps);
 
+  bool set_vsync(bool enabled) {
+    return m_window && m_window->set_vsync(enabled);
+  }
+
   TinyOpenGL3App(const char* title, int width, int height,
                  bool allowRetina = true, int windowType = 0,
                  int renderDevice = -1, int maxNumObjectCapacity = 128 * 1024,
-                 int maxShapeCapacityInBytes = 128 * 1024 * 1024);
+                 int maxShapeCapacityInBytes = 128 * 1024 * 1024,
+                 const char* glfwLibrary = nullptr);
 
   virtual ~TinyOpenGL3App();
 
