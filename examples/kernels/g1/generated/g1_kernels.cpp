@@ -34,13 +34,21 @@ const tds::KernelModel& g1_kernel_model() {
       f.name = "step";
       f.inputs = {{"state", 99}, {"control", 129}};
       f.outputs = {{"next_state", 99}};
-      f.num_operations = 140299;
+      f.num_operations = 140302;
       f.num_temporaries = 3129;
-      f.cpu_float = &g1_step_cpu_float;
-      f.cpu_double = &g1_step_cpu_double;
+      f.cpu_float = [](int n, int stride, const float* const* in, float* const* out, int threads, int) {
+        g1_step_cpu_float(n, stride, in, out, threads);
+      };
+      f.cpu_double = [](int n, int stride, const double* const* in, double* const* out, int threads, int) {
+        g1_step_cpu_double(n, stride, in, out, threads);
+      };
 #ifdef TDS_KERNELS_CUDA
-      f.cuda_float = &g1_step_cuda_float;
-      f.cuda_double = &g1_step_cuda_double;
+      f.cuda_float = [](int n, int stride, const float* const* in, float* const* out, int block_size, void* stream, int) {
+        g1_step_cuda_float(n, stride, in, out, block_size, stream);
+      };
+      f.cuda_double = [](int n, int stride, const double* const* in, double* const* out, int block_size, void* stream, int) {
+        g1_step_cuda_double(n, stride, in, out, block_size, stream);
+      };
 #endif
       model.functions.push_back(f);
     }
@@ -51,11 +59,19 @@ const tds::KernelModel& g1_kernel_model() {
       f.outputs = {{"poses", 343}};
       f.num_operations = 5276;
       f.num_temporaries = 40;
-      f.cpu_float = &g1_poses_cpu_float;
-      f.cpu_double = &g1_poses_cpu_double;
+      f.cpu_float = [](int n, int stride, const float* const* in, float* const* out, int threads, int) {
+        g1_poses_cpu_float(n, stride, in, out, threads);
+      };
+      f.cpu_double = [](int n, int stride, const double* const* in, double* const* out, int threads, int) {
+        g1_poses_cpu_double(n, stride, in, out, threads);
+      };
 #ifdef TDS_KERNELS_CUDA
-      f.cuda_float = &g1_poses_cuda_float;
-      f.cuda_double = &g1_poses_cuda_double;
+      f.cuda_float = [](int n, int stride, const float* const* in, float* const* out, int block_size, void* stream, int) {
+        g1_poses_cuda_float(n, stride, in, out, block_size, stream);
+      };
+      f.cuda_double = [](int n, int stride, const double* const* in, double* const* out, int block_size, void* stream, int) {
+        g1_poses_cuda_double(n, stride, in, out, block_size, stream);
+      };
 #endif
       model.functions.push_back(f);
     }

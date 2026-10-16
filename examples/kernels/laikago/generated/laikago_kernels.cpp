@@ -26,13 +26,21 @@ const tds::KernelModel& laikago_kernel_model() {
       f.name = "step";
       f.inputs = {{"input", 51}};
       f.outputs = {{"output", 411}};
-      f.num_operations = 19275;
+      f.num_operations = 19276;
       f.num_temporaries = 683;
-      f.cpu_float = &laikago_step_cpu_float;
-      f.cpu_double = &laikago_step_cpu_double;
+      f.cpu_float = [](int n, int stride, const float* const* in, float* const* out, int threads, int) {
+        laikago_step_cpu_float(n, stride, in, out, threads);
+      };
+      f.cpu_double = [](int n, int stride, const double* const* in, double* const* out, int threads, int) {
+        laikago_step_cpu_double(n, stride, in, out, threads);
+      };
 #ifdef TDS_KERNELS_CUDA
-      f.cuda_float = &laikago_step_cuda_float;
-      f.cuda_double = &laikago_step_cuda_double;
+      f.cuda_float = [](int n, int stride, const float* const* in, float* const* out, int block_size, void* stream, int) {
+        laikago_step_cuda_float(n, stride, in, out, block_size, stream);
+      };
+      f.cuda_double = [](int n, int stride, const double* const* in, double* const* out, int block_size, void* stream, int) {
+        laikago_step_cuda_double(n, stride, in, out, block_size, stream);
+      };
 #endif
       model.functions.push_back(f);
     }

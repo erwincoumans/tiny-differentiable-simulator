@@ -26,6 +26,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "kernel_model.hpp"
@@ -67,13 +68,19 @@ class KernelBatch {
     if (num_worlds <= 0) {
       throw std::runtime_error("KernelBatch: num_worlds must be positive.");
     }
-    if (backend == KernelBackend::CUDA && !model.has_cuda()) {
-      throw std::runtime_error("The CUDA kernels of model \"" + model.name +
+    const std::string backend_name =
+        backend == KernelBackend::CUDA ? "cuda" : "cpu";
+    const std::string precision =
+        std::is_same_v<Float, float> ? "float" : "double";
+    if (!model.has_kernels(backend_name, precision)) {
+      throw std::runtime_error("The " + backend_name + " " + precision +
+                               " kernels of model \"" + model.name +
                                "\" are not compiled.");
     }
     for (const auto& f : model.functions) {
       for (const auto& array : f.inputs) add_array(array.name, array.dim);
       for (const auto& array : f.outputs) add_array(array.name, array.dim);
+      if (f.scratch_dim > 0) add_array(scratch_name(f), f.scratch_dim);
     }
   }
 
@@ -183,25 +190,29 @@ class KernelBatch {
   }
 
   // Runs the function for all worlds. The arrays default to the ones named
-  // like the function's inputs and outputs. With the CUDA backend the launch
-  // is asynchronous, download() and synchronize() wait for it.
+  // like the function's inputs and outputs. iterations is the number of
+  // iterations of a loop function, -1 uses its default. With the CUDA backend
+  // the launch is asynchronous, download() and synchronize() wait for it.
   void launch(const std::string& function_name,
               const std::vector<std::string>& input_names = {},
-              const std::vector<std::string>& output_names = {}) {
+              const std::vector<std::string>& output_names = {},
+              int iterations = -1) {
     const KernelFunction& f = model_.function(function_name);
     std::vector<const Float*> inputs;
     std::vector<Float*> outputs;
     bind(f, f.inputs, input_names, inputs);
     bind(f, f.outputs, output_names, outputs);
+    if (iterations < 0) iterations = f.default_iterations;
+    if (f.scratch_dim > 0) outputs.push_back(device(scratch_name(f)));
     if (backend_ == KernelBackend::CUDA) {
-      auto launcher = f.template cuda<Float>();
+      const auto& launcher = f.template cuda<Float>();
       launcher(num_worlds_, num_worlds_, inputs.data(), outputs.data(),
-               cuda_block_size_, nullptr);
+               cuda_block_size_, nullptr, iterations);
       check(model_.cuda->last_error());
     } else {
-      auto launcher = f.template cpu<Float>();
+      const auto& launcher = f.template cpu<Float>();
       launcher(num_worlds_, num_worlds_, inputs.data(), outputs.data(),
-               num_threads_);
+               num_threads_, iterations);
     }
   }
 
@@ -293,6 +304,12 @@ class KernelBatch {
   }
 
   size_t bytes(const Array& a) const { return a.host.size() * sizeof(Float); }
+
+  // the array of the temporaries of a function between the segments of its
+  // kernels, and of the iterations of a loop function
+  static std::string scratch_name(const KernelFunction& f) {
+    return f.name + ".scratch";
+  }
 
   template <typename Pointer>
   void bind(const KernelFunction& f, const std::vector<KernelArray>& params,
