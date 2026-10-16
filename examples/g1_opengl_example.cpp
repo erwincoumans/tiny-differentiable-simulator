@@ -5,33 +5,32 @@
 // A G1 humanoid (29 dof body + two 7 dof Dex3 hands) is dropped from 0.2 m
 // above its standing height. Joint PD controllers (kp = 1000, kd = 10) hold
 // the zero joint pose. Each world is simulated independently, the worlds are
-// only offset for rendering.
-//
-// The model data/unitree_g1/g1_29dof_with_hand_rev_1_0.urdf is converted from
-// the newton-assets unitree_g1 URDF by data/unitree_g1/convert_g1_urdf.py.
+// only offset for rendering. The model is in kernels/g1/g1_model.hpp.
 //
 // Usage: g1_opengl_tiny_example [--num-x NX] [--num-y NY]
+//            [--backend generic|serial|openmp|cuda] [--precision float|double]
 // simulates NX x NY copies of the G1, laid out in a grid along X and Y.
+// The generic backend runs the TDS model directly, one world after the other.
+// The other backends run the kernels generated from the same model by
+// kernels/g1/g1_codegen.cpp: serially or with OpenMP on the CPU, or with CUDA
+// on the GPU, in float (default) or double precision.
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
-std::string G1_URDF_NAME = "unitree_g1/g1_29dof_with_hand_rev_1_0.urdf";
-
 #include "opengl_urdf_visualizer.h"
 
+#include "kernels/g1/g1_model.hpp"
+#include "g1_kernels.h"
 #include "math/tiny/tiny_double_utils.h"
 #include "utils/file_utils.hpp"
-#include "urdf/urdf_parser.hpp"
-#include "urdf/urdf_to_multi_body.hpp"
-#include "dynamics/forward_dynamics.hpp"
-#include "dynamics/integrator.hpp"
-
-#include "urdf/urdf_cache.hpp"
+#include "utils/kernel_batch.hpp"
+#include "utils/stopwatch.hpp"
 
 using namespace tds;
 using namespace TINY;
@@ -47,155 +46,99 @@ typedef EigenAlgebra MyAlgebra;
 typedef typename MyAlgebra::Scalar MyScalar;
 #endif
 
-// pelvis height when the feet touch the ground in the zero joint pose
-const double pelvis_standing_height = 0.793;
-// the Newton example places the robot 0.2 m higher
-const double drop_height = 0.2;
+typedef G1Model<MyAlgebra> Model;
 
-template <typename Algebra>
-struct G1Simulation {
-  using Scalar = typename Algebra::Scalar;
-  tds::UrdfCache<Algebra> cache;
-  std::string m_urdf_filename;
-  tds::World<Algebra> world;
-  tds::MultiBody<Algebra>* system = nullptr;
+// Simulates all worlds for one frame, and provides the world pose (position,
+// quaternion xyzw) of each visual for rendering.
+struct Simulation {
+  virtual ~Simulation() = default;
+  virtual void step_frame() = 0;
+  virtual void get_pose(int world, int visual, float pose[7]) const = 0;
+};
 
-  // 60 frames per second with 6 substeps, as in the Newton example
-  int sim_substeps{6};
-  Scalar dt{Algebra::from_double(1. / 360.)};
+// the TDS model, one world after the other
+struct GenericSimulation : Simulation {
+  Model& model;
+  std::vector<std::vector<MyScalar>> states;
+  std::vector<std::vector<MyScalar>> poses;
+  std::vector<MyScalar> control;
+  std::vector<MyScalar> next_state;
 
-  // joint position control. The Newton example sets joint_target_ke = 500
-  // and joint_target_kd = 10, but its MuJoCo solver also keeps the position
-  // actuators of the G1 MJCF model in the USD (kp = 500), so the effective
-  // stiffness is 1000.
-  Scalar kp{Algebra::from_double(1000.)};
-  Scalar kd{Algebra::from_double(10.)};
-  // rotor inertia of each joint, the armature of the G1 MJCF/USD model
-  Scalar armature{Algebra::from_double(0.01)};
-
-  int input_dim() const { return system->dof() + system->dof_qd(); }
-  int num_visuals() const {
-    int num = system->X_visuals().size();
-    for (const auto& link : *system) {
-      num += link.X_visuals.size();
-    }
-    return num;
-  }
-  // q, qd and the world transform (position, quaternion) of each visual
-  int output_dim() const { return input_dim() + num_visuals() * 7; }
-
-  G1Simulation() {
-    std::string plane_filename;
-    tds::FileUtils::find_file("plane_implicit.urdf", plane_filename);
-    cache.construct(plane_filename, world, false, false);
-    tds::FileUtils::find_file(G1_URDF_NAME, m_urdf_filename);
-    system = cache.construct(m_urdf_filename, world, false, true);
-    world.default_friction = Algebra::from_double(0.75);
-    world.get_mb_constraint_solver()->pgs_iterations_ = 50;
-    set_joint_armature();
+  GenericSimulation(Model& model, int world_count) : model(model) {
+    std::vector<double> state = model.default_state();
+    states.assign(world_count,
+                  std::vector<MyScalar>(state.begin(), state.end()));
+    poses.assign(world_count, std::vector<MyScalar>(model.poses_dim()));
+    std::vector<double> c = model.default_control();
+    control.assign(c.begin(), c.end());
+    next_state.resize(model.state_dim());
   }
 
-  // Joint PD control is implicit by default: the PD torque uses the joint
-  // state at the end of the time step, with semi-implicit Euler integration
-  // qd' = qd + dt qdd and q' = q + dt qd':
-  //   tau = kp (q_target - q') - kd qd'
-  //       = kp (q_target - q - dt qd) - kd qd - (dt kd + dt^2 kp) qdd.
-  // The last term acts as additional joint inertia, so it is added to the
-  // joint armature, which forward dynamics and the contact solver (through
-  // the mass matrix) take into account. Explicit PD, as in the laikago
-  // example, is only stable for much smaller time steps with these gains.
-  bool implicit_pd{true};
-
-  void set_joint_armature() {
-    Scalar joint_armature = armature;
-    if (implicit_pd) {
-      joint_armature += dt * kd + dt * dt * kp;
-    }
-    for (auto& link : *system) {
-      link.armature = joint_armature;
-    }
-  }
-
-  void compute_pd_torques() {
-    for (const auto& link : *system) {
-      if (link.joint_type == tds::JOINT_FIXED) continue;
-      // the joint targets are zero, see JointDofConfig.target_pos in Newton
-      const Scalar q_target = Algebra::zero();
-      const Scalar q = system->q(link.q_index);
-      const Scalar qd = system->qd(link.qd_index);
-      Scalar force = implicit_pd ? kp * (q_target - q - dt * qd) - kd * qd
-                                 : kp * (q_target - q) - kd * qd;
-      system->tau_[link.qd_index - 6] = force;
-    }
-  }
-
-  void step() {
-    compute_pd_torques();
-    tds::forward_dynamics(*system, world.get_gravity());
-    system->clear_forces();
-
-    integrate_euler_qdd(*system, dt);
-
-    world.step(dt);
-
-    tds::integrate_euler(*system, dt);
-  }
-
-  // simulates one frame, starting from the q, qd in v
-  std::vector<Scalar> operator()(const std::vector<Scalar>& v) {
-    assert(static_cast<int>(v.size()) == input_dim());
-    system->initialize();
-    for (int i = 0; i < system->dof(); ++i) {
-      system->q(i) = v[i];
-    }
-    for (int i = 0; i < system->dof_qd(); ++i) {
-      system->qd(i) = v[i + system->dof()];
-    }
-    for (int s = 0; s < sim_substeps; ++s) {
-      step();
-    }
-    tds::forward_kinematics(*system, system->q(), system->qd());
-
-    // copy q, qd, visual world transforms (for rendering) to output
-    std::vector<Scalar> result(output_dim());
-    int j = 0;
-    for (int i = 0; i < system->dof(); ++i, ++j) {
-      result[j] = system->q(i);
-    }
-    for (int i = 0; i < system->dof_qd(); ++i, ++j) {
-      result[j] = system->qd(i);
-    }
-    auto write_transform = [&](const tds::Transform<Algebra>& tr) {
-      auto orn = Algebra::matrix_to_quat(tr.rotation);
-      result[j++] = tr.translation[0];
-      result[j++] = tr.translation[1];
-      result[j++] = tr.translation[2];
-      result[j++] = Algebra::quat_x(orn);
-      result[j++] = Algebra::quat_y(orn);
-      result[j++] = Algebra::quat_z(orn);
-      result[j++] = Algebra::quat_w(orn);
-    };
-    for (const auto& X_visual : system->X_visuals()) {
-      write_transform(system->base_X_world() * X_visual);
-    }
-    for (const auto& link : *system) {
-      for (const auto& X_visual : link.X_visuals) {
-        write_transform(link.X_world * X_visual);
+  void step_frame() override {
+    for (std::size_t w = 0; w < states.size(); ++w) {
+      for (int s = 0; s < Model::substeps; ++s) {
+        model.step(states[w].data(), control.data(), next_state.data());
+        std::swap(states[w], next_state);
       }
+      model.poses(states[w].data(), poses[w].data());
     }
-    return result;
+  }
+
+  void get_pose(int world, int visual, float pose[7]) const override {
+    for (int k = 0; k < 7; ++k) {
+      pose[k] = static_cast<float>(poses[world][visual * 7 + k]);
+    }
+  }
+};
+
+// the generated kernels, all worlds at once
+template <typename Float>
+struct KernelSimulation : Simulation {
+  tds::KernelBatch<Float> batch;
+
+  KernelSimulation(const Model& model, int world_count,
+                   tds::KernelBackend backend)
+      : batch(g1_kernel_model(), world_count, backend) {
+    batch.fill("state", model.default_state());
+    batch.fill("control", model.default_control());
+    batch.upload("state");
+    batch.upload("control");
+  }
+
+  void step_frame() override {
+    for (int s = 0; s < g1_kernels::substeps; ++s) {
+      batch.launch("step");
+      batch.swap("state", "next_state");
+    }
+    batch.launch("poses");
+    batch.download("poses");
+  }
+
+  void get_pose(int world, int visual, float pose[7]) const override {
+    const Float* poses = batch.host("poses");
+    for (int k = 0; k < 7; ++k) {
+      pose[k] = static_cast<float>(
+          poses[static_cast<std::size_t>(visual * 7 + k) * batch.num_worlds() +
+                world]);
+    }
   }
 };
 
 int main(int argc, char* argv[]) {
   int num_x = 2;
   int num_y = 2;
+  std::string backend = "generic";
+  std::string precision = "float";
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
     if ((arg == "--num-x" || arg == "--num_x") && i + 1 < argc) {
       num_x = std::max(1, atoi(argv[++i]));
     } else if ((arg == "--num-y" || arg == "--num_y") && i + 1 < argc) {
       num_y = std::max(1, atoi(argv[++i]));
+    } else if (arg == "--backend" && i + 1 < argc) {
+      backend = argv[++i];
+    } else if (arg == "--precision" && i + 1 < argc) {
+      precision = argv[++i];
     }
   }
   const int world_count = num_x * num_y;
@@ -204,7 +147,25 @@ int main(int argc, char* argv[]) {
   OpenGLUrdfVisualizer<MyAlgebra> visualizer;
   visualizer.delete_all();
 
-  G1Simulation<MyAlgebra> sim;
+  Model model;
+
+  std::unique_ptr<Simulation> sim;
+  if (backend == "generic") {
+    sim = std::make_unique<GenericSimulation>(model, world_count);
+  } else {
+    tds::KernelBackend kernel_backend =
+        tds::kernel_backend_from_string(backend);
+    if (precision == "double") {
+      sim = std::make_unique<KernelSimulation<double>>(model, world_count,
+                                                       kernel_backend);
+    } else {
+      sim = std::make_unique<KernelSimulation<float>>(model, world_count,
+                                                      kernel_backend);
+    }
+    backend += " " + precision;
+  }
+  printf("Simulating %d G1 worlds with the %s backend\n", world_count,
+         backend.c_str());
 
   {
     std::vector<int> shape_ids;
@@ -218,14 +179,14 @@ int main(int argc, char* argv[]) {
 
   char search_path[TINY_MAX_EXE_PATH_LEN];
   std::string texture_path = "";
-  auto urdf_structures = sim.cache.retrieve(sim.m_urdf_filename);
-  FileUtils::extract_path(sim.m_urdf_filename.c_str(), search_path,
+  auto urdf_structures = model.cache.retrieve(model.urdf_filename);
+  FileUtils::extract_path(model.urdf_filename.c_str(), search_path,
                           TINY_MAX_EXE_PATH_LEN);
   visualizer.m_path_prefix = search_path;
   visualizer.convert_visuals(urdf_structures, texture_path);
 
   // one graphics instance per world and visual shape, instance_visuals maps
-  // an instance to its visual transform in the simulation output
+  // an instance to its visual in the simulation poses
   std::vector<std::vector<int>> instances(world_count);
   std::vector<int> instance_visuals;
   int visual_index = 0;
@@ -253,7 +214,7 @@ int main(int argc, char* argv[]) {
     create_instances(link);
   }
   visualizer.m_opengl_app.m_renderer->rebuild_graphics_instances();
-  assert(visual_index == sim.num_visuals());
+  assert(visual_index == model.num_visuals());
 
   // arrange the worlds in a grid for rendering
   const float spacing = 1.5f;
@@ -263,30 +224,28 @@ int main(int argc, char* argv[]) {
   camera->set_camera_pitch(-20);
   camera->set_camera_yaw(30);
 
-  std::vector<std::vector<MyScalar>> states(
-      world_count, std::vector<MyScalar>(sim.input_dim(), MyScalar(0)));
-  for (auto& state : states) {
-    // identity base orientation, joint angles and velocities are zero
-    state[3] = 1;
-    state[6] = pelvis_standing_height + drop_height;
-  }
-  std::vector<std::vector<MyScalar>> outputs(world_count);
-
+  tds::Stopwatch sim_timer;
+  double sim_time = 0;
+  int frame = 0;
   while (!visualizer.m_opengl_app.m_window->requested_exit()) {
-    for (int w = 0; w < world_count; ++w) {
-      outputs[w] = sim(states[w]);
-      std::copy(outputs[w].begin(), outputs[w].begin() + sim.input_dim(),
-                states[w].begin());
+    sim_timer.start();
+    sim->step_frame();
+    sim_time += sim_timer.stop();
+    if (++frame % 60 == 0) {
+      printf("%s: %.3f ms per frame of %d worlds (%.0f world-frames/s)\n",
+             backend.c_str(), 1e3 * sim_time / 60, world_count,
+             60 * world_count / sim_time);
+      sim_time = 0;
     }
 
     for (int w = 0; w < world_count; ++w) {
       float offset_x = spacing * (w % num_x - 0.5f * (num_x - 1));
       float offset_y = spacing * (w / num_x - 0.5f * (num_y - 1));
       for (int i = 0; i < instances[w].size(); i++) {
-        const MyScalar* tr =
-            &outputs[w][sim.input_dim() + instance_visuals[i] * 7];
-        TinyVector3f pos(tr[0] + offset_x, tr[1] + offset_y, tr[2]);
-        TinyQuaternionf orn(tr[3], tr[4], tr[5], tr[6]);
+        float pose[7];
+        sim->get_pose(w, instance_visuals[i], pose);
+        TinyVector3f pos(pose[0] + offset_x, pose[1] + offset_y, pose[2]);
+        TinyQuaternionf orn(pose[3], pose[4], pose[5], pose[6]);
         visualizer.m_opengl_app.m_renderer
             ->write_single_instance_transform_to_cpu(pos, orn, instances[w][i]);
       }

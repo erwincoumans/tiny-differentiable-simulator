@@ -408,6 +408,10 @@ if(USE_CPPAD)
 endif(USE_CPPAD)
 
 
+# batched CPU and CUDA kernels generated with CppADCodeGen
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/TdsKernels.cmake)
+
+
 OPTION(USE_TESTING "Run unit tests" ON)
 IF(USE_TESTING)
     ENABLE_TESTING()

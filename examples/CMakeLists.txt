@@ -1,4 +1,5 @@
 SUBDIRS(ars)
+SUBDIRS(kernels)
 # first the examples that have no dependencies 
 # then examples with only included third_party dependencies
 # at the end, optional complex examples with complicated dependencies (PyTorch, STAN, BOOST etc)
@@ -36,12 +37,12 @@ target_include_directories(laikago_opengl_tiny_example PRIVATE ../third_party ..
 target_compile_definitions(laikago_opengl_tiny_example PRIVATE USE_TINY )
 
 add_executable(g1_opengl_eigen_example g1_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
-target_link_libraries(g1_opengl_eigen_example  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
+target_link_libraries(g1_opengl_eigen_example  g1_kernels Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(g1_opengl_eigen_example PRIVATE ../third_party/tinyobjloader)
 target_include_directories(g1_opengl_eigen_example PRIVATE ../third_party ../src)
 
 add_executable(g1_opengl_tiny_example g1_opengl_example.cpp ../third_party/stb_image/stb_image.cpp ../third_party/tinyobjloader/tiny_obj_loader.cc  ${TDS_HDRS})
-target_link_libraries(g1_opengl_tiny_example  Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
+target_link_libraries(g1_opengl_tiny_example  g1_kernels Eigen3::Eigen tinyxml2 opengl_window ${CMAKE_DL_LIBS})
 target_include_directories(g1_opengl_tiny_example PRIVATE ../third_party/tinyobjloader)
 target_include_directories(g1_opengl_tiny_example PRIVATE ../third_party ../src)
 target_compile_definitions(g1_opengl_tiny_example PRIVATE USE_TINY )
