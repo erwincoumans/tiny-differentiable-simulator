@@ -40,12 +40,17 @@
 struct UrdfInstancePair {
   int m_link_index;
   int m_visual_instance;
+  // index of the URDF visual, counting the visuals of the base and then of
+  // the links in order, the same order as the visual transforms of a
+  // MultiBody
+  int m_visual_index;
   ::TINY::TinyVector3f viz_origin_xyz;
   ::TINY::TinyVector3f viz_origin_rpy;
 
     UrdfInstancePair()
       : m_link_index(-1),
         m_visual_instance(-1),
+        m_visual_index(-1),
         viz_origin_xyz(0.f, 0.f, 0.f),
         viz_origin_rpy(0.f, 0.f, 0.f) {}
 
@@ -531,6 +536,7 @@ struct OpenGLUrdfVisualizer {
 
     UrdfInstancePair pair;
     int num_base_instances = 0;
+    int visual_index = 0;
 
     TINY::TinyVector3f pos(0, 0, 0);
     TINY::TinyQuaternionf orn(0, 0, 0, 1);
@@ -556,11 +562,13 @@ struct OpenGLUrdfVisualizer {
               sphere_shape, pos, orn, color, scaling, 1.0, false);
           pair.m_link_index = -1;
           pair.m_visual_instance = instance;
+          pair.m_visual_index = visual_index;
           pair.viz_origin_xyz = vis_link.origin_xyz;
           pair.viz_origin_rpy = vis_link.origin_rpy;
           all_instances[ni].push_back(pair);
         }
       }
+      visual_index++;
     }
 
     for (int i = 0; i < urdf_structures.links.size(); ++i) {
@@ -585,11 +593,13 @@ struct OpenGLUrdfVisualizer {
                 sphere_shape, pos, orn, color, scaling, 1.0, false);
             pair.m_link_index = i;
             pair.m_visual_instance = instance;
+            pair.m_visual_index = visual_index;
             pair.viz_origin_xyz = vis_link.origin_xyz;
             pair.viz_origin_rpy = vis_link.origin_rpy;
             all_instances[ni].push_back(pair);
           }
         }
+        visual_index++;
       }
     }
     

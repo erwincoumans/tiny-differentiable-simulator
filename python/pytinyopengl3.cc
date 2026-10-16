@@ -503,6 +503,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
           .def(py::init<>())
           .def_readwrite("link_index", &UrdfInstancePair::m_link_index)
           .def_readwrite("visual_instance", &UrdfInstancePair::m_visual_instance)
+          .def_readwrite("visual_index", &UrdfInstancePair::m_visual_index)
           .def_readwrite("viz_origin_xyz", &UrdfInstancePair::viz_origin_xyz)
           .def_readwrite("viz_origin_rpy", &UrdfInstancePair::viz_origin_rpy);
   
@@ -563,6 +564,31 @@ PYBIND11_MODULE(pytinyopengl3, m) {
     .def("register_graphics_instances", &TinyGLInstancingRenderer::register_graphics_instances)
 
     .def("write_single_instance_transform_to_cpu", &TinyGLInstancingRenderer::write_single_instance_transform_to_cpu)
+    // writes the transforms of many instances at once: instances[n],
+    // positions[n, 3], orientations[n, 4] (quaternion x, y, z, w)
+    .def("write_instance_transforms_to_cpu",
+         [](TinyGLInstancingRenderer& renderer,
+            py::array_t<int, py::array::c_style | py::array::forcecast> instances,
+            py::array_t<float, py::array::c_style | py::array::forcecast> positions,
+            py::array_t<float, py::array::c_style | py::array::forcecast> orientations) {
+           const py::ssize_t n = instances.size();
+           if (positions.size() != 3 * n || orientations.size() != 4 * n) {
+             throw std::runtime_error(
+                 "write_instance_transforms_to_cpu: expected positions[n, 3] "
+                 "and orientations[n, 4] for n instances");
+           }
+           const int* ids = instances.data();
+           const float* pos = positions.data();
+           const float* orn = orientations.data();
+           for (py::ssize_t i = 0; i < n; ++i) {
+             renderer.write_single_instance_transform_to_cpu(
+                 ::TINY::TinyVector3f(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]),
+                 ::TINY::TinyQuaternionf(orn[4 * i], orn[4 * i + 1],
+                                         orn[4 * i + 2], orn[4 * i + 3]),
+                 ids[i]);
+           }
+         },
+         py::arg("instances"), py::arg("positions"), py::arg("orientations"))
     .def("write_single_instance_color_to_cpu", &TinyGLInstancingRenderer::write_single_instance_color_to_cpu2)
     .def("write_single_instance_flags_to_cpu", &TinyGLInstancingRenderer::write_single_instance_flags_to_cpu)
       

@@ -158,6 +158,21 @@ INCLUDE_DIRECTORIES(
 
 ##################################################################
 
+# batched CPU and CUDA kernels generated with CppADCodeGen, see
+# examples/kernels and cmake/TdsKernels.cmake
+ADD_LIBRARY(pytinykernels SHARED pytinykernels.cc)
+TARGET_LINK_LIBRARIES(pytinykernels g1_kernels laikago_kernels)
+SET_TARGET_PROPERTIES(pytinykernels PROPERTIES PREFIX "")
+IF (WIN32)
+  GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)
+  target_link_directories(pytinykernels PUBLIC "${PYTHON_LIBRARY_DIR}")
+  TARGET_LINK_LIBRARIES(pytinykernels ${PYTHON_LIBRARIES})
+ELSEIF (APPLE)
+  SET_TARGET_PROPERTIES(pytinykernels PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+ENDIF ()
+
+##################################################################
+
 SET(pytinyopengl3_SRCS
 	pytinyopengl3.cc
 )

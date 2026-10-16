@@ -63,6 +63,23 @@ batch.launch("poses");                  // state -> poses
 batch.download("poses");
 ```
 
+The same from Python, with the `pytinykernels` module that the CMake build
+creates next to `pytinydiffsim`:
+
+```python
+import pytinykernels as tk
+batch = tk.KernelBatch("g1", 4096, backend="cuda", precision="float")
+batch.fill("state", state)
+batch.upload("state")
+batch.launch("step")
+batch.swap("state", "next_state")
+batch.download("state")
+states = batch.array("state").T  # numpy view, (num_worlds, state_dim)
+```
+
+[python/examples/tiled_kernel_render.py](../../python/examples/tiled_kernel_render.py)
+simulates a batch of G1 or laikago worlds and renders one world per tile.
+
 ## Checking and measuring
 
 `g1_kernel_benchmark` compares each backend and precision with the generic
