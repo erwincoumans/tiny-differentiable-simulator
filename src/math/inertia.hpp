@@ -291,7 +291,7 @@ struct ArticulatedBodyInertia {
     }
     Matrix3 Ainv = Algebra::inverse(I);
     Matrix3 B = H;
-    Matrix3 C = -B;
+    Matrix3 C = Algebra::transpose(B);
     Matrix3 MCAinvB = M - C * Ainv * B;
     if (Algebra::is_zero(Algebra::determinant(MCAinvB))) {
       return false;
@@ -306,7 +306,9 @@ struct ArticulatedBodyInertia {
     // http://msvlab.hre.ntou.edu.tw/grades/now/inte/Inverse%20&%20Border/border-LuTT.pdf
     Matrix3 Ainv = Algebra::inverse(I);
     Matrix3 B = H;
-    Matrix3 C = -B;
+    // the lower-left block is H^T, which equals -H only for the skew-symmetric
+    // H of a single rigid body, not for articulated body inertias
+    Matrix3 C = Algebra::transpose(B);
     Matrix3 MCAinvB = M - C * Ainv * B;
     Matrix3 DCAB = Algebra::inverse(MCAinvB);
     Matrix3 AinvBDCAB = Ainv * B * DCAB;
