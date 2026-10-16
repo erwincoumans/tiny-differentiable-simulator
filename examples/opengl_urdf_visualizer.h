@@ -164,6 +164,75 @@ struct OpenGLUrdfVisualizer {
     }
   }
 
+  // Loads a binary STL file as a single flat-shaded shape. Face normals are
+  // recomputed from the vertices, since STL normals are often unreliable.
+  bool load_stl_shapes(const std::string &stl_filename,
+                       std::vector<int> &shape_ids,
+                       std::vector<::TINY::TinyVector3f> &colors,
+                       const ::TINY::TinyVector3f &scaling,
+                       const ::TINY::TinyVector3f &color) {
+    FILE *file = fopen(stl_filename.c_str(), "rb");
+    if (!file) {
+      return false;
+    }
+    char header[80];
+    unsigned int num_triangles = 0;
+    bool ok = fread(header, sizeof(header), 1, file) == 1 &&
+              fread(&num_triangles, sizeof(num_triangles), 1, file) == 1;
+    std::vector<GfxVertexFormat1> vertices;
+    std::vector<int> indices;
+    if (ok) {
+      vertices.reserve(3 * num_triangles);
+      indices.reserve(3 * num_triangles);
+    }
+    for (unsigned int t = 0; ok && t < num_triangles; t++) {
+      // per triangle: normal, 3 vertices (12 floats) and 2 attribute bytes
+      float data[12];
+      unsigned short attribute;
+      ok = fread(data, sizeof(data), 1, file) == 1 &&
+           fread(&attribute, sizeof(attribute), 1, file) == 1;
+      if (!ok) {
+        break;
+      }
+      ::TINY::TinyVector3f p[3];
+      for (int v = 0; v < 3; v++) {
+        p[v] = ::TINY::TinyVector3f(data[3 + 3 * v] * scaling[0],
+                                    data[4 + 3 * v] * scaling[1],
+                                    data[5 + 3 * v] * scaling[2]);
+      }
+      ::TINY::TinyVector3f normal = (p[1] - p[0]).cross(p[2] - p[0]);
+      float length = normal.length();
+      if (length > 0.f) {
+        normal *= 1.f / length;
+      }
+      for (int v = 0; v < 3; v++) {
+        GfxVertexFormat1 vertex;
+        vertex.x = p[v][0];
+        vertex.y = p[v][1];
+        vertex.z = p[v][2];
+        vertex.w = 0.f;
+        vertex.nx = normal[0];
+        vertex.ny = normal[1];
+        vertex.nz = normal[2];
+        vertex.u = 0.5f;
+        vertex.v = 0.5f;
+        indices.push_back(vertices.size());
+        vertices.push_back(vertex);
+      }
+    }
+    fclose(file);
+    if (!ok || vertices.empty()) {
+      std::cout << "Cannot load binary STL file " << stl_filename << std::endl;
+      return false;
+    }
+    int shape = m_opengl_app.m_renderer->register_shape(
+        &vertices[0].x, vertices.size(), &indices[0], indices.size(),
+        B3_GL_TRIANGLES, -1);
+    shape_ids.push_back(shape);
+    colors.push_back(color);
+    return true;
+  }
+
   void load_obj(const std::string &obj_filename,
                 const ::TINY::TinyVector3f &pos,
                 const ::TINY::TinyQuaternionf &orn,
@@ -237,8 +306,25 @@ struct OpenGLUrdfVisualizer {
                 Algebra::to_double(v.geometry.mesh.scale[1]),
                 Algebra::to_double(v.geometry.mesh.scale[2]));
             ::TINY::TinyQuaternionf orn(0, 0, 0, 1);
-            load_obj_shapes(obj_filename, b2v.visual_shape_uids,
-                            b2v.shape_colors, scaling);
+            std::string extension =
+                obj_filename.substr(obj_filename.find_last_of('.') + 1);
+            if (extension == "stl" || extension == "STL") {
+              // STL files have no material, use the URDF material color
+              ::TINY::TinyVector3f color(1, 1, 1);
+              if (v.has_local_material &&
+                  urdf.materials.count(v.material_name)) {
+                const TinyVector3 &rgb =
+                    urdf.materials[v.material_name].material_rgb;
+                color = ::TINY::TinyVector3f(Algebra::to_double(rgb[0]),
+                                             Algebra::to_double(rgb[1]),
+                                             Algebra::to_double(rgb[2]));
+              }
+              load_stl_shapes(obj_filename, b2v.visual_shape_uids,
+                              b2v.shape_colors, scaling, color);
+            } else {
+              load_obj_shapes(obj_filename, b2v.visual_shape_uids,
+                              b2v.shape_colors, scaling);
+            }
           }
           break;
         }
