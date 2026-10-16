@@ -11,6 +11,10 @@ per CPU iteration or CUDA thread.
 | [g1](g1) | Unitree G1 humanoid with hands (49 dof), PD control with targets and gains as inputs, feet-only contacts, used by `g1_opengl_*_example --backend` |
 | [laikago](laikago) | the laikago quadruped of `examples/environments/laikago_environment2.h`, used by the `pytinydiffsim` vectorized environments and the ARS examples |
 
+Worlds of URDF robots and objects can also be baked without CMake or nvcc,
+from Python or JSON, with the kernels compiled by NVRTC at run time and
+cached: see [python/tds_bake](../../python/tds_bake/README.md).
+
 ## Adding a model
 
 1. Write the model as a template on the algebra, with functions that map input

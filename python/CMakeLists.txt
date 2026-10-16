@@ -158,11 +158,39 @@ INCLUDE_DIRECTORIES(
 
 ##################################################################
 
-# batched CPU and CUDA kernels generated with CppADCodeGen, see
-# examples/kernels and cmake/TdsKernels.cmake
-ADD_LIBRARY(pytinykernels SHARED pytinykernels.cc)
-TARGET_LINK_LIBRARIES(pytinykernels g1_kernels laikago_kernels)
+# batched CPU and CUDA kernels generated with CppADCodeGen: the kernels of
+# examples/kernels (see cmake/TdsKernels.cmake), and the generator and loader
+# of the kernels of the tds_bake package (python/tds_bake), which compiles
+# them at run time
+ADD_LIBRARY(pytinykernels SHARED pytinykernels.cc pytinykernels_codegen.cc
+  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/tinyxml2/tinyxml2.cpp)
+TARGET_LINK_LIBRARIES(pytinykernels g1_kernels laikago_kernels Eigen3::Eigen
+  ${CMAKE_DL_LIBS})
+TARGET_COMPILE_DEFINITIONS(pytinykernels PRIVATE TDS_KERNELS_BUILTIN_MODELS
+  TDS_KERNELS_CODEGEN USE_CPPAD USE_CPPAD_CODEGEN)
+# the CppAD headers of third_party, with the configuration headers of
+# third_party/patches, as in setup.py
+IF (WIN32)
+  SET(CPPADCG_PLATFORM_INCLUDE ${DIFF_PHYSICS_SOURCE_DIR}/third_party/patches/CppADCodeGenWindows/include)
+ELSEIF (APPLE)
+  SET(CPPADCG_PLATFORM_INCLUDE ${DIFF_PHYSICS_SOURCE_DIR}/third_party/patches/CppADCodeGenOSXIntel/include)
+ELSE ()
+  SET(CPPADCG_PLATFORM_INCLUDE ${DIFF_PHYSICS_SOURCE_DIR}/third_party/patches/CppADCodeGenLinux/include)
+ENDIF ()
+TARGET_INCLUDE_DIRECTORIES(pytinykernels PRIVATE
+  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/nlohmann/include
+  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/tinyxml2/include
+  ${CPPADCG_PLATFORM_INCLUDE}
+  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/CppADCodeGen/include
+  ${DIFF_PHYSICS_SOURCE_DIR}/third_party/CppAD/include)
+IF(OpenMP_CXX_FOUND)
+  TARGET_LINK_LIBRARIES(pytinykernels OpenMP::OpenMP_CXX)
+ENDIF()
 SET_TARGET_PROPERTIES(pytinykernels PROPERTIES PREFIX "")
+# the tds_bake package next to the modules, so that adding this directory to
+# the Python path is enough
+FILE(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/tds_bake
+  ${CMAKE_CURRENT_BINARY_DIR}/tds_bake COPY_ON_ERROR SYMBOLIC)
 IF (WIN32)
   GET_FILENAME_COMPONENT(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)
   target_link_directories(pytinykernels PUBLIC "${PYTHON_LIBRARY_DIR}")

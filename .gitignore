@@ -4,3 +4,4 @@ compile_commands.json
 Dockerfile
 .history
 .vscode
+__pycache__/

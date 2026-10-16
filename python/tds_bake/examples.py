@@ -1,0 +1,157 @@
+"""Example worlds, also a starting point for new ones:
+
+  python -m tds_bake example g1_walk > g1_walk.json
+
+Each function returns a tds_bake.World.
+"""
+
+import math
+
+from .world import World
+
+G1_URDF = "unitree_g1/g1_29dof_with_hand_rev_1_0.urdf"
+G1_FEET = ["left_ankle_roll_link", "right_ankle_roll_link"]
+
+# standing pose of the legs, as in unitree_rl_gym
+G1_LEG_POSE = {
+    "left_hip_pitch_joint": -0.1,
+    "left_knee_joint": 0.3,
+    "left_ankle_pitch_joint": -0.2,
+    "right_hip_pitch_joint": -0.1,
+    "right_knee_joint": 0.3,
+    "right_ankle_pitch_joint": -0.2,
+}
+# pelvis height with the legs in G1_LEG_POSE and the feet on the ground
+G1_LEG_POSE_HEIGHT = 0.78
+
+# joint gains (kp, kd) for walking, the legs as in unitree_rl_gym
+G1_WALK_GAINS = {
+    ".*_hip_.*": (100., 2.),
+    ".*_knee_joint": (150., 4.),
+    ".*_ankle_.*": (40., 2.),
+    "waist_.*": (200., 5.),
+    ".*_shoulder_.*": (100., 2.),
+    ".*_elbow_joint": (100., 2.),
+    ".*_wrist_.*": (20., 1.),
+    ".*_hand_.*": (5., 0.2),
+}
+
+
+def g1_stand(name="g1_stand"):
+  """The G1 of examples/g1_opengl_example.cpp: stiff PD (kp 1000, kd 10)
+  holding the zero joint pose, dropped from 0.2 m above standing height,
+  feet-only contacts, 360 Hz with 6 substeps per frame."""
+  world = World(name, dt=1. / 360., substeps=6, iterations=50)
+  world.add_urdf("g1", G1_URDF, position=(0., 0., 0.993), kp=1000., kd=10.,
+                 armature=0.01, collision_links=G1_FEET)
+  return world
+
+
+# contact spheres of the G1 body (in link frames), so that it lies on the
+# ground after a fall instead of sinking through it with only the feet
+# colliding
+G1_BODY_SPHERES = [
+    ("pelvis", 0.07, (0., 0., -0.08)),
+    ("torso_link", 0.1, (0.01, 0., 0.12)),
+    ("torso_link", 0.09, (0.01, 0., 0.40)),
+    ("left_hip_yaw_link", 0.055, (-0.03, 0., -0.1)),
+    ("right_hip_yaw_link", 0.055, (-0.03, 0., -0.1)),
+    ("left_knee_link", 0.05, (0.01, 0., -0.02)),
+    ("right_knee_link", 0.05, (0.01, 0., -0.02)),
+    ("left_knee_link", 0.045, (0.01, 0., -0.2)),
+    ("right_knee_link", 0.045, (0.01, 0., -0.2)),
+    ("left_shoulder_yaw_link", 0.045, (0., 0., -0.05)),
+    ("right_shoulder_yaw_link", 0.045, (0., 0., -0.05)),
+    ("left_elbow_link", 0.04, (0.03, 0., 0.)),
+    ("right_elbow_link", 0.04, (0.03, 0., 0.)),
+    ("left_wrist_yaw_link", 0.04, (0.085, 0., 0.)),
+    ("right_wrist_yaw_link", 0.04, (0.085, 0., 0.)),
+]
+
+
+def g1_body_spheres(collide_with=("ground",)):
+  return [{"link": link, "radius": radius, "position": list(position),
+           "with": list(collide_with)}
+          for link, radius, position in G1_BODY_SPHERES]
+
+
+def g1_walk(name="g1_walk", body_spheres=False):
+  """The G1 for learning to walk: 200 Hz physics, 50 Hz control (4 substeps),
+  gains and standing pose of unitree_rl_gym, URDF effort limits. Only the
+  feet collide with the ground, so a robot that falls over sinks through it.
+  body_spheres adds 15 spheres on the pelvis, torso, legs and arms that
+  collide with the ground, so that a fallen robot lies on it. They make a
+  time step about 10 times slower (23 instead of 8 contacts, all of them in
+  the contact problem of every step), training that ends episodes at a fall
+  does not need them."""
+  world = World(name, dt=0.005, substeps=4, iterations=20)
+  world.add_urdf("g1", G1_URDF,
+                 position=(0., 0., G1_LEG_POSE_HEIGHT),
+                 joint_positions=G1_LEG_POSE,
+                 gains=G1_WALK_GAINS,
+                 armature=0.01,
+                 effort_limits="urdf",
+                 collision_links=G1_FEET,
+                 collision_spheres=g1_body_spheres() if body_spheres else [])
+  return world
+
+
+# contact spheres of the G1 hands, for manipulation: the palms and the tips of
+# the thumb, index and middle fingers (link frames of the Dex3 hand)
+def g1_hand_spheres(radius=0.012, collide_with=("ball",)):
+  spheres = []
+  for side, sign in (("left", 1.), ("right", -1.)):
+    spheres += [
+        {"link": side + "_wrist_yaw_link", "radius": 0.025,
+         "position": [0.09, 0.0, 0.0]},
+        {"link": side + "_hand_thumb_2_link", "radius": radius,
+         "position": [0.0, sign * 0.045, 0.0]},
+        {"link": side + "_hand_index_1_link", "radius": radius,
+         "position": [0.045, 0.0, 0.0]},
+        {"link": side + "_hand_middle_1_link", "radius": radius,
+         "position": [0.045, 0.0, 0.0]},
+    ]
+  for s in spheres:
+    s["with"] = list(collide_with)
+  return spheres
+
+
+def g1_ball(name="g1_ball", ball_radius=0.1, ball_mass=0.3,
+            ball_position=(0.38, 0., 0.85), body_spheres=False):
+  """The G1 standing in front of a ball that rests on a nest of three fixed
+  spheres, for manipulation: the feet collide with the ground, contact
+  spheres on the hands with the ball, the ball also with the nest and the
+  ground. body_spheres: see g1_walk."""
+  world = World(name, dt=0.005, substeps=4, iterations=20)
+  world.add_urdf("g1", G1_URDF,
+                 position=(0., 0., G1_LEG_POSE_HEIGHT),
+                 joint_positions=G1_LEG_POSE,
+                 gains=G1_WALK_GAINS,
+                 armature=0.01,
+                 effort_limits="urdf",
+                 collision_links=G1_FEET,
+                 collision_spheres=g1_hand_spheres(collide_with=["ball"]) +
+                 (g1_body_spheres() if body_spheres else []),
+                 collide_with=["ground"])
+  # three spheres below the ball, touching it
+  nest_radius = 0.04
+  x, y, z = ball_position
+  spread = 0.07
+  drop = math.sqrt((ball_radius + nest_radius)**2 - spread**2)
+  for i in range(3):
+    angle = 2. * math.pi * i / 3.
+    world.add_sphere("nest%d" % i, radius=nest_radius, floating=False,
+                     position=(x + spread * math.cos(angle),
+                               y + spread * math.sin(angle), z - drop),
+                     color=(0.5, 0.5, 0.5, 1.), collide_with=["ball"])
+  world.add_sphere("ball", radius=ball_radius, mass=ball_mass,
+                   position=ball_position, color=(0.9, 0.4, 0.1, 1.))
+  return world
+
+
+EXAMPLES = {
+    "g1_stand": g1_stand,
+    "g1_walk": g1_walk,
+    "g1_walk_body": lambda: g1_walk("g1_walk_body", body_spheres=True),
+    "g1_ball": g1_ball,
+}
