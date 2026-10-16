@@ -5,6 +5,8 @@ _vsync_options.add_argument("--vsync", dest="vsync", action="store_true", defaul
                             help="Enable display synchronization")
 _vsync_options.add_argument("--no-vsync", dest="vsync", action="store_false",
                             help="Disable display synchronization")
+_viewer_parser.add_argument("--num-actors", type=int, default=2,
+                            help="Number of simulated laikago robots")
 _viewer_args = _viewer_parser.parse_args()
 
 import pytinydiffsim as tds
@@ -23,7 +25,7 @@ width = 1024
 height = 768
 
 if 1:
-    num_actors = 2 #1024#4096
+    num_actors = _viewer_args.num_actors
     auto_reset_when_done = True
     tds_robot = tds.VectorizedLaikagoEnv(num_actors, auto_reset_when_done)
     tds_robot.reset()
@@ -91,8 +93,9 @@ if 1:
       for x in range (nx):
         for y in range (ny):
           tile = g.TinyViewportTile()
-          tile.visual_instances = [35,37,39,41,43,45,47,49,51,53,55,57,59,61,63,65,67]
-          #tile.visual_instances = [35,37,39,41]^M
+          # each tile renders the visual instances of one actor
+          actor = len(tiles) % num_actors
+          tile.visual_instances = [pair.visual_instance for pair in all_instances[actor]]
           cam = viz.opengl_app.renderer.get_active_camera()
           tile.projection_matrix = cam.get_camera_projection_matrix()
           tile.view_matrix = cam.get_camera_view_matrix()

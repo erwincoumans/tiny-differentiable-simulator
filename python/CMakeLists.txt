@@ -74,6 +74,12 @@ ADD_DEFINITIONS(-DSTATIC_LINK_SPD_PLUGIN)
 ADD_LIBRARY(pytinydiffsim SHARED pytinydiffsim.cc ${TDS_HDRS})
 TARGET_COMPILE_DEFINITIONS(pytinydiffsim PUBLIC -DENABLE_TEST_ENVS -DNOMINMAX )
 
+# the vectorized environments step their simulations in parallel with OpenMP
+FIND_PACKAGE(OpenMP)
+IF(OpenMP_CXX_FOUND)
+  TARGET_LINK_LIBRARIES(pytinydiffsim OpenMP::OpenMP_CXX)
+ENDIF()
+
 
 ADD_LIBRARY(pytinydiffsim_dual SHARED pytinydiffsim_dual.cc ${TDS_HDRS})
 IF(USE_CPPAD)
