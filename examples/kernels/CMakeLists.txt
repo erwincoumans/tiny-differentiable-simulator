@@ -16,4 +16,11 @@ if(USE_TESTING)
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/data)
 endif()
 
+# the laikago environment of examples/environments/laikago_environment2.h,
+# which also includes the generated kernel directly
+tds_add_kernels(laikago
+  GENERATED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/laikago/generated
+  GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/laikago/laikago_codegen.cpp
+  GENERATOR_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/examples)
+
 endif(Eigen3_FOUND)

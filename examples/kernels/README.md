@@ -9,6 +9,7 @@ per CPU iteration or CUDA thread.
 | directory | model |
 |---|---|
 | [g1](g1) | Unitree G1 humanoid with hands (49 dof), PD control with targets and gains as inputs, feet-only contacts, used by `g1_opengl_*_example --backend` |
+| [laikago](laikago) | the laikago quadruped of `examples/environments/laikago_environment2.h`, used by the `pytinydiffsim` vectorized environments and the ARS examples |
 
 ## Adding a model
 
