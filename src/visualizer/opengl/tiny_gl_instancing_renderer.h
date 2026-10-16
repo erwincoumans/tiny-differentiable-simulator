@@ -188,6 +188,14 @@ class TinyGLInstancingRenderer {
                                                   int srcIndex);
 
   virtual struct GLInstanceRendererInternalData* get_internal_data();
+  // index of the instance in the instance arrays of the vertex buffer, see
+  // get_internal_data (changes when instances are added or removed), -1 if
+  // there is no such instance
+  int get_internal_instance_index(int instance) const;
+  // shadows (a shadow map pass that draws the scene once more), on by
+  // default, for all renderers
+  static void set_shadows(bool enable);
+  static bool get_shadows();
 
   virtual void draw_line(const ::TINY::TinyVector3f& from, const ::TINY::TinyVector3f& to,
                          const ::TINY::TinyVector3f& color, float lineWidth = 1);

@@ -278,6 +278,20 @@ struct InternalDataRenderer : public GLInstanceRendererInternalData {
   }
 };
 
+int TinyGLInstancingRenderer::get_internal_instance_index(
+    int instance) const {
+  if (instance < 0) return -1;
+  TinyPublicGraphicsInstance* pg =
+      m_data->m_publicGraphicsInstances.get_handle(instance);
+  return pg ? pg->m_internalInstanceIndex : -1;
+}
+
+void TinyGLInstancingRenderer::set_shadows(bool enable) {
+  useShadowMap = enable;
+}
+
+bool TinyGLInstancingRenderer::get_shadows() { return useShadowMap; }
+
 struct GLInstanceRendererInternalData*
 TinyGLInstancingRenderer::get_internal_data() {
   return m_data;

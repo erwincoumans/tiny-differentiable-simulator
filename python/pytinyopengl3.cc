@@ -29,6 +29,7 @@
 #include "math/tiny/tiny_vector3.h"
 #include "math/tiny/tiny_pose.h"
 #include "visualizer/opengl/tiny_opengl3_app.h"
+#include "visualizer/opengl/tiny_gl_instance_renderer_internal_data.h"
 #include "visualizer/opengl/tiny_camera.h"
 #include "examples/opengl_urdf_visualizer.h"
 #include "urdf/urdf_parser.hpp"
@@ -589,6 +590,43 @@ PYBIND11_MODULE(pytinyopengl3, m) {
            }
          },
          py::arg("instances"), py::arg("positions"), py::arg("orientations"))
+    // the vertex buffer and the internal indices of instances, to write the
+    // instance transforms on the GPU, such as with CUDA-OpenGL interop. The
+    // positions and orientations (x, y, z, w) of instance k are 4 floats at
+    // positions_offset + 16 k and orientations_offset + 16 k bytes. They
+    // change when instances are added or removed.
+    .def("get_internal_instance_indices",
+         [](const TinyGLInstancingRenderer& renderer,
+            py::array_t<int, py::array::c_style | py::array::forcecast> instances) {
+           const int* in = instances.data();
+           std::vector<int> out(instances.size());
+           for (size_t i = 0; i < out.size(); ++i) {
+             out[i] = renderer.get_internal_instance_index(in[i]);
+           }
+           return py::array_t<int>(out.size(), out.data());
+         },
+         py::arg("instances"))
+    .def_property("shadows",
+        [](const TinyGLInstancingRenderer&) {
+          return TinyGLInstancingRenderer::get_shadows();
+        },
+        [](TinyGLInstancingRenderer&, bool enable) {
+          TinyGLInstancingRenderer::set_shadows(enable);
+        },
+        "the shadow map pass, which draws the scene once more")
+    .def("get_instance_buffer",
+         [](TinyGLInstancingRenderer& renderer) {
+           auto* data = renderer.get_internal_data();
+           const size_t array_bytes =
+               size_t(data->m_totalNumInstances) * 4 * sizeof(float);
+           py::dict d;
+           d["vbo"] = static_cast<unsigned>(data->m_vbo);
+           d["num_instances"] = data->m_totalNumInstances;
+           d["positions_offset"] = size_t(data->m_maxShapeCapacityInBytes);
+           d["orientations_offset"] =
+               size_t(data->m_maxShapeCapacityInBytes) + array_bytes;
+           return d;
+         })
     .def("write_single_instance_color_to_cpu", &TinyGLInstancingRenderer::write_single_instance_color_to_cpu2)
     .def("write_single_instance_flags_to_cpu", &TinyGLInstancingRenderer::write_single_instance_flags_to_cpu)
       
