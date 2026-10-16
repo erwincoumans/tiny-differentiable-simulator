@@ -1397,21 +1397,21 @@ typedef struct cudaArray* cudaArray_t;
 // see
 // https://docs.nvidia.com/cuda/cuda-runtime-api/driver-vs-runtime-api.html#driver-vs-runtime-api
 // cuda driver (cuda.so)
-TINY_CUDA_CODES (*cuDriverGetVersion)(int* version);
-TINY_CUDA_CODES (*cuInit)(unsigned int flags);
-TINY_CUDA_CODES (*cuDeviceGetCount)(int* count);
-TINY_CUDA_CODES (*cuDeviceGetCount2)(int* count);
-TINY_CUDA_CODES (*cuGetProcAddress) (const char* symbol, void** pfn, int cudaVersion, uint64_t flags);
-TINY_CUDA_CODES (*cudaMalloc)(void** devPtr, size_t size);
-TINY_CUDA_CODES (*cudaFree)(void* devPtr);
+static TINY_CUDA_CODES (*cuDriverGetVersion)(int* version);
+static TINY_CUDA_CODES (*cuInit)(unsigned int flags);
+static TINY_CUDA_CODES (*cuDeviceGetCount)(int* count);
+static TINY_CUDA_CODES (*cuDeviceGetCount2)(int* count);
+static TINY_CUDA_CODES (*cuGetProcAddress) (const char* symbol, void** pfn, int cudaVersion, uint64_t flags);
+static TINY_CUDA_CODES (*cudaMalloc)(void** devPtr, size_t size);
+static TINY_CUDA_CODES (*cudaFree)(void* devPtr);
 
-TINY_CUDA_CODES (*cudaGLRegisterBufferObject) ( GLuint bufObj );
-TINY_CUDA_CODES (*cudaGLMapBufferObject) ( void** devPtr, GLuint bufObj );
-TINY_CUDA_CODES (*cudaGLUnmapBufferObject) ( GLuint bufObj );
+static TINY_CUDA_CODES (*cudaGLRegisterBufferObject) ( GLuint bufObj );
+static TINY_CUDA_CODES (*cudaGLMapBufferObject) ( void** devPtr, GLuint bufObj );
+static TINY_CUDA_CODES (*cudaGLUnmapBufferObject) ( GLuint bufObj );
 
 
 
-TINY_CUDA_CODES (*cudaMemcpyFromArray)
+static TINY_CUDA_CODES (*cudaMemcpyFromArray)
 (void* dst, const cudaArray_t src, size_t wOffset, size_t hOffset, size_t count,
  unsigned int kind);
 
@@ -1420,19 +1420,19 @@ TINY_CUDA_CODES (*cudaMemcpyFromArray)
   if (!name) cout << "Error:" << #name << " not found in CUDA library" << endl
 
 // cuda runtime (cudart.so)
-TINY_CUDA_CODES (*cudaGraphicsGLRegisterImage) (cudaGraphicsResource** resource, uint64_t image, int target,
+static TINY_CUDA_CODES (*cudaGraphicsGLRegisterImage) (cudaGraphicsResource** resource, uint64_t image, int target,
  unsigned int flags);
 // Returns the requested driver API function pointer.
 // see also
 // https://forums.developer.nvidia.com/t/some-questions-about-cugetprocaddress/191749
-TINY_CUDA_CODES (*cudaGetDriverEntryPoint)
+static TINY_CUDA_CODES (*cudaGetDriverEntryPoint)
 (const char* symbol, void** funcPtr, unsigned long long flags);
-TINY_CUDA_CODES (*cudaGraphicsMapResources)
+static TINY_CUDA_CODES (*cudaGraphicsMapResources)
 (int count, cudaGraphicsResource_t* resources, cudaStream_t stream);
-TINY_CUDA_CODES (*cudaGraphicsSubResourceGetMappedArray)
+static TINY_CUDA_CODES (*cudaGraphicsSubResourceGetMappedArray)
 (cudaArray_t* array, cudaGraphicsResource_t resource, unsigned int arrayIndex,
  unsigned int mipLevel);
-TINY_CUDA_CODES (*cudaGraphicsUnmapResources)
+static TINY_CUDA_CODES (*cudaGraphicsUnmapResources)
 (int count, cudaGraphicsResource_t* resources, cudaStream_t stream);
 
 #define LOAD_CUDART_FUNCTION(name, version)                                  \
