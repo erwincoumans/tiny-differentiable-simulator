@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <streambuf>
@@ -218,6 +220,18 @@ struct LaikagoSimulation {
 
 
 int main(int argc, char* argv[]) {
+  // number of laikago copies along X and Y
+  int num_x = 5;
+  int num_y = 2;
+  for (int i = 1; i < argc; i++) {
+    std::string arg = argv[i];
+    if ((arg == "--num-x" || arg == "--num_x") && i + 1 < argc) {
+      num_x = std::max(1, atoi(argv[++i]));
+    } else if ((arg == "--num-y" || arg == "--num_y") && i + 1 < argc) {
+      num_y = std::max(1, atoi(argv[++i]));
+    }
+  }
+
   int sync_counter = 0;
   int frame = 0;
  
@@ -269,7 +283,7 @@ int main(int argc, char* argv[]) {
   visualizer.convert_visuals(urdf_structures, texture_path);
   
   
-  int num_total_threads = 10;
+  int num_total_threads = num_x * num_y;
   std::vector<int> visual_instances;
   std::vector<int> num_instances;
   int num_base_instances = 0;
@@ -365,7 +379,6 @@ int main(int argc, char* argv[]) {
               else
               {
                   float sim_spacing = 2;
-                  const int square_id = (int)std::sqrt((double)num_total_threads);
                   int instance_index = 0;
                   int offset = contact_sim.system->dof() + contact_sim.system->dof_qd();
                   for (int s = 0; s < num_total_threads; s++)
@@ -386,8 +399,8 @@ int main(int argc, char* argv[]) {
                                   parallel_outputs[s][2],
                                   parallel_outputs[s][3]);
 
-                              pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
-                              pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
+                              pos[0] += sim_spacing * (s % num_x - 0.5f * (num_x - 1));
+                              pos[1] += sim_spacing * (s / num_x - 0.5f * (num_y - 1));
 
                               visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
                           }
@@ -408,8 +421,8 @@ int main(int argc, char* argv[]) {
                                       parallel_outputs[s][offset + l * 7 + 5],
                                       parallel_outputs[s][offset + l * 7 + 6]);
 
-                                  pos[0] += sim_spacing * (s % square_id) - square_id * sim_spacing / 2;
-                                  pos[1] += sim_spacing * (s / square_id) - square_id * sim_spacing / 2;
+                                  pos[0] += sim_spacing * (s % num_x - 0.5f * (num_x - 1));
+                                  pos[1] += sim_spacing * (s / num_x - 0.5f * (num_y - 1));
 
                                   visualizer.m_opengl_app.m_renderer->write_single_instance_transform_to_cpu(pos, orn, visual_instance_id);
                               }
