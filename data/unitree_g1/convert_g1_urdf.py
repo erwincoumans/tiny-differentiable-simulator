@@ -12,18 +12,24 @@ newton/examples/robot/example_robot_g1.py:
     too, TDS only supports sphere, capsule and box collision shapes,
   * inertia tensors are written with respect to the center of mass, in link
     frame orientation (rpy = 0), including the off-diagonal terms,
-  * visual meshes are written as binary STL files. Meshes with more than
-    --max-triangles (default 5000, 0 keeps the original meshes) are
-    decimated by Blender, see blender_decimate.py. This reduces the G1 from
-    629k to 204k triangles without visible artifacts.
+  * visual meshes are written as binary STL files, decimated by Blender
+    (see blender_decimate.py) to a total of --total-triangles (default 20k,
+    from 629k). The torso and the logo get a fixed budget
+    (--fixed-triangles), so that the logo stays readable, the other meshes
+    share the rest in proportion to the square root of their surface area,
+    which gives the small parts (fingers) more than their share of the area.
+    The meshes are only rendered, the collision shapes are boxes and spheres.
+    With --total-triangles 0, meshes with more than --max-triangles are
+    decimated to that number instead (0 keeps the original meshes).
 
 Usage:
   python convert_g1_urdf.py [path/to/newton-assets/unitree_g1] [--out DIR]
+      [--total-triangles N] [--fixed-triangles torso_link_rev_1_0=1500,...]
       [--max-triangles N] [--blender PATH]
 
 Without a path, the Newton asset cache (~/.cache/newton) is searched, run
 newton.utils.download_asset("unitree_g1") to populate it.
-Requires numpy, trimesh and Blender (unless --max-triangles 0). The Blender
+Requires numpy, trimesh and Blender (unless no mesh is decimated). The Blender
 executable is taken from --blender, the BLENDER environment variable or PATH.
 """
 
@@ -187,20 +193,39 @@ def stl_triangle_count(path):
     return int(np.frombuffer(f.read(4), dtype="<u4")[0])
 
 
-def convert_visual_mesh(asset_dir, geom, out_dir, max_triangles, decimate_jobs):
-  """Writes the visual mesh as binary STL and returns the URDF filename.
-  Meshes with more than max_triangles (if > 0) are added to decimate_jobs."""
+def visual_mesh_files(asset_dir, geom, out_dir):
+  """The input mesh and the output binary STL of a visual mesh, and its URDF
+  filename."""
   name = os.path.splitext(os.path.basename(geom.get("filename")))[0] + ".stl"
-  in_path = mesh_path(asset_dir, geom)
-  out_path = os.path.join(out_dir, "meshes", name)
-  if max_triangles > 0 and stl_triangle_count(in_path) > max_triangles:
-    decimate_jobs.append([in_path, out_path, max_triangles])
+  return mesh_path(asset_dir, geom), os.path.join(out_dir, "meshes", name), "meshes/" + name
+
+
+def triangle_budgets(mesh_files, total, fixed, max_triangles, min_triangles=24):
+  """The number of triangles of each output mesh, see the module docstring.
+  fixed maps mesh names (without extension) to their budget."""
+  sources = {i: trimesh.load(i, force="mesh") for i, _ in mesh_files}
+  budgets = {}
+  if total > 0:
+    rest = [(i, o) for i, o in mesh_files
+            if os.path.splitext(os.path.basename(o))[0] not in fixed]
+    weights = {i: np.sqrt(sources[i].area) for i, _ in rest}
+    remaining = total - sum(fixed.get(os.path.splitext(os.path.basename(o))[0], 0)
+                            for _, o in mesh_files)
+    for i, o in mesh_files:
+      name = os.path.splitext(os.path.basename(o))[0]
+      if name in fixed:
+        budgets[o] = fixed[name]
+      else:
+        budgets[o] = max(min_triangles,
+                         int(round(remaining * weights[i] / sum(weights.values()))))
   else:
-    trimesh.load(in_path, force="mesh").export(out_path, file_type="stl")
-  return "meshes/" + name
+    for i, o in mesh_files:
+      budgets[o] = max_triangles if max_triangles > 0 else len(sources[i].faces)
+  return sources, budgets
 
 
 def decimate_with_blender(blender, jobs):
+  """jobs: [input_stl, output_stl, max_triangles] of each mesh"""
   script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender_decimate.py")
   with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
     json.dump(jobs, f)
@@ -227,8 +252,13 @@ def main():
                                    formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument("asset_dir", nargs="?", help="newton-assets unitree_g1 folder")
   parser.add_argument("--out", default=os.path.dirname(os.path.abspath(__file__)))
-  parser.add_argument("--max-triangles", type=int, default=5000,
-                      help="decimate visual meshes to at most this many triangles, 0 keeps all")
+  parser.add_argument("--total-triangles", type=int, default=20000,
+                      help="triangles of all visual meshes, 0 uses --max-triangles")
+  parser.add_argument("--fixed-triangles", default="torso_link_rev_1_0=1500,logo_link=1500",
+                      help="budgets of single meshes, as name=triangles,...")
+  parser.add_argument("--max-triangles", type=int, default=0,
+                      help="with --total-triangles 0: decimate visual meshes to at most this "
+                      "many triangles, 0 keeps all")
   parser.add_argument("--blender", default=os.environ.get("BLENDER", "blender"),
                       help="Blender executable, used for decimation")
   args = parser.parse_args()
@@ -241,8 +271,18 @@ def main():
 
   os.makedirs(os.path.join(args.out, "meshes"), exist_ok=True)
   out_robot = ET.Element("robot", name=robot.get("name"))
-  decimation = (", visual meshes decimated by Blender to at most %d triangles" %
-                args.max_triangles if args.max_triangles > 0 else "")
+  fixed = {}
+  for item in filter(None, args.fixed_triangles.split(",")):
+    name, count = item.split("=")
+    fixed[name] = int(count)
+  if args.total_triangles > 0:
+    decimation = (", visual meshes decimated by Blender to %d triangles in total (%s)" %
+                  (args.total_triangles, args.fixed_triangles))
+  elif args.max_triangles > 0:
+    decimation = (", visual meshes decimated by Blender to at most %d triangles" %
+                  args.max_triangles)
+  else:
+    decimation = ""
   out_robot.append(ET.Comment(
       " Generated by convert_g1_urdf.py from newton-assets unitree_g1/urdf/" + URDF_NAME +
       ": fixed joints collapsed, collision meshes replaced by oriented bounding"
@@ -264,9 +304,8 @@ def main():
       origin_element(visual, tf)
       geometry = ET.SubElement(visual, "geometry")
       if geom.tag == "mesh":
-        filename = convert_visual_mesh(asset_dir, geom, args.out, args.max_triangles,
-                                       decimate_jobs)
-        mesh_files.append((mesh_path(asset_dir, geom), os.path.join(args.out, filename)))
+        in_path, out_path, filename = visual_mesh_files(asset_dir, geom, args.out)
+        mesh_files.append((in_path, out_path))
         ET.SubElement(geometry, "mesh", filename=filename)
       else:
         geometry.append(geom)
@@ -291,6 +330,13 @@ def main():
   out_file = os.path.join(args.out, URDF_NAME)
   ET.ElementTree(out_robot).write(out_file, encoding="utf-8", xml_declaration=True)
   total_mass = sum(l.inertial.mass for l in links.values() if l.inertial is not None)
+  sources, budgets = triangle_budgets(mesh_files, args.total_triangles, fixed,
+                                      args.max_triangles)
+  for in_path, out_path in mesh_files:
+    if len(sources[in_path].faces) > budgets[out_path]:
+      decimate_jobs.append([in_path, out_path, budgets[out_path]])
+    else:
+      sources[in_path].export(out_path, file_type="stl")
   if decimate_jobs:
     decimate_with_blender(args.blender, decimate_jobs)
   triangles_before = sum(stl_triangle_count(i) for i, _ in mesh_files)
