@@ -554,6 +554,7 @@
       .def_readwrite("stiffness", &Link<MyAlgebra>::stiffness)
       .def_readwrite("joint_type", &Link<MyAlgebra>::joint_type)
       .def_readwrite("damping", &Link<MyAlgebra>::damping)
+      .def_readwrite("armature", &Link<MyAlgebra>::armature)
       .def_readwrite("link_name", &Link<MyAlgebra>::link_name)
       .def_readwrite("joint_name", &Link<MyAlgebra>::joint_name)
       .def_readwrite("q_index", &Link<MyAlgebra>::q_index)
@@ -898,6 +899,8 @@
       .def_readwrite("mass", &UrdfInertial<MyAlgebra>::mass)
       .def_readwrite("inertia_xxyyzz",
                      &UrdfInertial<MyAlgebra>::inertia_xxyyzz)
+      .def_readwrite("inertia_xyxzyz",
+                     &UrdfInertial<MyAlgebra>::inertia_xyxzyz)
       .def_readwrite("origin_xyz",
                      &UrdfInertial<MyAlgebra>::origin_xyz)
       .def_readwrite("origin_rpy",

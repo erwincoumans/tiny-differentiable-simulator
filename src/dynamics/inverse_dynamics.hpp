@@ -60,7 +60,8 @@ void inverse_dynamics(MultiBody<Algebra> &mb,
       Link &link = mb[i];
       int parent = link.parent_index;
       if (link.joint_type != JOINT_FIXED) {
-        tau[tau_index] = Algebra::dot(link.S, link.f);
+        tau[tau_index] = Algebra::dot(link.S, link.f) +
+                         link.armature * qdd_desired[link.qd_index];
         --tau_index;
       }
       if (parent >= 0) {

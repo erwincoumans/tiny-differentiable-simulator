@@ -158,6 +158,15 @@ struct UrdfParser {
           Algebra::scalar_from_string(inertia_xml->Attribute("iyy"));
       urdf_inertial.inertia_xxyyzz[2] =
           Algebra::scalar_from_string(inertia_xml->Attribute("izz"));
+      // off-diagonal elements are optional
+      const char* off_diagonal[3] = {"ixy", "ixz", "iyz"};
+      for (int i = 0; i < 3; i++) {
+        urdf_inertial.inertia_xyxzyz[i] =
+            inertia_xml->Attribute(off_diagonal[i])
+                ? Algebra::scalar_from_string(
+                      inertia_xml->Attribute(off_diagonal[i]))
+                : Algebra::zero();
+      }
     } else {
       logger.report_error(
           "Inertial: inertia element must have ixx,iyy,izz attributes");

@@ -56,7 +56,8 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     if (link.joint_type == JOINT_SPHERICAL){
         link.U_3d = link.abi * link.S_3d;
 
-        link.D_3d = Algebra::transpose(link.S_3d) * link.U_3d;
+        link.D_3d = Algebra::transpose(link.S_3d) * link.U_3d +
+                    Algebra::diagonal3(link.armature);
 
         VectorX tau_temp = mb.get_tau_for_link(tau, i);
 
@@ -112,7 +113,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
         // std::cout << "link.abi.matrix() * link.S:\n" << link.abi.matrix() *
         // link.S << std::endl; std::cout << "link.abi * link.S:\n" << link.abi *
         // link.S << std::endl; std::cout << "\n\n";
-        link.D = Algebra::dot(link.S, link.U);
+        link.D = Algebra::dot(link.S, link.U) + link.armature;
         VectorX tau_val = mb.get_tau_for_link(tau, i);
         // apply linear joint stiffness and damping
         // see Eqns. (2.76), (2.78) in Rigid Body Dynamics Notes

@@ -87,6 +87,9 @@ struct Link {
 
   Scalar stiffness{Algebra::zero()};
   Scalar damping{Algebra::zero()};
+  // inertia added along the joint axis (such as motor rotor inertia),
+  // included in forward dynamics, inverse dynamics and the mass matrix
+  Scalar armature{Algebra::zero()};
 
   Link() = default;
   Link(JointType joint_type, const Transform &parent_link_to_joint,
@@ -119,6 +122,7 @@ struct Link {
     conv.qd_index = qd_index;
     conv.stiffness = C::convert(stiffness);
     conv.damping = C::convert(damping);
+    conv.armature = C::convert(armature);
     return conv;
   }
 

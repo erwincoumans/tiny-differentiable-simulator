@@ -38,6 +38,15 @@ struct UrdfToMultiBody {
   using UrdfStructures = tds::UrdfStructures<Algebra>;
   using RigidBodyInertia = tds::RigidBodyInertia<Algebra>;
 
+  static Matrix3 inertia_tensor(const UrdfInertial<Algebra> &inertial) {
+    Matrix3 inertia = Algebra::diagonal3(inertial.inertia_xxyyzz);
+    const Vector3 &off_diagonal = inertial.inertia_xyxzyz;
+    inertia(0, 1) = inertia(1, 0) = off_diagonal[0];
+    inertia(0, 2) = inertia(2, 0) = off_diagonal[1];
+    inertia(1, 2) = inertia(2, 1) = off_diagonal[2];
+    return inertia;
+  }
+
   static int convert_to_multi_body(const UrdfStructures &urdf_structures,
                                    World<Algebra> &world,
                                    MultiBody<Algebra> &mb,
@@ -51,12 +60,11 @@ struct UrdfToMultiBody {
 
     {
       Scalar mass = base_link.urdf_inertial.mass;
-      Vector3 local_inertia = base_link.urdf_inertial.inertia_xxyyzz;
       Vector3 com(base_link.urdf_inertial.origin_xyz[0],
                   base_link.urdf_inertial.origin_xyz[1],
                   base_link.urdf_inertial.origin_xyz[2]);
-      Matrix3 inertia_diag = Algebra::diagonal3(local_inertia);
-      mb.base_rbi_ = RigidBodyInertia(mass, com, inertia_diag);
+      Matrix3 inertia = inertia_tensor(base_link.urdf_inertial);
+      mb.base_rbi_ = RigidBodyInertia(mass, com, inertia);
       // apply rotation
       Transform tf;
       tf.rotation =
@@ -175,18 +183,17 @@ struct UrdfToMultiBody {
                                                       j.joint_origin_rpy[1],
                                                       j.joint_origin_rpy[2]);
         Scalar mass = link.urdf_inertial.mass;
-        Vector3 local_inertia = link.urdf_inertial.inertia_xxyyzz;
         Vector3 com(link.urdf_inertial.origin_xyz[0],
                     link.urdf_inertial.origin_xyz[1],
                     link.urdf_inertial.origin_xyz[2]);
-        Matrix3 inertia_diag = Algebra::diagonal3(local_inertia);
+        Matrix3 inertia = inertia_tensor(link.urdf_inertial);
 
         // apply rotation
         Transform tf;
         tf.rotation = Algebra::rotation_zyx_matrix(
             link.urdf_inertial.origin_rpy[0], link.urdf_inertial.origin_rpy[1],
             link.urdf_inertial.origin_rpy[2]);
-        l.rbi = RigidBodyInertia(mass, com, inertia_diag);
+        l.rbi = RigidBodyInertia(mass, com, inertia);
         l.rbi = tf.apply(l.rbi);
 
         for (std::size_t i = 0; i < link.urdf_visual_shapes.size(); i++) {

@@ -57,7 +57,10 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
 
     if (link.joint_type == JOINT_SPHERICAL){
       Matrix6x3 Fi = Ic * link.S_3d;
-      Algebra::assign_block(*M, Algebra::transpose(link.S_3d) * Fi, qd_i, qd_i);
+      Algebra::assign_block(*M,
+                            Algebra::transpose(link.S_3d) * Fi +
+                                Algebra::diagonal3(link.armature),
+                            qd_i, qd_i);
 
       int j = i;
       while (mb[j].parent_index != -1) {
@@ -86,7 +89,7 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
     }else {
       ForceVector Fi = Ic * link.S;  // Ic.mul_inv(link.S);
 //      if (link.joint_type == JOINT_FIXED) continue;
-      (*M)(qd_i, qd_i) = Algebra::dot(link.S, Fi);
+      (*M)(qd_i, qd_i) = Algebra::dot(link.S, Fi) + link.armature;
 
       int j = i;
       while (mb[j].parent_index != -1) {

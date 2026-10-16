@@ -34,11 +34,14 @@ struct UrdfInertial {
   UrdfInertial()
       : mass(Algebra::zero()),
         inertia_xxyyzz(Algebra::zero3()),
+        inertia_xyxzyz(Algebra::zero3()),
         origin_rpy(Algebra::zero3()),
         origin_xyz(Algebra::zero3()) {}
 
   Scalar mass;
   Vector3 inertia_xxyyzz;
+  // off-diagonal elements ixy, ixz, iyz of the inertia tensor
+  Vector3 inertia_xyxzyz;
   Vector3 origin_rpy;
   Vector3 origin_xyz;
 };
