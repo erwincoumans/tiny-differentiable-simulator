@@ -198,25 +198,22 @@ else:
 
 setup_py_dir = os.path.dirname(os.path.realpath(__file__))
 
+# the URDF files, meshes and textures of the data directory, installed as the
+# pytinydiffsim_data package (searched by tds_bake for relative URDF paths)
 need_files = []
-datadir = "diffphys_data"
+datadir = "data"
 
 hh = setup_py_dir + "/" + datadir
 
 for root, dirs, files in os.walk(hh):
     for fn in files:
         ext = os.path.splitext(fn)[1][1:]
-        if ext and ext in 'yaml index meta data-00000-of-00001 png gif jpg urdf sdf obj txt mtl dae off stl STL xml '.split(
-        ):
+        if (ext and ext in 'yaml png gif jpg urdf sdf obj txt mtl dae off stl STL xml '.split(
+        )) or fn == 'LICENSE':
             fn = root + "/" + fn
             need_files.append(fn[1 + len(hh):])
 
 print("found resource files: %i" % len(need_files))
-for n in need_files:
-    print("-- %s" % n)
-print("packages")
-print(find_packages('examples/pybullet'))
-print("-----")
 
 extensions = []
 
@@ -325,8 +322,8 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Framework :: Robot Framework'
     ],
-    package_dir={'': 'python'},
+    package_dir={'': 'python', 'pytinydiffsim_data': datadir},
     py_modules=['pytinyopengl3_imgui'],
     extras_require={'imgui': ['imgui>=2.0,<3', 'PyOpenGL>=3.1']},
-    packages=[x for x in find_packages('python')],
+    packages=[x for x in find_packages('python')] + ['pytinydiffsim_data'],
     package_data={'pytinydiffsim_data': need_files})

@@ -44,7 +44,9 @@ A tds_bake world (JSON):
       "name": "g1",
       "urdf": "unitree_g1/g1_29dof_with_hand_rev_1_0.urdf",
                                       absolute, relative to the current
-                                      directory, TDS_DATA_PATH or tds data
+                                      directory, the directory of the JSON
+                                      file or its data subdirectory,
+                                      TDS_DATA_PATH or tds data
       "floating": true,               free base (false: fixed to the world)
       "position": [0, 0, 0.8], "orientation": [0, 0, 0, 1],   (x, y, z, w)
       "joint_positions": {"left_knee_joint": 0.3},   initial joint angles
@@ -145,6 +147,9 @@ class World:
                         split=bool(split_solver))
     self.ground = {"height": 0.0, "friction": None} if ground else None
     self.bodies = []
+    # the directory of the JSON file of the world (World.load), where relative
+    # URDF paths are also searched, and in its data subdirectory
+    self.directory = None
 
   # building
 
@@ -376,7 +381,9 @@ class World:
   @classmethod
   def load(cls, path):
     with open(path) as f:
-      return cls.from_json(f.read())
+      world = cls.from_json(f.read())
+    world.directory = os.path.dirname(os.path.abspath(path))
+    return world
 
   # checks
 
@@ -510,7 +517,10 @@ class World:
         out["control"] = {"mode": "none"}
         info = urdf_utils.UrdfInfo(path)
       else:
-        out["urdf"] = urdf_utils.find_file(b["urdf"])
+        directories = []
+        if self.directory is not None:
+          directories = [self.directory, os.path.join(self.directory, "data")]
+        out["urdf"] = urdf_utils.find_file(b["urdf"], directories)
         info = urdf_utils.UrdfInfo(out["urdf"])
         control = dict(b.get("control", {}))
         control.setdefault("mode", "pd")

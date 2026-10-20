@@ -5,14 +5,16 @@ import os
 import xml.etree.ElementTree as ET
 
 # directories where relative URDF paths are searched, after the current
-# directory: TDS_DATA_PATH (separated by os.pathsep) and the data directory of
-# the repository
+# directory and the given directories (such as the directory of the JSON file
+# of a world): TDS_DATA_PATH (separated by os.pathsep) and the data directory
+# of the repository
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO_DATA = os.path.normpath(os.path.join(_HERE, "..", "..", "data"))
 
 
-def data_paths():
+def data_paths(directories=()):
   paths = [os.getcwd()]
+  paths += [p for p in directories if p]
   paths += [p for p in os.environ.get("TDS_DATA_PATH", "").split(os.pathsep) if p]
   paths.append(_REPO_DATA)
   try:
@@ -20,23 +22,29 @@ def data_paths():
     paths.append(os.path.dirname(pytinydiffsim_data.__file__))
   except ImportError:
     pass
-  return paths
+  unique = []
+  for p in paths:
+    p = os.path.abspath(p)
+    if p not in unique:
+      unique.append(p)
+  return unique
 
 
-def find_file(path):
+def find_file(path, directories=()):
   """The absolute path of a data file such as "unitree_g1/g1.urdf", searched in
-  data_paths()."""
+  data_paths(directories)."""
   if os.path.isabs(path):
     if os.path.exists(path):
       return path
     raise FileNotFoundError(path)
-  for root in data_paths():
+  paths = data_paths(directories)
+  for root in paths:
     candidate = os.path.join(root, path)
     if os.path.exists(candidate):
       return os.path.abspath(candidate)
   raise FileNotFoundError(
       "%s not found in %s (set TDS_DATA_PATH to add directories)" %
-      (path, ", ".join(data_paths())))
+      (path, ", ".join(paths)))
 
 
 class UrdfInfo:
