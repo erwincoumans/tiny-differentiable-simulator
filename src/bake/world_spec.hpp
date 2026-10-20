@@ -10,6 +10,7 @@
 //   "name": "g1",
 //   "dt": 0.002777,                 time step of the step kernel
 //   "substeps": 6,                  steps per control step (for the user)
+//   "up_axis": "z",                 "z" or "y": the normal of the ground
 //   "gravity": [0, 0, -9.81],
 //   "contact": {"friction": 0.75, "restitution": 0, "erp": 0.2,
 //               "cfm": 1e-5, "iterations": 50, "split": true},
@@ -113,6 +114,8 @@ struct WorldSpec {
   std::string name{"world"};
   double dt{1. / 360.};
   int substeps{1};
+  // the normal of the ground plane: 1 (y) or 2 (z)
+  int up_axis{2};
   double gravity[3]{0, 0, -9.81};
   ContactSettings contact;
   bool has_ground{true};
@@ -129,6 +132,12 @@ struct WorldSpec {
     spec.name = j.value("name", spec.name);
     spec.dt = j.value("dt", spec.dt);
     spec.substeps = j.value("substeps", spec.substeps);
+    const std::string up_axis = j.value("up_axis", std::string("z"));
+    if (up_axis != "y" && up_axis != "z") {
+      throw std::runtime_error("up_axis must be \"z\" or \"y\", not \"" +
+                               up_axis + "\".");
+    }
+    spec.up_axis = up_axis == "y" ? 1 : 2;
     read_array(j, "gravity", spec.gravity, 3);
     if (j.contains("contact")) {
       const auto& c = j.at("contact");

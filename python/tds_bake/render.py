@@ -24,6 +24,15 @@ import time
 
 import numpy as np
 
+from .world import UP_AXES
+
+
+def _axes(baked):
+  """The index of the up axis of a baked world and of its two horizontal
+  axes."""
+  up = UP_AXES[baked.up_axis]
+  return up, [a for a in range(3) if a != up]
+
 
 class Viewer:
   """Renders the first num_shown worlds of a batch."""
@@ -62,6 +71,9 @@ class Viewer:
     if vsync is not None:
       self.viz.opengl_app.set_vsync(vsync)
     self.viz.opengl_app.set_background_color(0.3, 0.3, 0.3)
+    up, horizontal = _axes(baked)
+    self.up_axis = up
+    self.viz.opengl_app.set_up_axis(up)
     # the shadow map pass draws all worlds once more
     self.viz.opengl_app.renderer.shadows = shadows
 
@@ -89,13 +101,15 @@ class Viewer:
     self.worlds = np.array(worlds, dtype=np.int64)
     self.visuals = np.array(visuals, dtype=np.int64)
 
-    # scene: world i at a grid position, around the origin
+    # scene: world i at a grid position on the ground, around the origin
     self.spacing = 1.5 if spacing is None else spacing
     columns = int(math.ceil(math.sqrt(num_shown)))
     index = np.arange(num_shown)
     offsets = np.zeros((num_shown, 3))
-    offsets[:, 0] = (index % columns - (columns - 1) / 2.) * self.spacing
-    offsets[:, 1] = (index // columns - (columns - 1) / 2.) * self.spacing
+    offsets[:, horizontal[0]] = (index % columns -
+                                 (columns - 1) / 2.) * self.spacing
+    offsets[:, horizontal[1]] = (index // columns -
+                                 (columns - 1) / 2.) * self.spacing
     self.offsets = offsets[self.worlds] if mode == "scene" else None
 
     self.tile_list = []
@@ -106,7 +120,8 @@ class Viewer:
         self.tile_list.append(tile)
 
     if camera_target is None:
-      camera_target = (0., 0., 0.6)
+      camera_target = [0., 0., 0.]
+      camera_target[up] = 0.6
     if camera_distance is None:
       camera_distance = 2.5
     if mode == "scene":
@@ -114,7 +129,7 @@ class Viewer:
       camera_distance = max(camera_distance, 0.9 * columns * self.spacing)
       camera_pitch = min(camera_pitch, -30.)
     cam = g.TinyCamera()
-    cam.set_camera_up_axis(2)
+    cam.set_camera_up_axis(up)
     cam.set_camera_distance(float(camera_distance))
     cam.set_camera_pitch(float(camera_pitch))
     cam.set_camera_yaw(float(camera_yaw))
@@ -187,7 +202,8 @@ class Viewer:
     g = self.g
     renderer = self.viz.opengl_app.renderer
     if self.mode == "scene":
-      self.viz.render(do_swap_buffer=False, write_transforms=write_transforms)
+      self.viz.render(do_swap_buffer=False, up_axis=self.up_axis,
+                      write_transforms=write_transforms)
     else:
       width = renderer.get_screen_width()
       height = renderer.get_screen_height()
@@ -204,6 +220,7 @@ class Viewer:
                               tile_height]
       self.viz.render_tiled(self.tile_list, do_swap_buffer=False,
                             render_segmentation_mask=False,
+                            up_axis=self.up_axis,
                             write_transforms=write_transforms)
     pixels = g.ReadPixelBuffer(self.viz.opengl_app) if read_pixels else None
     self.viz.swap_buffer()
@@ -226,14 +243,16 @@ def view(baked, num_worlds=64, backend="cuda", precision="float",
   links = batch.links()[0]
   target = links[:, :3].mean(axis=0)
   extent = np.ptp(links[:, :3], axis=0)
+  up, horizontal = _axes(baked)
   if spacing is None:
     # the horizontal size of a world, with some room
-    spacing = max(1., 2. * float(max(extent[0], extent[1])))
+    spacing = max(1., 2. * float(extent[horizontal].max()))
   if num_shown is None:
     num_shown = num_worlds
   num_shown = min(num_shown, num_worlds)
   if mode == "scene":
-    target = (0., 0., float(target[2]))
+    target = np.zeros(3)
+    target[up] = links[:, up].mean()
   viewer = Viewer(baked, num_shown=num_shown, mode=mode, tiles=tiles,
                   spacing=spacing,
                   camera_distance=max(1., 1.4 * float(extent.max())),

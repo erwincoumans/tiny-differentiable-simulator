@@ -30,7 +30,12 @@ A tds_bake world (JSON):
   "name": "g1_walk",                  identifier of the world
   "dt": 0.005,                        time step of one kernel step (seconds)
   "substeps": 4,                      kernel steps per Batch.step()
-  "gravity": [0, 0, -9.81],
+  "up_axis": "z",                     "z" or "y": the normal of the ground,
+                                      the default gravity and the viewer.
+                                      URDF files are z-up, for y-up rotate
+                                      them with "orientation":
+                                      [-0.7071068, 0, 0, 0.7071068]
+  "gravity": [0, 0, -9.81],           default: -9.81 along the up axis
   "contact": {
     "friction": 0.75,                 default friction coefficient
     "restitution": 0.0,
@@ -38,8 +43,9 @@ A tds_bake world (JSON):
     "erp": 0.2, "cfm": 1e-5,          penetration correction, regularization
     "split": true                     separate solver kernel (faster to bake)
   },
-  "ground": {"height": 0.0, "friction": null},   or null for no ground
-  "bodies": [                         robots (URDF) and objects (shapes)
+  "ground": {"height": 0.0, "friction": null},   or null for no ground,
+                                      height along the up axis
+  "bodies": [                        robots (URDF) and objects (shapes)
     {
       "name": "g1",
       "urdf": "unitree_g1/g1_29dof_with_hand_rev_1_0.urdf",
@@ -99,6 +105,9 @@ _DEFAULT_CONTACT = {
 
 _SHAPES = ("sphere", "box", "capsule")
 
+# the index of each up axis
+UP_AXES = {"y": 1, "z": 2}
+
 
 def _vector(value, size, what):
   try:
@@ -121,23 +130,32 @@ def _normalized_quaternion(q, what):
 class World:
   """A world of robots (URDF files) and objects (primitive shapes) on an
   optional ground plane. Build it with the add_* methods or from a dictionary
-  or JSON file (World.load), then bake it with tds_bake.bake."""
+  or JSON file (World.load), then bake it with tds_bake.bake. up_axis ("z" or
+  "y") is the normal of the ground, and gravity is -9.81 along it unless
+  given."""
 
   def __init__(self,
                name="world",
                dt=1. / 240.,
                substeps=4,
-               gravity=(0., 0., -9.81),
+               gravity=None,
                friction=0.75,
                restitution=0.,
                iterations=20,
                erp=0.2,
                cfm=1e-5,
                split_solver=True,
-               ground=True):
+               ground=True,
+               up_axis="z"):
+    if up_axis not in UP_AXES:
+      raise ValueError('up_axis must be "z" or "y", not %r' % (up_axis,))
     self.name = name
     self.dt = float(dt)
     self.substeps = int(substeps)
+    self.up_axis = up_axis
+    if gravity is None:
+      gravity = [0., 0., 0.]
+      gravity[UP_AXES[up_axis]] = -9.81
     self.gravity = _vector(gravity, 3, "gravity")
     self.contact = dict(friction=float(friction),
                         restitution=float(restitution),
@@ -154,7 +172,8 @@ class World:
   # building
 
   def add_ground(self, height=0., friction=None):
-    """Adds (or replaces) the ground plane at the given height."""
+    """Adds (or replaces) the ground plane at the given height along the up
+    axis."""
     self.ground = {"height": float(height), "friction": friction}
     return self
 
@@ -317,6 +336,7 @@ class World:
         "name": self.name,
         "dt": self.dt,
         "substeps": self.substeps,
+        "up_axis": self.up_axis,
         "gravity": list(self.gravity),
         "contact": dict(self.contact),
         "ground": copy.deepcopy(self.ground),
@@ -342,8 +362,8 @@ class World:
       raise ValueError("world version %r is newer than this tds_bake (%d)" %
                        (d.get("version"), VERSION))
     unknown = set(d) - {
-        "format", "version", "name", "dt", "substeps", "gravity", "contact",
-        "ground", "bodies", "description"
+        "format", "version", "name", "dt", "substeps", "up_axis", "gravity",
+        "contact", "ground", "bodies", "description"
     }
     if unknown:
       raise ValueError("unknown keys in the world: %s" %
@@ -357,14 +377,15 @@ class World:
     world = cls(name=d.get("name", "world"),
                 dt=d.get("dt", 1. / 240.),
                 substeps=d.get("substeps", 4),
-                gravity=d.get("gravity", (0., 0., -9.81)),
+                gravity=d.get("gravity"),
                 friction=contact["friction"],
                 restitution=contact["restitution"],
                 iterations=contact["iterations"],
                 erp=contact["erp"],
                 cfm=contact["cfm"],
                 split_solver=contact["split"],
-                ground="ground" not in d or d["ground"] is not None)
+                ground="ground" not in d or d["ground"] is not None,
+                up_axis=d.get("up_axis", "z"))
     if d.get("ground") is not None:
       g = d["ground"]
       if g is True:
@@ -394,6 +415,8 @@ class World:
       raise ValueError("name must be a non-empty string")
     if not self.dt > 0:
       raise ValueError("dt must be positive")
+    if self.up_axis not in UP_AXES:
+      raise ValueError('up_axis must be "z" or "y", not %r' % (self.up_axis,))
     if self.substeps < 1:
       raise ValueError("substeps must be at least 1")
     if self.contact["iterations"] < 0:
@@ -486,6 +509,7 @@ class World:
         "name": self.name,
         "dt": self.dt,
         "substeps": self.substeps,
+        "up_axis": self.up_axis,
         "gravity": list(self.gravity),
         "contact": dict(self.contact),
         "ground": copy.deepcopy(self.ground),

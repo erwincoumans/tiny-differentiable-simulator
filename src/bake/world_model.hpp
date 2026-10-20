@@ -714,7 +714,8 @@ class WorldModel {
     ground.mb->set_floating_base(false);
     ground.mb->initialize();
     auto* plane = new Plane<Algebra>(
-        Algebra::unit3_z(), Algebra::from_double(spec.ground_height));
+        spec.up_axis == 1 ? Algebra::unit3_y() : Algebra::unit3_z(),
+        Algebra::from_double(spec.ground_height));
     owned_geometries_.emplace_back(plane);
     ground.mb->collision_geometries(-1).push_back(plane);
     Transform identity;

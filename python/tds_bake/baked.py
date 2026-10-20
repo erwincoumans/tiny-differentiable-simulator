@@ -107,6 +107,7 @@ class BakedWorld:
       self.world = None
     self.layout = self.manifest["metadata"]
     self.name = self.spec["name"]
+    self.up_axis = self.spec.get("up_axis", "z")
     self.dt = self.layout["dt"]
     self.substeps = self.layout["substeps"]
     self.iterations = self.layout["iterations"]
