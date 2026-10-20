@@ -149,9 +149,69 @@ def g1_ball(name="g1_ball", ball_radius=0.1, ball_mass=0.3,
   return world
 
 
+PIPER_URDF = "piper/piper_description.urdf"
+
+# the AgileX Piper above the cube, with the open gripper pointing down: the
+# joint angles for the tool point (between the fingertips) at (0.25, 0, 0.12),
+# see python/examples/piper_pick.py for the inverse kinematics
+PIPER_HOVER_POSE = {
+    "joint1": 0.0,
+    "joint2": 1.4607,
+    "joint3": -1.0159,
+    "joint4": 0.0,
+    "joint5": 1.2126,
+    "joint6": 0.0,
+    "joint7": 0.035,
+    "joint8": -0.035,
+}
+PIPER_GAINS = {
+    "joint[123]": (500., 25.),
+    "joint[456]": (100., 5.),
+    "joint[78]": (500., 10.),
+}
+
+
+def piper_finger_spheres(radius=0.003, collide_with=("cube",)):
+  """Contact spheres on the flat pads of the two fingers (link7, link8, which
+  have the same shape): the pad is the face z = 0 of the finger frame, 26 x 11
+  mm at the tip of the finger, so two spheres touching it."""
+  spheres = []
+  for link in ("link7", "link8"):
+    for x in (-0.0065, 0.0065):
+      spheres.append({"link": link, "radius": radius,
+                      "position": [x, -0.0055, radius],
+                      "with": list(collide_with)})
+  return spheres
+
+
+def piper_pick(name="piper_pick", cube_size=0.03, cube_mass=0.05,
+               cube_position=(0.25, 0.)):
+  """The AgileX Piper arm with its gripper (data/piper, from piper_ros,
+  converted by convert_piper_urdf.py) on the ground, above a cube that rests
+  on it, to pick it up: 240 Hz physics, 60 Hz control (4 substeps), PD joint
+  control with the URDF effort limits, the gripper open and pointing down. Only
+  the pads of the fingers collide (two contact spheres on each, with the cube)
+  and the cube with the ground. python/examples/piper_pick.py moves the arm:
+  down, close the gripper, up."""
+  world = World(name, dt=1. / 240., substeps=4, iterations=30)
+  world.add_urdf("piper", PIPER_URDF,
+                 floating=False,
+                 joint_positions=PIPER_HOVER_POSE,
+                 gains=PIPER_GAINS,
+                 armature=0.01,
+                 effort_limits="urdf",
+                 collision_links="none",
+                 collision_spheres=piper_finger_spheres())
+  world.add_box("cube", size=(cube_size,) * 3, mass=cube_mass,
+                position=(cube_position[0], cube_position[1], cube_size / 2),
+                color=(0.9, 0.4, 0.1, 1.), friction=1.0)
+  return world
+
+
 EXAMPLES = {
     "g1_stand": g1_stand,
     "g1_walk": g1_walk,
     "g1_walk_body": lambda: g1_walk("g1_walk_body", body_spheres=True),
     "g1_ball": g1_ball,
+    "piper_pick": piper_pick,
 }

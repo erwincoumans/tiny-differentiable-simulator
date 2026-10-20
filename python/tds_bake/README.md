@@ -34,7 +34,8 @@ print(state[:, g1.base_position])
 ```
 
 - `examples.py`: the example worlds (`g1_stand`, `g1_walk`, `g1_walk_body`,
-  `g1_ball`).
+  `g1_ball`, `piper_pick`: the AgileX Piper picking up a cube, moved by
+  `python/examples/piper_pick.py`).
 - `world.py`: `World`, the JSON format (`SCHEMA_DOC`) and its checks.
 - `baking.py`: generating, compiling (in parallel parts) and caching.
 - `baked.py`, `batch.py`: a baked world, the layout of its arrays
