@@ -259,6 +259,22 @@ if os.path.exists("third_party/CppAD/include"):
                   "third_party/CppAD/include" ])
       
     extensions.append(pytinydiffsim_ad_ext)
+
+    # the generator and loader of the kernels of the tds_bake package, without
+    # the built-in G1 and laikago kernels of the CMake build
+    pytinykernels_ext = Extension(
+        "pytinykernels",
+        sources=["python/pytinykernels.cc",
+                 "python/pytinykernels_codegen.cc",
+                 "third_party/tinyxml2/tinyxml2.cpp"],
+        libraries=["dl"] if _platform.startswith("linux") else [],
+        extra_compile_args=CXX_FLAGS.split() + [
+            "-DTDS_KERNELS_CODEGEN", "-DUSE_CPPAD", "-DUSE_CPPAD_CODEGEN"],
+        include_dirs=include_dirs + platform_include_dirs + [
+            "third_party/nlohmann/include",
+            "third_party/CppADCodeGen/include",
+            "third_party/CppAD/include"])
+    extensions.append(pytinykernels_ext)
 else:
     print("Skipping pytinydiffsim_ad extension since CppAD is missing.")
 
