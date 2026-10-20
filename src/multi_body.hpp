@@ -62,7 +62,9 @@ class MultiBody {
    */
   std::vector<int> control_indices_;
 
-  // quantities related to floating base
+  // quantities related to floating base, the spatial ones in base coordinates
+  // (qd and qdd of a floating base are in world coordinates, see
+  // base_rotation in dynamics/kinematics.hpp)
   mutable MotionVector base_velocity_;       // v_0
   mutable MotionVector base_acceleration_;   // a_0
   ForceVector base_applied_force_;           // f_ext_0 in world frame

@@ -33,8 +33,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
   assert(Algebra::size(qdd) == mb.dof_qd());
   assert(Algebra::size(tau) == mb.dof_actuated());
 
-  MotionVector spatial_gravity;
-  spatial_gravity.bottom = gravity;
+  MotionVector spatial_gravity(Algebra::zero3(), gravity);
 
   // #ifdef NEURAL_SIM
   //     for (int i = 0; i < dof(); ++i) {
@@ -46,6 +45,8 @@ void forward_dynamics(MultiBody<Algebra> &mb,
   // #endif
 
   forward_kinematics(mb, q, qd);
+  // gravity in base coordinates
+  const MotionVector base_gravity = base_rotation(mb).apply(spatial_gravity);
 
   for (int i = static_cast<int>(mb.num_links()) - 1; i >= 0; i--) {
     const Link &link = mb[i];
@@ -236,11 +237,7 @@ void forward_dynamics(MultiBody<Algebra> &mb,
     //    Algebra::inverse(mb.base_abi().matrix()) * mb.base_bias_force());
 
   } else {
-    if (rbdl_convention) {
-      // convert gravity to base frame for fixed-base systems
-      spatial_gravity = mb.base_X_world().apply(spatial_gravity);
-    }
-    mb.base_acceleration() = -spatial_gravity;
+    mb.base_acceleration() = -base_gravity;
   }
 
   for (int i = 0; i < static_cast<int>(mb.num_links()); i++) {
@@ -316,9 +313,18 @@ void forward_dynamics(MultiBody<Algebra> &mb,
       }
     }
     else {
-      mb.base_acceleration() += spatial_gravity;
+      // gravity accelerates all bodies alike, the joint accelerations above
+      // do not depend on it
+      mb.base_acceleration() += base_gravity;
+      // qdd in world coordinates (see base_rotation): the angular
+      // acceleration, and the acceleration of the base origin, which adds
+      // w x v to the spatial acceleration
+      MotionVector a = mb.base_acceleration();
+      a.bottom += Algebra::cross(mb.base_velocity().top,
+                                 mb.base_velocity().bottom);
+      a = base_rotation(mb).apply_inverse(a);
       for (int i = 0; i < 6; i++) {
-        qdd[i] = mb.base_acceleration()[i];
+        qdd[i] = a[i];
       }
     }
   } else {

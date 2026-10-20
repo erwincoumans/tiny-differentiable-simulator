@@ -55,7 +55,18 @@ typename Algebra::Matrix3X point_jacobian(
     jac(1, 4) = Algebra::one();
     jac(2, 5) = Algebra::one();
 #endif //TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
-    
+    if (is_local_point) {
+      // the base velocity is in world coordinates (see base_rotation), the
+      // velocity of a local point in base coordinates
+#ifdef TDS_USE_LEFT_ASSOCIATIVE_TRANSFORMS
+      const Matrix3 world_to_base = base_X_world.rotation;
+#else
+      const Matrix3 world_to_base = Algebra::transpose(base_X_world.rotation);
+#endif
+      Algebra::assign_block(jac, cr * world_to_base, 0, 0);
+      Algebra::assign_block(jac, world_to_base, 0, 3);
+    }
+
   } else {
     point_tf.translation = point;
   }

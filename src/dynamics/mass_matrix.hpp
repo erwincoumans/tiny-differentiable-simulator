@@ -7,7 +7,8 @@ namespace tds {
 /**
  * Composite Rigid Body Algorithm (CRBA) to compute the joint space inertia
  * matrix. M must be a properly initialized square matrix of size dof_qd().
- * The inertia matrix is computed in the base frame.
+ * For a floating base, M is the inertia matrix of the base velocity in world
+ * coordinates (see base_rotation).
  */
 template <typename Algebra>
 void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
@@ -124,6 +125,24 @@ void mass_matrix(MultiBody<Algebra> &mb, const typename Algebra::VectorX &q,
     Algebra::assign_block(*M, mb.base_abi().H, 0, 3);
     Algebra::assign_block(*M, Ht, 3, 0);
     Algebra::assign_block(*M, mb.base_abi().M, 3, 3);
+
+    // M is in base coordinates so far: rotate the rows and the columns of the
+    // base into world coordinates, M = S^T M S where S rotates the world base
+    // velocity into base coordinates
+    const Transform rotation = base_rotation(mb);
+    const int n_qd = mb.dof_qd();
+    for (int j = 0; j < n_qd; ++j) {
+      MotionVector column(Vector3((*M)(0, j), (*M)(1, j), (*M)(2, j)),
+                          Vector3((*M)(3, j), (*M)(4, j), (*M)(5, j)));
+      column = rotation.apply_inverse(column);
+      for (int i = 0; i < 6; ++i) (*M)(i, j) = column[i];
+    }
+    for (int i = 0; i < n_qd; ++i) {
+      MotionVector row(Vector3((*M)(i, 0), (*M)(i, 1), (*M)(i, 2)),
+                       Vector3((*M)(i, 3), (*M)(i, 4), (*M)(i, 5)));
+      row = rotation.apply_inverse(row);
+      for (int j = 0; j < 6; ++j) (*M)(i, j) = row[j];
+    }
   }
 
   // Algebra::print("Mass matrix", *M);

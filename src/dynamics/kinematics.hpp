@@ -5,6 +5,22 @@
 
 namespace tds {
 /**
+ * The rotation of the base, without its translation: apply() rotates motion
+ * vectors from world into base coordinates, apply_inverse() back.
+ *
+ * The velocity qd[0..5] of a floating base is the angular velocity of the base
+ * and the linear velocity of its origin, both in world coordinates, and
+ * qdd[0..5] are their time derivatives, as integrate_euler and point_jacobian
+ * use them. The spatial algorithms (ABA, CRBA, RNEA) work in base coordinates.
+ */
+template <typename Algebra>
+Transform<Algebra> base_rotation(const MultiBody<Algebra> &mb) {
+  Transform<Algebra> rotation = mb.base_X_world();
+  rotation.translation = Algebra::zero3();
+  return rotation;
+}
+
+/**
  * Implements the first phase in ABA, CRBA and RNEA, that computes the
  * joint and body transforms, velocities and bias forces.
  * Initializes articulated inertia with the local body inertia.
@@ -43,22 +59,21 @@ void forward_kinematics(
     mb.base_X_world().translation = Vector3(q[4], q[5], q[6]);
 
     if (Algebra::size(qd) != 0) {
-      mb.base_velocity().top = Vector3(qd[0], qd[1], qd[2]);
-      mb.base_velocity().bottom = Vector3(qd[3], qd[4], qd[5]);
+      // qd is in world coordinates (see base_rotation)
+      const MotionVector world_velocity(Vector3(qd[0], qd[1], qd[2]),
+                                        Vector3(qd[3], qd[4], qd[5]));
+      mb.base_velocity() = base_rotation(mb).apply(world_velocity);
     } else {
       mb.base_velocity().set_zero();
     }
 
     mb.base_abi() = mb.base_rbi();
 
-    const Vector3& ang_vel_world = mb.base_velocity().top;
-	const Matrix3& inertiaTensorWorld = mb.base_X_world().rotation * mb.base_rbi().inertia * Algebra::transpose(mb.base_X_world().rotation);
-	const Vector3& gyroscopic_force = ang_vel_world.cross(inertiaTensorWorld * ang_vel_world);
-
-    ForceVector gyro_term;
-    gyro_term.top = gyroscopic_force;
-    Algebra::set_zero(gyro_term.bottom);
-    mb.base_bias_force() = gyro_term - mb.base_applied_force();
+    // the bias force of the base in base coordinates, as for the links below
+    ForceVector I_mul_v = mb.base_abi() * mb.base_velocity();
+    mb.base_bias_force() =
+        Algebra::cross(mb.base_velocity(), I_mul_v) -
+        mb.base_X_world().apply_inverse(mb.base_applied_force());
   }
 
   for (int i = 0; i < static_cast<int>(mb.num_links()); i++) {

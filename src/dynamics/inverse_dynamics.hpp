@@ -44,14 +44,14 @@ void inverse_dynamics(MultiBody<Algebra> &mb,
   assert(Algebra::size(qdd_desired) == mb.dof_qd());
   assert(Algebra::size(tau) == mb.dof_actuated());
 
-  MotionVector spatial_gravity;
-  spatial_gravity.bottom = gravity;
+  MotionVector spatial_gravity(Algebra::zero3(), gravity);
 
   // in the following, the variable names for articulated terms I^A, p^A are
   // used for composite rigid body terms I^c, p^c to avoid introducing more
   // variables
 
-  mb.base_acceleration() = spatial_gravity;
+  // gravity in base coordinates
+  mb.base_acceleration() = base_rotation(mb).apply(spatial_gravity);
   forward_kinematics(mb, q, qd, qdd_desired);
 
   if (!mb.is_floating()) {

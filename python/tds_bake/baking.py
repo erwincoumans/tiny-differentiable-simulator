@@ -33,7 +33,7 @@ from . import urdf as urdf_utils
 from .world import World
 
 # changes when the generated sources change for the same world
-BAKE_VERSION = 2
+BAKE_VERSION = 3
 
 
 def _native():
