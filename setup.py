@@ -219,15 +219,18 @@ extensions = []
 
 CXX_FLAGS_TDS = CXX_FLAGS + '-DENABLE_TEST_ENVS ' + '-DNOMINMAX '
 
-# the extensions are rebuilt when a header of src changes, setuptools only
-# compares the times of their sources
-src_headers = (glob("src/**/*.hpp", recursive=True) +
-               glob("src/**/*.h", recursive=True))
+# the extensions are rebuilt when a header of src, or of the example
+# environments with their generated kernels, changes: setuptools only compares
+# the times of their sources
+header_depends = (glob("src/**/*.hpp", recursive=True) +
+                  glob("src/**/*.h", recursive=True) +
+                  glob("examples/environments/*.h") +
+                  glob("examples/kernels/*/generated/*.h"))
 
 pytinydiffsim_ext = Extension(
     "pytinydiffsim",
     sources=sources+["python/pytinydiffsim.cc"],
-    depends=src_headers,
+    depends=header_depends,
     libraries=libraries,
     
     extra_compile_args=CXX_FLAGS_TDS.split(),
@@ -255,7 +258,7 @@ if os.path.exists("third_party/CppAD/include"):
     pytinydiffsim_ad_ext = Extension(
         "pytinydiffsim_ad",
         sources=sources+["python/pytinydiffsim_ad.cc"],
-        depends=src_headers,
+        depends=header_depends,
         libraries=libraries,
         extra_compile_args=CXX_FLAGS.split(),
         include_dirs=include_dirs + platform_include_dirs + [".",
@@ -271,7 +274,7 @@ if os.path.exists("third_party/CppAD/include"):
         sources=["python/pytinykernels.cc",
                  "python/pytinykernels_codegen.cc",
                  "third_party/tinyxml2/tinyxml2.cpp"],
-        depends=src_headers,
+        depends=header_depends,
         libraries=["dl"] if _platform.startswith("linux") else [],
         extra_compile_args=CXX_FLAGS.split() + [
             "-DTDS_KERNELS_CODEGEN", "-DUSE_CPPAD", "-DUSE_CPPAD_CODEGEN"],
