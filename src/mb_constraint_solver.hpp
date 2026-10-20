@@ -509,10 +509,11 @@ class MultiBodyConstraintSolver {
         tds::where_gt(n_sqr, Algebra::half(), Algebra::one(), Algebra::zero());
     Scalar a =
         n[1] * n[1] + tds::where_gt(n_sqr, Algebra::half(), n_sqr, n[0] * n[0]);
-    Scalar k = Algebra::sqrt(a);
+    // unit p and q (btPlaneSpace1 of Bullet), a >= 1/2 for a unit normal
+    Scalar k = Algebra::one() / Algebra::sqrt(a);
     p[0] = tds::where_gt(n_sqr, Algebra::half(), Algebra::zero(), -n[1] * k);
     p[1] = tds::where_gt(n_sqr, Algebra::half(), -n[2] * k, n[0] * k);
-    p[2] = tds::where_gt(n_sqr, Algebra::half(), n[1] * k, n[1] * k);
+    p[2] = tds::where_gt(n_sqr, Algebra::half(), n[1] * k, Algebra::zero());
     // set q = n x p
     q[0] = tds::where_gt(n_sqr, Algebra::half(), a * k, -n[2] * p[1]);
     q[1] = tds::where_gt(n_sqr, Algebra::half(), -n[0] * p[2], n[2] * p[0]);
