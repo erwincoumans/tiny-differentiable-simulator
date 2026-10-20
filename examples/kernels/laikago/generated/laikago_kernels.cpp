@@ -26,7 +26,7 @@ const tds::KernelModel& laikago_kernel_model() {
       f.name = "step";
       f.inputs = {{"input", 51}};
       f.outputs = {{"output", 411}};
-      f.num_operations = 19276;
+      f.num_operations = 19275;
       f.num_temporaries = 683;
       f.cpu_float = [](int n, int stride, const float* const* in, float* const* out, int threads, int) {
         laikago_step_cpu_float(n, stride, in, out, threads);

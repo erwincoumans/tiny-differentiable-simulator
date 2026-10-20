@@ -34,8 +34,8 @@ const tds::KernelModel& g1_kernel_model() {
       f.name = "step";
       f.inputs = {{"state", 99}, {"control", 129}};
       f.outputs = {{"next_state", 99}};
-      f.num_operations = 140302;
-      f.num_temporaries = 3129;
+      f.num_operations = 141551;
+      f.num_temporaries = 3135;
       f.cpu_float = [](int n, int stride, const float* const* in, float* const* out, int threads, int) {
         g1_step_cpu_float(n, stride, in, out, threads);
       };
