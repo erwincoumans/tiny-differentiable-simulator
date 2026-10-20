@@ -46,7 +46,7 @@ print(state[:, g1.base_position])
 
 Contacts: every pair of colliding geometries gives a fixed number of contact
 points in every step (sphere-sphere, sphere-plane, capsule-plane, box-plane,
-capsule-sphere), and all of them are in the contact problem of every step, so
+sphere-box, capsule-sphere), and all of them are in the contact problem of every step, so
 the cost grows with the number of candidate contacts. List only the colliding
 links and contact spheres that a task needs, and restrict them with the
 collision filters ("with"). CUDA needs NVRTC (the CUDA toolkit or

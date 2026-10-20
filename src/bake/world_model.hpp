@@ -916,6 +916,7 @@ class WorldModel {
     if (is(TINY_PLANE_TYPE, TINY_SPHERE_TYPE)) return 1;
     if (is(TINY_PLANE_TYPE, TINY_CAPSULE_TYPE)) return 2;
     if (is(TINY_PLANE_TYPE, TINY_BOX_TYPE)) return 8;
+    if (is(TINY_SPHERE_TYPE, TINY_BOX_TYPE)) return 1;
     if (is(TINY_CAPSULE_TYPE, TINY_SPHERE_TYPE)) return 2;
     return 0;
   }

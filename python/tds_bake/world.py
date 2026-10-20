@@ -82,7 +82,7 @@ A tds_bake world (JSON):
   ]
 }
 Supported contacts: sphere-sphere, sphere-plane, capsule-plane, box-plane,
-capsule-sphere. Other pairs are ignored (bake warns about them). The ground is
+sphere-box, capsule-sphere. Other pairs are ignored (bake warns about them). The ground is
 a plane. Collision meshes are not supported, use contact spheres instead.
 """
 
@@ -272,8 +272,8 @@ class World:
               color=(0.3, 0.5, 0.8, 1.),
               collide_with="all",
               friction=None):
-    """A box of the given full size (x, y, z). Boxes only collide with planes
-    (the ground)."""
+    """A box of the given full size (x, y, z). Boxes collide with planes (the
+    ground) and spheres."""
     return self._add_shape(name, {
         "type": "box",
         "size": _vector(size, 3, "size")

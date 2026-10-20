@@ -356,7 +356,12 @@ int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
   const Box* box = (const Box*)geomB;
   
   // transform sphere into local box space
-  Vector3 sphereRelPos = poseB.inverse_transform(poseA.position_);
+  // (not Pose::inverse_transform, whose quaternion inverse compares the norm
+  // with zero; the orientation is a unit quaternion, so its inverse is the
+  // transposed rotation)
+  Vector3 sphereRelPos =
+      Algebra::quat_to_matrix(poseB.orientation_).transpose() *
+      (poseA.position_ - poseB.position_);
   
   Scalar x = Algebra::min(box->get_half_extents().x(), sphereRelPos.x());
   x = Algebra::max(-box->get_half_extents().x(), x);
@@ -389,8 +394,7 @@ int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
   Vector3 pointOnBox = poseB.transform(closestPoint1);
   Vector3 tmp = Algebra::quat_to_matrix(poseB.orientation_) * normal;
   
-  tmp.normalize();
-  normal = tmp;
+  normal = Algebra::normalize(tmp);
   Vector3 pointOnSphere = pointOnBox + normal * penetrationDepth;
   
   ContactPoint pt;
@@ -400,6 +404,26 @@ int contact_sphere_box(const tds::Geometry<Algebra>* geomA,
   pt.distance = penetrationDepth;
   contactsOut.push_back(pt);
   return 1;
+}
+
+// contact_sphere_box with the geometries in the order box, sphere: the contact
+// point on the sphere (a) and on the box (b) and the normal (on b, pointing to
+// a) swap their roles
+template <typename Algebra>
+int contact_box_sphere(const tds::Geometry<Algebra>* geomA,
+                       const tds::Pose<Algebra>& poseA,
+                       const tds::Geometry<Algebra>* geomB,
+                       const tds::Pose<Algebra>& poseB,
+                       std::vector<ContactPoint<Algebra> >& contactsOut) {
+  const size_t first = contactsOut.size();
+  const int n =
+      contact_sphere_box<Algebra>(geomB, poseB, geomA, poseA, contactsOut);
+  for (size_t i = first; i < contactsOut.size(); ++i) {
+    ContactPoint<Algebra>& pt = contactsOut[i];
+    std::swap(pt.world_point_on_a, pt.world_point_on_b);
+    pt.world_normal_on_b = -pt.world_normal_on_b;
+  }
+  return n;
 }
 
 template <typename Algebra>
@@ -468,7 +492,8 @@ class CollisionDispatcher {
     contactFuncs[TINY_PLANE_TYPE][TINY_CAPSULE_TYPE] = contact_plane_capsule;
     contactFuncs[TINY_PLANE_TYPE][TINY_BOX_TYPE] = contact_plane_box;
     contactFuncs[TINY_CAPSULE_TYPE][TINY_SPHERE_TYPE] = contact_capsule_sphere;
-    // contactFuncs[TINY_SPHERE_TYPE][TINY_BOX_TYPE] = contact_sphere_box;
+    contactFuncs[TINY_SPHERE_TYPE][TINY_BOX_TYPE] = contact_sphere_box;
+    contactFuncs[TINY_BOX_TYPE][TINY_SPHERE_TYPE] = contact_box_sphere;
 
   }
 

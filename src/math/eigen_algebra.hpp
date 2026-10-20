@@ -663,7 +663,7 @@ struct EigenAlgebraT {
   }
 
   TINY_INLINE static Scalar epsilon() {
-      return std::numeric_limits<double>::epsilon();
+      return Scalar(std::numeric_limits<double>::epsilon());
   }
 
   /**
