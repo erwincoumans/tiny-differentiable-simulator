@@ -35,7 +35,8 @@ print(state[:, g1.base_position])
 
 - `examples.py`: the example worlds (`g1_stand`, `g1_walk`, `g1_walk_body`,
   `g1_ball`, `piper_pick`: the AgileX Piper picking up a cube, moved by
-  `python/examples/piper_pick.py`).
+  `python/examples/piper_pick.py`; `g1_external`, `laikago_external`,
+  `piper_external`: robots whose contacts another engine solves, below).
 - `world.py`: `World`, the JSON format (`SCHEMA_DOC`) and its checks.
 - `baking.py`: generating, compiling (in parallel parts) and caching.
 - `baked.py`, `batch.py`: a baked world, the layout of its arrays
@@ -52,3 +53,23 @@ the cost grows with the number of candidate contacts. List only the colliding
 links and contact spheres that a task needs, and restrict them with the
 collision filters ("with"). CUDA needs NVRTC (the CUDA toolkit or
 `pip install nvidia-cuda-nvrtc`), the CPU kernels a C++ compiler.
+
+## Contacts solved by another engine
+
+A world baked with `solver="external"` has no contacts of its own: its kernels
+compute only the robots' dynamics, so that another engine can find and solve
+the contacts of their links:
+
+- `predict`: state, control -> velocity, the joint velocities after a time
+  step without contacts (with the implicit PD of the control).
+- `articulation`: state, control -> `factor`, the factorization
+  M = L^T D L of each mass matrix (with the armature of the implicit PD), and
+  `dof_axis`, the world motion vector of each degree of freedom, from which
+  the engine builds the Jacobians of contacts on the links.
+- `advance`: state, velocity -> next_state, the positions integrated with
+  the joint velocities that the engine solved, and `links`, the link poses.
+
+`BodyLayout` has the tree and the factor layout (`parent`, `factor_index`,
+`factor_offset`, `link_dofs`), `Batch.stream` puts the kernels on the engine's
+CUDA stream, and `urdf.UrdfInfo` has the links' collision and visual shapes.
+`python -m tds_bake.test_external_kernels` checks the kernels.

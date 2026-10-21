@@ -35,6 +35,14 @@ A tds_bake world (JSON):
                                       URDF files are z-up, for y-up rotate
                                       them with "orientation":
                                       [-0.7071068, 0, 0, 0.7071068]
+  "solver": "tds",                    "tds": the kernels solve the contacts
+                                      below; "external": another engine
+                                      finds and solves all contacts of the
+                                      links; the kernels then only compute
+                                      the dynamics (predict, articulation,
+                                      advance), and the ground, "contact" and
+                                      the collision filters ("with") are not
+                                      used
   "gravity": [0, 0, -9.81],           default: -9.81 along the up axis
   "contact": {
     "friction": 0.75,                 default friction coefficient
@@ -108,6 +116,9 @@ _SHAPES = ("sphere", "box", "capsule")
 # the index of each up axis
 UP_AXES = {"y": 1, "z": 2}
 
+# who solves the contacts, see SCHEMA_DOC
+SOLVERS = ("tds", "external")
+
 
 def _vector(value, size, what):
   try:
@@ -146,10 +157,15 @@ class World:
                cfm=1e-5,
                split_solver=True,
                ground=True,
-               up_axis="z"):
+               up_axis="z",
+               solver="tds"):
     if up_axis not in UP_AXES:
       raise ValueError('up_axis must be "z" or "y", not %r' % (up_axis,))
+    if solver not in SOLVERS:
+      raise ValueError('solver must be "tds" or "external", not %r' %
+                       (solver,))
     self.name = name
+    self.solver = solver
     self.dt = float(dt)
     self.substeps = int(substeps)
     self.up_axis = up_axis
@@ -337,6 +353,7 @@ class World:
         "dt": self.dt,
         "substeps": self.substeps,
         "up_axis": self.up_axis,
+        "solver": self.solver,
         "gravity": list(self.gravity),
         "contact": dict(self.contact),
         "ground": copy.deepcopy(self.ground),
@@ -362,8 +379,8 @@ class World:
       raise ValueError("world version %r is newer than this tds_bake (%d)" %
                        (d.get("version"), VERSION))
     unknown = set(d) - {
-        "format", "version", "name", "dt", "substeps", "up_axis", "gravity",
-        "contact", "ground", "bodies", "description"
+        "format", "version", "name", "dt", "substeps", "up_axis", "solver",
+        "gravity", "contact", "ground", "bodies", "description"
     }
     if unknown:
       raise ValueError("unknown keys in the world: %s" %
@@ -385,7 +402,8 @@ class World:
                 cfm=contact["cfm"],
                 split_solver=contact["split"],
                 ground="ground" not in d or d["ground"] is not None,
-                up_axis=d.get("up_axis", "z"))
+                up_axis=d.get("up_axis", "z"),
+                solver=d.get("solver", "tds"))
     if d.get("ground") is not None:
       g = d["ground"]
       if g is True:
@@ -417,6 +435,9 @@ class World:
       raise ValueError("dt must be positive")
     if self.up_axis not in UP_AXES:
       raise ValueError('up_axis must be "z" or "y", not %r' % (self.up_axis,))
+    if self.solver not in SOLVERS:
+      raise ValueError('solver must be "tds" or "external", not %r' %
+                       (self.solver,))
     if self.substeps < 1:
       raise ValueError("substeps must be at least 1")
     if self.contact["iterations"] < 0:
@@ -515,6 +536,11 @@ class World:
         "ground": copy.deepcopy(self.ground),
         "bodies": [],
     }
+    if self.solver == "external":
+      # the other engine has the ground and the contacts (only written when
+      # not the default, so that the hash of other worlds stays the same)
+      spec["solver"] = "external"
+      spec["ground"] = None
     if spec["ground"] is not None and spec["ground"].get("friction") is None:
       spec["ground"].pop("friction", None)
     urdf_files = {}

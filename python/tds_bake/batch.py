@@ -15,8 +15,8 @@ class _CudaArray:
         "data": (pointer, False),
         "version": 3,
         "strides": None,
-        # the kernels run on the legacy default stream
-        "stream": 1,
+        # the stream of the kernels, 1: the legacy default stream
+        "stream": owner.stream or 1,
     }
 
 
@@ -55,6 +55,7 @@ class Batch:
     self._batch = tk.KernelBatch(model, self.num_worlds, backend, precision,
                                  num_threads)
     self.split = baked.split
+    self.solver = baked.solver
     # contact solver iterations, can be changed at any time
     self.iterations = baked.iterations
     # start the contact solver from the impulses of the previous time step
@@ -67,6 +68,17 @@ class Batch:
   def __repr__(self):
     return "Batch(%r, %d worlds, %s, %s)" % (self.baked.name, self.num_worlds,
                                               self.backend, self.precision)
+
+  @property
+  def stream(self):
+    """The CUDA stream of the kernels and copies, as an integer (a
+    cudaStream_t or CUstream), 0 for the legacy default stream. Set it to the
+    stream of the library that reads or writes the arrays."""
+    return self._batch.stream
+
+  @stream.setter
+  def stream(self, value):
+    self._batch.stream = int(value)
 
   @property
   def device_name(self):
@@ -147,10 +159,16 @@ class Batch:
 
   def step(self, substeps=None):
     """Advances all worlds by substeps time steps (default: the substeps of
-    the world), with the current control. Asynchronous with CUDA."""
+    the world), with the current control. Asynchronous with CUDA. A world
+    with the solver "external" has no contacts here: the engine that solves
+    its contacts runs its kernels."""
     b = self._batch
     for _ in range(self.substeps if substeps is None else substeps):
-      if self.split:
+      if self.solver == "external":
+        # without the other engine there are no contacts
+        b.launch("predict")
+        b.launch("advance")
+      elif self.split:
         b.launch("contact")
         if self.warm_start:
           b.copy("lambda_init", "lambda")

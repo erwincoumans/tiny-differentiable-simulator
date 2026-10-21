@@ -208,10 +208,67 @@ def piper_pick(name="piper_pick", cube_size=0.03, cube_mass=0.05,
   return world
 
 
+LAIKAGO_URDF = "laikago/laikago_toes_zup.urdf"
+
+# standing pose of the Laikago, as examples/environments/laikago_environment.h:
+# abduction 0.2, hip 0, knee -0.7 on every leg, the base 0.48 m above the
+# ground
+LAIKAGO_POSE = {}
+for _leg in ("FR", "FL", "RR", "RL"):
+  LAIKAGO_POSE[_leg + "_hip_motor_2_chassis_joint"] = 0.2
+  LAIKAGO_POSE[_leg + "_upper_leg_2_hip_motor_joint"] = 0.
+  LAIKAGO_POSE[_leg + "_lower_leg_2_upper_leg_joint"] = -0.7
+LAIKAGO_POSE_HEIGHT = 0.48
+
+
+# Worlds with the solver "external": the kernels compute the robots' dynamics,
+# and another engine finds and solves the contacts of their links (the
+# collision settings of a body say which links collide, here all).
+
+
+def g1_external(name="g1_external", dt=1. / 360., substeps=6):
+  """The G1 of g1_stand (kp 1000, kd 10, 360 Hz, 6 substeps per frame) with
+  the contacts of all its links solved by another engine."""
+  world = World(name, dt=dt, substeps=substeps, solver="external")
+  world.add_urdf("g1", G1_URDF, position=(0., 0., 0.793), kp=1000., kd=10.,
+                 armature=0.01, collision_links="all")
+  return world
+
+
+def laikago_external(name="laikago_external", kp=200., kd=4.):
+  """The Laikago quadruped standing (LAIKAGO_POSE) with PD joint control, the
+  contacts of all its links solved by another engine, 240 Hz with 4 substeps
+  per frame."""
+  world = World(name, dt=1. / 240., substeps=4, solver="external")
+  world.add_urdf("laikago", LAIKAGO_URDF,
+                 position=(0., 0., LAIKAGO_POSE_HEIGHT),
+                 joint_positions=LAIKAGO_POSE, kp=kp, kd=kd, armature=0.01,
+                 collision_links="all")
+  return world
+
+
+def piper_external(name="piper_external"):
+  """The Piper of piper_pick, hovering above where the cube goes, with the
+  contacts of all its links solved by another engine (the URDF has no
+  collision shapes: the engine can use the visual meshes)."""
+  world = World(name, dt=1. / 240., substeps=4, solver="external")
+  world.add_urdf("piper", PIPER_URDF,
+                 floating=False,
+                 joint_positions=PIPER_HOVER_POSE,
+                 gains=PIPER_GAINS,
+                 armature=0.01,
+                 effort_limits="urdf",
+                 collision_links="all")
+  return world
+
+
 EXAMPLES = {
     "g1_stand": g1_stand,
     "g1_walk": g1_walk,
     "g1_walk_body": lambda: g1_walk("g1_walk_body", body_spheres=True),
     "g1_ball": g1_ball,
     "piper_pick": piper_pick,
+    "g1_external": g1_external,
+    "laikago_external": laikago_external,
+    "piper_external": piper_external,
 }
