@@ -116,6 +116,14 @@ void bind_batch(py::module& m, const char* class_name) {
       .def_property(
           "cuda_block_size", [](B& b) { return b.batch->cuda_block_size(); },
           [](B& b, int size) { b.batch->cuda_block_size() = size; })
+      // the CUDA stream of the launches and copies, as an integer (a
+      // CUstream or cudaStream_t), 0 for the legacy default stream
+      .def_property(
+          "stream",
+          [](B& b) { return reinterpret_cast<uintptr_t>(b.batch->stream()); },
+          [](B& b, uintptr_t stream) {
+            b.batch->set_stream(reinterpret_cast<void*>(stream));
+          })
       .def("array_names", [](const B& b) { return b.batch->array_names(); })
       .def("has_array",
            [](const B& b, const std::string& name) {
