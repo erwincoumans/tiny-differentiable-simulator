@@ -47,15 +47,62 @@ def find_file(path, directories=()):
       (path, ", ".join(paths)))
 
 
+def _numbers(text, default):
+  if text is None:
+    return list(default)
+  return [float(x) for x in text.split()]
+
+
+def _shape(element, directory):
+  """The geometry of a URDF visual or collision element as a dictionary:
+  "type" (box, sphere, cylinder, capsule or mesh), its dimensions ("size",
+  "radius", "length", "filename" and "scale"), and "xyz" and "rpy" of its
+  origin in the link frame. None if it has no geometry."""
+  geometry = element.find("geometry")
+  if geometry is None or not len(geometry):
+    return None
+  g = geometry[0]
+  origin = element.find("origin")
+  shape = {
+      "type": g.tag,
+      "xyz": _numbers(origin.get("xyz") if origin is not None else None,
+                      (0., 0., 0.)),
+      "rpy": _numbers(origin.get("rpy") if origin is not None else None,
+                      (0., 0., 0.)),
+  }
+  if g.tag == "box":
+    shape["size"] = _numbers(g.get("size"), (1., 1., 1.))
+  elif g.tag == "sphere":
+    shape["radius"] = float(g.get("radius", 1.))
+  elif g.tag in ("cylinder", "capsule"):
+    shape["radius"] = float(g.get("radius", 1.))
+    shape["length"] = float(g.get("length", 1.))
+  elif g.tag == "mesh":
+    filename = g.get("filename", "")
+    if filename.startswith("package://"):
+      filename = filename[len("package://"):]
+      filename = filename.split("/", 1)[1] if "/" in filename else filename
+    if not os.path.isabs(filename):
+      filename = os.path.join(directory, filename)
+    shape["filename"] = os.path.normpath(filename)
+    shape["scale"] = _numbers(g.get("scale"), (1., 1., 1.))
+  return shape
+
+
 class UrdfInfo:
   """The joints and links of a URDF file."""
 
   def __init__(self, path):
     self.path = path
+    directory = os.path.dirname(os.path.abspath(path))
     root = ET.parse(path).getroot()
     self.name = root.get("name", "")
     self.links = [link.get("name") for link in root.findall("link")]
+    # the geometry type names of the collision shapes of each link
     self.collisions = {}
+    # the collision and visual shapes of each link, see _shape
+    self.collision_shapes = {}
+    self.visual_shapes = {}
     for link in root.findall("link"):
       shapes = []
       for collision in link.findall("collision"):
@@ -63,6 +110,11 @@ class UrdfInfo:
         if geometry is not None and len(geometry):
           shapes.append(geometry[0].tag)
       self.collisions[link.get("name")] = shapes
+      for kind, out in (("collision", self.collision_shapes),
+                        ("visual", self.visual_shapes)):
+        out[link.get("name")] = [
+            s for s in (_shape(e, directory) for e in link.findall(kind)) if s
+        ]
     self.joints = {}
     children = set()
     for joint in root.findall("joint"):
