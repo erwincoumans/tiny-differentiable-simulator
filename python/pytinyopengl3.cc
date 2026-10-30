@@ -614,6 +614,12 @@ PYBIND11_MODULE(pytinyopengl3, m) {
           TinyGLInstancingRenderer::set_shadows(enable);
         },
         "the shadow map pass, which draws the scene once more")
+    .def("set_shadow_map_resolution", &TinyGLInstancingRenderer::set_shadow_map_resolution,
+         py::arg("resolution"), "texels per side of the (square) shadow map (default 8192)")
+    .def("set_shadow_map_world_size", &TinyGLInstancingRenderer::set_shadow_map_world_size,
+         py::arg("half_extent"),
+         "half the side of the square the shadow map covers around the camera target, in world units "
+         "(default 25): a scene's size gives sharper shadows")
     .def("get_instance_buffer",
          [](TinyGLInstancingRenderer& renderer) {
            auto* data = renderer.get_internal_data();

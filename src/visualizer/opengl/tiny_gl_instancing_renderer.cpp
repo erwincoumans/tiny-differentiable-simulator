@@ -2280,7 +2280,7 @@ for (int tile = 0; tile< tiles.size();tile++)
       // glTexImage2D(GL_TEXTURE_2D,0,GL_DEPTH_COMPONENT32,m_screenWidth,m_screenHeight,0,GL_DEPTH_COMPONENT,GL_FLOAT,0);
 
 #ifdef OLD_SHADOWMAP_INIT
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, shadowMapWidth,
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadowMapWidth,
                    shadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 #else  //OLD_SHADOWMAP_INIT                                                              \
 		//Reduce size of shadowMap if glTexImage2D call fails as may happen in some cases \
@@ -2296,7 +2296,7 @@ for (int tile = 0; tile< tiles.size();tile++)
       }
       GLuint err;
       do {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
                      m_data->m_shadowMapWidth, m_data->m_shadowMapHeight, 0,
                      GL_DEPTH_COMPONENT, GL_FLOAT, 0);
         err = glGetError();
