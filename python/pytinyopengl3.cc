@@ -745,7 +745,7 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   m.def("set_segmentation_mask_instancing_vertex_shader",&set_segmentation_mask_instancing_vertex_shader);
 
   m.def("get_segmentation_mask_instancing_fragment_shader",&get_segmentation_mask_instancing_fragment_shader);
-  m.def("get_segmentation_mask_instancing_fragment_shader",&get_segmentation_mask_instancing_fragment_shader);
+  m.def("set_segmentation_mask_instancing_fragment_shader",&set_segmentation_mask_instancing_fragment_shader);
 
   m.def("get_instancing_vertex_shader", &get_instancing_vertex_shader);
   m.def("set_instancing_vertex_shader", &set_instancing_vertex_shader);
