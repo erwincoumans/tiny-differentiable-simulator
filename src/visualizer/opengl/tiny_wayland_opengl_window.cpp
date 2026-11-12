@@ -11,6 +11,8 @@
 
 namespace {
 struct GLFWwindow;
+struct GLFWmonitor;
+struct VidMode { int width, height, redBits, greenBits, blueBits, refreshRate; };  // GLFWvidmode
 using GLProc = void (*)();
 using KeyCallback = void (*)(GLFWwindow*, int, int, int, int);
 using CursorCallback = void (*)(GLFWwindow*, double, double);
@@ -51,6 +53,10 @@ struct Api {
   ButtonCallback (*SetMouseButtonCallback)(GLFWwindow*,ButtonCallback);
   ScrollCallback (*SetScrollCallback)(GLFWwindow*,ScrollCallback);
   SizeCallback (*SetFramebufferSizeCallback)(GLFWwindow*,SizeCallback);
+  GLFWmonitor* (*GetPrimaryMonitor)();
+  GLFWmonitor* (*GetWindowMonitor)(GLFWwindow*);
+  const VidMode* (*GetVideoMode)(GLFWmonitor*);
+  void (*SetWindowMonitor)(GLFWwindow*,GLFWmonitor*,int,int,int,int,int);
 
   explicit Api(const char* path) {
     const char* selected = path && *path ? path : std::getenv("PYTINYOPENGL3_GLFW_LIBRARY");
@@ -64,6 +70,7 @@ struct Api {
       LOAD(WindowShouldClose); LOAD(SetWindowShouldClose); LOAD(GetWindowSize); LOAD(GetFramebufferSize);
       LOAD(GetCursorPos); LOAD(GetKey); LOAD(SetWindowTitle); LOAD(GetTime); LOAD(SetKeyCallback);
       LOAD(SetCursorPosCallback); LOAD(SetMouseButtonCallback); LOAD(SetScrollCallback); LOAD(SetFramebufferSizeCallback);
+      LOAD(GetPrimaryMonitor); LOAD(GetWindowMonitor); LOAD(GetVideoMode); LOAD(SetWindowMonitor);
 #undef LOAD
       InitHint(PLATFORM,WAYLAND);
       if (!Init() || GetPlatform() != WAYLAND) throw std::runtime_error("GLFW could not initialize native Wayland (check WAYLAND_DISPLAY and GLFW Wayland support)");
@@ -104,6 +111,7 @@ struct TinyWaylandOpenGLWindow::Data {
   TinyWheelCallback wheel = nullptr;
   TinyKeyboardCallback key = nullptr;
   TinyRenderCallback render = nullptr;
+  int windowedWidth = 0, windowedHeight = 0;  // the size to go back to from full screen
   explicit Data(const char* path) : gl(api(path)) {}
   static std::map<GLFWwindow*,Data*>& windows() { static std::map<GLFWwindow*,Data*> value; return value; }
   static void onKey(GLFWwindow* w,int key,int,int action,int) {
@@ -164,6 +172,24 @@ void TinyWaylandOpenGLWindow::set_request_exit() { if(m_data->window) m_data->gl
 bool TinyWaylandOpenGLWindow::set_vsync(bool enabled) {
   auto& d=*m_data; if(!d.window || d.gl.GetCurrentContext()!=d.window) return false;
   d.gl.GetError(nullptr); d.gl.SwapInterval(enabled ? 1 : 0); return d.gl.GetError(nullptr)==0;
+}
+bool TinyWaylandOpenGLWindow::set_fullscreen(bool enabled) {
+  auto& d=*m_data; if(!d.window) return false;
+  if (enabled==is_fullscreen()) return true;
+  if (enabled) {
+    GLFWmonitor* monitor=d.gl.GetPrimaryMonitor();
+    const VidMode* mode=monitor ? d.gl.GetVideoMode(monitor) : nullptr;
+    if (!mode) return false;
+    d.gl.GetWindowSize(d.window,&d.windowedWidth,&d.windowedHeight);
+    d.gl.SetWindowMonitor(d.window,monitor,0,0,mode->width,mode->height,mode->refreshRate);
+  } else {
+    d.gl.SetWindowMonitor(d.window,nullptr,0,0,d.windowedWidth>0 ? d.windowedWidth : 1280,
+                          d.windowedHeight>0 ? d.windowedHeight : 720,0);
+  }
+  return true;
+}
+bool TinyWaylandOpenGLWindow::is_fullscreen() const {
+  return m_data->window && m_data->gl.GetWindowMonitor(m_data->window);
 }
 bool TinyWaylandOpenGLWindow::is_modifier_key_pressed(int key) {
   if(!m_data->window) return false;

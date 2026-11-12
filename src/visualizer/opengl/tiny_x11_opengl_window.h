@@ -51,6 +51,8 @@ class TinyX11OpenGLWindow : public TinyWindowInterface {
   virtual void end_rendering();
 
   bool set_vsync(bool enabled) override;
+  bool set_fullscreen(bool enabled) override;
+  bool is_fullscreen() const override;
 
   virtual float get_retina_scale() const { return 1.f; }
   virtual void set_allow_retina(bool /*allowRetina*/){};

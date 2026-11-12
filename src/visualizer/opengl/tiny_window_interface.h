@@ -81,6 +81,12 @@ class TinyWindowInterface {
   // Drivers/compositors may override even an accepted request.
   virtual bool set_vsync(bool enabled) { (void)enabled; return false; }
 
+  // Ask for the window to fill its monitor (true) or to be a normal window
+  // again (false). False means the backend or window manager cannot. The
+  // window manager resizes the window later: the resize callback follows.
+  virtual bool set_fullscreen(bool enabled) { (void)enabled; return false; }
+  virtual bool is_fullscreen() const { return false; }
+
   virtual bool is_modifier_key_pressed(int key) = 0;
 
   virtual void set_mouse_move_callback(TinyMouseMoveCallback mouseCallback) = 0;

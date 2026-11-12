@@ -425,6 +425,12 @@ TinyOpenGL3App::TinyOpenGL3App(const char* title, int width, int height,
 
   m_instancingRenderer->init_shaders();
 
+  // PYTINYOPENGL3_FULLSCREEN=1: the window full screen from the start, so that an
+  // application launching another (a presentation its demos) can pass it on.
+  const char* fullscreen = std::getenv("PYTINYOPENGL3_FULLSCREEN");
+  if (fullscreen && std::atoi(fullscreen) != 0)
+    m_window->set_fullscreen(true);
+
   m_window->set_mouse_move_callback(SimpleMouseMoveCallback);
   m_window->set_mouse_button_callback(SimpleMouseButtonCallback);
   m_window->set_keyboard_callback(SimpleKeyboardCallback);

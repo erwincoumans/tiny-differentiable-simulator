@@ -21,6 +21,8 @@ class TinyWaylandOpenGLWindow : public TinyWindowInterface {
   bool requested_exit() const override;
   void set_request_exit() override;
   bool set_vsync(bool enabled) override;
+  bool set_fullscreen(bool enabled) override;
+  bool is_fullscreen() const override;
   bool is_modifier_key_pressed(int key) override;
   void set_window_title(const char* title) override;
   float get_retina_scale() const override;

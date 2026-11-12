@@ -14,6 +14,7 @@
 #include <GL/glx.h>
 #endif  // GLEW_DYNAMIC_LOAD_ALL_GLX_FUNCTIONS
 #include <assert.h>
+#include <X11/Xatom.h>
 
 //#define DYNAMIC_LOAD_X11_FUNCTIONS
 #ifdef DYNAMIC_LOAD_X11_FUNCTIONS
@@ -94,6 +95,14 @@ typedef int (*PFNXPEEKEVENT)(Display* a, XEvent* b);
 typedef KeySym (*PFNXLOOKUPKEYSYM)(XKeyEvent* a, int b);
 typedef Status (*PFNXGETWINDOWATTRIBUTES)(Display* a, Window b,
                                           XWindowAttributes* c);
+typedef Atom (*PFNXINTERNATOM)(Display* a, _Xconst char* b, Bool c);
+typedef Status (*PFNXSENDEVENT)(Display* a, Window b, Bool c, long d,
+                                XEvent* e);
+typedef int (*PFNXFLUSH)(Display* a);
+typedef int (*PFNXGETWINDOWPROPERTY)(Display* a, Window b, Atom c, long d,
+                                     long e, Bool f, Atom g, Atom* h, int* i,
+                                     unsigned long* j, unsigned long* k,
+                                     unsigned char** l);
 
 #define X11_LIBRARY "libX11.so.6"
 
@@ -121,6 +130,10 @@ typedef Status (*PFNXGETWINDOWATTRIBUTES)(Display* a, Window b,
 #define MyXMapWindow m_data->m_x11_XMapWindow
 #define MyXStoreName m_data->m_x11_XStoreName
 #define MyXLookupKeysym m_data->m_x11_XLookupKeysym
+#define MyXInternAtom m_data->m_x11_XInternAtom
+#define MyXSendEvent m_data->m_x11_XSendEvent
+#define MyXFlush m_data->m_x11_XFlush
+#define MyXGetWindowProperty m_data->m_x11_XGetWindowProperty
 
 #else
 #define MyXSync XSync
@@ -147,6 +160,10 @@ typedef Status (*PFNXGETWINDOWATTRIBUTES)(Display* a, Window b,
 #define MyXMapWindow XMapWindow
 #define MyXStoreName XStoreName
 #define MyXLookupKeysym XLookupKeysym
+#define MyXInternAtom XInternAtom
+#define MyXSendEvent XSendEvent
+#define MyXFlush XFlush
+#define MyXGetWindowProperty XGetWindowProperty
 
 #endif  // DYNAMIC_LOAD_X11_FUNCTIONS
 
@@ -190,6 +207,10 @@ struct InternalData2 {
   PFNXPEEKEVENT m_x11_XPeekEvent;
   PFNXLOOKUPKEYSYM m_x11_XLookupKeysym;
   PFNXGETWINDOWATTRIBUTES m_x11_XGetWindowAttributes;
+  PFNXINTERNATOM m_x11_XInternAtom;
+  PFNXSENDEVENT m_x11_XSendEvent;
+  PFNXFLUSH m_x11_XFlush;
+  PFNXGETWINDOWPROPERTY m_x11_XGetWindowProperty;
 #endif  // DYNAMIC_LOAD_X11_FUNCTIONS
 
   TinyWheelCallback m_wheelCallback;
@@ -389,6 +410,20 @@ struct InternalData2 {
     if (missingFunc) {
       fprintf(stderr,
               "Error: missing func XGetWindowAttributes in %s, exiting!\n",
+              X11_LIBRARY);
+      exit(EXIT_FAILURE);
+    }
+    // for full screen
+    m_x11_XInternAtom = (PFNXINTERNATOM)dlsym(m_x11_library, "XInternAtom");
+    m_x11_XSendEvent = (PFNXSENDEVENT)dlsym(m_x11_library, "XSendEvent");
+    m_x11_XFlush = (PFNXFLUSH)dlsym(m_x11_library, "XFlush");
+    m_x11_XGetWindowProperty =
+        (PFNXGETWINDOWPROPERTY)dlsym(m_x11_library, "XGetWindowProperty");
+    if (!m_x11_XInternAtom || !m_x11_XSendEvent || !m_x11_XFlush ||
+        !m_x11_XGetWindowProperty) {
+      fprintf(stderr,
+              "Error: missing func XInternAtom, XSendEvent, XFlush or "
+              "XGetWindowProperty in %s, exiting!\n",
               X11_LIBRARY);
       exit(EXIT_FAILURE);
     }
@@ -894,8 +929,6 @@ bool TinyX11OpenGLWindow::is_modifier_key_pressed(int key) {
 }
 
 void TinyX11OpenGLWindow::pump_message() {
-  int buttonState = 1;
-
   // Process all pending events
   while (MyXPending(m_data->m_dpy)) {
     MyXNextEvent(m_data->m_dpy, &m_data->m_xev);
@@ -973,11 +1006,10 @@ void TinyX11OpenGLWindow::pump_message() {
       }
 
       case ButtonRelease:
-        buttonState = 0;
-        // continue with ButtonPress code
       case ButtonPress: {
-        //                printf("!");
-        //                fflush(stdout);
+        // (each event's own: a press after a release in the same batch of events,
+        // as a quick second click brings, is a press)
+        const int buttonState = m_data->m_xev.type == ButtonPress ? 1 : 0;
 
         int button = -1;
 
@@ -994,21 +1026,22 @@ void TinyX11OpenGLWindow::pump_message() {
             button = 2;
             break;
           }
+          // (the wheel's notches: once, on the press; X sends a release too)
           case Button4: {
-            if (m_data->m_wheelCallback) {
+            if (buttonState && m_data->m_wheelCallback) {
               (*m_data->m_wheelCallback)(0, 10);
             }
             break;
           }
           case Button5: {
-            if (m_data->m_wheelCallback) {
+            if (buttonState && m_data->m_wheelCallback) {
               (*m_data->m_wheelCallback)(0, -10);
             }
             break;
           }
         }
-        int xpos = m_data->m_xev.xmotion.x;
-        int ypos = m_data->m_xev.xmotion.y;
+        int xpos = m_data->m_xev.xbutton.x;
+        int ypos = m_data->m_xev.xbutton.y;
 
         if (button >= 0 && m_data->m_mouseButtonCallback) {
           //                      printf("xpos = %d, ypos = %d\n",xpos,ypos);
@@ -1112,6 +1145,63 @@ bool TinyX11OpenGLWindow::set_vsync(bool enabled) {
     if (setInterval) return setInterval(interval) == 0;
   }
   return false;
+}
+
+// Full screen is the window manager's: the EWMH _NET_WM_STATE_FULLSCREEN state,
+// asked for with a client message to the root window.
+static bool property_has_atom(InternalData2* m_data, Window window,
+                              Atom property, Atom atom) {
+  Atom type = None;
+  int format = 0;
+  unsigned long count = 0, remaining = 0;
+  unsigned char* data = 0;
+  if (MyXGetWindowProperty(m_data->m_dpy, window, property, 0, 1024, False,
+                           XA_ATOM, &type, &format, &count, &remaining,
+                           &data) != Success)
+    return false;
+  bool found = false;
+  if (data && type == XA_ATOM && format == 32) {
+    // Xlib hands 32-bit properties back as longs.
+    const unsigned long* atoms = (const unsigned long*)data;
+    for (unsigned long i = 0; i < count && !found; ++i)
+      found = atoms[i] == atom;
+  }
+  if (data) MyXFree(data);
+  return found;
+}
+
+bool TinyX11OpenGLWindow::set_fullscreen(bool enabled) {
+  if (!m_data->m_dpy || !m_data->m_win) return false;
+  Display* dpy = m_data->m_dpy;
+  Atom state = MyXInternAtom(dpy, "_NET_WM_STATE", False);
+  Atom fullscreen = MyXInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+  // Only a window manager that lists the state on the root window does it.
+  if (!property_has_atom(m_data, m_data->m_root,
+                         MyXInternAtom(dpy, "_NET_SUPPORTED", False),
+                         fullscreen))
+    return false;
+  XEvent event;
+  memset(&event, 0, sizeof(event));
+  event.xclient.type = ClientMessage;
+  event.xclient.display = dpy;
+  event.xclient.window = m_data->m_win;
+  event.xclient.message_type = state;
+  event.xclient.format = 32;
+  event.xclient.data.l[0] = enabled ? 1 : 0;  // _NET_WM_STATE_ADD, _REMOVE
+  event.xclient.data.l[1] = (long)fullscreen;
+  event.xclient.data.l[3] = 1;  // from a normal application
+  Status sent = MyXSendEvent(dpy, m_data->m_root, False,
+                             SubstructureRedirectMask | SubstructureNotifyMask,
+                             &event);
+  MyXFlush(dpy);
+  return sent != 0;
+}
+
+bool TinyX11OpenGLWindow::is_fullscreen() const {
+  if (!m_data->m_dpy || !m_data->m_win) return false;
+  return property_has_atom(
+      m_data, m_data->m_win, MyXInternAtom(m_data->m_dpy, "_NET_WM_STATE", False),
+      MyXInternAtom(m_data->m_dpy, "_NET_WM_STATE_FULLSCREEN", False));
 }
 
 void TinyX11OpenGLWindow::run_main_loop() {}

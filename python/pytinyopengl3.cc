@@ -563,6 +563,43 @@ PYBIND11_MODULE(pytinyopengl3, m) {
 
     .def("register_graphics_instance", &TinyGLInstancingRenderer::register_graphics_instance)
     .def("register_graphics_instances", &TinyGLInstancingRenderer::register_graphics_instances)
+    // the same from arrays (as numpy's, read in place: no Python object per instance):
+    // positions[n, 3], orientations[n, 4] (x, y, z, w), colors[n, 3], scalings[n, 3]; an
+    // orientation, colour or scaling of a single row is every instance's
+    .def("register_graphics_instances",
+         [](TinyGLInstancingRenderer& renderer, int shapeIndex,
+            py::array_t<float, py::array::c_style | py::array::forcecast> positions,
+            py::array_t<float, py::array::c_style | py::array::forcecast> orientations,
+            py::array_t<float, py::array::c_style | py::array::forcecast> colors,
+            py::array_t<float, py::array::c_style | py::array::forcecast> scalings,
+            float opacity, bool rebuild) {
+           const py::ssize_t n = positions.size() / 3;
+           const auto rows = [n](const py::array& a, py::ssize_t width) {
+             if (a.size() == width) return false;   // one row, for all
+             if (a.size() != width * n)
+               throw std::runtime_error(
+                   "register_graphics_instances: expected positions[n, 3], and "
+                   "orientations[n, 4], colors[n, 3], scalings[n, 3] (or a single row)");
+             return true;
+           };
+           if (positions.size() != 3 * n)
+             throw std::runtime_error("register_graphics_instances: expected positions[n, 3]");
+           const bool qn = rows(orientations, 4), cn = rows(colors, 3), sn = rows(scalings, 3);
+           const float *P = positions.data(), *Q = orientations.data(), *C = colors.data(), *S = scalings.data();
+           std::vector<::TINY::TinyVector3f> pv, cv, sv;
+           std::vector<::TINY::TinyQuaternionf> qv;
+           pv.reserve(n); qv.reserve(n); cv.reserve(n); sv.reserve(n);
+           for (py::ssize_t i = 0; i < n; ++i) {
+             const float *q = Q + (qn ? 4 * i : 0), *c = C + (cn ? 3 * i : 0), *s = S + (sn ? 3 * i : 0);
+             pv.emplace_back(P[3 * i], P[3 * i + 1], P[3 * i + 2]);
+             qv.emplace_back(q[0], q[1], q[2], q[3]);
+             cv.emplace_back(c[0], c[1], c[2]);
+             sv.emplace_back(s[0], s[1], s[2]);
+           }
+           return renderer.register_graphics_instances(shapeIndex, pv, qv, cv, sv, opacity, rebuild);
+         },
+         py::arg("shape_index"), py::arg("positions"), py::arg("orientations"), py::arg("colors"),
+         py::arg("scalings"), py::arg("opacity") = 1.f, py::arg("rebuild") = true)
 
     .def("write_single_instance_transform_to_cpu", &TinyGLInstancingRenderer::write_single_instance_transform_to_cpu)
     // writes the transforms of many instances at once: instances[n],
@@ -653,6 +690,11 @@ PYBIND11_MODULE(pytinyopengl3, m) {
    py::class_<TinyWindowInterface>(m, "TinyWindowInterface")
   .def("set_vsync", &TinyWindowInterface::set_vsync, py::arg("enabled"),
        "Request swap interval 1 or 0. Returns False if unsupported or the context is not current.")
+  .def("set_fullscreen", &TinyWindowInterface::set_fullscreen, py::arg("enabled"),
+       "Ask for the window to fill its monitor (True) or to be a normal window again (False). "
+       "Returns False if unsupported. The window manager resizes the window afterwards.")
+  .def("is_fullscreen", &TinyWindowInterface::is_fullscreen,
+       "Whether the window manager shows the window full screen.")
   .def("requested_exit", &TinyWindowInterface::requested_exit)
   .def("set_request_exit", &TinyWindowInterface::set_request_exit2)
 
@@ -706,6 +748,21 @@ PYBIND11_MODULE(pytinyopengl3, m) {
   TINY_BIND_KEY(TINY_KEY_ALT);
   TINY_BIND_KEY(TINY_KEY_RETURN);
   TINY_BIND_KEY(TINY_KEY_TAB);
+  TINY_BIND_KEY(TINY_KEY_F1);
+  TINY_BIND_KEY(TINY_KEY_F2);
+  TINY_BIND_KEY(TINY_KEY_F3);
+  TINY_BIND_KEY(TINY_KEY_F4);
+  TINY_BIND_KEY(TINY_KEY_F5);
+  TINY_BIND_KEY(TINY_KEY_F6);
+  TINY_BIND_KEY(TINY_KEY_F7);
+  TINY_BIND_KEY(TINY_KEY_F8);
+  TINY_BIND_KEY(TINY_KEY_F9);
+  TINY_BIND_KEY(TINY_KEY_F10);
+  TINY_BIND_KEY(TINY_KEY_F11);
+  TINY_BIND_KEY(TINY_KEY_F12);
+  TINY_BIND_KEY(TINY_KEY_F13);
+  TINY_BIND_KEY(TINY_KEY_F14);
+  TINY_BIND_KEY(TINY_KEY_F15);
 #undef TINY_BIND_KEY
   
   m.def("file_open_dialog", &file_open_dialog);
