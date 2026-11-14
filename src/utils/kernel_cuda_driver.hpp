@@ -246,57 +246,76 @@ class CudaDriver {
     init_api();
   }
 
-  // KernelCudaApi uses plain function pointers, they use the driver of
-  // device 0. TODO: other devices.
-  void init_api() {
-    api_.allocate = [](void** ptr, size_t size) {
-      const CudaDriver& d = get();
+  // KernelCudaApi uses plain function pointers: an instance of them per
+  // device (D), each with the driver and context of its device, so that
+  // batches of several devices can be used side by side.
+  template <int D>
+  static void fill_api(KernelCudaApi& api) {
+    api.allocate = [](void** ptr, size_t size) {
+      const CudaDriver& d = get(D);
       d.make_current();
       CUdeviceptr p = 0;
       CUresult r = d.cuMemAlloc(&p, size > 0 ? size : 1);
       *ptr = reinterpret_cast<void*>(static_cast<uintptr_t>(p));
       return d.error_string(r);
     };
-    api_.deallocate = [](void* ptr) {
-      const CudaDriver& d = get();
+    api.deallocate = [](void* ptr) {
+      const CudaDriver& d = get(D);
       if (!ptr) return std::string();
       d.make_current();
       return d.error_string(d.cuMemFree(device_ptr(ptr)));
     };
-    api_.copy_to_device = [](void* dst, const void* src, size_t size,
-                             void* stream) {
-      const CudaDriver& d = get();
+    api.copy_to_device = [](void* dst, const void* src, size_t size,
+                            void* stream) {
+      const CudaDriver& d = get(D);
       d.make_current();
       return d.error_string(d.cuMemcpyHtoDAsync(
           device_ptr(dst), src, size, static_cast<CUstream>(stream)));
     };
-    api_.copy_to_host = [](void* dst, const void* src, size_t size,
-                           void* stream) {
-      const CudaDriver& d = get();
+    api.copy_to_host = [](void* dst, const void* src, size_t size,
+                          void* stream) {
+      const CudaDriver& d = get(D);
       d.make_current();
       return d.error_string(d.cuMemcpyDtoHAsync(
           dst, device_ptr(src), size, static_cast<CUstream>(stream)));
     };
-    api_.copy_on_device = [](void* dst, const void* src, size_t size,
-                             void* stream) {
-      const CudaDriver& d = get();
+    api.copy_on_device = [](void* dst, const void* src, size_t size,
+                            void* stream) {
+      const CudaDriver& d = get(D);
       d.make_current();
       return d.error_string(d.cuMemcpyDtoDAsync(
           device_ptr(dst), device_ptr(src), size,
           static_cast<CUstream>(stream)));
     };
-    api_.synchronize = [](void* stream) {
-      const CudaDriver& d = get();
+    api.synchronize = [](void* stream) {
+      const CudaDriver& d = get(D);
       d.make_current();
       return d.error_string(
           d.cuStreamSynchronize(static_cast<CUstream>(stream)));
     };
-    api_.last_error = []() {
+    api.last_error = []() {
       std::string error;
       std::swap(error, last_launch_error());
       return error;
     };
-    api_.device_name = []() { return get().device_name(); };
+    api.device_name = []() { return get(D).device_name(); };
+  }
+
+  void init_api() {
+    switch (device_ordinal_) {
+      case 0: fill_api<0>(api_); break;
+      case 1: fill_api<1>(api_); break;
+      case 2: fill_api<2>(api_); break;
+      case 3: fill_api<3>(api_); break;
+      case 4: fill_api<4>(api_); break;
+      case 5: fill_api<5>(api_); break;
+      case 6: fill_api<6>(api_); break;
+      case 7: fill_api<7>(api_); break;
+      default:
+        throw std::runtime_error("CUDA device " +
+                                 std::to_string(device_ordinal_) +
+                                 ": the kernels support devices 0 to 7.");
+    }
   }
 
   static CUdeviceptr device_ptr(const void* ptr) {
