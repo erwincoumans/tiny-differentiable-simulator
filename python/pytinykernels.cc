@@ -23,6 +23,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <cstdint>
+#include <cstdio>
 #include <map>
 #include <memory>
 #include <string>
@@ -90,9 +92,81 @@ struct Batch {
             num_threads)) {}
 };
 
+// The launches and copies of a batch at the events of another engine, run
+// from native code without Python: the engine calls run(context, event,
+// substep) - a plain C function - at each of its events, which enqueues the
+// event's launches and copies on the batch's stream (Batch.program). An
+// engine that records its stream into a CUDA graph records them with it.
+template <typename Float>
+struct Program {
+  enum Kind { LAUNCH, COPY, COPY_ELEMENTS };
+  struct Operation {
+    Kind kind;
+    std::string a;  // the function, or the destination array
+    std::string b;  // the source array
+    int dst_begin{0}, src_begin{0}, count{0};
+  };
+  Batch<Float>* batch{nullptr};
+  py::object owner;  // keeps the batch alive
+  std::map<int, std::vector<Operation>> events;
+  std::string error;  // the first error, if any
+
+  static void run(void* context, int event, int /*substep*/) {
+    auto* program = static_cast<Program*>(context);
+    auto it = program->events.find(event);
+    if (it == program->events.end()) return;
+    // (no exceptions into the caller's C code)
+    try {
+      tds::KernelBatch<Float>& b = *program->batch->batch;
+      for (const Operation& op : it->second) {
+        if (op.kind == LAUNCH) {
+          b.launch(op.a);
+        } else if (op.kind == COPY) {
+          b.copy(op.a, op.b);
+        } else {
+          b.copy_elements(op.a, op.dst_begin, op.b, op.src_begin, op.count);
+        }
+      }
+    } catch (const std::exception& e) {
+      if (program->error.empty()) program->error = e.what();
+      fprintf(stderr, "pytinykernels: program event %d: %s\n", event,
+              e.what());
+    }
+  }
+};
+
+template <typename Float>
+void bind_program(py::module& m, const std::string& class_name) {
+  using P = Program<Float>;
+  py::class_<P>(m, class_name.c_str())
+      // the address of the C function
+      //   void run(void* context, int event, int substep)
+      // and of the context to call it with
+      .def_property_readonly(
+          "function",
+          [](const P&) { return reinterpret_cast<uintptr_t>(&P::run); })
+      .def_property_readonly(
+          "context", [](P& p) { return reinterpret_cast<uintptr_t>(&p); })
+      .def_property_readonly("error", [](const P& p) { return p.error; })
+      .def_property_readonly("events",
+                             [](const P& p) {
+                               std::vector<int> events;
+                               for (const auto& e : p.events) {
+                                 events.push_back(e.first);
+                               }
+                               return events;
+                             })
+      .def("run", [](P& p, int event, int substep) {
+             py::gil_scoped_release release;
+             P::run(&p, event, substep);
+           },
+           py::arg("event"), py::arg("substep") = 0);
+}
+
 template <typename Float>
 void bind_batch(py::module& m, const char* class_name) {
   using B = Batch<Float>;
+  bind_program<Float>(m, std::string(class_name) + "Program");
   py::class_<B>(m, class_name)
       .def(py::init([](py::object model, int num_worlds,
                        const std::string& backend, int num_threads) {
@@ -207,7 +281,62 @@ void bind_batch(py::module& m, const char* class_name) {
       .def("synchronize", [](B& b) {
         py::gil_scoped_release release;
         b.batch->synchronize();
-      });
+      })
+      // A Program (see above) of the operations of each event:
+      // {event: [("launch", function), ("copy", dst, src),
+      //          ("copy_elements", dst, dst_begin, src, src_begin, count)]}
+      .def(
+          "program",
+          [](py::object self, const std::map<int, py::list>& events) {
+            B& b = self.cast<B&>();
+            auto program = std::make_unique<Program<Float>>();
+            program->batch = &b;
+            program->owner = self;
+            using Op = typename Program<Float>::Operation;
+            for (const auto& [event, operations] : events) {
+              auto& ops = program->events[event];
+              for (const auto& item : operations) {
+                const py::tuple t = py::cast<py::tuple>(item);
+                const std::string kind = t[0].cast<std::string>();
+                Op op;
+                if (kind == "launch" && t.size() == 2) {
+                  op.kind = Program<Float>::LAUNCH;
+                  op.a = t[1].cast<std::string>();
+                  b.model->function(op.a);  // (throws for unknown ones)
+                } else if (kind == "copy" && t.size() == 3) {
+                  op.kind = Program<Float>::COPY;
+                  op.a = t[1].cast<std::string>();
+                  op.b = t[2].cast<std::string>();
+                  if (b.batch->dim(op.a) != b.batch->dim(op.b)) {
+                    throw std::runtime_error("program: \"" + op.a +
+                                             "\" and \"" + op.b +
+                                             "\" have different sizes");
+                  }
+                } else if (kind == "copy_elements" && t.size() == 6) {
+                  op.kind = Program<Float>::COPY_ELEMENTS;
+                  op.a = t[1].cast<std::string>();
+                  op.dst_begin = t[2].cast<int>();
+                  op.b = t[3].cast<std::string>();
+                  op.src_begin = t[4].cast<int>();
+                  op.count = t[5].cast<int>();
+                  if (op.count < 0 || op.dst_begin < 0 || op.src_begin < 0 ||
+                      op.dst_begin + op.count > b.batch->dim(op.a) ||
+                      op.src_begin + op.count > b.batch->dim(op.b)) {
+                    throw std::runtime_error("program: copy_elements out of "
+                                             "range");
+                  }
+                } else {
+                  throw std::runtime_error(
+                      "program: an operation is (\"launch\", function), "
+                      "(\"copy\", dst, src) or (\"copy_elements\", dst, "
+                      "dst_begin, src, src_begin, count)");
+                }
+                ops.push_back(op);
+              }
+            }
+            return program.release();
+          },
+          py::arg("events"), py::return_value_policy::take_ownership);
 }
 
 py::dict cuda_device_info(int device) {
