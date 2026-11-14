@@ -43,6 +43,10 @@ class BodyLayout:
       self.targets = slice(c, c + n)
       self.kp = slice(c + n, c + 2 * n)
       self.kd = slice(c + 2 * n, c + 3 * n)
+      # with "feedforward": a torque per actuator, added to the PD's
+      self.feedforward = bool(layout.get("feedforward", False))
+      if self.feedforward:
+        self.torques = slice(c + 3 * n, c + 4 * n)
     elif self.control_mode == "torque":
       self.torques = slice(c, c + n)
     joint_of = {j["name"]: j for j in self.joints}

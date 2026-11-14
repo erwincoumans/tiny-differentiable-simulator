@@ -10,7 +10,8 @@
 //          qd = (angular velocity, linear velocity in world coordinates,
 //          joints).
 // control: per controlled body, the PD targets, kp and kd of each actuated
-//          joint ("pd"), or the joint torques ("torque").
+//          joint ("pd"), followed by a feed-forward torque of each with
+//          Control::feedforward, or the joint torques ("torque").
 //
 // A time step either runs as one function, step: state, control ->
 // next_state, or split into three, so that the iterations of the contact
@@ -43,6 +44,7 @@
 // response of the bodies to their impulses from factor.
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <map>
 #include <memory>
@@ -97,6 +99,11 @@ class WorldModel {
     std::vector<double> default_kd;
     // maximum torque per actuated joint, < 0 for none
     std::vector<double> effort_limits;
+    // "pd" with a feed-forward torque per actuated joint
+    bool feedforward{false};
+    // per actuated joint: lower, upper, stiffness and damping of its limits
+    // (see apply_control), stiffness and damping 0 for none
+    std::vector<std::array<double, 4>> limits;
     double armature{0};
     bool implicit_pd{true};
     std::vector<double> default_q;
@@ -128,7 +135,9 @@ class WorldModel {
 
     int control_dim() const {
       const int n = static_cast<int>(actuated_links.size());
-      return control_mode == "pd" ? 3 * n : control_mode == "torque" ? n : 0;
+      return control_mode == "pd"       ? (feedforward ? 4 : 3) * n
+             : control_mode == "torque" ? n
+                                        : 0;
     }
   };
 
@@ -908,6 +917,8 @@ class WorldModel {
     body.control_mode = c.mode;
     body.armature = c.armature;
     body.implicit_pd = c.implicit;
+    body.feedforward = c.mode == "pd" && c.feedforward;
+    std::set<std::string> limited;
     if (c.mode != "none") {
       for (const auto& link : mb) {
         if (link.joint_type == JOINT_FIXED) continue;
@@ -929,6 +940,26 @@ class WorldModel {
         auto it = c.effort_limits.find(link.joint_name);
         body.effort_limits.push_back(it != c.effort_limits.end() ? it->second
                                                                  : -1.);
+        auto limit = c.limits.find(link.joint_name);
+        if (limit != c.limits.end()) {
+          if (!(limit->second[0] <= limit->second[1]) ||
+              limit->second[2] < 0 || limit->second[3] < 0) {
+            throw std::runtime_error(
+                "Body \"" + s.name + "\": joint \"" + link.joint_name +
+                "\" needs lower <= upper and no negative limit gains.");
+          }
+          body.limits.push_back(limit->second);
+          limited.insert(link.joint_name);
+        } else {
+          body.limits.push_back({0., 0., 0., 0.});
+        }
+      }
+    }
+    for (const auto& [name, limit] : c.limits) {
+      if (!limited.count(name)) {
+        throw std::runtime_error("Body \"" + s.name +
+                                 "\" has no actuated joint \"" + name +
+                                 "\" for its limits.");
       }
     }
 
@@ -1144,6 +1175,7 @@ class WorldModel {
         } else {
           force = kp * (q_target - q) - kd * qd;
         }
+        if (b.feedforward) force += control[b.control_offset + 3 * n + i];
         if (b.effort_limits[i] >= 0) {
           // a saturated joint has a constant torque, without the implicit
           // PD inertia
@@ -1162,6 +1194,31 @@ class WorldModel {
           force = where_gt(force, limit, limit,
                            where_lt(force, -limit, -limit, force));
         }
+      }
+      const auto& limit = b.limits[i];
+      if (limit[2] > 0 || limit[3] > 0) {
+        // Joint limits: when the position after the step, q' = q + dt qd,
+        // would pass a limit, a spring of stiffness k and a damper d push
+        // the joint back, implicitly like the PD:
+        //   tau = k (limit - q - dt qd) - d qd - (dt d + dt^2 k) qdd,
+        // only pushing (away from the limit), without the implicit inertia
+        // when it would pull. With a stiff spring the joint stops at the
+        // limit within the step.
+        const Scalar lower = Algebra::from_double(limit[0]);
+        const Scalar upper = Algebra::from_double(limit[1]);
+        const Scalar k = Algebra::from_double(limit[2]);
+        const Scalar d = Algebra::from_double(limit[3]);
+        const Scalar next = q + dt * qd;
+        const Scalar push_down = k * (upper - next) - d * qd;  // past upper
+        const Scalar push_up = k * (lower - next) - d * qd;    // past lower
+        const Scalar zero = Algebra::zero();
+        const Scalar inertia = dt * d + dt * dt * k;
+        const Scalar past_upper = where_gt(next, upper, Algebra::one(), zero);
+        const Scalar past_lower = where_lt(next, lower, Algebra::one(), zero);
+        const Scalar down = past_upper * where_lt(push_down, zero, Algebra::one(), zero);
+        const Scalar up = past_lower * where_gt(push_up, zero, Algebra::one(), zero);
+        force += down * push_down + up * push_up;
+        link.armature += (down + up) * inertia;
       }
       mb.tau_[link.qd_index - tau_offset] = force;
     }

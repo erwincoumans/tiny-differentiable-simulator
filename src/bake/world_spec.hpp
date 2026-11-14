@@ -28,7 +28,10 @@
 //                 "kp": 1000, "kd": 10,
 //                 "gains": {"left_.*_ankle.*": [40, 2]},  regex of joints
 //                 "armature": 0.01, "implicit": true,
-//                 "effort_limits": {"left_knee_joint": 139}},
+//                 "effort_limits": {"left_knee_joint": 139},
+//                 "feedforward": false,   true: "pd" also takes torques
+//                 "limits": {"left_knee_joint": [-0.1, 2.6, 5000, 100]}},
+//                                 lower, upper, stiffness, damping
 //     "collision": {"links": ["left_ankle_roll_link"],  or "all" / "none"
 //                   "spheres": [{"link": "left_hand_palm_link",
 //                                "radius": 0.02, "position": [0, 0, 0],
@@ -37,6 +40,7 @@
 //   }]
 // }
 
+#include <array>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -76,6 +80,13 @@ struct WorldSpec {
     bool implicit{true};
     // maximum torque of a joint, by joint name
     std::map<std::string, double> effort_limits;
+    // "pd" control with a feed-forward torque per joint, added to the PD's
+    // (the control is the targets, kp, kd, then the torques)
+    bool feedforward{false};
+    // joint limits of actuated joints, by joint name: lower, upper, and the
+    // stiffness and damping of the implicit one-sided spring that keeps the
+    // joint within them (see WorldModel::apply_control)
+    std::map<std::string, std::array<double, 4>> limits;
   };
 
   struct CollisionSphere {
@@ -206,6 +217,19 @@ struct WorldSpec {
         if (c.contains("effort_limits")) {
           for (const auto& [name, value] : c.at("effort_limits").items()) {
             control.effort_limits[name] = value.get<double>();
+          }
+        }
+        control.feedforward = c.value("feedforward", control.feedforward);
+        if (c.contains("limits")) {
+          for (const auto& [name, value] : c.at("limits").items()) {
+            if (!value.is_array() || value.size() != 4) {
+              throw std::runtime_error(
+                  "Body \"" + body.name + "\": the limits of joint \"" +
+                  name + "\" must be [lower, upper, stiffness, damping].");
+            }
+            std::array<double, 4> limit;
+            for (int i = 0; i < 4; ++i) limit[i] = value.at(i).get<double>();
+            control.limits[name] = limit;
           }
         }
       }
