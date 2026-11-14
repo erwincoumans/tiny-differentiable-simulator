@@ -72,7 +72,19 @@ A tds_bake world (JSON):
         "gains": {"left_ankle.*": [40, 2]},   per joint (regex) [kp, kd]
         "armature": 0.01,             rotor inertia of the joints
         "implicit": true,             implicit PD (stable with stiff gains)
-        "effort_limits": "urdf"       null, "urdf" or {"joint": max torque}
+        "effort_limits": "urdf",      null, "urdf" or {"joint": max torque}
+        "feedforward": false,         "pd": also a torque per joint, added
+                                      to the PD's (inputs: targets, kp, kd,
+                                      torques)
+        "joint_limits": {             or null: keep the joints within their
+                                      ranges with one-sided implicit
+                                      springs, from where the next position
+                                      would pass a limit
+          "ranges": "urdf",           "urdf" (the URDF's lower and upper) or
+                                      {"joint": [lower, upper]}
+          "kp": 1000, "kd": 10,       stiffness and damping of all joints
+          "gains": {"knee.*": [5000, 50]}   per joint (regex) [kp, kd]
+        }
       },
       "collision": {
         "links": "all",               "all", "none" or a list of link names
@@ -128,6 +140,35 @@ def _vector(value, size, what):
   if len(v) != size:
     raise ValueError("%s must have %d numbers, not %d" % (what, size, len(v)))
   return v
+
+
+def _resolve_joint_limits(body, joint_limits, info):
+  """{joint: [lower, upper, kp, kd]} of the movable joints with a range."""
+  import re
+  ranges = joint_limits.get("ranges", "urdf")
+  if ranges == "urdf":
+    ranges = {
+        name: (j["lower"], j["upper"])
+        for name, j in info.joints.items()
+        if j["type"] in ("revolute", "prismatic") and j["lower"] is not None
+        and j["upper"] is not None and j["lower"] <= j["upper"]
+    }
+  kp = float(joint_limits.get("kp", 0.))
+  kd = float(joint_limits.get("kd", 0.))
+  gains = joint_limits.get("gains", {}) or {}
+  limits = {}
+  for name, (lower, upper) in ranges.items():
+    if name not in info.joints:
+      raise ValueError("body %r: the URDF has no joint %r for joint_limits" %
+                       (body, name))
+    k, d = kp, kd
+    for pattern, (gk, gd) in gains.items():
+      if pattern == name or re.fullmatch(pattern, name):
+        k, d = gk, gd
+        break
+    if k > 0 or d > 0:
+      limits[name] = [float(lower), float(upper), float(k), float(d)]
+  return limits
 
 
 def _normalized_quaternion(q, what):
@@ -219,6 +260,8 @@ class World:
                armature=0.,
                implicit_pd=True,
                effort_limits=None,
+               feedforward=False,
+               joint_limits=None,
                collision_links="all",
                collision_spheres=None,
                collide_with="all",
@@ -230,6 +273,12 @@ class World:
     gains: {joint name regex: (kp, kd)} overrides kp and kd per joint.
     effort_limits: None, "urdf" (the effort limits of the URDF joints) or
       {joint name: max torque}.
+    feedforward: with "pd" control, a torque per joint is an input too,
+      added to the PD's.
+    joint_limits: None, or {"ranges": "urdf" or {joint: (lower, upper)},
+      "kp": stiffness, "kd": damping, "gains": {joint regex: (kp, kd)}}:
+      the actuated joints stay within their ranges, pushed back by
+      one-sided implicit springs when the next position would pass a limit.
     collision_links: "all", "none" or a list of link names (regex) whose URDF
       collision shapes collide.
     collision_spheres: a list of {"link": name, "radius": r,
@@ -262,6 +311,10 @@ class World:
         },
         "friction": friction,
     }
+    if feedforward:
+      body["control"]["feedforward"] = True
+    if joint_limits is not None:
+      body["control"]["joint_limits"] = copy.deepcopy(joint_limits)
     self.bodies.append(body)
     self.validate(references=False)
     return body
@@ -488,6 +541,24 @@ class World:
       if limits not in (None, "urdf") and not isinstance(limits, dict):
         raise ValueError('%s.control.effort_limits must be null, "urdf" or '
                          'a {joint: torque} object' % where)
+      if control.get("feedforward") and mode != "pd":
+        raise ValueError("%s.control.feedforward needs the mode pd" % where)
+      joint_limits = control.get("joint_limits")
+      if joint_limits is not None:
+        if not isinstance(joint_limits, dict):
+          raise ValueError("%s.control.joint_limits must be an object or "
+                           "null" % where)
+        unknown = set(joint_limits) - {"ranges", "kp", "kd", "gains"}
+        if unknown:
+          raise ValueError("%s.control.joint_limits: unknown keys %s" %
+                           (where, ", ".join(sorted(unknown))))
+        ranges = joint_limits.get("ranges", "urdf")
+        if ranges != "urdf" and not isinstance(ranges, dict):
+          raise ValueError('%s.control.joint_limits.ranges must be "urdf" or '
+                           'a {joint: [lower, upper]} object' % where)
+        if mode == "none":
+          raise ValueError("%s.control.joint_limits needs actuated joints "
+                           "(mode pd or torque)" % where)
       collision = b.get("collision", {})
       links = collision.get("links", "all")
       if not (links in ("all", "none") or isinstance(links, list)):
@@ -585,6 +656,14 @@ class World:
           control["effort_limits"] = {k: float(v) for k, v in limits.items()}
         else:
           control.pop("effort_limits", None)
+        if not control.get("feedforward"):
+          control.pop("feedforward", None)
+        joint_limits = control.pop("joint_limits", None)
+        if joint_limits is not None:
+          control["limits"] = _resolve_joint_limits(b["name"], joint_limits,
+                                                    info)
+          if not control["limits"]:
+            control.pop("limits")
         out["control"] = control
         joint_positions = dict(b.get("joint_positions", {}))
         for joint in joint_positions:

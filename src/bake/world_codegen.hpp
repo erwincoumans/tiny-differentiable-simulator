@@ -73,6 +73,7 @@ nlohmann::json world_layout(const WorldModel<Algebra>& model) {
     body["base_link"] = b.base_link;
     body["control_mode"] = b.control_mode;
     body["control_offset"] = b.control_offset;
+    if (b.feedforward) body["feedforward"] = true;
     body["control_dim"] = b.control_dim();
     body["visual_offset"] = b.visual_offset;
     body["num_visuals"] = b.num_visuals;
@@ -121,6 +122,10 @@ nlohmann::json world_layout(const WorldModel<Algebra>& model) {
       a["kp"] = b.default_kp[i];
       a["kd"] = b.default_kd[i];
       a["effort_limit"] = b.effort_limits[i];
+      const auto& limit = b.limits[i];
+      if (limit[2] > 0 || limit[3] > 0) {
+        a["limit"] = {limit[0], limit[1], limit[2], limit[3]};
+      }
       actuators.push_back(a);
     }
     body["actuators"] = actuators;
