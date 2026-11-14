@@ -522,7 +522,11 @@
       .def(py::self -= py::self);
 #endif
 
-  py::enum_<JointType>(m, "TinyJointType")
+  // pytinydiffsim and pytinydiffsim_ad both include this file. The types that do
+  // not depend on MyAlgebra (these enums and NeuralNetworkSpecification) are the
+  // same C++ types in both, which pybind11 registers once per process: they are
+  // module_local, so that the two modules can be imported together.
+  py::enum_<JointType>(m, "TinyJointType", py::module_local())
       .value("JOINT_FIXED", JOINT_FIXED, "JOINT_FIXED")
       .value("JOINT_PRISMATIC_X", JOINT_PRISMATIC_X, "JOINT_PRISMATIC_X")
       .value("JOINT_PRISMATIC_Y", JOINT_PRISMATIC_Y, "JOINT_PRISMATIC_Y")
@@ -537,7 +541,7 @@
       .value("JOINT_SPHERICAL", JOINT_SPHERICAL, "JOINT_SPHERICAL")
       .export_values();
 
-  py::enum_<GeometryTypes>(m, "TinyGeometryTypes")
+  py::enum_<GeometryTypes>(m, "TinyGeometryTypes", py::module_local())
       .value("SPHERE_TYPE", TINY_SPHERE_TYPE, "SPHERE_TYPE")
       .value("BOX_TYPE", TINY_BOX_TYPE, "BOX_TYPE")
       .value("PLANE_TYPE", TINY_PLANE_TYPE, "PLANE_TYPE")
@@ -699,7 +703,7 @@
       //.def("compute_contacts", &CollisionDispatcher<MyAlgebra>::compute_contacts2);
 
   py::class_<NeuralNetworkSpecification>(
-      m, "NeuralNetworkSpecification")
+      m, "NeuralNetworkSpecification", py::module_local())
       .def(py::init<int, bool>())
       .def(py::init<int, const std::vector<int>&, NeuralNetworkActivation, bool>())
       .def("set_input_dim", &NeuralNetworkSpecification::set_input_dim)
@@ -718,7 +722,7 @@
       ;
 
       py::enum_<NeuralNetworkActivation>(m, "NeuralNetworkActivation",
-          py::arithmetic())
+          py::arithmetic(), py::module_local())
       .value("NN_ACT_IDENTITY", NN_ACT_IDENTITY)
       .value("NN_ACT_TANH", NN_ACT_TANH)
       .value("NN_ACT_SIN", NN_ACT_SIN)
