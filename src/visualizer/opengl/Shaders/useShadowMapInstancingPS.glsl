@@ -65,7 +65,14 @@ void main(void)
 	}
     
 
-	float visibility = texture(shadowMap, vec3(ShadowCoord.xy,(ShadowCoord.z)/ShadowCoord.w));
+	// percentage-closer filtering: 3x3 comparisons (each bilinear) soften the shadow map's texel steps
+	vec2 shadowStep = 1.0 / vec2(textureSize(shadowMap, 0));
+	float shadowDepth = ShadowCoord.z / ShadowCoord.w;
+	float visibility = 0.0;
+	for (int x = -1; x <= 1; ++x)
+		for (int y = -1; y <= 1; ++y)
+			visibility += texture(shadowMap, vec3(ShadowCoord.xy + vec2(x, y) * shadowStep, shadowDepth));
+	visibility /= 9.0;
 	if (intensity<0.5)
 		visibility = 0;
 

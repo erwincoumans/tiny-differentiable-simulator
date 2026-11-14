@@ -52,6 +52,15 @@ class BodyLayout:
         [joint_of[a]["qd"] for a in self.actuator_names], dtype=np.int64)
     self.links = layout["links"]  # the base link first
     self.link_offset = layout["link_offset"]
+    # the kinematic tree of the degrees of freedom (qd) and the layout of the
+    # factorization of the mass matrix, see src/bake/world_model.hpp
+    self.velocity_offset = layout.get("velocity_offset")
+    self.parent = layout.get("parent")
+    self.factor_index = layout.get("factor_index")
+    self.factor_offset = layout.get("factor_offset")
+    self.factor_size = layout.get("factor_size")
+    # the degrees of freedom that move each link (of links), ancestors first
+    self.link_dofs = layout.get("link_dofs")
     self.visual_offset = layout["visual_offset"]
     self.num_visuals = layout["num_visuals"]
     # contact points of the body: (first, count, other body, link, other link)
@@ -112,6 +121,10 @@ class BakedWorld:
     self.substeps = self.layout["substeps"]
     self.iterations = self.layout["iterations"]
     self.split = self.layout["split"]
+    # "tds", or "external": the contacts are solved by another engine
+    self.solver = self.layout.get("solver", "tds")
+    self.factor_dim = self.layout.get("factor_dim", 0)
+    self.dof_axis_dim = self.layout.get("dof_axis_dim", 0)
     self.state_dim = self.layout["state_dim"]
     self.control_dim = self.layout["control_dim"]
     self.num_contacts = self.layout["num_contacts"]
@@ -166,6 +179,9 @@ class BakedWorld:
              (self.name, self.dt, self.substeps, self.num_contacts,
               (", %d solver iterations" % self.iterations)
               if self.num_contacts else "")]
+    if self.solver == "external":
+      lines[0] = ("world %r: dt %g s, %d substeps, external contacts" %
+                  (self.name, self.dt, self.substeps))
     lines.append("  state %d, control %d, %d visual shapes, %d links" %
                  (self.state_dim, self.control_dim, self.num_visuals,
                   self.num_links))

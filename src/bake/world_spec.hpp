@@ -11,6 +11,9 @@
 //   "dt": 0.002777,                 time step of the step kernel
 //   "substeps": 6,                  steps per control step (for the user)
 //   "up_axis": "z",                 "z" or "y": the normal of the ground
+//   "solver": "tds",                "tds": the kernels solve the contacts,
+//                                   "external": another engine finds and
+//                                   solves them (see WorldModel)
 //   "gravity": [0, 0, -9.81],
 //   "contact": {"friction": 0.75, "restitution": 0, "erp": 0.2,
 //               "cfm": 1e-5, "iterations": 50, "split": true},
@@ -112,6 +115,10 @@ struct WorldSpec {
   };
 
   std::string name{"world"};
+  // "tds": the kernels solve the contacts of the collision geometry,
+  // "external": another engine finds and solves all contacts, and the
+  // kernels only compute the dynamics of the bodies
+  std::string solver{"tds"};
   double dt{1. / 360.};
   int substeps{1};
   // the normal of the ground plane: 1 (y) or 2 (z)
@@ -132,6 +139,12 @@ struct WorldSpec {
     spec.name = j.value("name", spec.name);
     spec.dt = j.value("dt", spec.dt);
     spec.substeps = j.value("substeps", spec.substeps);
+    spec.solver = j.value("solver", spec.solver);
+    if (spec.solver != "tds" && spec.solver != "external") {
+      throw std::runtime_error(
+          "solver must be \"tds\" or \"external\", not \"" + spec.solver +
+          "\".");
+    }
     const std::string up_axis = j.value("up_axis", std::string("z"));
     if (up_axis != "y" && up_axis != "z") {
       throw std::runtime_error("up_axis must be \"z\" or \"y\", not \"" +

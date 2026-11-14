@@ -11,6 +11,9 @@
 //                            "split", the default), see world_model.hpp
 //   step                     a whole time step, if the world has no contacts
 //                            or "split" is false
+//   predict, articulation,   a time step with the contacts solved by another
+//   advance                  engine (WorldSpec solver "external"), see
+//                            world_model.hpp
 //   poses                    state -> world poses of the visual shapes
 //   links                    state -> world poses of the bases and links
 
@@ -48,6 +51,9 @@ nlohmann::json world_layout(const WorldModel<Algebra>& model) {
   layout["num_visuals"] = model.num_visuals();
   layout["num_links"] = model.num_links();
   layout["split"] = model.num_contacts > 0 && model.spec.contact.split;
+  layout["solver"] = model.spec.solver;
+  layout["factor_dim"] = model.factor_dim();
+  layout["dof_axis_dim"] = model.dof_axis_dim();
   layout["iterations"] = model.spec.contact.iterations;
   layout["dt"] = model.spec.dt;
   layout["substeps"] = model.spec.substeps;
@@ -71,6 +77,15 @@ nlohmann::json world_layout(const WorldModel<Algebra>& model) {
     body["visual_offset"] = b.visual_offset;
     body["num_visuals"] = b.num_visuals;
     body["link_offset"] = b.link_offset;
+    // the kinematic tree of the degrees of freedom and the layout of the
+    // factorization of the mass matrix (WorldModel::Body), for the solver
+    // "external"
+    body["velocity_offset"] = b.velocity_offset;
+    body["parent"] = b.parent;
+    body["factor_index"] = b.factor_index;
+    body["factor_offset"] = b.factor_offset;
+    body["factor_size"] = b.in_contact ? b.factor_size : 0;
+    body["link_dofs"] = b.link_dofs;
     json joints = json::array();
     std::vector<int> actuator_of_link(b.mb->num_links(), -1);
     for (size_t i = 0; i < b.actuated_links.size(); ++i) {
@@ -169,7 +184,28 @@ inline nlohmann::json generate_world_kernels(
     return a;
   };
   const bool split = model.num_contacts > 0 && spec.contact.split;
-  if (split) {
+  if (model.external_contacts()) {
+    const int nf = model.factor_dim();
+    const int na = model.dof_axis_dim();
+    const int nl = model.links_dim();
+    std::vector<double> velocity(nv);
+    double_model.predict(state.data(), control.data(), velocity.data());
+    codegen.add_function("predict", {{"state", ns}, {"control", nc}},
+                         {{"velocity", nv}}, concat(state, control),
+                         [&](const X& x, X& y) {
+                           model.predict(&x[0], &x[ns], &y[0]);
+                         });
+    codegen.add_function("articulation", {{"state", ns}, {"control", nc}},
+                         {{"factor", nf}, {"dof_axis", na}},
+                         concat(state, control), [&](const X& x, X& y) {
+                           model.articulation(&x[0], &x[ns], &y[0], &y[nf]);
+                         });
+    codegen.add_function("advance", {{"state", ns}, {"velocity", nv}},
+                         {{"next_state", ns}, {"links", nl}},
+                         concat(state, velocity), [&](const X& x, X& y) {
+                           model.advance(&x[0], &x[ns], &y[0], &y[ns]);
+                         });
+  } else if (split) {
     const int nm = model.mlcp_dim();
     const int nj = model.jacobian_dim();
     const int nf = model.factor_dim();

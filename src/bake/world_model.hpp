@@ -28,6 +28,19 @@
 // The contact points are the same in every step: each pair of colliding
 // geometries gives a fixed number of contact points, which only push when
 // their distance is negative. All contacts of all bodies are solved together.
+//
+// With the solver "external" (WorldSpec::solver), another engine finds and
+// solves all contacts of the bodies' links, and the kernels have no
+// contacts. Each time step of length dt runs
+//   predict:      state, control -> velocity, as the contact function above
+//   articulation: state, control -> factor (of the mass matrices, with the
+//                 armature of the implicit PD) and dof_axis (see
+//                 write_dof_axes), as often as the engine needs them
+//   advance:      state, velocity -> next_state (the positions integrated
+//                 with the joint velocities that the engine solved) and
+//                 links (the poses of the links at next_state)
+// The engine can build the contact rows of the links from dof_axis and the
+// response of the bodies to their impulses from factor.
 
 #include <algorithm>
 #include <cmath>
@@ -151,12 +164,15 @@ class WorldModel {
     world.set_gravity(Vector3(Algebra::from_double(spec.gravity[0]),
                               Algebra::from_double(spec.gravity[1]),
                               Algebra::from_double(spec.gravity[2])));
-    if (spec.has_ground) add_ground();
+    if (spec.has_ground && !external_contacts()) add_ground();
     for (const auto& body_spec : spec.bodies) add_body(body_spec);
     assign_offsets();
-    find_geometry_pairs();
+    if (!external_contacts()) find_geometry_pairs();
     setup_factorization();
   }
+
+  // whether another engine solves the contacts, see above
+  bool external_contacts() const { return spec.solver == "external"; }
 
   WorldModel(const WorldModel&) = delete;
   WorldModel& operator=(const WorldModel&) = delete;
@@ -172,6 +188,8 @@ class WorldModel {
   int jacobian_dim() const { return mlcp_rows() * velocity_dim_; }
   // the factorizations of the mass matrices of the bodies in contact
   int factor_dim() const { return factor_dim_; }
+  // the world motion vectors of the degrees of freedom, see write_dof_axes
+  int dof_axis_dim() const { return 6 * velocity_dim_; }
   int num_visuals() const { return num_visuals_; }
   int poses_dim() const { return 7 * num_visuals_; }
   int num_links() const { return num_links_; }
@@ -510,6 +528,54 @@ class WorldModel {
               lambda.data(), next_state);
   }
 
+  // The functions of a time step with the solver "external", see above.
+
+  // The joint velocities after the unconstrained dynamics.
+  void predict(const Scalar* state, const Scalar* control, Scalar* velocity) {
+    set_state(state);
+    dynamics(control);
+    for (const auto& b : bodies) {
+      for (int i = 0; i < b.mb->dof_qd(); ++i) {
+        velocity[b.velocity_offset + i] = b.mb->qd(i);
+      }
+    }
+  }
+
+  // The factorization of the mass matrices (see factor_dim()), with the
+  // armature that the implicit PD of the control adds, and the world motion
+  // vectors of the degrees of freedom (see write_dof_axes).
+  void articulation(const Scalar* state, const Scalar* control, Scalar* factor,
+                    Scalar* dof_axis) {
+    set_state(state);
+    for (auto& b : bodies) {
+      const int n = b.mb->dof_qd();
+      if (b.is_ground || n == 0) continue;
+      apply_control(b, control);
+      b.mb->clear_forces();
+      tds::forward_kinematics(*b.mb, b.mb->q(), b.mb->qd());
+      MatrixX mass(n, n);
+      mass_matrix(*b.mb, &mass);
+      factorize(b, mass, factor + b.factor_offset);
+      write_dof_axes(b, dof_axis);
+    }
+  }
+
+  // The positions integrated with the joint velocities, and the world poses
+  // of the links at the new positions (as links()).
+  void advance(const Scalar* state, const Scalar* velocity, Scalar* next_state,
+               Scalar* links) {
+    set_state(state);
+    for (auto& b : bodies) {
+      if (b.is_ground) continue;
+      for (int i = 0; i < b.mb->dof_qd(); ++i) {
+        b.mb->qd(i) = velocity[b.velocity_offset + i];
+      }
+      tds::integrate_euler(*b.mb, dt);
+    }
+    get_state(next_state);
+    write_links(links);
+  }
+
   // world poses (position, quaternion xyzw) of the visual shapes of all
   // bodies, for rendering
   void poses(const Scalar* state, Scalar* poses) {
@@ -532,13 +598,7 @@ class WorldModel {
   // world poses of the base and the links of all bodies
   void links(const Scalar* state, Scalar* links) {
     set_state(state);
-    int j = 0;
-    for (auto& b : bodies) {
-      if (b.is_ground) continue;
-      tds::forward_kinematics(*b.mb, b.mb->q(), b.mb->qd());
-      write_pose(b.mb->base_X_world(), links, j);
-      for (const auto& link : *b.mb) write_pose(link.X_world, links, j);
-    }
+    write_links(links);
   }
 
   // friction coefficient of each contact
@@ -570,6 +630,10 @@ class WorldModel {
     for (const auto& pair : pairs) {
       bodies[pair.body_a].in_contact = true;
       bodies[pair.body_b].in_contact = true;
+    }
+    if (external_contacts()) {
+      // any link can touch anything in the other engine
+      for (auto& b : bodies) b.in_contact = !b.is_ground;
     }
     factor_dim_ = 0;
     for (auto& b : bodies) {
@@ -683,6 +747,56 @@ class WorldModel {
       for (int j = b.parent[i]; j >= 0; j = b.parent[j]) {
         x[i] -= factor[o++] * x[j];
       }
+    }
+  }
+
+  // the world poses of the bases and links at the positions of the bodies
+  void write_links(Scalar* links) {
+    int j = 0;
+    for (auto& b : bodies) {
+      if (b.is_ground) continue;
+      tds::forward_kinematics(*b.mb, b.mb->q(), b.mb->qd());
+      write_pose(b.mb->base_X_world(), links, j);
+      for (const auto& link : *b.mb) write_pose(link.X_world, links, j);
+    }
+  }
+
+  // Writes the world motion vector of each degree of freedom of the body,
+  // after forward kinematics: 6 numbers at dof_axis[6 * (velocity_offset +
+  // i)], the angular velocity w and the linear velocity v of the point at the
+  // world origin for qd(i) = 1, so that a point p of a link moves with the
+  // sum of (v + w x p) qd(i) over the degrees of freedom of the link
+  // (link_dofs). The floating base velocity is the angular velocity and the
+  // velocity of the base origin x, in world coordinates: (e_k, x x e_k) and
+  // (0, e_k).
+  void write_dof_axes(const Body& b, Scalar* dof_axis) const {
+    MultiBody& mb = *b.mb;
+    Scalar* out = dof_axis + 6 * b.velocity_offset;
+    auto write = [&](int dof, const Vector3& w, const Vector3& v) {
+      for (int k = 0; k < 3; ++k) {
+        out[6 * dof + k] = w[k];
+        out[6 * dof + 3 + k] = v[k];
+      }
+    };
+    if (mb.is_floating()) {
+      const Vector3 x = mb.base_X_world().translation;
+      for (int k = 0; k < 3; ++k) {
+        Vector3 e = Algebra::zero3();
+        e[k] = Algebra::one();
+        write(k, e, Algebra::cross(x, e));
+        write(3 + k, Algebra::zero3(), e);
+      }
+    }
+    for (const auto& link : mb) {
+      if (link.joint_type == JOINT_FIXED) continue;
+      if (link.joint_type == JOINT_SPHERICAL) {
+        throw std::runtime_error(
+            "WorldModel: spherical joints are not supported with the solver "
+            "\"external\".");
+      }
+      // the motion subspace in world coordinates at the world origin
+      const tds::MotionVector<Algebra> s = link.X_world.apply_inverse(link.S);
+      write(link.qd_index, s.top, s.bottom);
     }
   }
 

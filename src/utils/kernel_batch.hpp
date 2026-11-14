@@ -100,6 +100,11 @@ class KernelBatch {
   KernelBackend backend() const { return backend_; }
   // number of threads per block of the CUDA kernels
   int& cuda_block_size() { return cuda_block_size_; }
+  // The CUDA stream (CUstream or cudaStream_t) of the launches and copies,
+  // nullptr (the default) for the legacy default stream, for example the
+  // stream of another library whose work the kernels read or write.
+  void set_stream(void* stream) { stream_ = stream; }
+  void* stream() const { return stream_; }
 
   // Creates a zero-initialized array, for example to keep another state.
   // Does nothing if the array exists with the same size.
@@ -148,7 +153,7 @@ class KernelBatch {
     if (backend_ != KernelBackend::CUDA) return;
     Array& a = array(name);
     check(model_.cuda->copy_to_device(a.device, a.host.data(), bytes(a),
-                                      nullptr));
+                                      stream_));
   }
   // copies the device array to the host and waits until it is copied, does
   // nothing on the CPU
@@ -156,7 +161,7 @@ class KernelBatch {
     if (backend_ != KernelBackend::CUDA) return;
     Array& a = array(name);
     check(model_.cuda->copy_to_host(a.host.data(), a.device, bytes(a),
-                                    nullptr));
+                                    stream_));
     synchronize();
   }
 
@@ -207,7 +212,7 @@ class KernelBatch {
     if (backend_ == KernelBackend::CUDA) {
       const auto& launcher = f.template cuda<Float>();
       launcher(num_worlds_, num_worlds_, inputs.data(), outputs.data(),
-               cuda_block_size_, nullptr, iterations);
+               cuda_block_size_, stream_, iterations);
       check(model_.cuda->last_error());
     } else {
       const auto& launcher = f.template cpu<Float>();
@@ -247,7 +252,7 @@ class KernelBatch {
     if (backend_ == KernelBackend::CUDA) {
       check(model_.cuda->copy_on_device(d.device + offset_d,
                                         s.device + offset_s,
-                                        n * sizeof(Float), nullptr));
+                                        n * sizeof(Float), stream_));
     } else {
       std::copy_n(s.host.begin() + offset_s, n, d.host.begin() + offset_d);
     }
@@ -265,7 +270,7 @@ class KernelBatch {
   // waits until the CUDA kernels and copies are done
   void synchronize() {
     if (backend_ == KernelBackend::CUDA) {
-      check(model_.cuda->synchronize(nullptr));
+      check(model_.cuda->synchronize(stream_));
     }
   }
 
@@ -286,6 +291,7 @@ class KernelBatch {
   KernelBackend backend_;
   int num_threads_;
   int cuda_block_size_{32};
+  void* stream_{nullptr};
   std::map<std::string, Array> arrays_;
 
   Array& array(const std::string& name) {
