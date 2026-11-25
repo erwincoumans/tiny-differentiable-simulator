@@ -101,13 +101,16 @@ class BakedWorld:
 
   batch(num_worlds, backend, precision) creates a Batch that simulates many
   worlds at once. The kernels for a backend and precision are compiled when
-  they are first needed (or by tds_bake.bake)."""
+  they are first needed (or by tds_bake.bake). With fast_math the CUDA
+  kernels are compiled with --use_fast_math (see baking.compile_cuda)."""
 
-  def __init__(self, directory, device=0, verbose=True, jobs=None):
+  def __init__(self, directory, device=0, verbose=True, jobs=None,
+               fast_math=False):
     self.directory = os.path.abspath(directory)
     self.device = device
     self.verbose = verbose
     self.jobs = jobs
+    self.fast_math = bool(fast_math)
     with open(os.path.join(self.directory, "kernels.json")) as f:
       self.manifest = json.load(f)
     with open(os.path.join(self.directory, "resolved.json")) as f:
@@ -226,7 +229,8 @@ class BakedWorld:
       return
     if kind == "cuda":
       self._compiled[kind][precision] = baking.compile_cuda(
-          self.directory, precision, self.device, self.jobs, self.verbose)
+          self.directory, precision, self.device, self.jobs, self.verbose,
+          self.fast_math)
     else:
       self._compiled[kind][precision] = baking.compile_cpu(
           self.directory, precision, self.jobs, self.verbose)

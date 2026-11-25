@@ -224,14 +224,22 @@ def _jobs(jobs, gb_per_job):
 
 
 def compile_cuda(directory, precision="float", device=0, jobs=None,
-                 verbose=True):
+                 verbose=True, fast_math=False):
   """Compiles the CUDA kernels of a generated world with NVRTC for the
   compute capability of the device, unless they exist. Returns the list of
-  CUBIN or PTX files."""
+  CUBIN or PTX files.
+
+  fast_math: compile with --use_fast_math (approximate float division, square
+  root, sine and cosine, denormals flushed to zero), kept apart from the
+  precise kernels in the cache. Their errors are of the order of float
+  rounding, and they are faster: the kernels are serial chains of
+  operations, one thread per world, and the precise sine, cosine and
+  division are long instruction sequences with slow paths."""
   tk = _native()
   info = tk.cuda_device(device)
   cc = info["compute_capability"]
-  out_dir = os.path.join(directory, "cuda", "sm_%d" % cc, precision)
+  out_dir = os.path.join(directory, "cuda", "sm_%d" % cc,
+                         precision + ("_fast_math" if fast_math else ""))
   done = os.path.join(out_dir, "done.json")
   with _file_lock(os.path.join(directory, "cuda.lock")):
     if os.path.exists(done):
@@ -245,15 +253,18 @@ def compile_cuda(directory, precision="float", device=0, jobs=None,
     nvrtc = tk.nvrtc(library)
     parts = manifest["parts"]
     start = time.time()
-    _log(verbose, "compiling %d CUDA parts (%s) for %s with NVRTC %d.%d" %
-         (len(parts), precision, info["name"], nvrtc["version"] // 1000,
+    _log(verbose, "compiling %d CUDA parts (%s%s) for %s with NVRTC %d.%d" %
+         (len(parts), precision, ", fast math" if fast_math else "",
+          info["name"], nvrtc["version"] // 1000,
           nvrtc["version"] % 1000 // 10))
     define = "-DTDS_KERNELS_%s" % precision.upper()
+    options = ["--use_fast_math"] if fast_math else []
 
     def compile_part(p):
       t = time.time()
       result = tk.nvrtc_compile(source, "kernels_cuda.cu", cc,
-                                [define, "-DTDS_KERNEL_PART=%d" % p], library)
+                                [define, "-DTDS_KERNEL_PART=%d" % p] + options,
+                                library)
       name = "part_%d.%s" % (p, "ptx" if result["is_ptx"] else "cubin")
       return p, name, result, time.time() - t
 
@@ -351,12 +362,14 @@ def bake(world,
          max_segment_kb=256,
          jobs=None,
          device=0,
-         verbose=True):
+         verbose=True,
+         fast_math=False):
   """Bakes a world (a World, a dictionary, or the path of a JSON file) into
   batched kernels: generates their sources and compiles them for the backends
   ("cuda", "cpu") and precisions ("float", "double"), or reuses them from the
   cache. Returns a BakedWorld, whose batch() method creates batches of
   worlds. Other backends and precisions are compiled when a batch needs them.
+  fast_math: the CUDA kernels with --use_fast_math (see compile_cuda).
   """
   from .baked import BakedWorld
   if isinstance(world, str):
@@ -364,17 +377,19 @@ def bake(world,
   elif isinstance(world, dict):
     world = World.from_dict(world)
   directory = generate(world, directory, max_segment_kb, force, verbose)
-  baked = BakedWorld(directory, device=device, verbose=verbose, jobs=jobs)
+  baked = BakedWorld(directory, device=device, verbose=verbose, jobs=jobs,
+                     fast_math=fast_math)
   for backend in backends:
     for precision in precisions:
       baked.compile(backend, precision)
   return baked
 
 
-def load(directory, device=0, verbose=True):
+def load(directory, device=0, verbose=True, fast_math=False):
   """Loads a baked world from its directory (see bake)."""
   from .baked import BakedWorld
-  return BakedWorld(directory, device=device, verbose=verbose)
+  return BakedWorld(directory, device=device, verbose=verbose,
+                    fast_math=fast_math)
 
 
 def cached_worlds():
